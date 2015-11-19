@@ -1,15 +1,21 @@
 {
 	"name": "Gradle",
 	"description": "Run gradle tasks from within code",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"publisher": "cazzar09",
 	"icon": "icon.png",
 	"readme": "README.md",
 	"author": {"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"},
 	"maintainers": [{"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"}],
 	"bugs": {
-		
+		"email": "me@cazzar.net",
+		"url": "https://github.com/Cazzar/vscode-gradle/issues"
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Cazzar/vscode-gradle/"
+	},
+	"license": "MIT",
 	"engines": {
 		"vscode": "^0.10.1"
 	},
