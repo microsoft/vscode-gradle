@@ -1,6 +1,6 @@
 {
 	"name": "Gradle",
-	"description": "Run gradle tasks from within code",
+	"description": "Run gradle tasks from within Visual Studio Code",
 	"version": "1.0.0",
 	"publisher": "cazzar09",
 	"icon": "icon.png",
@@ -51,5 +51,4 @@
 		"typescript": "^1.6.2",
 		"vscode": "0.10.x"
 	}
-	
 }
