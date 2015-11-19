@@ -1,0 +1,49 @@
+{
+	"name": "Gradle",
+	"description": "Run gradle tasks from within code",
+	"version": "0.0.1",
+	"publisher": "cazzar09",
+	"icon": "icon.png",
+	"readme": "README.md",
+	"author": {"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"},
+	"maintainers": [{"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"}],
+	"bugs": {
+		
+	},
+	"engines": {
+		"vscode": "^0.10.1"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:gradle"
+	],
+	"main": "./out/src/extension",
+	"contributes": {
+		"commands": [{
+			"command": "gradle",
+			"title": "Gradle"
+		}],
+		"configuration": {
+			"type": "object",
+			"title": "Gradle configuration",
+			"properties": {
+				"gradle.useCommand": {
+					"type": "string",
+					"default": "gradlew",
+					"description": "use this command to run gradle."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+		"compile": "node ./node_modules/vscode/bin/compile -watch -p ./"
+	},
+	"devDependencies": {
+		"typescript": "^1.6.2",
+		"vscode": "0.10.x"
+	}
+	
+}
