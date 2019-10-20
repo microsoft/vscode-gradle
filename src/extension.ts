@@ -4,11 +4,11 @@ import {
   commands,
   ExtensionContext,
   OutputChannel
-} from "vscode";
+} from 'vscode';
 
-import ProcessRegistry from "./ProcessRegistry";
-import TaskRegistry, { Task } from "./TaskRegistry";
-import Gradle from "./Gradle";
+import ProcessRegistry from './ProcessRegistry';
+import TaskRegistry, { Task } from './TaskRegistry';
+import Gradle from './Gradle';
 
 let outputChannel: OutputChannel = null;
 
@@ -26,7 +26,7 @@ async function gradleRunTaskCommand(): Promise<string | void | Error> {
   let tasks: Task[] = TaskRegistry.getTasks();
 
   if (!tasks.length) {
-    return Promise.reject("No tasks found. Try running gradle:refresh");
+    return Promise.reject('No tasks found. Try running gradle:refresh');
   }
 
   const pickedTask: Task = await window.showQuickPick(tasks);
@@ -36,21 +36,21 @@ async function gradleRunTaskCommand(): Promise<string | void | Error> {
 }
 
 export async function activate(context: ExtensionContext) {
-  outputChannel = window.createOutputChannel("Gradle");
+  outputChannel = window.createOutputChannel('Gradle');
 
   workspace
-    .createFileSystemWatcher("**/build.gradle")
+    .createFileSystemWatcher('**/build.gradle')
     .onDidChange(refreshTasksCommand);
 
   await refreshTasksCommand();
 
   context.subscriptions.push(
-    commands.registerCommand("gradle:runtask", gradleRunTaskCommand)
+    commands.registerCommand('gradle:runtask', gradleRunTaskCommand)
   );
   context.subscriptions.push(
-    commands.registerCommand("gradle:kill", gradleKillCommand)
+    commands.registerCommand('gradle:kill', gradleKillCommand)
   );
   context.subscriptions.push(
-    commands.registerCommand("gradle:refresh", refreshTasksCommand)
+    commands.registerCommand('gradle:refresh', refreshTasksCommand)
   );
 }

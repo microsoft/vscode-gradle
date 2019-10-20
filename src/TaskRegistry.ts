@@ -4,10 +4,10 @@ import {
   Disposable,
   OutputChannel,
   QuickPickItem
-} from "vscode";
+} from 'vscode';
 
-import Gradle from "./Gradle";
-import ProcessRegistry from "./ProcessRegistry";
+import Gradle from './Gradle';
+import ProcessRegistry from './ProcessRegistry';
 
 export interface Task extends QuickPickItem {}
 
@@ -32,43 +32,35 @@ function getTasks(): Task[] {
 }
 
 function getTasksFromGradle(): Thenable<Task[]> {
-  return new Promise((resolve, reject) => {
-    const cmd = `${Gradle.getCommand()} --console plain tasks ${Gradle.getTasksArgs()}`;
-    const cwd = workspace.rootPath;
-    ProcessRegistry.create(cmd, { cwd }, (err, stdout) => {
-      if (err) {
-        return reject(err);
-      }
-      let match: RegExpExecArray;
-      const tasks: Task[] = [];
+  const cmd = `${Gradle.getCommand()} --console plain tasks ${Gradle.getTasksArgs()}`;
+  const cwd = workspace.rootPath;
+  return ProcessRegistry.create(cmd, { cwd }).then(stdout => {
+    let match: RegExpExecArray;
+    const tasks: Task[] = [];
 
-      while ((match = TASK_REGEX.exec(stdout.toString())) !== null) {
-        tasks.push({
-          label: match[1],
-          description: match[2]
-        });
-      }
-      return resolve(tasks);
-    });
+    while ((match = TASK_REGEX.exec(stdout)) !== null) {
+      tasks.push({
+        label: match[1],
+        description: match[2]
+      });
+    }
+    return tasks;
   });
 }
 
-async function refresh(): Promise<Error | void> {
+function refresh(): Thenable<Error | void> {
   isRefreshing = true;
   const statusbar: Disposable = window.setStatusBarMessage(
-    "Refreshing gradle tasks"
+    'Refreshing gradle tasks'
   );
-  let gradleTasks: Task[];
-  try {
-    gradleTasks = await getTasksFromGradle();
-  } catch (err) {
-    statusbar.dispose();
-    throw err;
-  }
-
-  clear();
-  addAll(gradleTasks);
-  statusbar.dispose();
+  return getTasksFromGradle().then(
+    gradleTasks => {
+      clear();
+      addAll(gradleTasks);
+      statusbar.dispose();
+    },
+    () => statusbar.dispose()
+  );
 }
 
 export default { refresh, clear, getTasks };

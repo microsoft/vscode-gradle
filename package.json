@@ -2,7 +2,7 @@
   "name": "vscode-gradle",
   "displayName": "Gradle Tasks",
   "description": "Run gradle tasks from within Visual Studio Code",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "private": true,
   "publisher": "richardwillis",
   "icon": "icon.png",
@@ -68,7 +68,9 @@
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
     "compile": "tsc -watch -p ./",
-    "postinstall": "vscode-install"
+    "postinstall": "vscode-install",
+    "lint": "prettier --check \"*.+(ts|js|json)\"",
+    "format": "prettier --write \"*.+(ts|js|json)\""
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
@@ -77,5 +79,10 @@
     "prettier": "^1.18.2",
     "typescript": "^3.6.4",
     "vscode": "^1.1.36"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "tabWidth": 2,
+    "printWidth": 80
   }
 }
