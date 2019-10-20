@@ -1,9 +1,9 @@
 # VSCode-Gradle
 
-![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg)
+<!-- ![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg) -->
 
 
-This extension provides support to run gradle tasks. 
+This extension provides support to run gradle tasks.
 
 ## Features
 
