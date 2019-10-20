@@ -1,6 +1,6 @@
 # VSCode-Gradle
 
-<img src="https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle" />
+<a href="https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle">![Marketplace extension](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)</a>
 
 <!-- ![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg) -->
 
