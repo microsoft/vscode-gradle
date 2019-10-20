@@ -56,10 +56,8 @@
           "description": "The path to the gradlew command"
         },
         "gradle.tasks.args": {
-          "type": "array",
-          "default": [
-            "--all"
-          ],
+          "type": "string",
+          "default": "--all",
           "description": "Custom gradle tasks arguments"
         }
       }

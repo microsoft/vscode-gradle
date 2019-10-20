@@ -8,10 +8,7 @@ function getCommand(): string {
 }
 
 function getTasksArgs(): string {
-  return workspace
-    .getConfiguration()
-    .get('gradle.tasks.args', [])
-    .join(' ');
+  return workspace.getConfiguration().get('gradle.tasks.args', '');
 }
 
 function runTask(outputChannel: OutputChannel, task: Task): Thenable<string> {
