@@ -66,7 +66,7 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "tsc -p ./",
+    "build": "tsc -p ./",
     "compile": "tsc -watch -p ./",
     "postinstall": "vscode-install",
     "lint": "prettier --check \"*.+(ts|js|json)\"",

@@ -14,10 +14,7 @@ function getTasksArgs(): string {
     .join(' ');
 }
 
-function runTask(
-  outputChannel: OutputChannel,
-  task: Task
-): Thenable<string | Error> {
+function runTask(outputChannel: OutputChannel, task: Task): Thenable<string> {
   const statusbar: Disposable = window.setStatusBarMessage(
     `Running gradle ${task.label}`
   );
@@ -26,7 +23,10 @@ function runTask(
 
   return ProcessRegistry.create(cmd, { cwd }, outputChannel).then(
     () => statusbar.dispose(),
-    () => statusbar.dispose()
+    err => {
+      statusbar.dispose();
+      return Promise.reject(err);
+    }
   );
 }
 

@@ -17,7 +17,7 @@ function gradleKillCommand() {
 }
 
 function refreshTasksCommand() {
-  return TaskRegistry.refresh().catch(err => {
+  return TaskRegistry.refresh().then(null, err => {
     window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
   });
 }

@@ -13,7 +13,6 @@ export interface Task extends QuickPickItem {}
 
 const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
 const tasks: Set<Task> = new Set();
-let isRefreshing = false;
 
 function add(task: Task): void {
   tasks.add(task);
@@ -48,8 +47,7 @@ function getTasksFromGradle(): Thenable<Task[]> {
   });
 }
 
-function refresh(): Thenable<Error | void> {
-  isRefreshing = true;
+function refresh(): Thenable<void> {
   const statusbar: Disposable = window.setStatusBarMessage(
     'Refreshing gradle tasks'
   );
@@ -59,7 +57,10 @@ function refresh(): Thenable<Error | void> {
       addAll(gradleTasks);
       statusbar.dispose();
     },
-    () => statusbar.dispose()
+    err => {
+      statusbar.dispose();
+      return Promise.reject(err);
+    }
   );
 }
 
