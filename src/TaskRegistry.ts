@@ -36,14 +36,13 @@ function getTasksFromGradle(): Thenable<Task[]> {
   return ProcessRegistry.create(cmd, { cwd }).then(stdout => {
     let match: RegExpExecArray;
     const tasks: Task[] = [];
-
     while ((match = TASK_REGEX.exec(stdout)) !== null) {
       tasks.push({
         label: match[1],
         description: match[2]
       });
     }
-    return tasks;
+    return tasks.sort((a, b) => a.label.localeCompare(b.label));
   });
 }
 
