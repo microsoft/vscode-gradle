@@ -1,6 +1,6 @@
 # VSCode-Gradle
 
-![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg)
+<img src="https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg" alt="Build status" />
 
 
 This extension provides support to run gradle tasks. 
