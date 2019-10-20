@@ -1,4 +1,4 @@
-name: Node CI Publish
+name: Node CI Build
 
 on: push
 
