@@ -1,58 +1,81 @@
 {
-	"name": "Gradle",
-	"description": "Run gradle tasks from within Visual Studio Code",
-	"version": "1.0.0",
-	"publisher": "cazzar09",
-	"icon": "icon.png",
-	"readme": "README.md",
-	"author": {"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"},
-	"maintainers": [{"name": "Cayde Dixon", "url": "http://cazzar.net", "email": "me@cazzar.net"}],
-	"bugs": {
-		"email": "me@cazzar.net",
-		"url": "https://github.com/Cazzar/vscode-gradle/issues"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Cazzar/vscode-gradle/"
-	},
-	"license": "MIT",
-	"engines": {
-		"vscode": "^1.5.1"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onCommand:gradle"
-	],
-	"main": "./out/src/extension",
-	"contributes": {
-		"commands": [{
-			"command": "gradle",
-			"title": "Gradle"
-		}],
-		"configuration": {
-			"type": "object",
-			"title": "Gradle configuration",
-			"properties": {
-				"gradle.useCommand": {
-					"type": "string",
-					"default": "gradlew",
-					"description": "use this command to run gradle."
-				}
-			}
-		}
-	},
-    "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
+  "name": "vscode-gradle",
+  "displayName": "Gradle Tasks",
+  "description": "Run gradle tasks from within Visual Studio Code",
+  "version": "1.0.0",
+  "private": true,
+  "publisher": "richardwillis",
+  "icon": "icon.png",
+  "readme": "README.md",
+  "author": "Richard Willis <willis.rh@gmail.com>",
+  "maintainers": [
+    "Richard Willis <willis.rh@gmail.com>"
+  ],
+  "bugs": {
+    "url": "https://github.com/badsyntax/vscode-gradle/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/badsyntax/vscode-gradle/"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.8.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:gradle:runtask",
+    "onCommand:gradle:kill",
+    "workspaceContains:**/build.gradle"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gradle:runtask",
+        "title": "Gradle: Run task"
+      },
+      {
+        "command": "gradle:refresh",
+        "title": "Gradle: Refresh tasks"
+      },
+      {
+        "command": "gradle:kill",
+        "title": "Gradle: Kill all tasks"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Gradle configuration",
+      "properties": {
+        "gradle.useCommand": {
+          "type": "string",
+          "default": "gradlew",
+          "description": "The path to the gradlew command"
+        },
+        "gradle.tasks.args": {
+          "type": "array",
+          "default": [
+            "--all"
+          ],
+          "description": "Custom gradle tasks arguments"
+        }
+      }
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "postinstall": "vscode-install"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.11.1",
+    "mocha": "^6.2.2",
+    "prettier": "^1.18.2",
+    "typescript": "^3.6.4",
+    "vscode": "^1.1.36"
+  }
 }

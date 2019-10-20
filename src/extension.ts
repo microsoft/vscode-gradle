@@ -1,64 +1,56 @@
-import {window, workspace, commands, ExtensionContext, QuickPickItem, OutputChannel, Disposable} from 'vscode'; 
-import * as proc from 'child_process'
+import {
+  window,
+  workspace,
+  commands,
+  ExtensionContext,
+  OutputChannel
+} from "vscode";
 
-var cacheNeeded: boolean = true;
+import ProcessRegistry from "./ProcessRegistry";
+import TaskRegistry, { Task } from "./TaskRegistry";
+import Gradle from "./Gradle";
 
-var TaskCache: QuickPickItem[] = [];
-var outputChannel: OutputChannel = null;
+let outputChannel: OutputChannel = null;
 
-export function activate(context: ExtensionContext) {
-	// const cwd = workspace.rootPath;
-	outputChannel = window.createOutputChannel("Gradle")
-	const disposable = commands.registerCommand('gradle', () => {
-		
-		return window.showQuickPick(list()).then((task: QuickPickItem) => {
-			var statusbar: Disposable = window.setStatusBarMessage("Running...")
-			outputChannel.show();
-			var process = proc.exec(
-				cmd() + " " + task.label, 
-				{cwd: workspace.rootPath}, 
-				(err, stdout, stderr) => {
-					if (err) window.showErrorMessage("An error occured");
-					else window.showInformationMessage("Success!");
-					outputChannel.append(stdout);
-				});
-			process.stdout.on("data", data => outputChannel.append(data.toString()));
-			process.stderr.on("data", data => outputChannel.append("[ERR] " + data));
-			statusbar.dispose(); 
-		})
-	});
+function gradleKillCommand() {
+  ProcessRegistry.killAll();
+}
 
-	context.subscriptions.push(disposable);
-} 
+function refreshTasksCommand() {
+  return TaskRegistry.refresh().catch(err => {
+    window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
+  });
+}
 
-function cmd(): string { return workspace.getConfiguration().get("gradle.useCommand", "gradlew"); }
+async function gradleRunTaskCommand(): Promise<string | void | Error> {
+  let tasks: Task[] = TaskRegistry.getTasks();
 
-function list(): Thenable<QuickPickItem[]> {
-	const regex = /$\s*([a-z0-9]+)\s-\s(.*)$/mgi;
-	
-	return new Promise(resolve => {
-		if (cacheNeeded) {
-			outputChannel.show(); 
-			var process = proc.exec(cmd() + " tasks", {cwd: workspace.rootPath}, (err, stdout, stderr) => {
-				if (err) { return resolve([])}
-				var match: RegExpExecArray;
-				var items: QuickPickItem[] = [];
+  if (!tasks.length) {
+    return Promise.reject("No tasks found. Try running gradle:refresh");
+  }
 
-				while ((match = regex.exec(stdout.toString())) !== null) {
-					items.push({
-						label: match[1],
-						description: match[2], 
-					})
-				} 
-				
-				TaskCache = items;
-				// cacheNeeded = false; //Maybe I'll implement this later...
-				return resolve(items);
-			});
-			process.stdout.on("data", data => outputChannel.append(data.toString()));
-			process.stderr.on("data", data => outputChannel.append("[ERR] " + data));
-			
-		}
-		else return resolve(TaskCache);
-	})
+  const pickedTask: Task = await window.showQuickPick(tasks);
+  if (pickedTask) {
+    return Gradle.runTask(outputChannel, pickedTask);
+  }
+}
+
+export async function activate(context: ExtensionContext) {
+  outputChannel = window.createOutputChannel("Gradle");
+
+  workspace
+    .createFileSystemWatcher("**/build.gradle")
+    .onDidChange(refreshTasksCommand);
+
+  await refreshTasksCommand();
+
+  context.subscriptions.push(
+    commands.registerCommand("gradle:runtask", gradleRunTaskCommand)
+  );
+  context.subscriptions.push(
+    commands.registerCommand("gradle:kill", gradleKillCommand)
+  );
+  context.subscriptions.push(
+    commands.registerCommand("gradle:refresh", refreshTasksCommand)
+  );
 }
