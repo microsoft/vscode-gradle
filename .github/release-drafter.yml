@@ -1,4 +1,7 @@
+name-template: 'v$NEXT_PATCH_VERSION'
+tag-template: '$NEXT_PATCH_VERSION'
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 template: |
-  ## What’s Changed
+  ## Changes
 
   $CHANGES
