@@ -8,14 +8,13 @@ This extension provides support to run gradle tasks.
 
 ![Main image](images/main.png)
 
-
 ## Usage
 
 Run any of the following commands:
 
-* "Gradle: Run task"
-* "Gradle: Refresh tasks"
-* "Gradle: Kill all tasks"
+- "Gradle: Run task"
+- "Gradle: Refresh tasks"
+- "Gradle: Kill all tasks"
 
 ## Config
 
@@ -51,10 +50,13 @@ Use all tasks (default):
 - Refresh tasks when `build.gradle` changes
 - Kill gradle task processes
 
-
 ## Credits
 
 This project is a fork of [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle), which is no longer maintained.
+
+## TODO
+
+See [TODO.md](./TODO.md).
 
 ## License
 

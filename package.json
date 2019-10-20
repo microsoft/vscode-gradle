@@ -64,11 +64,13 @@
     }
   },
   "scripts": {
-    "build": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "node out/src/test/runTest",
+    "pretest": "npm run compile",
     "postinstall": "vscode-install",
-    "lint": "prettier --check \"*.+(ts|js|json)\"",
-    "format": "prettier --write \"*.+(ts|js|json)\""
+    "lint": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "format": "prettier --write \"src/**/*.{ts,js,json}\""
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
