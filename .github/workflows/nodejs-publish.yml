@@ -18,14 +18,13 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install vsce
-        run: npm install -g vsce
       - name: Package extension
         run: |
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
           npm run compile
+          npm install -g vsce
           vsce package
       - name: Publish extension to marketplace
         env:
