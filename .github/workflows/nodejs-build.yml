@@ -16,9 +16,13 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.0.2'
+          architecture: x64
       - name: Test & build extension
         run: |
-          sudo apt-get install xvfb
+          sudo apt install xvfb
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           npm ci

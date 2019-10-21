@@ -20,9 +20,10 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
+        "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/out/test/suite/index",
-        "./test-fixtures/with-gradle/"
+        "${workspaceFolder}/test-fixtures/gradle"
       ],
       "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
       "preLaunchTask": "npm: watch"

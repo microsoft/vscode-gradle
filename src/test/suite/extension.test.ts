@@ -8,7 +8,11 @@ import * as vscode from 'vscode';
 suite('Extension Test Suite', () => {
   vscode.window.showInformationMessage('Start all tests.');
 
-  test.skip('Should activate extension @integration', async () => {
+  test('Extension should be present', () => {
+    assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
+  });
+
+  test('Should activate extension @integration', async () => {
     const extension = vscode.extensions.getExtension(
       'richardwillis.vscode-gradle'
     );
