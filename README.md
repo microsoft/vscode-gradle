@@ -43,7 +43,7 @@ Disable tasks explorer:
 Enable tasks explorer (default):
 
 ```json
-"gradle.enableTasksExplorer": false
+"gradle.enableTasksExplorer": true
 ```
 
 ## Features
