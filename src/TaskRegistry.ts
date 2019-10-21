@@ -9,16 +9,26 @@ import {
 import Gradle from './Gradle';
 import ProcessRegistry from './ProcessRegistry';
 
-export interface Task extends QuickPickItem {}
+
+export class GradleTask implements QuickPickItem {
+  label: string;
+  description: string | undefined;
+
+  constructor(label: string, description?: string) {
+    this.label = label;
+    this.description = description;
+  }
+}
 
 const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
-const tasks: Set<Task> = new Set();
+const tasks: Set<GradleTask> = new Set();
+const changeHandlers: Array<() => void> = [];
 
-function add(task: Task): void {
+function add(task: GradleTask): void {
   tasks.add(task);
 }
 
-function addAll(tasks: Task[]): void {
+function addAll(tasks: GradleTask[]): void {
   tasks.forEach(add);
 }
 
@@ -26,21 +36,18 @@ function clear(): void {
   tasks.clear();
 }
 
-function getTasks(): Task[] {
+function getTasks(): GradleTask[] {
   return Array.from(tasks);
 }
 
-function getTasksFromGradle(): Thenable<Task[]> {
+function getTasksFromGradle(): Thenable<GradleTask[]> {
   const cmd = `${Gradle.getCommand()} --console plain tasks ${Gradle.getTasksArgs()}`;
-  const cwd = workspace.rootPath;
+  const { rootPath: cwd } = workspace;
   return ProcessRegistry.create(cmd, { cwd }).then(stdout => {
-    let match: RegExpExecArray;
-    const tasks: Task[] = [];
+    let match: RegExpExecArray | null = null;
+    const tasks: GradleTask[] = [];
     while ((match = TASK_REGEX.exec(stdout)) !== null) {
-      tasks.push({
-        label: match[1],
-        description: match[2]
-      });
+      tasks.push(new GradleTask(match[1], match[2]))
     }
     return tasks.sort((a, b) => a.label.localeCompare(b.label));
   });
@@ -55,6 +62,7 @@ function refresh(): Thenable<void> {
       clear();
       addAll(gradleTasks);
       statusbar.dispose();
+      changeHandlers.forEach(handler => handler());
     },
     err => {
       statusbar.dispose();
@@ -63,4 +71,8 @@ function refresh(): Thenable<void> {
   );
 }
 
-export default { refresh, clear, getTasks };
+function registerChangeHandler(handler: () => void) {
+  changeHandlers.push(handler)
+}
+
+export default { refresh, clear, getTasks, registerChangeHandler };

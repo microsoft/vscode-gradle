@@ -1,5 +1,5 @@
 import { window, OutputChannel } from 'vscode';
-import { ChildProcess, ExecException, exec } from 'child_process';
+import { ChildProcess, ExecOptions, exec } from 'child_process';
 
 const processes: Set<ChildProcess> = new Set();
 
@@ -21,15 +21,22 @@ function killAll(): void {
   processes.clear();
 }
 
-function writeOutput(process: ChildProcess, outputChannel: OutputChannel) {
+function writeOutput(
+  { stdout, stderr }: ChildProcess,
+  outputChannel: OutputChannel
+) {
   outputChannel.show();
-  process.stdout.on('data', data => outputChannel.append(data.toString()));
-  process.stderr.on('data', data => outputChannel.append('[ERR] ' + data));
+  if (stdout) {
+    stdout.on('data', data => outputChannel.append(data.toString()));
+  }
+  if (stderr) {
+    stderr.on('data', data => outputChannel.append('[ERR] ' + data));
+  }
 }
 
 function create(
   command: string,
-  options: Object,
+  options: ExecOptions,
   outputChannel?: OutputChannel
 ): Thenable<string> {
   return new Promise((resolve, reject) => {

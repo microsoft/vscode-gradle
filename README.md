@@ -1,4 +1,4 @@
-# VSCode-Gradle
+# vscode-gradle
 
 <a href="https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle">![Marketplace extension](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)</a>
 
@@ -6,17 +6,9 @@
 
 This extension provides support to run gradle tasks.
 
-![Main image](images/main.png)
+![Main image](images/task-list.png)
 
-## Usage
-
-Run any of the following commands:
-
-- "Gradle: Run task"
-- "Gradle: Refresh tasks"
-- "Gradle: Kill all tasks"
-
-## Config
+## Settings
 
 Use local `gradlew`:
 
@@ -42,10 +34,24 @@ Use all tasks (default):
 "gradle.tasks.args": "--all"
 ```
 
+Disable tasks explorer:
+
+```json
+"gradle.enableTasksExplorer": false
+```
+
+Enable tasks explorer (default):
+
+```json
+"gradle.enableTasksExplorer": false
+```
+
 ## Features
 
-- List gradle tasks, either project or all tasks (via custom gradle tasks arguments)
-- Run gradle tasks and view output
+- List gradle tasks in the Command Palette
+- List gradle tasks in the Explorer
+- Read project or all tasks (via custom gradle tasks arguments)
+- Run gradle tasks (via Command Palette or Explorer) and view output
 - Load tasks when `build.gradle` file is found in root workspace
 - Refresh tasks when `build.gradle` changes
 - Kill gradle task processes

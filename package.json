@@ -20,7 +20,7 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
-    "vscode": "^1.8.0"
+    "vscode": "^1.39.0"
   },
   "categories": [
     "Other"
@@ -28,10 +28,19 @@
   "activationEvents": [
     "onCommand:gradle:runtask",
     "onCommand:gradle:kill",
-    "workspaceContains:**/build.gradle"
+    "workspaceContains:/build.gradle"
   ],
-  "main": "./out/src/extension",
+  "main": "./out/extension",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "gradleTasks",
+          "name": "Gradle Tasks",
+          "when": "extensionActivated"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "gradle:runtask",
@@ -59,26 +68,35 @@
           "type": "string",
           "default": "--all",
           "description": "Custom gradle tasks arguments"
+        },
+        "gradle.enableTasksExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable an explorer view for gradle scripts"
         }
       }
     }
   },
   "scripts": {
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "node out/src/test/runTest",
+    "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
     "postinstall": "vscode-install",
     "lint": "prettier --check \"src/**/*.{ts,js,json}\"",
     "format": "prettier --write \"src/**/*.{ts,js,json}\""
   },
   "devDependencies": {
+    "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.11.1",
+    "glob": "^7.1.4",
     "mocha": "^6.2.2",
     "prettier": "^1.18.2",
     "typescript": "^3.6.4",
-    "vscode": "^1.1.36"
+    "vscode": "^1.1.36",
+    "vscode-test": "^1.2.0"
   },
   "prettier": {
     "singleQuote": true,

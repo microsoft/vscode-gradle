@@ -1,7 +1,7 @@
 import { window, workspace, Disposable, OutputChannel } from 'vscode';
 
 import ProcessRegistry from './ProcessRegistry';
-import { Task } from './TaskRegistry';
+import { GradleTask } from './TaskRegistry';
 
 function getCommand(): string {
   return workspace.getConfiguration().get('gradle.useCommand', 'gradlew');
@@ -11,11 +11,14 @@ function getTasksArgs(): string {
   return workspace.getConfiguration().get('gradle.tasks.args', '');
 }
 
-function runTask(outputChannel: OutputChannel, task: Task): Thenable<string> {
-  const statusbar: Disposable = window.setStatusBarMessage(
-    `Running gradle ${task.label}`
-  );
+function runTask(
+  task: GradleTask,
+  outputChannel?: OutputChannel
+): Thenable<void> {
   const cmd = `${getCommand()} ${task.label}`;
+  const statusbar: Disposable = window.setStatusBarMessage(
+    `Running ${cmd}`
+  );
   const { rootPath: cwd } = workspace;
 
   return ProcessRegistry.create(cmd, { cwd }, outputChannel).then(
