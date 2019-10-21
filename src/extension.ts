@@ -7,31 +7,36 @@ import {
 } from 'vscode';
 
 import ProcessRegistry from './ProcessRegistry';
-import TaskRegistry, { Task } from './TaskRegistry';
+import TaskRegistry, { GradleTask } from './TaskRegistry';
 import Gradle from './Gradle';
+import GradleTreeProvider from './GradleNodeProvider';
 
-let outputChannel: OutputChannel = null;
+let outputChannel: OutputChannel;
 
 function gradleKillCommand() {
   ProcessRegistry.killAll();
 }
 
-function refreshTasksCommand() {
-  return TaskRegistry.refresh().then(null, err => {
+function gradleRefreshTasksCommand() {
+  return TaskRegistry.refresh().then(undefined, err => {
     window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
   });
 }
 
-async function gradleRunTaskCommand(): Promise<string | void | Error> {
-  let tasks: Task[] = TaskRegistry.getTasks();
+async function gradleRunTaskCommand(taskName?: string): Promise<Error | void> {
+  let tasks: GradleTask[] = TaskRegistry.getTasks();
 
   if (!tasks.length) {
     return Promise.reject('No tasks found. Try running gradle:refresh');
   }
 
-  const pickedTask: Task = await window.showQuickPick(tasks);
+  if (taskName) {
+    return Gradle.runTask(new GradleTask(taskName), outputChannel);
+  }
+
+  const pickedTask: GradleTask | void = await window.showQuickPick(tasks);
   if (pickedTask) {
-    return Gradle.runTask(outputChannel, pickedTask);
+    return Gradle.runTask(pickedTask, outputChannel);
   }
 }
 
@@ -39,18 +44,33 @@ export async function activate(context: ExtensionContext) {
   outputChannel = window.createOutputChannel('Gradle');
 
   workspace
-    .createFileSystemWatcher('**/build.gradle')
-    .onDidChange(refreshTasksCommand);
+    .createFileSystemWatcher('/build.gradle')
+    .onDidChange(gradleRefreshTasksCommand);
 
-  await refreshTasksCommand();
+  const explorerEnabled = workspace
+    .getConfiguration()
+    .get('gradle.enableTasksExplorer');
 
+  await gradleRefreshTasksCommand();
+
+  if (explorerEnabled) {
+    const treeProvider: GradleTreeProvider = new GradleTreeProvider();
+    TaskRegistry.registerChangeHandler(() => treeProvider.refresh());
+    window.registerTreeDataProvider('gradleTasks', treeProvider);
+  }
+
+  context.subscriptions.push(
+    commands.registerCommand('gradle:refresh', gradleRefreshTasksCommand)
+  );
   context.subscriptions.push(
     commands.registerCommand('gradle:runtask', gradleRunTaskCommand)
   );
   context.subscriptions.push(
     commands.registerCommand('gradle:kill', gradleKillCommand)
   );
-  context.subscriptions.push(
-    commands.registerCommand('gradle:refresh', refreshTasksCommand)
-  );
+
+  commands.executeCommand('setContext', 'extensionActivated', true);
 }
+
+// this method is called when your extension is deactivated
+export function deactivate() {}
