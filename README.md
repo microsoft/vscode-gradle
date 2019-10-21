@@ -66,6 +66,24 @@ Enable tasks explorer (default):
 - Refresh tasks when `build.gradle` changes
 - Kill gradle task processes
 
+## Troubleshooting
+
+<details><summary>The extension hangs with "Refreshing gradle tasks"...</summary>
+
+Eventually the command should fail with an error message. This is usually due to gradle not being able to resolve dependencies. Check your network connection.
+
+</details>
+
+<details><summary>The extension show an error "Unable to refresh gradle tasks: Command failed: gradlew..."</summary>
+
+This means the global `gradlew` command is not available. Change the command setting to point to a local `gradlew` command:
+
+```json
+"gradle.useCommand": "./gradlew"
+```
+
+</details>
+
 ## Credits
 
 This project is a fork of [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle), which is no longer maintained.
