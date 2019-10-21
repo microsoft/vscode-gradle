@@ -9,7 +9,6 @@ import {
 import Gradle from './Gradle';
 import ProcessRegistry from './ProcessRegistry';
 
-
 export class GradleTask implements QuickPickItem {
   label: string;
   description: string | undefined;
@@ -47,7 +46,7 @@ function getTasksFromGradle(): Thenable<GradleTask[]> {
     let match: RegExpExecArray | null = null;
     const tasks: GradleTask[] = [];
     while ((match = TASK_REGEX.exec(stdout)) !== null) {
-      tasks.push(new GradleTask(match[1], match[2]))
+      tasks.push(new GradleTask(match[1], match[2]));
     }
     return tasks.sort((a, b) => a.label.localeCompare(b.label));
   });
@@ -72,7 +71,7 @@ function refresh(): Thenable<void> {
 }
 
 function registerChangeHandler(handler: () => void) {
-  changeHandlers.push(handler)
+  changeHandlers.push(handler);
 }
 
 export default { refresh, clear, getTasks, registerChangeHandler };

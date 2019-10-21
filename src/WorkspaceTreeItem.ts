@@ -1,9 +1,4 @@
-import {
-  Command,
-  TreeItem,
-  TreeItemCollapsibleState,
-  ThemeIcon
-} from 'vscode';
+import { Command, TreeItem, TreeItemCollapsibleState, ThemeIcon } from 'vscode';
 
 export default class WorkspaceTreeItem extends TreeItem {
   constructor(

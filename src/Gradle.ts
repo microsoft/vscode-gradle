@@ -16,9 +16,7 @@ function runTask(
   outputChannel?: OutputChannel
 ): Thenable<void> {
   const cmd = `${getCommand()} ${task.label}`;
-  const statusbar: Disposable = window.setStatusBarMessage(
-    `Running ${cmd}`
-  );
+  const statusbar: Disposable = window.setStatusBarMessage(`Running ${cmd}`);
   const { rootPath: cwd } = workspace;
 
   return ProcessRegistry.create(cmd, { cwd }, outputChannel).then(
