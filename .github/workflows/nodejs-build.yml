@@ -3,8 +3,8 @@ name: Node CI Build
 on: push
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-test-linux:
+    runs-on: ubuntu-18.04
 
     strategy:
       matrix:
@@ -20,11 +20,37 @@ jobs:
         with:
           java-version: '12.0.2'
           architecture: x64
-      - name: Test & build extension
+      - name: Install OS dependencies
         run: |
           sudo apt install xvfb
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+      - name: Build & test extension
+        run: |
           npm ci
           npm run lint
           npm test
+
+  build-test-windows:
+    runs-on: windows-2019
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.0.2'
+          architecture: x64
+      - name: Build & test extension
+        run: |
+          npm ci
+          npm run lint
+          npm test
+        shell: pwsh
