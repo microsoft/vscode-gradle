@@ -8,6 +8,16 @@ This extension provides support to run gradle tasks.
 
 ![Main image](images/task-list.png)
 
+## Usage
+
+Run any of the following commands:
+
+- `Gradle: Run task`
+- `Gradle: Refresh tasks`
+- `Gradle: Kill all tasks`
+
+Or run gradle tasks from the explorer.
+
 ## Settings
 
 Use local `gradlew`:
