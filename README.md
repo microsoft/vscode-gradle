@@ -74,7 +74,7 @@ Eventually the command should fail with an error message. This is usually due to
 
 </details>
 
-<details><summary>The extension show an error "Unable to refresh gradle tasks: Command failed: gradlew..."</summary>
+<details><summary>The extension show an error "Unable to refresh gradle tasks: Command failed: Error: spawn gradlew..."</summary>
 
 This means the global `gradlew` command is not available. Change the command setting to point to a local `gradlew` command:
 

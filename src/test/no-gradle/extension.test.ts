@@ -2,13 +2,11 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 
 suite('Without build.gradle Extension Test Suite', () => {
-  vscode.window.showInformationMessage('Started all tests');
-
-  test('should be present', () => {
+  test('it should not be present', () => {
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
   });
 
-  test('should not activate', () => {
+  test('it should not be activated', () => {
     const extension = vscode.extensions.getExtension(
       'richardwillis.vscode-gradle'
     );

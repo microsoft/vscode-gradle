@@ -14,9 +14,12 @@ function getTasksArgs(): string {
 }
 
 function getTasks(): Thenable<GradleTask[]> {
-  const cmd = `${getCommand()} --console plain tasks ${getTasksArgs()}`;
-  const { rootPath: cwd } = workspace;
-  return ProcessRegistry.create(cmd, { cwd }).then(stdout => {
+  const cmd = getCommand();
+  const args = ['--console', 'plain', 'tasks'].concat(
+    getTasksArgs().split(' ')
+  );
+  const options = { cwd: workspace.rootPath };
+  return ProcessRegistry.create(cmd, args, options).then(stdout => {
     let match: RegExpExecArray | null = null;
     const tasks: GradleTask[] = [];
     while ((match = TASK_REGEX.exec(stdout)) !== null) {
@@ -30,15 +33,16 @@ function runTask(
   task: GradleTask,
   outputChannel: OutputChannel
 ): Thenable<void> {
-  const cmd = `${getCommand()} ${task.label}`;
+  const cmd = getCommand();
+  const args = [task.label];
+  const options = { cwd: workspace.rootPath };
   const feedback = `Running ${cmd}`;
   const statusbar: Disposable = window.setStatusBarMessage(feedback);
-  const { rootPath: cwd } = workspace;
 
   outputChannel.show();
   outputChannel.append(`${feedback}\n`);
 
-  return ProcessRegistry.create(cmd, { cwd }, outputChannel).then(
+  return ProcessRegistry.create(cmd, args, options, outputChannel).then(
     () => statusbar.dispose(),
     err => {
       statusbar.dispose();

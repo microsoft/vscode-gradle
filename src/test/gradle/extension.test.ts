@@ -4,13 +4,11 @@ import * as vscode from 'vscode';
 import TaskRegistry from '../../TaskRegistry';
 
 suite('With build.grade Extension Test Suite', () => {
-  vscode.window.showInformationMessage('Started all tests');
-
   test('it should be present', () => {
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
   });
 
-  test('it should activate', () => {
+  test('it should be activated', () => {
     const extension = vscode.extensions.getExtension(
       'richardwillis.vscode-gradle'
     );

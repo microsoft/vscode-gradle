@@ -27,7 +27,8 @@ function killAll() {
 
 function create(
   command: string,
-  options: ExecOptions,
+  args?: ReadonlyArray<string>,
+  options?: ExecOptions,
   outputChannel?: OutputChannel
 ): Thenable<string> {
   let processLogger: ProcessLogger | undefined;
@@ -36,7 +37,7 @@ function create(
     processLogger = new ProcessLogger(outputChannel);
   }
 
-  const process = new Process(command, options, processLogger);
+  const process = new Process(command, args, options, processLogger);
   const childProcess = process.childProcess;
 
   add(childProcess);

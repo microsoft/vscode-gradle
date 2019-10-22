@@ -96,9 +96,11 @@
     "format": "prettier --write \"src/**/*.{ts,js,json}\""
   },
   "devDependencies": {
+    "@types/cross-spawn": "^6.0.1",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.11.1",
+    "cross-spawn": "^7.0.1",
     "glob": "^7.1.4",
     "mocha": "^6.2.2",
     "prettier": "^1.18.2",
