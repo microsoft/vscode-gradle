@@ -8,3 +8,5 @@
 Only refresh on activation if activation is not refresh
 
 Runngradle task before check if there are available tasks
+
+Check standards on global gradlew
