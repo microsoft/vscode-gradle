@@ -7,7 +7,8 @@ import {
 } from 'vscode';
 
 import ProcessRegistry from './ProcessRegistry';
-import TaskRegistry, { GradleTask } from './TaskRegistry';
+import TaskRegistry from './TaskRegistry';
+import GradleTask from './GradleTask';
 import Gradle from './Gradle';
 import GradleTreeProvider from './GradleNodeProvider';
 

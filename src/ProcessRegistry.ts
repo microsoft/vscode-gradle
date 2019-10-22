@@ -3,15 +3,15 @@ import { ChildProcess, ExecOptions, exec } from 'child_process';
 
 const processes: Set<ChildProcess> = new Set();
 
-function add(process: ChildProcess): void {
+function add(process: ChildProcess) {
   processes.add(process);
 }
 
-function remove(process: ChildProcess): void {
+function remove(process: ChildProcess) {
   processes.delete(process);
 }
 
-function killAll(): void {
+function killAll() {
   processes.forEach((process: ChildProcess, _: ChildProcess) => {
     process.kill('SIGINT');
   });
@@ -25,7 +25,6 @@ function writeOutput(
   { stdout, stderr }: ChildProcess,
   outputChannel: OutputChannel
 ) {
-  outputChannel.show();
   if (stdout) {
     stdout.on('data', data => outputChannel.append(data.toString()));
   }

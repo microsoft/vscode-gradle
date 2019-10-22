@@ -1,5 +1,4 @@
 import { Command, TreeItem, TreeItemCollapsibleState } from 'vscode';
-import { join as pathJoin } from 'path';
 
 export default class GradleTreeItem extends TreeItem {
   constructor(

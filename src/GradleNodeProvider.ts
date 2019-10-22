@@ -6,8 +6,6 @@ import {
   TreeItemCollapsibleState
 } from 'vscode';
 
-import { GradleTask } from './TaskRegistry';
-
 import TaskRegistry from './TaskRegistry';
 import GradleTreeItem from './GradeTreeItem';
 import WorkspaceTreeItem from './WorkspaceTreeItem';
@@ -22,7 +20,7 @@ export default class TreeProvider
 
   constructor() {}
 
-  refresh(): void {
+  refresh() {
     this._onDidChangeTreeData.fire();
   }
 
