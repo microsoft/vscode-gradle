@@ -22,6 +22,7 @@ jobs:
           java-version: '12.0.2'
           architecture: x64
       - name: Setup Linux
+        shell: pwsh
         run: |
           sudo apt install xvfb
           export DISPLAY=':99.0'
