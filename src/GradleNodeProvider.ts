@@ -8,10 +8,8 @@ import {
 
 import TaskRegistry from './TaskRegistry';
 import GradleTreeItem from './GradeTreeItem';
-import WorkspaceTreeItem from './WorkspaceTreeItem';
 
-export default class TreeProvider
-  implements TreeDataProvider<GradleTreeItem | WorkspaceTreeItem> {
+export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
   private _onDidChangeTreeData: EventEmitter<GradleTreeItem> = new EventEmitter<
     GradleTreeItem
   >();
@@ -24,7 +22,7 @@ export default class TreeProvider
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: GradleTreeItem | WorkspaceTreeItem): TreeItem {
+  getTreeItem(element: GradleTreeItem): TreeItem {
     return element;
   }
 

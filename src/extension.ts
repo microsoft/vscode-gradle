@@ -18,7 +18,7 @@ function gradleKillCommand() {
   ProcessRegistry.killAll();
 }
 
-function gradleRefreshTasksCommand() {
+function gradleRefreshTasksCommand(): Thenable<void> {
   return TaskRegistry.refresh().then(undefined, err => {
     window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
   });
