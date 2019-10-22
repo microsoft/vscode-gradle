@@ -34,6 +34,7 @@
   ],
   "activationEvents": [
     "onCommand:gradle:runtask",
+    "onCommand:gradle:refresh",
     "onCommand:gradle:kill",
     "workspaceContains:/build.gradle"
   ],
@@ -44,7 +45,7 @@
         {
           "id": "gradleTasks",
           "name": "Gradle Tasks",
-          "when": "extensionActivated"
+          "when": "gradleTasksExtensionActive"
         }
       ]
     },
@@ -68,7 +69,7 @@
       "properties": {
         "gradle.useCommand": {
           "type": "string",
-          "default": "gradlew",
+          "default": "./gradlew",
           "description": "The path to the gradlew command"
         },
         "gradle.tasks.args": {

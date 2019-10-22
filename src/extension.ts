@@ -25,14 +25,14 @@ function gradleRefreshTasksCommand() {
 }
 
 async function gradleRunTaskCommand(taskName?: string): Promise<Error | void> {
+  if (taskName) {
+    return Gradle.runTask(new GradleTask(taskName), outputChannel);
+  }
+
   let tasks: GradleTask[] = TaskRegistry.getTasks();
 
   if (!tasks.length) {
     return Promise.reject('No tasks found. Try running gradle:refresh');
-  }
-
-  if (taskName) {
-    return Gradle.runTask(new GradleTask(taskName), outputChannel);
   }
 
   const pickedTask: GradleTask | void = await window.showQuickPick(tasks);
@@ -70,7 +70,7 @@ export async function activate(context: ExtensionContext) {
     commands.registerCommand('gradle:kill', gradleKillCommand)
   );
 
-  commands.executeCommand('setContext', 'extensionActivated', true);
+  commands.executeCommand('setContext', 'gradleTasksExtensionActive', true);
 }
 
 // this method is called when your extension is deactivated

@@ -1,5 +1,9 @@
 import { window, OutputChannel } from 'vscode';
-import { ChildProcess, ExecOptions, exec } from 'child_process';
+import { ChildProcess, ExecOptions } from 'child_process';
+import Process from './Process';
+import { Writable } from 'stream';
+
+import ProcessLogger from './ProcessLogger';
 
 const processes: Set<ChildProcess> = new Set();
 
@@ -21,33 +25,32 @@ function killAll() {
   processes.clear();
 }
 
-function writeOutput(
-  { stdout, stderr }: ChildProcess,
-  outputChannel: OutputChannel
-) {
-  if (stdout) {
-    stdout.on('data', data => outputChannel.append(data.toString()));
-  }
-  if (stderr) {
-    stderr.on('data', data => outputChannel.append('[ERR] ' + data));
-  }
-}
-
 function create(
   command: string,
   options: ExecOptions,
   outputChannel?: OutputChannel
 ): Thenable<string> {
-  return new Promise((resolve, reject) => {
-    const process = exec(command, options, (err, stdout) => {
-      return err ? reject(err) : resolve(stdout.toString());
-    });
-    add(process);
-    process.on('exit', () => remove(process));
-    if (outputChannel) {
-      writeOutput(process, outputChannel);
+  let processLogger: ProcessLogger | undefined;
+
+  if (outputChannel) {
+    processLogger = new ProcessLogger(outputChannel);
+  }
+
+  const process = new Process(command, options, processLogger);
+  const childProcess = process.childProcess;
+
+  add(childProcess);
+
+  return process.complete().then(
+    stdout => {
+      remove(childProcess);
+      return stdout;
+    },
+    err => {
+      remove(childProcess);
+      return Promise.reject(err);
     }
-  });
+  );
 }
 
-export default { remove, killAll, create, writeOutput };
+export default { remove, killAll, create };

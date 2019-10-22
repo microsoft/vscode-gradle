@@ -20,16 +20,16 @@ Or run gradle tasks from the explorer.
 
 ## Settings
 
-Use local `gradlew`:
-
-```json
-"gradle.useCommand": "./gradlew"
-```
-
-Use global `gradlew` (default):
+Use global `gradlew`:
 
 ```json
 "gradle.useCommand": "gradlew"
+```
+
+Use local `gradlew` (default):
+
+```json
+"gradle.useCommand": "./gradlew"
 ```
 
 Use project tasks:
