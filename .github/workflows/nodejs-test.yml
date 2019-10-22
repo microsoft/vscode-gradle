@@ -25,7 +25,6 @@ jobs:
         run: |
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        if: runner.os == 'Linux'
       - name: Build & test extension
         run: |
           npm ci
