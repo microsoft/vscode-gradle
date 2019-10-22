@@ -25,6 +25,13 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "java",
+    "gradle",
+    "compile",
+    "build",
+    "tasks"
+  ],
   "activationEvents": [
     "onCommand:gradle:runtask",
     "onCommand:gradle:kill",
