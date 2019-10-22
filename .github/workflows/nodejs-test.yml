@@ -22,14 +22,14 @@ jobs:
           java-version: '12.0.2'
           architecture: x64
       - name: Setup Linux
-        shell: pwsh
+        shell: bash
         run: |
           sudo apt install xvfb
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
         if: runner.os == 'Linux'
       - name: Build & test extension
-        shell: pwsh
+        shell: bash
         run: |
           npm ci
           npm run lint
