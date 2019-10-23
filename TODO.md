@@ -6,4 +6,5 @@
 - [x] Run tasks from collapsible sidebar panel
 - [ ] Only refresh on activation if activation is not refresh
 - [x] Run gradle task before check if there are available tasks
+- [ ] Show "folder" view in explorer - organise tasks by category, eg "Build Setup tasks", "Distribution tasks" etc
 - [ ] Check standards on global gradlew
