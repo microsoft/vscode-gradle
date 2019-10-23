@@ -76,6 +76,10 @@ The path to the gradle wrapper does not exist. Change the `"gradle.useCommand"` 
 
 This project is a fork of [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle), which is no longer maintained.
 
+## Bugs
+
+Please [file an issue](https://github.com/badsyntax/vscode-gradle/issues/new) if the extension does not work for you.
+
 ## TODO
 
 See [TODO.md](./TODO.md).
