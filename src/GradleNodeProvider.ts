@@ -3,7 +3,8 @@ import {
   EventEmitter,
   TreeDataProvider,
   TreeItem,
-  TreeItemCollapsibleState
+  TreeItemCollapsibleState,
+  ExtensionContext
 } from 'vscode';
 
 import TaskRegistry from './TaskRegistry';
@@ -16,7 +17,7 @@ export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
   readonly onDidChangeTreeData: Event<GradleTreeItem> = this
     ._onDidChangeTreeData.event;
 
-  constructor() {}
+  constructor(public readonly context: ExtensionContext) {}
 
   refresh() {
     this._onDidChangeTreeData.fire();
@@ -39,6 +40,7 @@ export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
       };
 
       return new GradleTreeItem(
+        this.context,
         task.label,
         TreeItemCollapsibleState.None,
         `Run ${task.label}`,

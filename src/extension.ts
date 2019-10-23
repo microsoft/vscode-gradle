@@ -55,7 +55,7 @@ export async function activate(context: ExtensionContext) {
   await gradleRefreshTasksCommand();
 
   if (explorerEnabled) {
-    const treeProvider: GradleTreeProvider = new GradleTreeProvider();
+    const treeProvider: GradleTreeProvider = new GradleTreeProvider(context);
     TaskRegistry.registerChangeHandler(() => treeProvider.refresh());
     window.registerTreeDataProvider('gradleTasks', treeProvider);
   }

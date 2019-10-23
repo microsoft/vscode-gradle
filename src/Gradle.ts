@@ -36,11 +36,12 @@ function runTask(
   const cmd = getCommand();
   const args = [task.label];
   const options = { cwd: workspace.rootPath };
-  const feedback = `Running ${cmd} ${task.label}`;
-  const statusbar: Disposable = window.setStatusBarMessage(feedback);
+  const statusbar: Disposable = window.setStatusBarMessage(
+    'Running gradle task'
+  );
 
   outputChannel.show();
-  outputChannel.append(`${feedback}\n`);
+  outputChannel.append(`Running ${cmd} ${task.label}\n`);
 
   return ProcessRegistry.create(cmd, args, options, outputChannel).then(
     () => statusbar.dispose(),
