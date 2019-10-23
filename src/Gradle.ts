@@ -36,7 +36,7 @@ function runTask(
   const cmd = getCommand();
   const args = [task.label];
   const options = { cwd: workspace.rootPath };
-  const feedback = `Running ${cmd}`;
+  const feedback = `Running ${cmd} ${task.label}`;
   const statusbar: Disposable = window.setStatusBarMessage(feedback);
 
   outputChannel.show();

@@ -14,7 +14,6 @@ export default class Process {
     readonly processLogger?: ProcessLogger
   ) {
     this.deferred = new Deferred();
-
     this.childProcess = spawn(command, args, options);
 
     let stdoutData = '';
