@@ -12,7 +12,7 @@ function getTasksArgs(): string {
   return workspace.getConfiguration().get('gradle.tasks.args', '');
 }
 
-function getTasks(): Thenable<GradleTask[]> {
+function getTasks(): Promise<GradleTask[]> {
   const cmd = getCommand();
   const args = ['--console', 'plain', 'tasks'].concat(
     getTasksArgs().split(' ')
@@ -28,7 +28,7 @@ function getTasks(): Thenable<GradleTask[]> {
 function runTask(
   task: GradleTask,
   outputChannel: OutputChannel
-): Thenable<void> {
+): Promise<string> {
   const cmd = getCommand();
   const args = [task.label];
   const options = { cwd: workspace.rootPath };
@@ -39,11 +39,9 @@ function runTask(
   outputChannel.show();
   outputChannel.append(`Running ${cmd} ${task.label}\n`);
 
-  return ProcessRegistry.create(cmd, args, options, outputChannel).then(
-    () => statusbar.dispose(),
-    err => {
+  return ProcessRegistry.create(cmd, args, options, outputChannel).finally(
+    () => {
       statusbar.dispose();
-      return Promise.reject(err);
     }
   );
 }

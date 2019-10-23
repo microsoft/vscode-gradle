@@ -22,7 +22,7 @@ function getTasks(): GradleTask[] {
   return Array.from(tasks);
 }
 
-function refresh(): Thenable<void> {
+function refresh(): Promise<void> {
   const statusbar: Disposable = window.setStatusBarMessage(
     'Refreshing gradle tasks'
   );
@@ -30,14 +30,11 @@ function refresh(): Thenable<void> {
     gradleTasks => {
       clear();
       addAll(gradleTasks);
-      statusbar.dispose();
       changeHandlers.forEach(handler => handler());
     },
-    err => {
-      statusbar.dispose();
-      return Promise.reject(err);
-    }
-  );
+  ).finally(() => {
+    statusbar.dispose();
+  });
 }
 
 function registerChangeHandler(handler: () => void) {

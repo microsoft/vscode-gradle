@@ -3,7 +3,7 @@ function noop() {}
 export default class Deferred {
   resolve: Function;
   reject: Function;
-  promise: Thenable<any>;
+  promise: Promise<any>;
 
   constructor() {
     this.resolve = noop;

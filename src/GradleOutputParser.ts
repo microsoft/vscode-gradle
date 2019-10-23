@@ -5,7 +5,7 @@ const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
 export default class GradleOutputParser {
   private constructor() {}
 
-  static parseTasks(stdout: string) {
+  static parseTasks(stdout: string): GradleTask[] {
     const tasks: GradleTask[] = [];
     let match: RegExpExecArray | null = null;
     while ((match = TASK_REGEX.exec(stdout)) !== null) {

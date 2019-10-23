@@ -52,7 +52,7 @@ export default class Process {
     });
   }
 
-  complete(): Thenable<string> {
+  complete(): Promise<string> {
     return this.deferred.promise;
   }
 }

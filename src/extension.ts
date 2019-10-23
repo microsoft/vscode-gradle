@@ -18,26 +18,30 @@ function gradleKillCommand() {
   ProcessRegistry.killAll();
 }
 
-function gradleRefreshTasksCommand(): Thenable<void> {
-  return TaskRegistry.refresh().then(undefined, err => {
+async function gradleRefreshTasksCommand(): Promise<void> {
+  try {
+    TaskRegistry.refresh();
+  } catch (err) {
     window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
-  });
+  }
 }
 
-async function gradleRunTaskCommand(taskName?: string): Promise<Error | void> {
+async function gradleRunTaskCommand(
+  taskName?: string
+): Promise<string | Error | void> {
   if (taskName) {
-    return Gradle.runTask(new GradleTask(taskName), outputChannel);
+    return await Gradle.runTask(new GradleTask(taskName), outputChannel);
   }
 
   let tasks: GradleTask[] = TaskRegistry.getTasks();
 
   if (!tasks.length) {
-    return Promise.reject('No tasks found. Try running gradle:refresh');
+    throw new Error('No tasks found. Try running gradle:refresh');
   }
 
   const pickedTask: GradleTask | void = await window.showQuickPick(tasks);
   if (pickedTask) {
-    return Gradle.runTask(pickedTask, outputChannel);
+    return await Gradle.runTask(pickedTask, outputChannel);
   }
 }
 

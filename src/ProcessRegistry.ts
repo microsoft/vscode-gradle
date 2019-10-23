@@ -5,19 +5,19 @@ import { Writable } from 'stream';
 
 import ProcessLogger from './ProcessLogger';
 
-const processes: Set<ChildProcess> = new Set();
+const processes: Set<Process> = new Set();
 
-function add(process: ChildProcess) {
+function add(process: Process) {
   processes.add(process);
 }
 
-function remove(process: ChildProcess) {
+function remove(process: Process) {
   processes.delete(process);
 }
 
 function killAll() {
-  processes.forEach((process: ChildProcess, _: ChildProcess) => {
-    process.kill('SIGINT');
+  processes.forEach((process: Process, _: Process) => {
+    process.childProcess.kill('SIGINT');
   });
   window.showInformationMessage(
     `Killed ${processes.size} process${processes.size === 1 ? '' : 'es'}`
@@ -30,28 +30,16 @@ function create(
   args?: ReadonlyArray<string>,
   options?: ExecOptions,
   outputChannel?: OutputChannel
-): Thenable<string> {
+): Promise<string> {
   let processLogger: ProcessLogger | undefined;
-
   if (outputChannel) {
     processLogger = new ProcessLogger(outputChannel);
   }
-
   const process = new Process(command, args, options, processLogger);
-  const childProcess = process.childProcess;
-
-  add(childProcess);
-
-  return process.complete().then(
-    stdout => {
-      remove(childProcess);
-      return stdout;
-    },
-    err => {
-      remove(childProcess);
-      return Promise.reject(err);
-    }
-  );
+  add(process);
+  return process.complete().finally(() => {
+    remove(process);
+  });
 }
 
 export default { remove, killAll, create };
