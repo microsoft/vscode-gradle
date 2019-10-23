@@ -2,8 +2,7 @@ import { window, workspace, Disposable, OutputChannel } from 'vscode';
 
 import ProcessRegistry from './ProcessRegistry';
 import GradleTask from './GradleTask';
-
-const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
+import GradleOutputParser from './GradleOutputParser';
 
 function getCommand(): string {
   return workspace.getConfiguration().get('gradle.useCommand', 'gradlew');
@@ -20,12 +19,9 @@ function getTasks(): Thenable<GradleTask[]> {
   );
   const options = { cwd: workspace.rootPath };
   return ProcessRegistry.create(cmd, args, options).then(stdout => {
-    let match: RegExpExecArray | null = null;
-    const tasks: GradleTask[] = [];
-    while ((match = TASK_REGEX.exec(stdout)) !== null) {
-      tasks.push(new GradleTask(match[1], match[2]));
-    }
-    return tasks.sort((a, b) => a.label.localeCompare(b.label));
+    return GradleOutputParser.parseTasks(stdout).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
   });
 }
 
