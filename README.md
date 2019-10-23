@@ -8,6 +8,8 @@ This extension provides support to run gradle tasks.
 
 ![Main image](images/task-list.png)
 
+Please note this extension is currently BETA while I sort out the issues in [TODO.md](./TODO.md). Please file an issue if the extension does not work for you.
+
 ## Usage
 
 Run any of the following commands:
