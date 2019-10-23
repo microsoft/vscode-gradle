@@ -31,7 +31,7 @@ async function runTestsWithoutGradleWorkspace() {
 async function main() {
   try {
     await runTestsWithGradleWorkspace();
-    // await runTestsWithoutGradleWorkspace();
+    await runTestsWithoutGradleWorkspace();
   } catch (err) {
     console.error('Failed to run tests');
     process.exit(1);
