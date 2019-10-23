@@ -6,14 +6,25 @@ async function main() {
   try {
     const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
-    await runTests({
-      extensionDevelopmentPath,
-      extensionTestsPath: path.resolve(__dirname, './gradle'),
-      launchArgs: [
-        path.resolve(__dirname, '../../test-fixtures/gradle'),
-        '--disable-extensions'
-      ]
-    });
+    if (process.platform === 'win32') {
+      await runTests({
+        extensionDevelopmentPath,
+        extensionTestsPath: path.resolve(__dirname, './gradle'),
+        launchArgs: [
+          path.resolve(__dirname, '../../test-fixtures/gradle-windows'),
+          '--disable-extensions'
+        ]
+      });
+    } else {
+      await runTests({
+        extensionDevelopmentPath,
+        extensionTestsPath: path.resolve(__dirname, './gradle'),
+        launchArgs: [
+          path.resolve(__dirname, '../../test-fixtures/gradle'),
+          '--disable-extensions'
+        ]
+      });
+    }
 
     await runTests({
       extensionDevelopmentPath,
