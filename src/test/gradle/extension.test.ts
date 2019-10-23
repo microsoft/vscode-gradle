@@ -1,8 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-import TaskRegistry from '../../TaskRegistry';
-
 suite('With build.grade Extension Test Suite', () => {
   test('it should be present', () => {
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
@@ -18,7 +16,13 @@ suite('With build.grade Extension Test Suite', () => {
   });
 
   test('it should load tasks', () => {
-    assert.equal(TaskRegistry.getTasks().length > 0, true);
+    const extension = vscode.extensions.getExtension(
+      'richardwillis.vscode-gradle'
+    );
+    if (extension) {
+      const tasks = extension.exports.api.TaskRegistry.getTasks();
+      assert.equal(tasks.length > 0, true);
+    }
   });
 
   test('it should successfully run a task', () => {
@@ -32,8 +36,14 @@ suite('With build.grade Extension Test Suite', () => {
   });
 
   test('it should refresh tasks', async () => {
-    TaskRegistry.clear();
-    await vscode.commands.executeCommand('gradle:refresh');
-    assert.equal(TaskRegistry.getTasks().length > 0, true);
+    const extension = vscode.extensions.getExtension(
+      'richardwillis.vscode-gradle'
+    );
+    if (extension) {
+      const { TaskRegistry } = extension.exports.api;
+      TaskRegistry.clear();
+      await vscode.commands.executeCommand('gradle:refresh');
+      assert.equal(TaskRegistry.getTasks().length > 0, true);
+    }
   });
 });

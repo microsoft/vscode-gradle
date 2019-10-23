@@ -71,6 +71,12 @@ export async function activate(context: ExtensionContext) {
   );
 
   commands.executeCommand('setContext', 'gradleTasksExtensionActive', true);
+
+  return {
+    api: {
+      TaskRegistry
+    }
+  };
 }
 
 // this method is called when your extension is deactivated
