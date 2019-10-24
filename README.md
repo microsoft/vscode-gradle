@@ -58,6 +58,10 @@ Or run gradle tasks from the explorer.
 "gradle.enableTasksExplorer": true // show gradle tasks in the explorer
 ```
 
+## Limitations
+
+* No support for workspaces. This feature is planned but there's no ETA.
+
 ## Troubleshooting
 
 <details><summary>The extension hangs with "Refreshing gradle tasks"...</summary>
