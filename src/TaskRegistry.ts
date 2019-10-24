@@ -26,15 +26,15 @@ function refresh(): Promise<void> {
   const statusbar: Disposable = window.setStatusBarMessage(
     'Refreshing gradle tasks'
   );
-  return Gradle.getTasks().then(
-    gradleTasks => {
+  return Gradle.getTasks()
+    .then(gradleTasks => {
       clear();
       addAll(gradleTasks);
       changeHandlers.forEach(handler => handler());
-    },
-  ).finally(() => {
-    statusbar.dispose();
-  });
+    })
+    .finally(() => {
+      statusbar.dispose();
+    });
 }
 
 function registerChangeHandler(handler: () => void) {
