@@ -11,9 +11,10 @@ import TaskRegistry from './TaskRegistry';
 import GradleTreeItem from './GradeTreeItem';
 
 export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
-  private _onDidChangeTreeData: EventEmitter<GradleTreeItem> = new EventEmitter<
+  private readonly _onDidChangeTreeData: EventEmitter<
     GradleTreeItem
-  >();
+  > = new EventEmitter<GradleTreeItem>();
+
   readonly onDidChangeTreeData: Event<GradleTreeItem> = this
     ._onDidChangeTreeData.event;
 

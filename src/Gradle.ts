@@ -29,12 +29,12 @@ function runTask(
   task: GradleTask,
   outputChannel: OutputChannel
 ): Promise<string> {
-  const cmd = getCommand();
-  const args = [task.label];
-  const options = { cwd: workspace.rootPath };
   const statusbar: Disposable = window.setStatusBarMessage(
     'Running gradle task'
   );
+  const cmd = getCommand();
+  const args = [task.label];
+  const options = { cwd: workspace.rootPath };
 
   outputChannel.show();
   outputChannel.append(`Running ${cmd} ${task.label}\n`);

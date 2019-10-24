@@ -7,15 +7,6 @@ import {
 import path from 'path';
 
 export default class GradleTreeItem extends TreeItem {
-  constructor(
-    public readonly context: ExtensionContext,
-    public readonly label: string,
-    public readonly collapsibleState: TreeItemCollapsibleState,
-    public readonly tooltip: string,
-    public readonly command?: Command
-  ) {
-    super(label, collapsibleState);
-  }
   contextValue = 'script';
   iconPath = {
     light: this.context.asAbsolutePath(
@@ -25,4 +16,13 @@ export default class GradleTreeItem extends TreeItem {
       path.join('resources', 'dark', 'script.svg')
     )
   };
+  constructor(
+    public readonly context: ExtensionContext,
+    public readonly label: string,
+    public readonly collapsibleState: TreeItemCollapsibleState,
+    public readonly tooltip: string,
+    public readonly command?: Command
+  ) {
+    super(label, collapsibleState);
+  }
 }

@@ -48,22 +48,6 @@ async function gradleRunTaskCommand(
 export async function activate(context: ExtensionContext) {
   outputChannel = window.createOutputChannel('Gradle');
 
-  workspace
-    .createFileSystemWatcher('/build.gradle')
-    .onDidChange(gradleRefreshTasksCommand);
-
-  const explorerEnabled = workspace
-    .getConfiguration()
-    .get('gradle.enableTasksExplorer');
-
-  await gradleRefreshTasksCommand();
-
-  if (explorerEnabled) {
-    const treeProvider: GradleTreeProvider = new GradleTreeProvider(context);
-    TaskRegistry.registerChangeHandler(() => treeProvider.refresh());
-    window.registerTreeDataProvider('gradleTasks', treeProvider);
-  }
-
   context.subscriptions.push(
     commands.registerCommand('gradle:refresh', gradleRefreshTasksCommand)
   );
@@ -73,6 +57,22 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand('gradle:kill', gradleKillCommand)
   );
+
+  await commands.executeCommand('gradle:refresh');
+
+  workspace
+    .createFileSystemWatcher('/build.gradle')
+    .onDidChange(gradleRefreshTasksCommand);
+
+  const explorerEnabled = workspace
+    .getConfiguration()
+    .get('gradle.enableTasksExplorer');
+
+  if (explorerEnabled) {
+    const treeProvider: GradleTreeProvider = new GradleTreeProvider(context);
+    TaskRegistry.registerChangeHandler(() => treeProvider.refresh());
+    window.registerTreeDataProvider('gradleTasks', treeProvider);
+  }
 
   commands.executeCommand('setContext', 'gradleTasksExtensionActive', true);
 
