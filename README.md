@@ -10,19 +10,13 @@ Run gradle tasks in VS Code.
 
 ## Features
 
-- List gradle tasks in the Command Palette
-- List gradle tasks in the Explorer
-- Read project or all tasks (via custom gradle tasks arguments)
-- Run gradle tasks (via Command Palette or Explorer) and view output
-- Load tasks when `build.gradle` file is found in root workspace
+- Run gradle tasks as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
+- Run gradle tasks in the Explorer
 - Refresh tasks when `build.gradle` changes
-- Kill gradle task processes
 
 ## Setup
 
-The extension requires a local gradle wrapper executable at the root of the workspace.
-
-You can configure this with the `gradle.useCommand` setting:
+A local gradle wrapper executable must exist at the root of the workspace.
 
 ### Linux/MacOS (default):
 
@@ -39,16 +33,6 @@ You can configure this with the `gradle.useCommand` setting:
   "gradle.useCommand": ".\\gradlew.bat"
 }
 ```
-
-## Usage
-
-Run any of the following commands:
-
-- `Gradle: Run task`
-- `Gradle: Refresh tasks`
-- `Gradle: Kill all tasks`
-
-Or run gradle tasks from the explorer.
 
 ## Settings
 

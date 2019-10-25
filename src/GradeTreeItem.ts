@@ -17,11 +17,11 @@ export default class GradleTreeItem extends TreeItem {
     )
   };
   constructor(
-    public readonly context: ExtensionContext,
-    public readonly label: string,
-    public readonly collapsibleState: TreeItemCollapsibleState,
-    public readonly tooltip: string,
-    public readonly command?: Command
+    readonly context: ExtensionContext,
+    readonly label: string,
+    readonly collapsibleState: TreeItemCollapsibleState,
+    readonly tooltip: string,
+    readonly command?: Command
   ) {
     super(label, collapsibleState);
   }

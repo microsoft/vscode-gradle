@@ -7,7 +7,7 @@ import {
   ExtensionContext
 } from 'vscode';
 
-import TaskRegistry from './TaskRegistry';
+import GradleTaskRegistry from './GradleTaskRegistry';
 import GradleTreeItem from './GradeTreeItem';
 
 export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
@@ -18,10 +18,11 @@ export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
   readonly onDidChangeTreeData: Event<GradleTreeItem> = this
     ._onDidChangeTreeData.event;
 
-  constructor(public readonly context: ExtensionContext) {}
-
-  refresh() {
-    this._onDidChangeTreeData.fire();
+  constructor(
+    readonly context: ExtensionContext,
+    readonly taskRegistry: GradleTaskRegistry
+  ) {
+    taskRegistry.registerChangeHandler(() => this._onDidChangeTreeData.fire());
   }
 
   getTreeItem(element: GradleTreeItem): TreeItem {
@@ -33,18 +34,18 @@ export default class TreeProvider implements TreeDataProvider<GradleTreeItem> {
   }
 
   private renderGradleTasks(): GradleTreeItem[] {
-    return TaskRegistry.getTasks().map(task => {
+    return this.taskRegistry.getTasks().map(task => {
       const cmdObject = {
         title: 'Run Gradle Task',
         command: 'gradle:runtask',
-        arguments: [task.label]
+        arguments: [task.name]
       };
 
       return new GradleTreeItem(
         this.context,
-        task.label,
+        task.name,
         TreeItemCollapsibleState.None,
-        `Run ${task.label}`,
+        `Run ${task.name}`,
         cmdObject
       );
     });

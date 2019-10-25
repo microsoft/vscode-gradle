@@ -1,20 +1,22 @@
-import { ChildProcess, ExecOptions, exec } from 'child_process';
+import { ChildProcess } from 'child_process';
+import { ShellExecutionOptions } from 'vscode';
 import spawn from 'cross-spawn';
 
 import Deferred from './Deferred';
-import ProcessLogger from './ProcessLogger';
 
 export default class Process {
-  childProcess: ChildProcess;
+  private childProcess: ChildProcess | void = undefined;
   private deferred: Deferred;
   constructor(
     readonly command: string,
     readonly args?: ReadonlyArray<string>,
-    readonly options?: ExecOptions,
-    readonly processLogger?: ProcessLogger
+    readonly options?: ShellExecutionOptions
   ) {
     this.deferred = new Deferred();
-    this.childProcess = spawn(command, args, options);
+  }
+
+  spawn(): Promise<string> {
+    this.childProcess = spawn(this.command, this.args, this.options);
 
     let stdoutData = '';
     let stderrData = '';
@@ -25,18 +27,12 @@ export default class Process {
       stdout.on('data', data => {
         stdoutData += data.toString();
       });
-      if (processLogger) {
-        stdout.pipe(processLogger.stdout);
-      }
     }
 
     if (stderr) {
       stderr.on('data', data => {
         stderrData += data.toString();
       });
-      if (processLogger) {
-        stderr.pipe(processLogger.stderr);
-      }
     }
 
     this.childProcess.on('close', code => {
@@ -50,9 +46,7 @@ export default class Process {
     this.childProcess.on('error', err => {
       this.deferred.reject(new Error(`Command failed: ${err.toString()}`));
     });
-  }
 
-  complete(): Promise<string> {
     return this.deferred.promise;
   }
 }

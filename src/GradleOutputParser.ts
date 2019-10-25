@@ -2,15 +2,14 @@ import GradleTask from './GradleTask';
 
 const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
 
-export default class GradleOutputParser {
-  private constructor() {}
-
-  static parseTasks(stdout: string): GradleTask[] {
-    const tasks: GradleTask[] = [];
-    let match: RegExpExecArray | null = null;
-    while ((match = TASK_REGEX.exec(stdout)) !== null) {
-      tasks.push(new GradleTask(match[1], match[2]));
-    }
-    return tasks;
+function parseTasks(stdout: string): GradleTask[] {
+  const tasks: GradleTask[] = [];
+  let match: RegExpExecArray | null = null;
+  while ((match = TASK_REGEX.exec(stdout)) !== null) {
+    const [, name, description] = match;
+    tasks.push(new GradleTask(name, description));
   }
+  return tasks;
 }
+
+export default { parseTasks };
