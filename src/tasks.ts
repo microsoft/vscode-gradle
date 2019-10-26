@@ -35,8 +35,12 @@ let cachedTasks: Task[] | undefined = undefined;
 export class GradleTaskProvider implements TaskProvider {
   constructor() {}
 
-  public provideTasks() {
-    return provideGradleTasks();
+  async provideTasks() {
+    try {
+      return await provideGradleTasks();
+    } catch (e) {
+      window.showErrorMessage(`Unable to get gradle tasks - ${e.message}`);
+    }
   }
 
   public async resolveTask(_task: Task): Promise<Task | undefined> {
@@ -91,16 +95,16 @@ async function getGradleWrapperCommandFromFolder(
   const platform = process.platform;
   if (
     platform === 'win32' &&
-    (await exists(path.join(folder.uri.path!, 'gradlew.bat')))
+    (await exists(path.join(folder.uri.fsPath!, 'gradlew.bat')))
   ) {
-    return path.join(folder.uri.path!, 'gradlew.bat');
+    return path.join(folder.uri.fsPath!, 'gradlew.bat');
   } else if (
     (platform === 'linux' || platform === 'darwin') &&
-    (await exists(path.join(folder.uri.path!, 'gradlew')))
+    (await exists(path.join(folder.uri.fsPath!, 'gradlew')))
   ) {
-    return path.join(folder.uri.path!, 'gradlew');
+    return path.join(folder.uri.fsPath!, 'gradlew');
   } else {
-    throw new Error('Unable to find gradlew wrapper executable');
+    throw new Error('Gradle wrapper executable not found');
   }
 }
 
@@ -219,11 +223,11 @@ export function createTask(
     buildGradleUri: Uri
   ): string {
     const rootUri = folder.uri;
-    const absolutePath = buildGradleUri.path.substring(
+    const absolutePath = buildGradleUri.fsPath.substring(
       0,
-      buildGradleUri.path.length - 'build.gradle'.length
+      buildGradleUri.fsPath.length - 'build.gradle'.length
     );
-    return absolutePath.substring(rootUri.path.length + 1);
+    return absolutePath.substring(rootUri.fsPath.length + 1);
   }
 
   const relativeBuildGradle = getRelativePath(folder, buildGradleUri);
@@ -312,7 +316,7 @@ function getTasksFromGradle(
   if (tasksArgs) {
     args.push(tasksArgs);
   }
-  const { path: cwd } = folder.uri;
+  const { fsPath: cwd } = folder.uri;
   return exec(command, args, { cwd }).finally(() => {
     statusbar.dispose();
   });

@@ -15,7 +15,11 @@ import {
   TaskGroup
 } from 'vscode';
 
-import { GradleTaskDefinition, isWorkspaceFolder } from './tasks';
+import {
+  GradleTaskDefinition,
+  isWorkspaceFolder,
+  invalidateTasksCache
+} from './tasks';
 
 class Folder extends TreeItem {
   gradleTasks: BuildGradleTreeItem[] = [];
@@ -149,6 +153,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   public refresh() {
+    invalidateTasksCache();
     this.taskTree = null;
     this._onDidChangeTreeData.fire();
   }
@@ -175,7 +180,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   async getChildren(element?: TreeItem): Promise<TreeItem[]> {
     if (!this.taskTree) {
-      let taskItems = await tasks.fetchTasks({ type: 'gradle' });
+      const taskItems = await tasks.fetchTasks({ type: 'gradle' });
       if (taskItems) {
         this.taskTree = this.buildTaskTree(taskItems);
         if (this.taskTree.length === 0) {
@@ -206,8 +211,8 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   private buildTaskTree(
     tasks: Task[]
   ): Folder[] | BuildGradleTreeItem[] | NoTasksTreeItem[] {
-    let folders: Map<String, Folder> = new Map();
-    let gradleTasks: Map<String, BuildGradleTreeItem> = new Map();
+    const folders: Map<String, Folder> = new Map();
+    const gradleTasks: Map<String, BuildGradleTreeItem> = new Map();
 
     let folder = null;
     let buildGradle = null;
@@ -219,18 +224,18 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
           folder = new Folder(task.scope);
           folders.set(task.scope.name, folder);
         }
-        let definition: GradleTaskDefinition = <GradleTaskDefinition>(
+        const definition: GradleTaskDefinition = <GradleTaskDefinition>(
           task.definition
         );
-        let relativePath = definition.path ? definition.path : '';
-        let fullPath = path.join(task.scope.name, relativePath);
+        const relativePath = definition.path ? definition.path : '';
+        const fullPath = path.join(task.scope.name, relativePath);
         buildGradle = gradleTasks.get(fullPath);
         if (!buildGradle) {
           buildGradle = new BuildGradleTreeItem(folder, relativePath);
           folder.addBuildGradleTreeItem(buildGradle);
           gradleTasks.set(fullPath, buildGradle);
         }
-        let gradleTask = new GradleTaskItem(
+        const gradleTask = new GradleTaskItem(
           this.extensionContext,
           buildGradle,
           task
