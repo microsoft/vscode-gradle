@@ -1,3 +1,0 @@
-{
-    "gradle.useCommand": ".\\gradlew.bat"
-}

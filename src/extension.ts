@@ -3,43 +3,69 @@ import {
   workspace,
   commands,
   ExtensionContext,
-  Disposable
+  Disposable,
+  TaskProvider
 } from 'vscode';
+import { GradleTasksTreeDataProvider } from './gradleView';
+import {
+  invalidateTasksCache,
+  GradleTaskProvider,
+  hasBuildGradle
+} from './tasks';
 
-import TaskDetector from './TaskDetector';
-import GradleNodeProvider from './GradleNodeProvider';
-import GradleTaskRegistry from './GradleTaskRegistry';
+let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
-let detector: TaskDetector;
-let treeDataProvider: Disposable;
-let taskRegistry: GradleTaskRegistry;
-
-export async function activate(context: ExtensionContext) {
-  taskRegistry = new GradleTaskRegistry();
-
-  if (workspace.getConfiguration().get('gradle.enableTasksExplorer')) {
-    treeDataProvider = window.registerTreeDataProvider(
-      'gradleTasks',
-      new GradleNodeProvider(context, taskRegistry)
-    );
-  }
-
-  detector = new TaskDetector(context, taskRegistry);
-  await detector.start();
-
-  commands.executeCommand('setContext', 'gradleTasksExtensionActive', true);
-
-  return {
-    api: {
-      detector
+function registerTaskProvider(
+  context: ExtensionContext
+): Disposable | undefined {
+  function invalidateTaskCaches() {
+    invalidateTasksCache();
+    if (treeDataProvider) {
+      treeDataProvider.refresh();
     }
-  };
+  }
+
+  if (workspace.workspaceFolders) {
+    const watcher = workspace.createFileSystemWatcher('**/build.gradle');
+    watcher.onDidChange(() => invalidateTaskCaches());
+    watcher.onDidDelete(() => invalidateTaskCaches());
+    watcher.onDidCreate(() => invalidateTaskCaches());
+    context.subscriptions.push(watcher);
+
+    const workspaceWatcher = workspace.onDidChangeWorkspaceFolders(() =>
+      invalidateTaskCaches()
+    );
+    context.subscriptions.push(workspaceWatcher);
+
+    const provider: TaskProvider = new GradleTaskProvider();
+    const disposable = workspace.registerTaskProvider('gradle', provider);
+    context.subscriptions.push(disposable);
+    return disposable;
+  }
+  return undefined;
 }
 
-export function deactivate() {
-  if (treeDataProvider) {
-    treeDataProvider.dispose();
+function registerExplorer(
+  context: ExtensionContext
+): GradleTasksTreeDataProvider | undefined {
+  if (workspace.workspaceFolders) {
+    const treeDataProvider = new GradleTasksTreeDataProvider(context);
+    const view = window.createTreeView('gradle', {
+      treeDataProvider: treeDataProvider,
+      showCollapseAll: true
+    });
+    context.subscriptions.push(view);
+    return treeDataProvider;
   }
-  detector.dispose();
-  taskRegistry.dispose();
+  return undefined;
 }
+
+export async function activate(context: ExtensionContext): Promise<void> {
+  registerTaskProvider(context);
+  treeDataProvider = registerExplorer(context);
+  if (await hasBuildGradle()) {
+    commands.executeCommand('setContext', 'gradle:showTaskExplorer', true);
+  }
+}
+
+export function deactivate(): void {}
