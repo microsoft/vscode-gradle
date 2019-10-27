@@ -41,6 +41,18 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "problemMatchers": [
+      {
+        "owner": "gradle",
+        "name": "gradle",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^.*(FAILURE):\\s*(.*)$",
+          "severity": 1,
+          "message": 2
+        }
+      }
+    ],
     "views": {
       "explorer": [
         {

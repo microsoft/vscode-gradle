@@ -247,7 +247,8 @@ export function createTask(
     folder,
     normalizedTaskName,
     'gradle',
-    new ShellExecution(getCommandLine(taskName), { cwd })
+    new ShellExecution(getCommandLine(taskName), { cwd }),
+    ['$gradle']
   );
   task.presentationOptions = {
     clear: true,
