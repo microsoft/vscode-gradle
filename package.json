@@ -1,7 +1,7 @@
 {
   "name": "vscode-gradle",
   "displayName": "Gradle Tasks",
-  "description": "Run gradle tasks from within Visual Studio Code",
+  "description": "Run gradle tasks in VS Code",
   "version": "0.0.0",
   "private": true,
   "publisher": "richardwillis",
