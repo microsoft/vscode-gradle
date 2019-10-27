@@ -26,10 +26,6 @@ A local gradle wrapper executable must exist at the root of the workspace folder
 "gradle.enableTasksExplorer": true // Enable an explorer view for gradle tasks
 ```
 
-## Limitations
-
-* No support for workspaces. This feature is planned but there's no ETA.
-
 ## Troubleshooting
 
 <details><summary>The extension hangs with "Refreshing gradle tasks"...</summary>
