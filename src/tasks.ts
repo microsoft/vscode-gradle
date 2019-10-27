@@ -10,14 +10,12 @@ import {
   TaskProvider,
   TaskScope,
   QuickPickItem,
-  Disposable
+  Disposable,
+  ProgressLocation
 } from 'vscode';
-import * as util from 'util';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as cp from 'child_process';
-
-const cpExec = util.promisify(cp.exec);
 
 let autoDetectOverride: boolean = false;
 
@@ -286,7 +284,7 @@ type StringMap = { [s: string]: string };
 
 const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)\s-\s(.*)$/gim;
 
-function findAllTasks(buffer: Buffer | string): StringMap {
+function parseGradleTasks(buffer: Buffer | string): StringMap {
   const tasks: StringMap = {};
   let match: RegExpExecArray | null = null;
   while ((match = TASK_REGEX.exec(buffer.toString())) !== null) {
@@ -308,13 +306,24 @@ interface ProcessOutput {
 function exec(
   command: string,
   args?: ReadonlyArray<string>,
-  options?: cp.ExecOptions
+  options?: cp.ExecOptions,
+  onProcessCreate?: (process: cp.ChildProcess) => void
 ): Promise<ProcessOutput> {
   let cmd = command;
   if (args && args.length) {
     cmd = `${cmd} ${args.join(' ')}`;
   }
-  return cpExec(cmd, options);
+  return new Promise((resolve, reject) => {
+    const process = cp.exec(cmd, options, (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+      }
+      resolve({ stdout, stderr });
+    });
+    if (onProcessCreate) {
+      onProcessCreate(process);
+    }
+  });
 }
 
 function getTasksFromGradle(
@@ -330,7 +339,41 @@ function getTasksFromGradle(
     args.push(tasksArgs);
   }
   const { fsPath: cwd } = folder.uri;
-  return exec(command, args, { cwd }).finally(() => {
+
+  let process: cp.ChildProcess;
+  const promise = exec(command, args, { cwd }, _p => (process = _p));
+  const showProgress = setTimeout(() => {
+    window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: 'Loading Gradle Tasks',
+        cancellable: true
+      },
+      (progress, token) => {
+        token.onCancellationRequested(() => {
+          process.kill();
+          window.showInformationMessage(
+            'Operation cancelled. Try again using command "Gradle: Refresh Tasks"'
+          );
+        });
+
+        progress.report({ increment: 20 });
+
+        const int = setInterval(
+          () =>
+            progress.report({
+              increment: 10
+            }),
+          1500
+        );
+
+        return promise.then(() => clearInterval(int));
+      }
+    );
+  }, 3000);
+
+  return promise.finally(() => {
+    clearTimeout(showProgress);
     statusbar.dispose();
   });
 }
@@ -339,10 +382,6 @@ async function getTasks(
   command: string,
   folder: WorkspaceFolder
 ): Promise<StringMap | undefined> {
-  try {
-    const { stdout } = await getTasksFromGradle(command, folder);
-    return findAllTasks(stdout);
-  } catch (e) {
-    throw new Error('Gradle task detection: failed to get tasks');
-  }
+  const { stdout } = await getTasksFromGradle(command, folder);
+  return parseGradleTasks(stdout);
 }

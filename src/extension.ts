@@ -66,12 +66,17 @@ function isTasksExplorerEnabled(): boolean {
     .get<boolean>('enableTasksExplorer', true);
 }
 
-export async function activate(context: ExtensionContext): Promise<void> {
+interface ExtensionApi {}
+
+export async function activate(
+  context: ExtensionContext
+): Promise<ExtensionApi> {
   registerTaskProvider(context);
   treeDataProvider = registerExplorer(context);
   if (isTasksExplorerEnabled() && (await hasBuildGradle())) {
     commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
+  return {};
 }
 
 export function deactivate(): void {}
