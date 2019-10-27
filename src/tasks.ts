@@ -19,6 +19,12 @@ import * as cp from 'child_process';
 
 const cpExec = util.promisify(cp.exec);
 
+let autoDetectOverride: boolean = false;
+
+export function enableTaskDetection() {
+  autoDetectOverride = true;
+}
+
 export interface GradleTaskDefinition extends TaskDefinition {
   task: string;
 }
@@ -157,7 +163,7 @@ function isAutoDetectionEnabled(folder: WorkspaceFolder): boolean {
   return (
     workspace
       .getConfiguration('gradle', folder.uri)
-      .get<AutoDetect>('autoDetect') === 'on'
+      .get<AutoDetect>('autoDetect') === 'on' || autoDetectOverride
   );
 }
 
@@ -201,7 +207,7 @@ export function getTaskName(task: string, relativePath: string | undefined) {
 
 export function createTask(
   taskDefinition: GradleTaskDefinition | string,
-  task: string,
+  taskName: string,
   folder: WorkspaceFolder,
   buildGradleUri: Uri,
   command: string,
@@ -234,15 +240,21 @@ export function createTask(
   if (relativeBuildGradle.length) {
     kind.path = getRelativePath(folder, buildGradleUri);
   }
-  const taskName = getTaskName(kind.task, relativeBuildGradle);
+  const normalizedTaskName = getTaskName(kind.task, relativeBuildGradle);
   const cwd = path.dirname(buildGradleUri.fsPath);
-  return new Task(
+  const task = new Task(
     kind,
     folder,
-    taskName,
+    normalizedTaskName,
     'gradle',
-    new ShellExecution(getCommandLine(task), { cwd })
+    new ShellExecution(getCommandLine(taskName), { cwd })
   );
+  task.presentationOptions = {
+    clear: true,
+    showReuseMessage: false,
+    focus: true
+  };
+  return task;
 }
 
 export async function hasBuildGradle(): Promise<boolean> {

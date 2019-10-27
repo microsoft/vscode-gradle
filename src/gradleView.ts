@@ -1,5 +1,6 @@
 import * as path from 'path';
 import {
+  workspace,
   Event,
   EventEmitter,
   ExtensionContext,
@@ -18,7 +19,8 @@ import {
 import {
   GradleTaskDefinition,
   isWorkspaceFolder,
-  invalidateTasksCache
+  invalidateTasksCache,
+  enableTaskDetection
 } from './tasks';
 
 class Folder extends TreeItem {
@@ -154,6 +156,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   public refresh() {
     invalidateTasksCache();
+    enableTaskDetection();
     this.taskTree = null;
     this._onDidChangeTreeData.fire();
   }

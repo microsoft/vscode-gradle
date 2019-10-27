@@ -60,11 +60,17 @@ function registerExplorer(
   return undefined;
 }
 
+function isTasksExplorerEnabled(): boolean {
+  return workspace
+    .getConfiguration('gradle')
+    .get<boolean>('enableTasksExplorer', true);
+}
+
 export async function activate(context: ExtensionContext): Promise<void> {
   registerTaskProvider(context);
   treeDataProvider = registerExplorer(context);
-  if (await hasBuildGradle()) {
-    commands.executeCommand('setContext', 'gradle:showTaskExplorer', true);
+  if (isTasksExplorerEnabled() && (await hasBuildGradle())) {
+    commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
 }
 

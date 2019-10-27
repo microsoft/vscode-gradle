@@ -34,8 +34,8 @@
   ],
   "activationEvents": [
     "onCommand:workbench.action.tasks.runTask",
-    "onCommand:gradle:refresh",
-    "onCommand:gradle:runTask",
+    "onCommand:gradle.refresh",
+    "onCommand:gradle.runTask",
     "workspaceContains:build.gradle",
     "onView:gradle"
   ],
@@ -46,7 +46,7 @@
         {
           "id": "gradle",
           "name": "Gradle Tasks",
-          "when": "gradle:showTaskExplorer || config.gradle.enableTasksExplorer"
+          "when": "gradle:showTasksExplorer || config.gradle.enableTasksExplorer"
         }
       ]
     },
@@ -61,7 +61,7 @@
       },
       {
         "command": "gradle.refresh",
-        "title": "Refresh gradle tasks",
+        "title": "Gradle: Refresh Tasks",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -101,7 +101,6 @@
         "gradle.enableTasksExplorer": {
           "type": "boolean",
           "default": false,
-          "scope": "resource",
           "description": "Enable an explorer view for gradle tasks"
         },
         "gradle.tasksArgs": {
