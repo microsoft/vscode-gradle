@@ -93,6 +93,12 @@
           "when": "view == gradle",
           "group": "navigation"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "gradle.runTask",
+          "when": "view == gradle"
+        }
       ]
     },
     "configuration": {

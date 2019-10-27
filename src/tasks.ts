@@ -367,7 +367,7 @@ function getTasksFromGradle(
           1500
         );
 
-        return promise.then(() => clearInterval(int));
+        return promise.finally(() => clearInterval(int));
       }
     );
   }, 3000);
