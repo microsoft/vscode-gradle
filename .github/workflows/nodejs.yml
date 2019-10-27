@@ -1,5 +1,10 @@
-name: Node CI Test
-on: push
+name: Node CI
+on: 
+  push:
+    branches: 
+      - '**'
+  release:
+    types: [published]
 
 jobs:
   build-test-linux:
@@ -51,6 +56,40 @@ jobs:
           npm test
         shell: pwsh
 
+  publish:
+    if: github.event_name == 'release' && github.event.type == 'published'
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:        
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install deps
+        if: github.event_name == 'release' && github.event.type == 'published'
+        run: |
+          npm install -g vsce
+          npm ci
+      - name: Package extension
+        if: github.event_name == 'release' && github.event.type == 'published'
+        run: |
+          tag=${GITHUB_REF#refs/tags/}
+          echo "Setting package version $tag"
+          npm --no-git-tag-version version "$tag"
+          vsce package
+      - name: Publish extension to marketplace
+        if: github.event_name == 'release' && github.event.type == 'published'
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+        run: |
+          vsce publish -p "$AZURE_TOKEN"
+          
+          
   # build-test-macos:
   #   runs-on: macOS-10.14
 
