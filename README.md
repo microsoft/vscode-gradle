@@ -1,6 +1,6 @@
 # vscode-gradle
 
-<a href="https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle">![Marketplace extension](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)</a>
+<a href="https://github.com/badsyntax/vscode-gradle/actions?workflow=Node+CI+Test"><img src="https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI%20Test/badge.svg" /></a> <a href="https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle">![Marketplace extension](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)</a> 
 
 <!-- ![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg) -->
 
