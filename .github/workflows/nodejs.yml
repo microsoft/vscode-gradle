@@ -88,27 +88,3 @@ jobs:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
           vsce publish -p "$AZURE_TOKEN"
-          
-          
-  # build-test-macos:
-  #   runs-on: macOS-10.14
-
-  #   strategy:
-  #     matrix:
-  #       node-version: [12.x]
-
-  #   steps:
-  #     - uses: actions/checkout@v1
-  #     - name: Use Node.js ${{ matrix.node-version }}
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: ${{ matrix.node-version }}
-  #     - uses: actions/setup-java@v1
-  #       with:
-  #         java-version: '12.0.2'
-  #         architecture: x64
-  #     - name: Build & test extension
-  #       run: |
-  #         npm ci
-  #         npm run lint
-  #         npm test
