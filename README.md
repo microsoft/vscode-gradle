@@ -10,52 +10,20 @@ Run gradle tasks in VS Code.
 
 ## Features
 
-- List gradle tasks in the Command Palette
-- List gradle tasks in the Explorer
-- Read project or all tasks (via custom gradle tasks arguments)
-- Run gradle tasks (via Command Palette or Explorer) and view output
-- Load tasks when `build.gradle` file is found in root workspace
-- Refresh tasks when `build.gradle` changes
-- Kill gradle task processes
+- Run gradle tasks as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
+- Run gradle tasks in the Explorer
+- Multi-root workspaces supported
 
 ## Setup
 
-The extension requires a local gradle wrapper executable at the root of the workspace.
+A local gradle wrapper executable must exist at the root of the workspace folders.
 
-You can configure this with the `gradle.useCommand` setting:
-
-### Linux/MacOS (default):
+### Settings
 
 ```json
-{
-  "gradle.useCommand": "./gradlew"
-}
-```
-
-### Windows:
-
-```json
-{
-  "gradle.useCommand": ".\\gradlew.bat"
-}
-```
-
-## Usage
-
-Run any of the following commands:
-
-- `Gradle: Run task`
-- `Gradle: Refresh tasks`
-- `Gradle: Kill all tasks`
-
-Or run gradle tasks from the explorer.
-
-## Settings
-
-```json
-"gradle.useCommand": "./gradlew",  // path to local gradle wrapper
-"gradle.tasks.args": "--all",      // gradle tasks args
-"gradle.enableTasksExplorer": true // show gradle tasks in the explorer
+"gradle.autoDetect": true,         // Automatically detect gradle tasks
+"gradle.tasksArgs": "--all",       // Custom gradle tasks arguments
+"gradle.enableTasksExplorer": true // Enable an explorer view for gradle tasks
 ```
 
 ## Limitations
@@ -70,23 +38,9 @@ Eventually the command should fail with an error message. This is usually due to
 
 </details>
 
-<details><summary>The extension show an error "Unable to refresh gradle tasks: Command failed..."</summary>
-
-The path to the gradle wrapper does not exist. Change the `"gradle.useCommand"` setting to point to a local `gradlew` executable.
-
-</details>
-
 ## Credits
 
 This project is a fork of [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle), which is no longer maintained.
-
-## Bugs
-
-Please [file an issue](https://github.com/badsyntax/vscode-gradle/issues/new) if the extension does not work for you.
-
-## TODO
-
-See [TODO.md](./TODO.md).
 
 ## License
 

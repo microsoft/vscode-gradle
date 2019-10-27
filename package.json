@@ -33,57 +33,103 @@
     "tasks"
   ],
   "activationEvents": [
-    "onCommand:gradle:runtask",
-    "onCommand:gradle:refresh",
-    "onCommand:gradle:kill",
-    "workspaceContains:/build.gradle"
+    "onCommand:workbench.action.tasks.runTask",
+    "onCommand:gradle.refresh",
+    "onCommand:gradle.runTask",
+    "workspaceContains:build.gradle",
+    "onView:gradle"
   ],
   "main": "./out/extension",
   "contributes": {
     "views": {
       "explorer": [
         {
-          "id": "gradleTasks",
+          "id": "gradle",
           "name": "Gradle Tasks",
-          "when": "gradleTasksExtensionActive"
+          "when": "gradle:showTasksExplorer || config.gradle.enableTasksExplorer"
         }
       ]
     },
     "commands": [
       {
-        "command": "gradle:runtask",
-        "title": "Gradle: Run task"
+        "command": "gradle.runTask",
+        "title": "Run gradle task",
+        "icon": {
+          "light": "resources/light/continue.svg",
+          "dark": "resources/dark/continue.svg"
+        }
       },
       {
-        "command": "gradle:refresh",
-        "title": "Gradle: Refresh tasks"
-      },
-      {
-        "command": "gradle:kill",
-        "title": "Gradle: Kill all tasks"
+        "command": "gradle.refresh",
+        "title": "Gradle: Refresh Tasks",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "gradle.runTask",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "gradle.refresh",
+          "when": "view == gradle",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
+      "id": "gradle",
       "type": "object",
-      "title": "Gradle configuration",
+      "title": "Gradle",
       "properties": {
-        "gradle.useCommand": {
+        "gradle.autoDetect": {
           "type": "string",
-          "default": "./gradlew",
-          "description": "The path to the gradlew command"
-        },
-        "gradle.tasks.args": {
-          "type": "string",
-          "default": "--all",
-          "description": "Custom gradle tasks arguments"
+          "enum": [
+            "off",
+            "on"
+          ],
+          "default": "on",
+          "scope": "resource",
+          "description": "Controls whether gradle tasks should be automatically detected"
         },
         "gradle.enableTasksExplorer": {
           "type": "boolean",
-          "default": true,
-          "description": "Enable an explorer view for gradle scripts"
+          "default": false,
+          "description": "Enable an explorer view for gradle tasks"
+        },
+        "gradle.tasksArgs": {
+          "type": "string",
+          "default": "--all",
+          "description": "Custom gradle tasks arguments"
         }
       }
-    }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "package.json",
+        "url": "https://schemastore.azurewebsites.net/schemas/json/package.json"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "gradle",
+        "required": [
+          "task"
+        ],
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "Gradle task name"
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -95,11 +141,8 @@
     "lint": "prettier --check \"src/**/*.{ts,js,json}\"",
     "format": "prettier --write \"src/**/*.{ts,js,json}\""
   },
-  "dependencies": {
-    "cross-spawn": "^7.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/cross-spawn": "^6.0.1",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.11.1",

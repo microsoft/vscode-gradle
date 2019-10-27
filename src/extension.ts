@@ -3,85 +3,75 @@ import {
   workspace,
   commands,
   ExtensionContext,
-  OutputChannel
+  Disposable,
+  TaskProvider
 } from 'vscode';
+import { GradleTasksTreeDataProvider } from './gradleView';
+import {
+  invalidateTasksCache,
+  GradleTaskProvider,
+  hasBuildGradle
+} from './tasks';
 
-import ProcessRegistry from './ProcessRegistry';
-import TaskRegistry from './TaskRegistry';
-import GradleTask from './GradleTask';
-import Gradle from './Gradle';
-import GradleTreeProvider from './GradleNodeProvider';
+let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
-let outputChannel: OutputChannel;
-
-function gradleKillCommand() {
-  ProcessRegistry.killAll();
-}
-
-async function gradleRefreshTasksCommand(): Promise<void> {
-  try {
-    TaskRegistry.refresh();
-  } catch (err) {
-    window.showErrorMessage(`Unable to refresh gradle tasks: ${err.message}`);
-  }
-}
-
-async function gradleRunTaskCommand(
-  taskName?: string
-): Promise<string | Error | void> {
-  if (taskName) {
-    return await Gradle.runTask(new GradleTask(taskName), outputChannel);
-  }
-
-  let tasks: GradleTask[] = TaskRegistry.getTasks();
-
-  if (!tasks.length) {
-    throw new Error('No tasks found. Try running gradle:refresh');
-  }
-
-  const pickedTask: GradleTask | void = await window.showQuickPick(tasks);
-  if (pickedTask) {
-    return await Gradle.runTask(pickedTask, outputChannel);
-  }
-}
-
-export async function activate(context: ExtensionContext) {
-  outputChannel = window.createOutputChannel('Gradle');
-
-  context.subscriptions.push(
-    commands.registerCommand('gradle:refresh', gradleRefreshTasksCommand)
-  );
-  context.subscriptions.push(
-    commands.registerCommand('gradle:runtask', gradleRunTaskCommand)
-  );
-  context.subscriptions.push(
-    commands.registerCommand('gradle:kill', gradleKillCommand)
-  );
-
-  await commands.executeCommand('gradle:refresh');
-
-  workspace
-    .createFileSystemWatcher('/build.gradle')
-    .onDidChange(gradleRefreshTasksCommand);
-
-  const explorerEnabled = workspace
-    .getConfiguration()
-    .get('gradle.enableTasksExplorer');
-
-  if (explorerEnabled) {
-    const treeProvider: GradleTreeProvider = new GradleTreeProvider(context);
-    TaskRegistry.registerChangeHandler(() => treeProvider.refresh());
-    window.registerTreeDataProvider('gradleTasks', treeProvider);
-  }
-
-  commands.executeCommand('setContext', 'gradleTasksExtensionActive', true);
-
-  return {
-    api: {
-      TaskRegistry
+function registerTaskProvider(
+  context: ExtensionContext
+): Disposable | undefined {
+  function invalidateTaskCaches() {
+    invalidateTasksCache();
+    if (treeDataProvider) {
+      treeDataProvider.refresh();
     }
-  };
+  }
+
+  if (workspace.workspaceFolders) {
+    const watcher = workspace.createFileSystemWatcher('**/build.gradle');
+    watcher.onDidChange(() => invalidateTaskCaches());
+    watcher.onDidDelete(() => invalidateTaskCaches());
+    watcher.onDidCreate(() => invalidateTaskCaches());
+    context.subscriptions.push(watcher);
+
+    const workspaceWatcher = workspace.onDidChangeWorkspaceFolders(() =>
+      invalidateTaskCaches()
+    );
+    context.subscriptions.push(workspaceWatcher);
+
+    const provider: TaskProvider = new GradleTaskProvider();
+    const disposable = workspace.registerTaskProvider('gradle', provider);
+    context.subscriptions.push(disposable);
+    return disposable;
+  }
+  return undefined;
 }
 
-// this method is called when your extension is deactivated
-export function deactivate() {}
+function registerExplorer(
+  context: ExtensionContext
+): GradleTasksTreeDataProvider | undefined {
+  if (workspace.workspaceFolders) {
+    const treeDataProvider = new GradleTasksTreeDataProvider(context);
+    const view = window.createTreeView('gradle', {
+      treeDataProvider: treeDataProvider,
+      showCollapseAll: true
+    });
+    context.subscriptions.push(view);
+    return treeDataProvider;
+  }
+  return undefined;
+}
+
+function isTasksExplorerEnabled(): boolean {
+  return workspace
+    .getConfiguration('gradle')
+    .get<boolean>('enableTasksExplorer', true);
+}
+
+export async function activate(context: ExtensionContext): Promise<void> {
+  registerTaskProvider(context);
+  treeDataProvider = registerExplorer(context);
+  if (isTasksExplorerEnabled() && (await hasBuildGradle())) {
+    commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
+  }
+}
+
+export function deactivate(): void {}
