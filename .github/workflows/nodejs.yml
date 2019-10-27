@@ -58,7 +58,7 @@ jobs:
 
   publish:
     needs: [build-test-linux, build-test-windows]
-    if: github.event_name == 'release' && github.event.type == 'published'
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
 
     strategy:
