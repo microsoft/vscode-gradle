@@ -57,7 +57,7 @@ jobs:
         shell: pwsh
 
   publish:
-    if: github.event_name == 'release' && github.event.type == 'published'
+    if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
 
     strategy:
