@@ -8,7 +8,7 @@
 
 Run gradle tasks in VS Code.
 
-<img src="images/screencast.gif" style="max-width:700px;width:100%" />
+![Screencat](images/screencast.gif)
 
 ## Features
 
