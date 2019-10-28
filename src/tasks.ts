@@ -10,8 +10,8 @@ import {
   TaskProvider,
   TaskScope,
   QuickPickItem,
-  Disposable,
-  ProgressLocation
+  ProgressLocation,
+  StatusBarItem
 } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -37,11 +37,11 @@ type AutoDetect = 'on' | 'off';
 let cachedTasks: Task[] | undefined = undefined;
 
 export class GradleTaskProvider implements TaskProvider {
-  constructor() {}
+  constructor(readonly statusBarItem: StatusBarItem) {}
 
   async provideTasks() {
     try {
-      return await provideGradleTasks();
+      return await provideGradleTasks(this.statusBarItem);
     } catch (e) {
       window.showErrorMessage(`Unable to get gradle tasks - ${e.message}`);
     }
@@ -50,7 +50,7 @@ export class GradleTaskProvider implements TaskProvider {
   public async resolveTask(_task: Task): Promise<Task | undefined> {
     const gradleTask = (<any>_task.definition).task;
     if (gradleTask) {
-      const kind: GradleTaskDefinition = <any>_task.definition;
+      const { definition } = <any>_task;
       let buildGradleUri: Uri;
       if (
         _task.scope === undefined ||
@@ -60,9 +60,9 @@ export class GradleTaskProvider implements TaskProvider {
         // scope is required to be a WorkspaceFolder for resolveTask
         return undefined;
       }
-      if (kind.path) {
+      if (definition.path) {
         buildGradleUri = _task.scope.uri.with({
-          path: _task.scope.uri.path + '/' + kind.path + 'build.gradle'
+          path: _task.scope.uri.path + '/' + definition.path + 'build.gradle'
         });
       } else {
         buildGradleUri = _task.scope.uri.with({
@@ -72,8 +72,8 @@ export class GradleTaskProvider implements TaskProvider {
       const folder = workspace.getWorkspaceFolder(buildGradleUri);
       if (folder) {
         return createTask(
-          kind,
-          kind.task,
+          definition,
+          definition.task,
           _task.scope,
           buildGradleUri,
           await getGradleWrapperCommandFromFolder(folder)
@@ -112,7 +112,9 @@ async function getGradleWrapperCommandFromFolder(
   }
 }
 
-async function detectGradleTasks(): Promise<Task[]> {
+async function detectGradleTasks(
+  statusBarItem: StatusBarItem
+): Promise<Task[]> {
   const emptyTasks: Task[] = [];
   const allTasks: Task[] = [];
   const visitedBuildGradleFiles: Set<string> = new Set();
@@ -128,7 +130,10 @@ async function detectGradleTasks(): Promise<Task[]> {
         const paths = await workspace.findFiles(relativePattern);
         for (const path of paths) {
           if (!visitedBuildGradleFiles.has(path.fsPath)) {
-            const tasks = await provideGradleTasksForFolder(path);
+            const tasks = await provideGradleTasksForFolder(
+              path,
+              statusBarItem
+            );
             visitedBuildGradleFiles.add(path.fsPath);
             allTasks.push(...tasks);
           }
@@ -142,17 +147,20 @@ async function detectGradleTasks(): Promise<Task[]> {
 }
 
 export async function detectGradleTasksForFolder(
-  folder: Uri
+  folder: Uri,
+  statusBarItem: StatusBarItem
 ): Promise<FolderTaskItem[]> {
   const folderTasks: FolderTaskItem[] = [];
-  const tasks = await provideGradleTasksForFolder(folder);
-  folderTasks.push(...tasks.map(t => ({ label: t.name, task: t })));
+  const tasks = await provideGradleTasksForFolder(folder, statusBarItem);
+  folderTasks.push(...tasks.map(task => ({ label: task.name, task })));
   return folderTasks;
 }
 
-export async function provideGradleTasks(): Promise<Task[]> {
+export async function provideGradleTasks(
+  statusBarItem: StatusBarItem
+): Promise<Task[]> {
   if (!cachedTasks) {
-    cachedTasks = await detectGradleTasks();
+    cachedTasks = await detectGradleTasks(statusBarItem);
   }
   return cachedTasks;
 }
@@ -166,7 +174,8 @@ function isAutoDetectionEnabled(folder: WorkspaceFolder): boolean {
 }
 
 async function provideGradleTasksForFolder(
-  gradleBuildFileUri: Uri
+  gradleBuildFileUri: Uri,
+  statusBarItem: StatusBarItem
 ): Promise<Task[]> {
   const emptyTasks: Task[] = [];
 
@@ -178,22 +187,13 @@ async function provideGradleTasksForFolder(
   if (!command) {
     return emptyTasks;
   }
-  const tasksMap = await getTasks(command, folder);
+  const tasksMap = await getTasks(command, folder, statusBarItem);
   if (!tasksMap) {
     return emptyTasks;
   }
   return Object.keys(tasksMap)
     .sort((a, b) => a.localeCompare(b))
-    .map(task =>
-      createTask(
-        task,
-        task,
-        folder!,
-        gradleBuildFileUri,
-        command,
-        tasksMap![task]
-      )
-    );
+    .map(task => createTask(task, task, folder!, gradleBuildFileUri, command));
 }
 
 export function getTaskName(task: string, relativePath: string | undefined) {
@@ -208,14 +208,13 @@ export function createTask(
   taskName: string,
   folder: WorkspaceFolder,
   buildGradleUri: Uri,
-  command: string,
-  description?: string
+  command: string
 ): Task {
-  let kind: GradleTaskDefinition;
+  let definition: GradleTaskDefinition;
   if (typeof taskDefinition === 'string') {
-    kind = { type: 'gradle', task: taskDefinition };
+    definition = { type: 'gradle', task: taskDefinition };
   } else {
-    kind = taskDefinition;
+    definition = taskDefinition;
   }
 
   function getCommandLine(task: string): string {
@@ -236,12 +235,12 @@ export function createTask(
 
   const relativeBuildGradle = getRelativePath(folder, buildGradleUri);
   if (relativeBuildGradle.length) {
-    kind.path = getRelativePath(folder, buildGradleUri);
+    definition.path = getRelativePath(folder, buildGradleUri);
   }
-  const normalizedTaskName = getTaskName(kind.task, relativeBuildGradle);
+  const normalizedTaskName = getTaskName(definition.task, relativeBuildGradle);
   const cwd = path.dirname(buildGradleUri.fsPath);
   const task = new Task(
-    kind,
+    definition,
     folder,
     normalizedTaskName,
     'gradle',
@@ -328,11 +327,12 @@ function exec(
 
 function getTasksFromGradle(
   command: string,
-  folder: WorkspaceFolder
+  folder: WorkspaceFolder,
+  statusBarItem: StatusBarItem
 ): Promise<ProcessOutput> {
-  const statusbar: Disposable = window.setStatusBarMessage(
-    'Refreshing gradle tasks'
-  );
+  statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
+  statusBarItem.show();
+
   const args = ['--console', 'plain', 'tasks'];
   const tasksArgs = getTasksArgs();
   if (tasksArgs) {
@@ -349,39 +349,29 @@ function getTasksFromGradle(
         title: 'Loading Gradle Tasks',
         cancellable: true
       },
-      (progress, token) => {
+      (_, token) => {
         token.onCancellationRequested(() => {
           process.kill();
           window.showInformationMessage(
             'Operation cancelled. Try again using command "Gradle: Refresh Tasks"'
           );
         });
-
-        progress.report({ increment: 20 });
-
-        const int = setInterval(
-          () =>
-            progress.report({
-              increment: 10
-            }),
-          1500
-        );
-
-        return promise.finally(() => clearInterval(int));
+        return promise;
       }
     );
   }, 3000);
 
   return promise.finally(() => {
     clearTimeout(showProgress);
-    statusbar.dispose();
+    statusBarItem.hide();
   });
 }
 
 async function getTasks(
   command: string,
-  folder: WorkspaceFolder
+  folder: WorkspaceFolder,
+  statusBarItem: StatusBarItem
 ): Promise<StringMap | undefined> {
-  const { stdout } = await getTasksFromGradle(command, folder);
+  const { stdout } = await getTasksFromGradle(command, folder, statusBarItem);
   return parseGradleTasks(stdout);
 }

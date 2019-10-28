@@ -4,7 +4,8 @@ import {
   commands,
   ExtensionContext,
   Disposable,
-  TaskProvider
+  TaskProvider,
+  StatusBarAlignment
 } from 'vscode';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
@@ -37,7 +38,13 @@ function registerTaskProvider(
     );
     context.subscriptions.push(workspaceWatcher);
 
-    const provider: TaskProvider = new GradleTaskProvider();
+    const statusBarItem = window.createStatusBarItem(
+      StatusBarAlignment.Left,
+      1
+    );
+    context.subscriptions.push(statusBarItem);
+
+    const provider: TaskProvider = new GradleTaskProvider(statusBarItem);
     const disposable = workspace.registerTaskProvider('gradle', provider);
     context.subscriptions.push(disposable);
     return disposable;

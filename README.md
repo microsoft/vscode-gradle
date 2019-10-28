@@ -2,10 +2,6 @@
 
 <a href="https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle">![Marketplace extension](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)</a>
 
-<!-- <a href="https://github.com/badsyntax/vscode-gradle/actions?workflow=Node+CI+Test"><img src="https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI%20Test/badge.svg" /></a>  -->
-
-<!-- ![Build status](https://github.com/badsyntax/vscode-gradle/workflows/Node%20CI/badge.svg) -->
-
 Run gradle tasks in VS Code.
 
 ![Screencat](images/screencast.gif)
@@ -25,14 +21,6 @@ Run gradle tasks in VS Code.
 "gradle.tasksArgs": "--all",       // Custom gradle tasks arguments
 "gradle.enableTasksExplorer": true // Enable an explorer view for gradle tasks
 ```
-
-## Troubleshooting
-
-<details><summary>The extension hangs with "Refreshing gradle tasks"...</summary>
-
-Eventually the command should fail with an error message. This is usually due to gradle not being able to resolve dependencies. Check your network connection.
-
-</details>
 
 ## Credits
 
