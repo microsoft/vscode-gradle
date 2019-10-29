@@ -37,6 +37,7 @@
     "onCommand:gradle.refresh",
     "onCommand:gradle.runTask",
     "workspaceContains:build.gradle",
+    "workspaceContains:build.gradle.kts",
     "onView:gradle"
   ],
   "main": "./out/extension",
@@ -58,7 +59,7 @@
         {
           "id": "gradle",
           "name": "Gradle Tasks",
-          "when": "gradle:showTasksExplorer || config.gradle.enableTasksExplorer"
+          "when": "gradle:showTasksExplorer"
         }
       ]
     },
@@ -125,6 +126,11 @@
           "type": "string",
           "default": "--all",
           "description": "Custom gradle tasks arguments"
+        },
+        "gradle.customBuildFilename": {
+          "type": "string",
+          "default": "",
+          "description": "Filename of the gradle build file"
         }
       }
     },

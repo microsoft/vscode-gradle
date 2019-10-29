@@ -11,7 +11,7 @@ import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
   GradleTaskProvider,
-  hasBuildGradle
+  hasGradleBuildFile
 } from './tasks';
 
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
@@ -27,27 +27,36 @@ function registerTaskProvider(
   }
 
   if (workspace.workspaceFolders) {
-    const watcher = workspace.createFileSystemWatcher('**/build.gradle');
+    const watcher = workspace.createFileSystemWatcher(
+      '**/{build.gradle,build.gradle.kts}'
+    );
     watcher.onDidChange(() => invalidateTaskCaches());
     watcher.onDidDelete(() => invalidateTaskCaches());
     watcher.onDidCreate(() => invalidateTaskCaches());
-    context.subscriptions.push(watcher);
 
     const workspaceWatcher = workspace.onDidChangeWorkspaceFolders(() =>
       invalidateTaskCaches()
     );
-    context.subscriptions.push(workspaceWatcher);
 
     const statusBarItem = window.createStatusBarItem(
       StatusBarAlignment.Left,
       1
     );
-    context.subscriptions.push(statusBarItem);
 
-    const provider: TaskProvider = new GradleTaskProvider(statusBarItem);
-    const disposable = workspace.registerTaskProvider('gradle', provider);
-    context.subscriptions.push(disposable);
-    return disposable;
+    const outputChannel = window.createOutputChannel('Gradle Tasks');
+
+    const provider: TaskProvider = new GradleTaskProvider(
+      statusBarItem,
+      outputChannel
+    );
+    const taskProvider = workspace.registerTaskProvider('gradle', provider);
+
+    context.subscriptions.push(watcher);
+    context.subscriptions.push(workspaceWatcher);
+    context.subscriptions.push(statusBarItem);
+    context.subscriptions.push(outputChannel);
+    context.subscriptions.push(taskProvider);
+    return taskProvider;
   }
   return undefined;
 }
@@ -80,7 +89,7 @@ export async function activate(
 ): Promise<ExtensionApi> {
   registerTaskProvider(context);
   treeDataProvider = registerExplorer(context);
-  if (isTasksExplorerEnabled() && (await hasBuildGradle())) {
+  if (isTasksExplorerEnabled() && (await hasGradleBuildFile())) {
     commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
   return {};
