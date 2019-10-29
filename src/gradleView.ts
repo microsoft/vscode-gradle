@@ -24,7 +24,7 @@ import {
 } from './tasks';
 
 class Folder extends TreeItem {
-  gradleTasks: BuildGradleTreeItem[] = [];
+  gradleTasks: GradleTreeItem[] = [];
   workspaceFolder: WorkspaceFolder;
 
   constructor(folder: WorkspaceFolder) {
@@ -35,22 +35,20 @@ class Folder extends TreeItem {
     this.iconPath = ThemeIcon.Folder;
   }
 
-  addBuildGradleTreeItem(buildGradle: BuildGradleTreeItem) {
+  addGradleTreeItem(buildGradle: GradleTreeItem) {
     this.gradleTasks.push(buildGradle);
   }
 }
-
-const packageName = 'build.gradle';
 
 type ExplorerCommands = 'run';
 
 class GradleTaskItem extends TreeItem {
   task: Task;
-  buildGradle: BuildGradleTreeItem;
+  buildGradle: GradleTreeItem;
 
   constructor(
     context: ExtensionContext,
-    buildGradle: BuildGradleTreeItem,
+    buildGradle: GradleTreeItem,
     task: Task
   ) {
     super(task.name, TreeItemCollapsibleState.None);
@@ -84,33 +82,37 @@ class GradleTaskItem extends TreeItem {
   }
 }
 
-class BuildGradleTreeItem extends TreeItem {
+class GradleTreeItem extends TreeItem {
   path: string;
   folder: Folder;
   tasks: GradleTaskItem[] = [];
 
-  static getLabel(_folderName: string, relativePath: string): string {
+  static getLabel(
+    _folderName: string,
+    relativePath: string,
+    buildFile: string
+  ): string {
     if (relativePath.length > 0) {
-      return path.join(relativePath, packageName);
+      return path.join(relativePath, buildFile);
     }
-    return packageName;
+    return buildFile;
   }
 
-  constructor(folder: Folder, relativePath: string) {
+  constructor(folder: Folder, relativePath: string, buildFile: string) {
     super(
-      BuildGradleTreeItem.getLabel(folder.label!, relativePath),
+      GradleTreeItem.getLabel(folder.label!, relativePath, buildFile),
       TreeItemCollapsibleState.Expanded
     );
     this.folder = folder;
     this.path = relativePath;
-    this.contextValue = 'build.gradle';
+    this.contextValue = buildFile;
     if (relativePath) {
       this.resourceUri = Uri.file(
-        path.join(folder!.resourceUri!.fsPath, relativePath, packageName)
+        path.join(folder!.resourceUri!.fsPath, relativePath, buildFile)
       );
     } else {
       this.resourceUri = Uri.file(
-        path.join(folder!.resourceUri!.fsPath, packageName)
+        path.join(folder!.resourceUri!.fsPath, buildFile)
       );
     }
     this.iconPath = ThemeIcon.File;
@@ -131,7 +133,7 @@ class NoTasksTreeItem extends TreeItem {
 export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   private taskTree:
     | Folder[]
-    | BuildGradleTreeItem[]
+    | GradleTreeItem[]
     | NoTasksTreeItem[]
     | null = null;
   private extensionContext: ExtensionContext;
@@ -140,8 +142,8 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     ._onDidChangeTreeData.event;
 
   constructor(context: ExtensionContext) {
-    const subscriptions = context.subscriptions;
     this.extensionContext = context;
+    const subscriptions = context.subscriptions;
     subscriptions.push(
       commands.registerCommand('gradle.runTask', this.runTask, this)
     );
@@ -150,8 +152,10 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     );
   }
 
-  private async runTask(task: GradleTaskItem) {
-    tasks.executeTask(task.task);
+  private async runTask(taskItem: GradleTaskItem) {
+    if (taskItem && taskItem.task) {
+      tasks.executeTask(taskItem.task);
+    }
   }
 
   public refresh() {
@@ -169,7 +173,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     if (element instanceof Folder) {
       return null;
     }
-    if (element instanceof BuildGradleTreeItem) {
+    if (element instanceof GradleTreeItem) {
       return element.folder;
     }
     if (element instanceof GradleTaskItem) {
@@ -194,7 +198,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     if (element instanceof Folder) {
       return element.gradleTasks;
     }
-    if (element instanceof BuildGradleTreeItem) {
+    if (element instanceof GradleTreeItem) {
       return element.tasks;
     }
     if (element instanceof GradleTaskItem) {
@@ -213,9 +217,9 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private buildTaskTree(
     tasks: Task[]
-  ): Folder[] | BuildGradleTreeItem[] | NoTasksTreeItem[] {
+  ): Folder[] | GradleTreeItem[] | NoTasksTreeItem[] {
     const folders: Map<String, Folder> = new Map();
-    const gradleTasks: Map<String, BuildGradleTreeItem> = new Map();
+    const gradleTasks: Map<String, GradleTreeItem> = new Map();
 
     let folder = null;
     let buildGradle = null;
@@ -234,8 +238,12 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
         const fullPath = path.join(task.scope.name, relativePath);
         buildGradle = gradleTasks.get(fullPath);
         if (!buildGradle) {
-          buildGradle = new BuildGradleTreeItem(folder, relativePath);
-          folder.addBuildGradleTreeItem(buildGradle);
+          buildGradle = new GradleTreeItem(
+            folder,
+            relativePath,
+            definition.buildFile
+          );
+          folder.addGradleTreeItem(buildGradle);
           gradleTasks.set(fullPath, buildGradle);
         }
         const gradleTask = new GradleTaskItem(
