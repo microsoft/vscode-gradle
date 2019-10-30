@@ -20,7 +20,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "gradle groovy default build file"
+        "FIXTURE_NAME": "gradle-groovy-default-build-file"
       },
       "args": [
         "--disable-extensions",
@@ -37,7 +37,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "gradle kotlin default build file"
+        "FIXTURE_NAME": "gradle-kotlin-default-build-file"
       },
       "args": [
         "--disable-extensions",
@@ -61,6 +61,23 @@
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/out/test/gradle",
         "${workspaceFolder}/test-fixtures/gradle-groovy-custom-build-file"
+      ],
+      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+      "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Custom Build Via Gradle Settings Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "env": {
+        "FIXTURE_NAME": "gradle-groovy-custom-build-via-settings"
+      },
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test/gradle",
+        "${workspaceFolder}/test-fixtures/gradle-groovy-custom-build-via-settings"
       ],
       "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
       "preLaunchTask": "npm: watch"

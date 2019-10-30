@@ -8,3 +8,5 @@
  */
 
 rootProject.name = 'gradle-groovy-custom-build-file'
+
+rootProject.buildFileName = 'my-custom-build.gradle'
