@@ -80,11 +80,27 @@ function registerExplorer(
 ): GradleTasksTreeDataProvider | undefined {
   if (workspace.workspaceFolders) {
     const treeDataProvider = new GradleTasksTreeDataProvider(context);
-    const view = window.createTreeView('gradle', {
-      treeDataProvider: treeDataProvider,
-      showCollapseAll: true
-    });
-    context.subscriptions.push(view);
+    treeDataProvider.refresh();
+    context.subscriptions.push(
+      window.createTreeView('gradle', {
+        treeDataProvider: treeDataProvider,
+        showCollapseAll: true
+      })
+    );
+    context.subscriptions.push(
+      commands.registerCommand(
+        'gradle.runTask',
+        treeDataProvider.runTask,
+        treeDataProvider
+      )
+    );
+    context.subscriptions.push(
+      commands.registerCommand(
+        'gradle.refresh',
+        treeDataProvider.refresh,
+        treeDataProvider
+      )
+    );
     return treeDataProvider;
   }
   return undefined;
