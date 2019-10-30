@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
-suite(`${fixtureName} - with default build file`, () => {
+suite(fixtureName, () => {
   suite('extension', () => {
     test('it should be present', () => {
       assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));

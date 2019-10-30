@@ -5,7 +5,11 @@ import { runTests } from 'vscode-test';
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
 async function runTestsWithGradleWorkspace() {
-  const fixtures = ['gradle-groovy', 'gradle-kotlin'];
+  const fixtures = [
+    'gradle-groovy-default-build-file',
+    'gradle-kotlin-default-build-file',
+    'gradle-groovy-custom-build-file'
+  ];
   for (const fixture of fixtures) {
     await runTests({
       extensionDevelopmentPath,
@@ -15,7 +19,7 @@ async function runTestsWithGradleWorkspace() {
         '--disable-extensions'
       ],
       extensionTestsEnv: {
-        FIXTURE_NAME: fixture
+        FIXTURE_NAME: fixture.replace(/-/g, ' ')
       }
     });
   }
