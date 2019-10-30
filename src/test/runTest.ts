@@ -8,8 +8,7 @@ async function runTestsWithGradleWorkspace() {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
-    'gradle-groovy-custom-build-file',
-    'gradle-groovy-custom-build-via-settings'
+    'gradle-groovy-custom-build-file'
   ];
   for (const fixture of fixtures) {
     await runTests({
