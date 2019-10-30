@@ -10,7 +10,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'tdd',
-      timeout: 20000
+      timeout: 60000
     });
     mocha.useColors(true);
 

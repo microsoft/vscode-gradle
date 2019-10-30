@@ -5,14 +5,24 @@ import { runTests } from 'vscode-test';
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
 async function runTestsWithGradleWorkspace() {
-  await runTests({
-    extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, './gradle'),
-    launchArgs: [
-      path.resolve(__dirname, `../../test-fixtures/gradle`),
-      '--disable-extensions'
-    ]
-  });
+  const fixtures = [
+    'gradle-groovy-default-build-file',
+    'gradle-kotlin-default-build-file',
+    'gradle-groovy-custom-build-file'
+  ];
+  for (const fixture of fixtures) {
+    await runTests({
+      extensionDevelopmentPath,
+      extensionTestsPath: path.resolve(__dirname, './gradle'),
+      launchArgs: [
+        path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+        '--disable-extensions'
+      ],
+      extensionTestsEnv: {
+        FIXTURE_NAME: fixture.replace(/-/g, ' ')
+      }
+    });
+  }
 }
 
 async function runTestsWithoutGradleWorkspace() {

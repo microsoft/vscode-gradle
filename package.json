@@ -36,7 +36,8 @@
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:gradle.refresh",
     "onCommand:gradle.runTask",
-    "workspaceContains:build.gradle",
+    "workspaceContains:gradlew",
+    "workspaceContains:gradlew.bat",
     "onView:gradle"
   ],
   "main": "./out/extension",
@@ -45,7 +46,10 @@
       {
         "owner": "gradle",
         "name": "gradle",
-        "fileLocation": ["relative", "${workspaceFolder}"],
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
         "pattern": {
           "regexp": "^.*(FAILURE):\\s*(.*)$",
           "severity": 1,
@@ -58,14 +62,14 @@
         {
           "id": "gradle",
           "name": "Gradle Tasks",
-          "when": "gradle:showTasksExplorer || config.gradle.enableTasksExplorer"
+          "when": "gradle:showTasksExplorer"
         }
       ]
     },
     "commands": [
       {
         "command": "gradle.runTask",
-        "title": "Run gradle task",
+        "title": "Gradle: Run Task",
         "icon": {
           "light": "resources/light/continue.svg",
           "dark": "resources/dark/continue.svg"
@@ -124,7 +128,14 @@
         "gradle.tasksArgs": {
           "type": "string",
           "default": "--all",
+          "scope": "resource",
           "description": "Custom gradle tasks arguments"
+        },
+        "gradle.customBuildFile": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "Filename of the gradle build file"
         }
       }
     },
@@ -144,6 +155,10 @@
           "task": {
             "type": "string",
             "description": "Gradle task name"
+          },
+          "buildFile": {
+            "type": "string",
+            "description": "The build file that provides the task"
           }
         }
       }

@@ -5,4 +5,8 @@
  * Learn how to create Gradle builds at https://guides.gradle.org/creating-new-gradle-builds
  */
 
-apply plugin: "java"
+tasks.register("hello") {
+    doLast {
+        println("Hello, World!")
+    }
+}
