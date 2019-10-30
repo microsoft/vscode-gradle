@@ -142,8 +142,7 @@ async function detectGradleTasks(
       if (autoDetectOverride || getIsAutoDetectionEnabled(folder)) {
         const customBuildFile = getCustomBuildFile(folder);
         const customBuildFileGlob = customBuildFile && `{${customBuildFile}}`;
-        const defaultBuildFileGlob =
-          '{build.gradle,build.gradle.kts,settings.gradle}';
+        const defaultBuildFileGlob = '{build.gradle,build.gradle.kts}';
         const buildFileGlob = customBuildFileGlob || defaultBuildFileGlob;
         const relativePattern = new RelativePattern(
           folder,
@@ -317,14 +316,9 @@ export async function hasGradleBuildFile(): Promise<boolean> {
       folder.uri.fsPath,
       'build.gradle.kts'
     );
-    const defaultGradleSettingsFilePath = path.join(
-      folder.uri.fsPath,
-      'settings.gradle'
-    );
     if (
       (await exists(defaultGroovyBuildFilePath)) ||
-      (await exists(defaultKotlinBuildFilePath)) ||
-      (await exists(defaultGradleSettingsFilePath))
+      (await exists(defaultKotlinBuildFilePath))
     ) {
       return true;
     }
