@@ -131,7 +131,7 @@
           "scope": "resource",
           "description": "Custom gradle tasks arguments"
         },
-        "gradle.customBuildFilename": {
+        "gradle.customBuildFile": {
           "type": "string",
           "default": "",
           "scope": "resource",

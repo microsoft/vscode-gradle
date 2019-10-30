@@ -7,6 +7,6 @@
 
 tasks.register("hello") {
     doLast {
-        println("Hello, World!")
+        println 'Hello, World!'
     }
 }

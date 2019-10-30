@@ -14,6 +14,8 @@ import {
   hasGradleBuildFile
 } from './tasks';
 
+import { getCustomBuildFile, getIsTasksExplorerEnabled } from './config';
+
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
@@ -27,9 +29,21 @@ function registerTaskProvider(
   }
 
   if (workspace.workspaceFolders) {
-    const watcher = workspace.createFileSystemWatcher(
-      '**/{build.gradle,build.gradle.kts}'
-    );
+    const defaultGroovyBuildFile = 'build.gradle';
+    const defaultKotlinBuildFile = 'build.gradle.kts';
+    const buildFiles = new Set<string>();
+    for (const folder of workspace.workspaceFolders) {
+      const customBuildFile = getCustomBuildFile(folder);
+      if (customBuildFile) {
+        buildFiles.add(customBuildFile);
+      } else {
+        buildFiles.add(defaultGroovyBuildFile);
+        buildFiles.add(defaultKotlinBuildFile);
+      }
+    }
+
+    const buildFileGlob = `**/{${Array.from(buildFiles).join(',')}}`;
+    const watcher = workspace.createFileSystemWatcher(buildFileGlob);
     watcher.onDidChange(() => invalidateTaskCaches());
     watcher.onDidDelete(() => invalidateTaskCaches());
     watcher.onDidCreate(() => invalidateTaskCaches());
@@ -76,12 +90,6 @@ function registerExplorer(
   return undefined;
 }
 
-function isTasksExplorerEnabled(): boolean {
-  return workspace
-    .getConfiguration('gradle')
-    .get<boolean>('enableTasksExplorer', true);
-}
-
 interface ExtensionApi {}
 
 export async function activate(
@@ -92,7 +100,7 @@ export async function activate(
   const hasBuildFile = await hasGradleBuildFile();
   if (!hasBuildFile) {
     window.showWarningMessage('No gradle build file found');
-  } else if (isTasksExplorerEnabled()) {
+  } else if (getIsTasksExplorerEnabled()) {
     commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
   return {};
