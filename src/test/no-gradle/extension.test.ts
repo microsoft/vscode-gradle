@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-suite('Without build.gradle Extension Test Suite', () => {
+suite('without any build file or local gradle wrapper', () => {
   test('it should not be present', () => {
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
   });

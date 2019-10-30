@@ -371,7 +371,7 @@ function exec(
     cmd = `${cmd} ${args.join(' ')}`;
   }
   if (outputChannel) {
-    outputChannel.append(`Refreshing tasks: ${cmd}\n`);
+    outputChannel.append(`Executing: ${cmd}\n`);
   }
   return new Promise((resolve, reject) => {
     const process = cp.exec(cmd, options, (err, stdout, stderr) => {
