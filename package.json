@@ -101,7 +101,7 @@
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradle"
+          "when": "view == gradle && viewItem == task"
         }
       ]
     },

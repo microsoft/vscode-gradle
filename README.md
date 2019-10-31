@@ -15,20 +15,24 @@ Run gradle tasks in VS Code.
 
 > **Note:** Local gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
 
-## Settings
+## Extension Settings
 
-```json
-"gradle.autoDetect": "on",          // Automatically detect gradle tasks
-"gradle.tasksArgs": "--all",        // Custom gradle tasks arguments
-"gradle.enableTasksExplorer": true, // Enable an explorer view for gradle tasks
-"gradle.customBuildFile": ""        // Custom gradle build filename
-```
+This extension contributes the following settings:
+
+- `gradle.autoDetect`: Automatically detect gradle tasks
+- `gradle.tasksArgs`: Custom gradle tasks arguments
+- `gradle.enableTasksExplorer`: Enable an explorer view for gradle tasks
+- `gradle.customBuildFile`: Custom gradle build filename
 
 ## Credits
 
-- Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle).
-- Heavily inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm).
+- Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
+- Heavily inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm)
+
+## Release Notes
+
+See [CHANGELOG.md](./CHANGELOG.md)
 
 ## License
 
-See [LICENSE.md](./LICENSE.md).
+See [LICENSE.md](./LICENSE.md)
