@@ -131,38 +131,31 @@ class NoTasksTreeItem extends TreeItem {
 }
 
 export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
+  private taskItemsPromise: Thenable<Task[]> | undefined = undefined;
   private taskTree:
     | Folder[]
     | GradleTreeItem[]
     | NoTasksTreeItem[]
     | null = null;
-  private extensionContext: ExtensionContext;
   private _onDidChangeTreeData: EventEmitter<TreeItem | null> = new EventEmitter<TreeItem | null>();
   readonly onDidChangeTreeData: Event<TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(context: ExtensionContext) {
-    this.extensionContext = context;
-    const subscriptions = context.subscriptions;
-    subscriptions.push(
-      commands.registerCommand('gradle.runTask', this.runTask, this)
-    );
-    subscriptions.push(
-      commands.registerCommand('gradle.refresh', this.refresh, this)
-    );
-  }
+  constructor(private readonly extensionContext: ExtensionContext) {}
 
-  private async runTask(taskItem: GradleTaskItem) {
+  runTask(taskItem: GradleTaskItem) {
     if (taskItem && taskItem.task) {
       tasks.executeTask(taskItem.task);
     }
   }
 
-  public refresh() {
+  refresh() {
     invalidateTasksCache();
     enableTaskDetection();
     this.taskTree = null;
+    this.taskItemsPromise = tasks.fetchTasks({ type: 'gradle' });
     this._onDidChangeTreeData.fire();
+    return this.taskItemsPromise;
   }
 
   getTreeItem(element: TreeItem): TreeItem {
@@ -187,7 +180,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   async getChildren(element?: TreeItem): Promise<TreeItem[]> {
     if (!this.taskTree) {
-      const taskItems = await tasks.fetchTasks({ type: 'gradle' });
+      const taskItems = await this.taskItemsPromise;
       if (taskItems) {
         this.taskTree = this.buildTaskTree(taskItems);
         if (this.taskTree.length === 0) {
