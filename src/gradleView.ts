@@ -153,12 +153,9 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     invalidateTasksCache();
     enableTaskDetection();
     this.taskTree = null;
-    this.taskItemsPromise = tasks
-      .fetchTasks({ type: 'gradle' })
-      .then(taskItems => {
-        this._onDidChangeTreeData.fire();
-        return taskItems;
-      });
+    this.taskItemsPromise = tasks.fetchTasks({ type: 'gradle' });
+    this._onDidChangeTreeData.fire();
+    return this.taskItemsPromise;
   }
 
   getTreeItem(element: TreeItem): TreeItem {
