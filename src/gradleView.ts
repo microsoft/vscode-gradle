@@ -62,9 +62,6 @@ class GradleTaskItem extends TreeItem {
       }
     };
     this.contextValue = 'task';
-    if (task.group && task.group === TaskGroup.Rebuild) {
-      this.contextValue = 'debugScript';
-    }
     this.buildGradle = buildGradle;
     this.task = task;
     this.command = commandList[command];
