@@ -10,3 +10,9 @@ tasks.register("hello") {
         println 'Hello, World!'
     }
 }
+
+tasks.register("helloGroovyCustom") {
+    doLast {
+        println 'Hello, World!'
+    }
+}

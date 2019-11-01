@@ -4,7 +4,7 @@ import { runTests } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
-async function runTestsWithGradleWorkspace() {
+async function runTestsWithGradle() {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
@@ -25,7 +25,7 @@ async function runTestsWithGradleWorkspace() {
   }
 }
 
-async function runTestsWithoutGradleWorkspace() {
+async function runTestsWithoutGradle() {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, './no-gradle'),
@@ -36,10 +36,28 @@ async function runTestsWithoutGradleWorkspace() {
   });
 }
 
+async function runTestsWithMultiRoot() {
+  await runTests({
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, './multi-root'),
+    launchArgs: [
+      path.resolve(
+        __dirname,
+        '../../test-fixtures/multi-root/multiple-project.code-workspace'
+      ),
+      '--disable-extensions'
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: 'multi-root'
+    }
+  });
+}
+
 async function main() {
   try {
-    await runTestsWithGradleWorkspace();
-    await runTestsWithoutGradleWorkspace();
+    await runTestsWithGradle();
+    await runTestsWithMultiRoot();
+    await runTestsWithoutGradle();
   } catch (err) {
     console.error('Failed to run tests');
     process.exit(1);

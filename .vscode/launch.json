@@ -15,7 +15,7 @@
       "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Groovy Tests",
+      "name": "Test: Groovy Default",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -32,7 +32,7 @@
       "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Kotlin Tests",
+      "name": "Test: Kotlin Default",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -49,7 +49,7 @@
       "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Custom Build File Tests",
+      "name": "Test: Groovy Custom",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -66,7 +66,7 @@
       "preLaunchTask": "npm: watch"
     },
     {
-      "name": "No-Gradle Tests",
+      "name": "Test: No-Gradle",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -75,6 +75,23 @@
         "--extensionDevelopmentPath=${workspaceFolder}",
         "--extensionTestsPath=${workspaceFolder}/out/test/no-gradle/",
         "${workspaceFolder}/test-fixtures/no-gradle"
+      ],
+      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
+      "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Test: Multi-root",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "env": {
+        "FIXTURE_NAME": "multi-root-workspace"
+      },
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/out/test/multi-root/",
+        "${workspaceFolder}/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
       "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
       "preLaunchTask": "npm: watch"
