@@ -19,15 +19,44 @@ suite(fixtureName, () => {
       }
     });
 
-    suite('tasks', () => {
+    suite('tasks', async () => {
       let tasks: vscode.Task[];
 
       suiteSetup(async () => {
         tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       });
 
-      test('it should load tasks', async () => {
-        assert.equal(tasks.length > 0, true);
+      test('it should load groovy default build file tasks', () => {
+        const groovyDefaultTask = tasks.find(
+          ({ name }) => name === 'helloGroovyDefault'
+        );
+        assert.ok(groovyDefaultTask);
+        if (groovyDefaultTask) {
+          assert.equal(groovyDefaultTask.definition.buildFile, 'build.gradle');
+        }
+      });
+
+      test('it should load kotlin default build file tasks', () => {
+        const kotlinTask = tasks.find(
+          ({ name }) => name === 'helloKotlinDefault'
+        );
+        assert.ok(kotlinTask);
+        if (kotlinTask) {
+          assert.equal(kotlinTask.definition.buildFile, 'build.gradle.kts');
+        }
+      });
+
+      test('it should load groovy custom build file tasks', () => {
+        const groovyCustomTask = tasks.find(
+          ({ name }) => name === 'helloGroovyCustom'
+        );
+        assert.ok(groovyCustomTask);
+        if (groovyCustomTask) {
+          assert.equal(
+            groovyCustomTask.definition.buildFile,
+            'my-custom-build.gradle'
+          );
+        }
       });
 
       test('it should successfully run a custom task', async () => {

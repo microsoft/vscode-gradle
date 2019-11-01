@@ -10,3 +10,9 @@ tasks.register("hello") {
         println("Hello, World!")
     }
 }
+
+tasks.register("helloKotlinDefault") {
+    doLast {
+        println("Hello, World!")
+    }
+}

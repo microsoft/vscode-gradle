@@ -51,9 +51,7 @@ export class GradleTaskProvider implements TaskProvider {
     try {
       return await provideGradleTasks(this.statusBarItem, this.outputChannel);
     } catch (e) {
-      this.outputChannel.append(e.message);
-      this.statusBarItem.text = 'Error refreshing gradle tasks';
-      this.statusBarItem.show();
+      this.outputChannel.append(`${e.message}\n`);
     }
   }
 
@@ -389,7 +387,7 @@ function getTasksFromGradle(
   statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
   statusBarItem.show();
 
-  const args = ['--console', 'plain', 'tasks'];
+  const args = ['--quiet', '--console', 'plain', 'tasks'];
   const customBuildFile = getCustomBuildFile(folder);
   if (customBuildFile) {
     args.push('--build-file', customBuildFile);

@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": "../gradle-groovy-default-build-file"
+    },
+    {
+      "path": "../gradle-groovy-custom-build-file"
+    },
+    {
+      "path": "../gradle-kotlin-default-build-file"
+    }
+  ],
+  "settings": {}
+}
