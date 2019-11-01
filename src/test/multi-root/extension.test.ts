@@ -20,14 +20,13 @@ suite(fixtureName, () => {
     });
 
     suite('tasks', async () => {
-
       let tasks: vscode.Task[];
 
       suiteSetup(async () => {
         tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       });
 
-      test('it should groovy default build file tasks', () => {
+      test('it should load groovy default build file tasks', () => {
         const groovyDefaultTask = tasks.find(
           ({ name }) => name === 'helloGroovyDefault'
         );
@@ -61,9 +60,7 @@ suite(fixtureName, () => {
       });
 
       test('it should successfully run a custom task', async () => {
-        const task = tasks.find(
-          task => task.name === 'hello'
-        );
+        const task = tasks.find(task => task.name === 'hello');
         assert.ok(task);
         if (task) {
           await vscode.tasks.executeTask(task);
