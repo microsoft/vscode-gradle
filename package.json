@@ -184,7 +184,7 @@
     "prettier": "^1.18.2",
     "typescript": "^3.6.4",
     "vscode": "^1.1.36",
-    "vscode-test": "^1.2.0"
+    "vscode-test": "^1.2.2"
   },
   "prettier": {
     "singleQuote": true,
