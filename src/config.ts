@@ -12,14 +12,14 @@ export function getIsAutoDetectionEnabled(folder: WorkspaceFolder): boolean {
   return (
     workspace
       .getConfiguration('gradle', folder.uri)
-      .get<AutoDetect>('autoDetect') === 'on'
+      .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
 }
 
 export function getTasksArgs(folder: WorkspaceFolder): string {
   return workspace
     .getConfiguration('gradle', folder.uri)
-    .get<string>('tasksArgs', '');
+    .get<string>('tasksArgs', '--all');
 }
 
 export function getIsTasksExplorerEnabled(): boolean {

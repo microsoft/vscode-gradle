@@ -112,12 +112,12 @@ async function getGradleWrapperCommandFromFolder(
     platform === 'win32' &&
     (await exists(path.join(folder.uri.fsPath!, 'gradlew.bat')))
   ) {
-    return path.join(folder.uri.fsPath!, 'gradlew.bat');
+    return '.\\gradlew.bat';
   } else if (
     (platform === 'linux' || platform === 'darwin') &&
     (await exists(path.join(folder.uri.fsPath!, 'gradlew')))
   ) {
-    return path.join(folder.uri.fsPath!, 'gradlew');
+    return './gradlew';
   } else {
     throw new Error('Gradle wrapper executable not found');
   }
@@ -252,7 +252,7 @@ export function createTask(
     if (customBuildFile) {
       args.push('--build-file', customBuildFile);
     }
-    return `${command} ${args.join(' ')}`;
+    return `"${command}" ${args.join(' ')}`;
   }
 
   function getRelativePath(
