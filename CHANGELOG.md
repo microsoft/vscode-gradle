@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.1.2
+
+- Fixed parsing massive tasks list
+
+## 2.1.1
+
+- Add support for git bash on Windows
+
 ## 2.1.0
 
 - Custom build file support
@@ -18,10 +26,9 @@
 
 ## 1.0.0
 
-- Process registry - to kill tasks
-- Tasks registry
-- Refresh tasks on extension activation
-- Activate extension if build.gradle found
-- Better error feedback
+Improved version from initial fork.
+
+- Process & tasks registry
+- Activation events
 - Linting and formatting
 - Upgraded packages
