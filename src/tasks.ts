@@ -351,29 +351,32 @@ interface ProcessOutput {
   readonly stderr: string | Buffer;
 }
 
-function exec(
+function spawn(
   command: string,
   args?: ReadonlyArray<string>,
   options?: cp.ExecOptions,
   outputChannel?: OutputChannel,
   onProcessCreate?: (process: cp.ChildProcess) => void
-): Promise<ProcessOutput> {
-  let cmd = command;
-  if (args && args.length) {
-    cmd = `${cmd} ${args.join(' ')}`;
-  }
+): Promise<string> {
   if (outputChannel) {
-    outputChannel.append(`Executing: ${cmd}\n`);
+    outputChannel.append(`Executing: ${command}\n`);
   }
   return new Promise((resolve, reject) => {
-    const process = cp.exec(cmd, options, (err, stdout, stderr) => {
-      if (err) {
-        reject(err);
+    const buffers: Buffer[] = [];
+    const child = cp.spawn(command, args, options);
+    child.stdout.on('data', (b: Buffer) => buffers.push(b));
+    child.on('error', reject);
+    child.on('exit', (code: number) => {
+      if (code === 0) {
+        resolve(
+          Buffer.concat(buffers)
+            .toString('utf8')
+            .trim()
+        );
       }
-      resolve({ stdout, stderr });
     });
     if (onProcessCreate) {
-      onProcessCreate(process);
+      onProcessCreate(child);
     }
   });
 }
@@ -383,7 +386,7 @@ function getTasksFromGradle(
   folder: WorkspaceFolder,
   statusBarItem: StatusBarItem,
   outputChannel: OutputChannel
-): Promise<ProcessOutput> {
+): Promise<string> {
   statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
   statusBarItem.show();
 
@@ -399,7 +402,7 @@ function getTasksFromGradle(
   const { fsPath: cwd } = folder.uri;
 
   let process: cp.ChildProcess;
-  const promise = exec(
+  const promise = spawn(
     command,
     args,
     { cwd },
@@ -437,7 +440,7 @@ async function getTasks(
   statusBarItem: StatusBarItem,
   outputChannel: OutputChannel
 ): Promise<StringMap | undefined> {
-  const { stdout } = await getTasksFromGradle(
+  const stdout = await getTasksFromGradle(
     command,
     folder,
     statusBarItem,
