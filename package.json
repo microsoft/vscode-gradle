@@ -122,7 +122,7 @@
         },
         "gradle.enableTasksExplorer": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable an explorer view for gradle tasks"
         },
         "gradle.tasksArgs": {
