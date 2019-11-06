@@ -182,7 +182,7 @@
     "glob": "^7.1.4",
     "mocha": "^6.2.2",
     "prettier": "^1.18.2",
-    "typescript": "^3.6.4",
+    "typescript": "^3.7.2",
     "vscode": "^1.1.36",
     "vscode-test": "^1.2.2"
   },
