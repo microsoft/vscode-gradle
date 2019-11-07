@@ -166,21 +166,6 @@ async function detectGradleTasks(
   }
 }
 
-export async function detectGradleTasksForFolder(
-  folder: Uri,
-  statusBarItem: StatusBarItem,
-  outputChannel: OutputChannel
-): Promise<FolderTaskItem[]> {
-  const folderTasks: FolderTaskItem[] = [];
-  const tasks = await provideGradleTasksForFolder(
-    folder,
-    statusBarItem,
-    outputChannel
-  );
-  folderTasks.push(...tasks.map(task => ({ label: task.name, task })));
-  return folderTasks;
-}
-
 export async function provideGradleTasks(
   statusBarItem: StatusBarItem,
   outputChannel: OutputChannel
@@ -356,16 +341,26 @@ function spawn(
     outputChannel.append(`Executing: ${command}\n`);
   }
   return new Promise((resolve, reject) => {
-    const buffers: Buffer[] = [];
+    const stdoutBuffers: Buffer[] = [];
+    const stderrBuffers: Buffer[] = [];
     const child = cp.spawn(command, args, options);
-    child.stdout.on('data', (b: Buffer) => buffers.push(b));
+    child.stdout.on('data', (b: Buffer) => stdoutBuffers.push(b));
+    child.stderr.on('data', (b: Buffer) => stderrBuffers.push(b));
     child.on('error', reject);
     child.on('exit', (code: number) => {
       if (code === 0) {
         resolve(
-          Buffer.concat(buffers)
+          Buffer.concat(stdoutBuffers)
             .toString('utf8')
             .trim()
+        );
+      } else {
+        reject(
+          new Error(
+            Buffer.concat(stderrBuffers)
+              .toString('utf8')
+              .trim()
+          )
         );
       }
     });
