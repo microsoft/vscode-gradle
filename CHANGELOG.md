@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.1.3
+
+- Fix gradle tasks parsing #19
+- Remove progress notification #33
+
 ## 2.1.2
 
 - Fixed parsing massive tasks list
