@@ -350,8 +350,7 @@ function spawn(
   command: string,
   args?: ReadonlyArray<string>,
   options?: cp.ExecOptions,
-  outputChannel?: OutputChannel,
-  onProcessCreate?: (process: cp.ChildProcess) => void
+  outputChannel?: OutputChannel
 ): Promise<string> {
   if (outputChannel) {
     outputChannel.append(`Executing: ${command}\n`);
@@ -370,9 +369,6 @@ function spawn(
         );
       }
     });
-    if (onProcessCreate) {
-      onProcessCreate(child);
-    }
   });
 }
 
@@ -395,38 +391,9 @@ function getTasksFromGradle(
     args.push(tasksArgs);
   }
   const { fsPath: cwd } = folder.uri;
-
-  let process: cp.ChildProcess;
-  const promise = spawn(
-    command,
-    args,
-    { cwd },
-    outputChannel,
-    _p => (process = _p)
+  return spawn(command, args, { cwd }, outputChannel).finally(() =>
+    statusBarItem.hide()
   );
-  const showProgress = setTimeout(() => {
-    window.withProgress(
-      {
-        location: ProgressLocation.Notification,
-        title: 'Loading Gradle Tasks',
-        cancellable: true
-      },
-      (_, token) => {
-        token.onCancellationRequested(() => {
-          process.kill();
-          window.showInformationMessage(
-            'Operation cancelled. Try again using command "Gradle: Refresh Tasks"'
-          );
-        });
-        return promise;
-      }
-    );
-  }, 5000);
-
-  return promise.finally(() => {
-    clearTimeout(showProgress);
-    statusBarItem.hide();
-  });
 }
 
 async function getTasks(
