@@ -113,10 +113,7 @@ export async function activate(
 ): Promise<ExtensionApi> {
   registerTaskProvider(context);
   treeDataProvider = registerExplorer(context);
-  const hasBuildFile = await hasGradleBuildFile();
-  if (!hasBuildFile) {
-    window.showWarningMessage('No gradle build file found');
-  } else if (getIsTasksExplorerEnabled()) {
+  if ((await hasGradleBuildFile()) && getIsTasksExplorerEnabled()) {
     commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
   return {};

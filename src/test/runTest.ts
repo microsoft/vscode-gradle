@@ -4,6 +4,20 @@ import { runTests } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
+async function runUnitTests() {
+  await runTests({
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, 'unit'),
+    launchArgs: [
+      path.resolve(
+        __dirname,
+        '../../test-fixtures/gradle-groovy-default-build-file'
+      ),
+      '--disable-extensions'
+    ]
+  });
+}
+
 async function runTestsWithGradle() {
   const fixtures = [
     'gradle-groovy-default-build-file',
@@ -13,7 +27,7 @@ async function runTestsWithGradle() {
   for (const fixture of fixtures) {
     await runTests({
       extensionDevelopmentPath,
-      extensionTestsPath: path.resolve(__dirname, './gradle'),
+      extensionTestsPath: path.resolve(__dirname, 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
         '--disable-extensions'
@@ -28,7 +42,7 @@ async function runTestsWithGradle() {
 async function runTestsWithoutGradle() {
   await runTests({
     extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, './no-gradle'),
+    extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions'
@@ -39,7 +53,7 @@ async function runTestsWithoutGradle() {
 async function runTestsWithMultiRoot() {
   await runTests({
     extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, './multi-root'),
+    extensionTestsPath: path.resolve(__dirname, 'multi-root'),
     launchArgs: [
       path.resolve(
         __dirname,
@@ -55,6 +69,7 @@ async function runTestsWithMultiRoot() {
 
 async function main() {
   try {
+    await runUnitTests();
     await runTestsWithGradle();
     await runTestsWithMultiRoot();
     await runTestsWithoutGradle();
