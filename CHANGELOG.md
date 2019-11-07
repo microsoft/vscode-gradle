@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.1.4
+
+- Fix refresh tasks error handling
+
 ## 2.1.3
 
 - Fix gradle tasks parsing #19
