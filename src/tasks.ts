@@ -334,21 +334,16 @@ async function exists(file: string): Promise<boolean> {
 
 type StringMap = { [s: string]: string };
 
-const TASK_REGEX: RegExp = /$\s*([a-z0-9]+)(\s-\s(.*))?$/gim;
+const TASK_REGEX: RegExp = /$\s*([a-z]+[A-Z0-9]?[a-z0-9]*[A-Za-z0-9]*)(\s-\s(.*))?/gm;
 
-function parseGradleTasks(buffer: Buffer | string): StringMap {
+export function parseGradleTasks(buffer: Buffer | string): StringMap {
   const tasks: StringMap = {};
   let match: RegExpExecArray | null = null;
   while ((match = TASK_REGEX.exec(buffer.toString())) !== null) {
-    const [, name, description] = match;
+    const [, name, , description] = match;
     tasks[name] = description;
   }
   return tasks;
-}
-
-interface ProcessOutput {
-  readonly stdout: string | Buffer;
-  readonly stderr: string | Buffer;
 }
 
 function spawn(
