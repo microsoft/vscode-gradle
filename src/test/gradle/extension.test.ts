@@ -76,9 +76,7 @@ describe(fixtureName, () => {
         await vscode.commands.executeCommand('gradle.refresh');
         assert.ok(
           outputChannel.append.calledWith(
-            sinon.match(
-              `Executing: ${gradleWrapper} --quiet --console plain tasks --all`
-            )
+            sinon.match(`Executing: ${gradleWrapper} --quiet tasks --all`)
           )
         );
       }

@@ -9,4 +9,4 @@
 
 rootProject.name = "multi-project-builds"
 
-include("greeting-library")
+include("subproject-example")

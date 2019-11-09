@@ -1,5 +1,4 @@
 import {
-  window,
   TaskDefinition,
   Task,
   WorkspaceFolder,
@@ -9,7 +8,6 @@ import {
   workspace,
   TaskProvider,
   TaskScope,
-  QuickPickItem,
   StatusBarItem,
   OutputChannel
 } from 'vscode';
@@ -33,11 +31,7 @@ export function enableTaskDetection() {
 export interface GradleTaskDefinition extends TaskDefinition {
   task: string;
   buildFile: string;
-}
-
-export interface FolderTaskItem extends QuickPickItem {
-  label: string;
-  task: Task;
+  subProjectBuildFile: string | undefined;
 }
 
 export class GradleTaskProvider implements TaskProvider {
@@ -123,6 +117,16 @@ export async function getGradleWrapperCommandFromPath(
   }
 }
 
+export async function getBuildFilePaths(uri: Uri): Promise<Uri[]> {
+  const customBuildFile = getCustomBuildFile(uri);
+  const customBuildFileGlob = customBuildFile && `{${customBuildFile}}`;
+  const defaultBuildFileGlob = '{build.gradle,build.gradle.kts}';
+  const buildFileGlob = customBuildFileGlob || defaultBuildFileGlob;
+  const relativePattern = new RelativePattern(uri.fsPath, buildFileGlob);
+  const paths = await workspace.findFiles(relativePattern);
+  return paths;
+}
+
 async function detectGradleTasks(
   statusBarItem: StatusBarItem,
   outputChannel: OutputChannel
@@ -138,15 +142,7 @@ async function detectGradleTasks(
   try {
     for (const folder of folders) {
       if (autoDetectOverride || getIsAutoDetectionEnabled(folder)) {
-        const customBuildFile = getCustomBuildFile(folder);
-        const customBuildFileGlob = customBuildFile && `{${customBuildFile}}`;
-        const defaultBuildFileGlob = '{build.gradle,build.gradle.kts}';
-        const buildFileGlob = customBuildFileGlob || defaultBuildFileGlob;
-        const relativePattern = new RelativePattern(
-          folder,
-          `**/${buildFileGlob}`
-        );
-        const paths = await workspace.findFiles(relativePattern);
+        const paths = await getBuildFilePaths(folder.uri);
         for (const path of paths) {
           if (!visitedBuildGradleFiles.has(path.fsPath)) {
             const tasks = await provideGradleTasksForFolder(
@@ -200,9 +196,16 @@ async function provideGradleTasksForFolder(
   if (!tasksMap) {
     return emptyTasks;
   }
-  return Object.keys(tasksMap)
-    .sort((a, b) => a.localeCompare(b))
-    .map(task => createTask(task, task, folder!, gradleBuildFileUri, command));
+
+  const sortedKeys = Object.keys(tasksMap).sort((a, b) => a.localeCompare(b));
+
+  const tasks: Task[] = [];
+  for (const task of sortedKeys) {
+    tasks.push(
+      await createTask(task, task, folder!, gradleBuildFileUri, command)
+    );
+  }
+  return tasks;
 }
 
 export function getTaskName(task: string, relativePath: string | undefined) {
@@ -212,19 +215,30 @@ export function getTaskName(task: string, relativePath: string | undefined) {
   return task;
 }
 
-export function createTask(
+export async function createTask(
   taskDefinition: GradleTaskDefinition | string,
   taskName: string,
   folder: WorkspaceFolder,
   gradleBuildFileUri: Uri,
-  command: string
-): Task {
+  command: string,
+  subProjectBuildFileUri?: Uri
+): Promise<Task> {
   let definition: GradleTaskDefinition;
   if (typeof taskDefinition === 'string') {
+    let subProjectBuildFile: string | undefined = undefined;
+    if (taskDefinition.includes(':')) {
+      const [subProjectName] = taskDefinition.split(':');
+      const subProjectPath = path.join(folder.uri.fsPath, subProjectName);
+      const folderUri = Uri.file(subProjectPath);
+      const buildFile = (await getBuildFilePaths(folderUri))[0];
+      subProjectBuildFile = buildFile.fsPath;
+    }
+
     definition = {
       type: 'gradle',
       task: taskDefinition,
-      buildFile: path.basename(gradleBuildFileUri.fsPath)
+      buildFile: path.basename(gradleBuildFileUri.fsPath),
+      subProjectBuildFile
     };
   } else {
     definition = taskDefinition;
@@ -233,7 +247,7 @@ export function createTask(
   function getCommandLine(task: string): string {
     const args: string[] = [];
     args.push(task);
-    const customBuildFile = getCustomBuildFile(folder);
+    const customBuildFile = getCustomBuildFile(folder.uri);
     if (customBuildFile) {
       args.push('--build-file', customBuildFile);
     }
@@ -281,7 +295,7 @@ export async function hasGradleBuildFile(): Promise<boolean> {
     if (folder.uri.scheme !== 'file') {
       continue;
     }
-    const customBuildFile = getCustomBuildFile(folder);
+    const customBuildFile = getCustomBuildFile(folder.uri);
     if (customBuildFile) {
       const customBuildFilePath = path.join(folder.uri.fsPath, customBuildFile);
       if (await exists(customBuildFilePath)) {
@@ -319,13 +333,13 @@ async function exists(file: string): Promise<boolean> {
 
 type StringMap = { [s: string]: string };
 
-const TASK_REGEX: RegExp = /$\s*([a-z]+[A-Z0-9]?[a-z0-9]*[A-Za-z0-9]*)(\s-\s(.*))?/gm;
+const TASK_REGEX: RegExp = /$\s*(([^:\s]*:)?([a-z]+[A-Z0-9]?[a-z0-9]*[A-Za-z0-9]*))\b(\s-\s(.*))?/gm;
 
 export function parseGradleTasks(buffer: Buffer | string): StringMap {
   const tasks: StringMap = {};
   let match: RegExpExecArray | null = null;
   while ((match = TASK_REGEX.exec(buffer.toString())) !== null) {
-    const [, name, , description] = match;
+    const [, name, , , , description] = match;
     tasks[name] = description;
   }
   return tasks;
@@ -382,12 +396,12 @@ function getTasksFromGradle(
   statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
   statusBarItem.show();
 
-  const args = ['--quiet', '--console', 'plain', 'tasks'];
+  const args = ['--quiet', 'tasks'];
   const tasksArgs = getTasksArgs(folder);
   if (tasksArgs) {
     args.push(tasksArgs);
   }
-  const customBuildFile = getCustomBuildFile(folder);
+  const customBuildFile = getCustomBuildFile(folder.uri);
   if (customBuildFile) {
     args.push('--build-file', customBuildFile);
   }
@@ -409,5 +423,6 @@ async function getTasks(
     statusBarItem,
     outputChannel
   );
-  return parseGradleTasks(stdout);
+  const t = parseGradleTasks(stdout);
+  return t;
 }

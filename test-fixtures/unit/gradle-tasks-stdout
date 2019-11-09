@@ -13,6 +13,13 @@ runShadow - Runs a shadow task
 startShadowScripts - Starts a shadow script
 help
 
+Sub Project Example
+-----------------
+sub-project:run - Runs a task
+sub-project:runShadow - Runs a shadow task
+sub-project:startShadowScripts - Starts a shadow script
+sub-project:help
+
 Rules
 -----
 Pattern: clean<TaskName>: Cleans the output files of a task.

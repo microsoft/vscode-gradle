@@ -35,7 +35,7 @@ function registerTaskProvider(
     const defaultKotlinBuildFile = 'build.gradle.kts';
     const buildFiles = new Set<string>();
     for (const folder of workspace.workspaceFolders) {
-      const customBuildFile = getCustomBuildFile(folder);
+      const customBuildFile = getCustomBuildFile(folder.uri);
       if (customBuildFile) {
         buildFiles.add(customBuildFile);
       } else {

@@ -1,6 +1,5 @@
 import * as path from 'path';
 import {
-  workspace,
   Event,
   EventEmitter,
   ExtensionContext,
@@ -11,9 +10,7 @@ import {
   TreeItemCollapsibleState,
   Uri,
   WorkspaceFolder,
-  commands,
-  tasks,
-  TaskGroup
+  tasks
 } from 'vscode';
 
 import {
@@ -23,32 +20,92 @@ import {
   enableTaskDetection
 } from './tasks';
 
-class Folder extends TreeItem {
-  gradleTasks: GradleTreeItem[] = [];
+import { getHasExplorerNestedSubProjects } from './config';
+
+class WorkspaceTreeItem extends TreeItem {
+  buildFileTreeItems: GradleBuildFileTreeItem[] = [];
   workspaceFolder: WorkspaceFolder;
 
-  constructor(folder: WorkspaceFolder) {
-    super(folder.name, TreeItemCollapsibleState.Expanded);
+  constructor(name: string, folder: WorkspaceFolder) {
+    super(name, TreeItemCollapsibleState.Expanded);
     this.contextValue = 'folder';
     this.resourceUri = folder.uri;
     this.workspaceFolder = folder;
     this.iconPath = ThemeIcon.Folder;
   }
 
-  addGradleTreeItem(buildGradle: GradleTreeItem) {
-    this.gradleTasks.push(buildGradle);
+  addGradleBuildFileTreeItem(buildGradle: GradleBuildFileTreeItem) {
+    this.buildFileTreeItems.push(buildGradle);
   }
 }
 
+class GradleTasksFolderTreeItem extends TreeItem {
+  tasks: GradleTaskTreeItem[] = [];
+  workspaceTreeItem: WorkspaceTreeItem;
+  path: string;
+
+  constructor(
+    workspaceTreeItem: WorkspaceTreeItem,
+    relativePath: string,
+    name: string
+  ) {
+    super(name, TreeItemCollapsibleState.Expanded);
+    this.workspaceTreeItem = workspaceTreeItem;
+    this.path = relativePath;
+    this.contextValue = name;
+  }
+
+  addTask(task: GradleTaskTreeItem) {
+    this.tasks.push(task);
+  }
+}
+
+class GradleBuildFileTreeItem extends GradleTasksFolderTreeItem {
+  subProjects: SubProjectTreeItem[] = [];
+
+  static getLabel(
+    _folderName: string,
+    relativePath: string,
+    name: string
+  ): string {
+    if (relativePath.length > 0) {
+      return path.join(relativePath, name);
+    }
+    return name;
+  }
+
+  constructor(folder: WorkspaceTreeItem, relativePath: string, name: string) {
+    super(
+      folder,
+      relativePath,
+      GradleBuildFileTreeItem.getLabel(folder.label!, relativePath, name)
+    );
+    if (relativePath) {
+      this.resourceUri = Uri.file(
+        path.join(folder!.resourceUri!.fsPath, relativePath, name)
+      );
+    } else {
+      this.resourceUri = Uri.file(path.join(folder!.resourceUri!.fsPath, name));
+    }
+    this.iconPath = ThemeIcon.File;
+  }
+
+  addSubProjectTreeItem(subProject: SubProjectTreeItem) {
+    this.subProjects.push(subProject);
+  }
+}
+
+class SubProjectTreeItem extends WorkspaceTreeItem {}
+
 type ExplorerCommands = 'run';
 
-class GradleTaskItem extends TreeItem {
+class GradleTaskTreeItem extends TreeItem {
   task: Task;
-  buildGradle: GradleTreeItem;
+  folderTreeItem: GradleTasksFolderTreeItem;
 
   constructor(
     context: ExtensionContext,
-    buildGradle: GradleTreeItem,
+    folderTreeItem: GradleTasksFolderTreeItem,
     task: Task
   ) {
     super(task.name, TreeItemCollapsibleState.None);
@@ -62,7 +119,7 @@ class GradleTaskItem extends TreeItem {
       }
     };
     this.contextValue = 'task';
-    this.buildGradle = buildGradle;
+    this.folderTreeItem = folderTreeItem;
     this.task = task;
     this.command = commandList[command];
 
@@ -75,48 +132,7 @@ class GradleTaskItem extends TreeItem {
   }
 
   getFolder(): WorkspaceFolder {
-    return this.buildGradle.folder.workspaceFolder;
-  }
-}
-
-class GradleTreeItem extends TreeItem {
-  path: string;
-  folder: Folder;
-  tasks: GradleTaskItem[] = [];
-
-  static getLabel(
-    _folderName: string,
-    relativePath: string,
-    buildFile: string
-  ): string {
-    if (relativePath.length > 0) {
-      return path.join(relativePath, buildFile);
-    }
-    return buildFile;
-  }
-
-  constructor(folder: Folder, relativePath: string, buildFile: string) {
-    super(
-      GradleTreeItem.getLabel(folder.label!, relativePath, buildFile),
-      TreeItemCollapsibleState.Expanded
-    );
-    this.folder = folder;
-    this.path = relativePath;
-    this.contextValue = buildFile;
-    if (relativePath) {
-      this.resourceUri = Uri.file(
-        path.join(folder!.resourceUri!.fsPath, relativePath, buildFile)
-      );
-    } else {
-      this.resourceUri = Uri.file(
-        path.join(folder!.resourceUri!.fsPath, buildFile)
-      );
-    }
-    this.iconPath = ThemeIcon.File;
-  }
-
-  addTask(task: GradleTaskItem) {
-    this.tasks.push(task);
+    return this.folderTreeItem.workspaceTreeItem.workspaceFolder;
   }
 }
 
@@ -130,8 +146,8 @@ class NoTasksTreeItem extends TreeItem {
 export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   private taskItemsPromise: Thenable<Task[]> | undefined = undefined;
   private taskTree:
-    | Folder[]
-    | GradleTreeItem[]
+    | WorkspaceTreeItem[]
+    | GradleBuildFileTreeItem[]
     | NoTasksTreeItem[]
     | null = null;
   private _onDidChangeTreeData: EventEmitter<TreeItem | null> = new EventEmitter<TreeItem | null>();
@@ -140,7 +156,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   constructor(private readonly extensionContext: ExtensionContext) {}
 
-  runTask(taskItem: GradleTaskItem) {
+  runTask(taskItem: GradleTaskTreeItem) {
     if (taskItem && taskItem.task) {
       tasks.executeTask(taskItem.task);
     }
@@ -162,14 +178,14 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   getParent(element: TreeItem): TreeItem | null {
-    if (element instanceof Folder) {
+    if (element instanceof WorkspaceTreeItem) {
       return null;
     }
-    if (element instanceof GradleTreeItem) {
-      return element.folder;
+    if (element instanceof GradleTasksFolderTreeItem) {
+      return element.workspaceTreeItem;
     }
-    if (element instanceof GradleTaskItem) {
-      return element.buildGradle;
+    if (element instanceof GradleTaskTreeItem) {
+      return element.folderTreeItem;
     }
     if (element instanceof NoTasksTreeItem) {
       return null;
@@ -187,13 +203,16 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
         }
       }
     }
-    if (element instanceof Folder) {
-      return element.gradleTasks;
+    if (element instanceof WorkspaceTreeItem) {
+      return element.buildFileTreeItems;
     }
-    if (element instanceof GradleTreeItem) {
-      return element.tasks;
+    if (element instanceof GradleBuildFileTreeItem) {
+      return [...element.subProjects, ...element.tasks];
     }
-    if (element instanceof GradleTaskItem) {
+    if (element instanceof SubProjectTreeItem) {
+      return element.buildFileTreeItems;
+    }
+    if (element instanceof GradleTaskTreeItem) {
       return [];
     }
     if (element instanceof NoTasksTreeItem) {
@@ -209,46 +228,93 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
 
   private buildTaskTree(
     tasks: Task[]
-  ): Folder[] | GradleTreeItem[] | NoTasksTreeItem[] {
-    const folders: Map<String, Folder> = new Map();
-    const gradleTasks: Map<String, GradleTreeItem> = new Map();
+  ): WorkspaceTreeItem[] | GradleBuildFileTreeItem[] | NoTasksTreeItem[] {
+    const workspaceTreeItems: Map<String, WorkspaceTreeItem> = new Map();
+    const subProjectTreeItems: Map<String, SubProjectTreeItem> = new Map();
+    const buildFileTreeItems: Map<String, GradleBuildFileTreeItem> = new Map();
+    const subProjectBuildFileTreeItems: Map<
+      String,
+      GradleBuildFileTreeItem
+    > = new Map();
 
-    let folder = null;
-    let buildGradle = null;
+    const showNestedSubProjects = getHasExplorerNestedSubProjects();
+    let workspaceTreeItem = null;
+    let buildFileTreeItem = null;
 
     tasks.forEach(task => {
       if (isWorkspaceFolder(task.scope)) {
-        folder = folders.get(task.scope.name);
-        if (!folder) {
-          folder = new Folder(task.scope);
-          folders.set(task.scope.name, folder);
+        workspaceTreeItem = workspaceTreeItems.get(task.scope.name);
+        if (!workspaceTreeItem) {
+          workspaceTreeItem = new WorkspaceTreeItem(
+            task.scope.name,
+            task.scope
+          );
+          workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
         }
         const definition: GradleTaskDefinition = <GradleTaskDefinition>(
           task.definition
         );
         const relativePath = definition.path ? definition.path : '';
         const fullPath = path.join(task.scope.name, relativePath);
-        buildGradle = gradleTasks.get(fullPath);
-        if (!buildGradle) {
-          buildGradle = new GradleTreeItem(
-            folder,
+        buildFileTreeItem = buildFileTreeItems.get(fullPath);
+        if (!buildFileTreeItem) {
+          buildFileTreeItem = new GradleBuildFileTreeItem(
+            workspaceTreeItem,
             relativePath,
             definition.buildFile
           );
-          folder.addGradleTreeItem(buildGradle);
-          gradleTasks.set(fullPath, buildGradle);
+          workspaceTreeItem.addGradleBuildFileTreeItem(buildFileTreeItem);
+          buildFileTreeItems.set(fullPath, buildFileTreeItem);
         }
-        const gradleTask = new GradleTaskItem(
-          this.extensionContext,
-          buildGradle,
-          task
-        );
-        buildGradle.addTask(gradleTask);
+        if (showNestedSubProjects && definition.subProjectBuildFile) {
+          const [subProjectName] = task.definition.task.split(':');
+          let subProjectTreeItem = subProjectTreeItems.get(subProjectName);
+          if (!subProjectTreeItem) {
+            subProjectTreeItem = new SubProjectTreeItem(
+              subProjectName,
+              task.scope
+            );
+            buildFileTreeItem.addSubProjectTreeItem(subProjectTreeItem);
+            subProjectTreeItems.set(subProjectName, subProjectTreeItem);
+          }
+          const subProjectPath = path.join(fullPath, subProjectName);
+          let subProjectBuildFileTreeItem = subProjectBuildFileTreeItems.get(
+            subProjectPath
+          );
+          if (!subProjectBuildFileTreeItem) {
+            subProjectBuildFileTreeItem = new GradleBuildFileTreeItem(
+              workspaceTreeItem,
+              relativePath,
+              path.basename(definition.subProjectBuildFile)
+            );
+            subProjectTreeItem.addGradleBuildFileTreeItem(
+              subProjectBuildFileTreeItem
+            );
+            subProjectBuildFileTreeItems.set(
+              subProjectPath,
+              subProjectBuildFileTreeItem
+            );
+          }
+          task.name = task.name.replace(/[^:]+:/, '');
+          const gradleTask = new GradleTaskTreeItem(
+            this.extensionContext,
+            subProjectBuildFileTreeItem,
+            task
+          );
+          subProjectBuildFileTreeItem.addTask(gradleTask);
+        } else {
+          const gradleTask = new GradleTaskTreeItem(
+            this.extensionContext,
+            buildFileTreeItem,
+            task
+          );
+          buildFileTreeItem.addTask(gradleTask);
+        }
       }
     });
-    if (folders.size === 1) {
-      return [...gradleTasks.values()];
+    if (workspaceTreeItems.size === 1) {
+      return [...buildFileTreeItems.values()];
     }
-    return [...folders.values()];
+    return [...workspaceTreeItems.values()];
   }
 }
