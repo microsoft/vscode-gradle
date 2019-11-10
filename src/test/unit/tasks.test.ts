@@ -4,10 +4,9 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 
 import { parseGradleTasks } from '../../tasks';
-
-suite('tasks', () => {
-  suite('gradle tasks output parsing', () => {
-    test('should correctly parse tasks', async () => {
+describe('tasks', () => {
+  describe('gradle tasks output parsing', () => {
+    it('should correctly parse tasks', async () => {
       const stdout = fs.readFileSync(
         path.resolve(
           __dirname,

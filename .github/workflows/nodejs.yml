@@ -33,7 +33,7 @@ jobs:
           npm test
 
   build-test-macos:
-    runs-on: macOS-latest
+    runs-on: macos-latest
 
     strategy:
       matrix:
@@ -51,12 +51,13 @@ jobs:
           architecture: x64
       - name: Build & test extension
         run: |
+          unset npm_config_prefix
           npm ci
           npm run lint
           npm test
 
   build-test-windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     strategy:
       matrix:

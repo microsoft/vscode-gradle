@@ -1,52 +1,87 @@
+import * as path from 'path';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import * as sinon from 'sinon';
+
+import { getGradleWrapperCommandFromPath } from '../../tasks';
 
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
+const fixtureDir = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'test-fixtures',
+  fixtureName
+);
 
-suite(fixtureName, () => {
-  suite('extension', () => {
-    test('it should be present', () => {
-      assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
+describe(fixtureName, () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('should be present', () => {
+    assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
+  });
+
+  it('should be activated', () => {
+    const extension = vscode.extensions.getExtension(
+      'richardwillis.vscode-gradle'
+    );
+    assert.ok(extension);
+    if (extension) {
+      assert.equal(extension.isActive, true);
+    }
+  });
+
+  describe('tasks', () => {
+    let tasks: vscode.Task[];
+
+    beforeEach(async () => {
+      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     });
 
-    test('it should be activated', () => {
-      const extension = vscode.extensions.getExtension(
-        'richardwillis.vscode-gradle'
-      );
-      assert.ok(extension);
-      if (extension) {
-        assert.equal(extension.isActive, true);
+    it('should load tasks', async () => {
+      assert.equal(tasks.length > 0, true);
+    });
+
+    it('should run a gradle task', async () => {
+      const task = tasks.find(task => task.name === 'hello');
+      assert.ok(task);
+      if (task) {
+        await vscode.tasks.executeTask(task);
+      } else {
+        throw new Error('Task not found');
       }
     });
 
-    suite('tasks', () => {
-      let tasks: vscode.Task[];
+    it('should refresh tasks', async () => {
+      await vscode.commands.executeCommand('gradle.refresh');
+      const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
+        task => task.name === 'hello'
+      );
+      assert.ok(task);
+    });
+  });
 
-      suiteSetup(async () => {
-        tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-      });
-
-      test('it should load tasks', async () => {
-        assert.equal(tasks.length > 0, true);
-      });
-
-      test('it should successfully run a custom task', async () => {
-        const task = tasks.find(task => task.name === 'hello');
-        assert.ok(task);
-        if (task) {
-          await vscode.tasks.executeTask(task);
-        } else {
-          throw new Error('Task not found');
-        }
-      });
-
-      test('it should refresh tasks', async () => {
+  describe('logging', () => {
+    it('should show command statements in the outputchannel', async () => {
+      const extension = vscode.extensions.getExtension(
+        'richardwillis.vscode-gradle'
+      );
+      if (extension) {
+        const gradleWrapper = await getGradleWrapperCommandFromPath(fixtureDir);
+        const outputChannel = extension.exports.outputChannel;
+        sinon.replace(outputChannel, 'append', sinon.fake());
         await vscode.commands.executeCommand('gradle.refresh');
-        const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-          task => task.name === 'hello'
+        assert.ok(
+          outputChannel.append.calledWith(
+            sinon.match(
+              `Executing: ${gradleWrapper} --quiet --console plain tasks --all`
+            )
+          )
         );
-        assert.ok(task);
-      });
+      }
     });
   });
 });

@@ -3,13 +3,13 @@ import * as vscode from 'vscode';
 
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
-suite(fixtureName, () => {
-  suite('extension', () => {
-    test('it should be present', () => {
+describe(fixtureName, () => {
+  describe('extension', () => {
+    it('should be present', () => {
       assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
     });
 
-    test('it should be activated', () => {
+    it('should be activated', () => {
       const extension = vscode.extensions.getExtension(
         'richardwillis.vscode-gradle'
       );
@@ -19,14 +19,14 @@ suite(fixtureName, () => {
       }
     });
 
-    suite('tasks', async () => {
+    describe('tasks', () => {
       let tasks: vscode.Task[];
 
-      suiteSetup(async () => {
+      beforeEach(async () => {
         tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       });
 
-      test('it should load groovy default build file tasks', () => {
+      it('should load groovy default build file tasks', () => {
         const groovyDefaultTask = tasks.find(
           ({ name }) => name === 'helloGroovyDefault'
         );
@@ -36,7 +36,7 @@ suite(fixtureName, () => {
         }
       });
 
-      test('it should load kotlin default build file tasks', () => {
+      it('should load kotlin default build file tasks', () => {
         const kotlinTask = tasks.find(
           ({ name }) => name === 'helloKotlinDefault'
         );
@@ -46,7 +46,7 @@ suite(fixtureName, () => {
         }
       });
 
-      test('it should load groovy custom build file tasks', () => {
+      it('should load groovy custom build file tasks', () => {
         const groovyCustomTask = tasks.find(
           ({ name }) => name === 'helloGroovyCustom'
         );
@@ -59,7 +59,7 @@ suite(fixtureName, () => {
         }
       });
 
-      test('it should successfully run a custom task', async () => {
+      it('should successfully run a custom task', async () => {
         const task = tasks.find(task => task.name === 'hello');
         assert.ok(task);
         if (task) {
@@ -69,7 +69,7 @@ suite(fixtureName, () => {
         }
       });
 
-      test('it should refresh tasks', async () => {
+      it('should refresh tasks', async () => {
         await vscode.commands.executeCommand('gradle.refresh');
         const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
           task => task.name === 'hello'

@@ -10,7 +10,6 @@ import {
   TaskProvider,
   TaskScope,
   QuickPickItem,
-  ProgressLocation,
   StatusBarItem,
   OutputChannel
 } from 'vscode';
@@ -51,7 +50,8 @@ export class GradleTaskProvider implements TaskProvider {
     try {
       return await provideGradleTasks(this.statusBarItem, this.outputChannel);
     } catch (e) {
-      this.outputChannel.append(`${e.message}\n`);
+      this.outputChannel.append(`Error providing gradle tasks: ${e.message}\n`);
+      this.outputChannel.show();
     }
   }
 
@@ -87,7 +87,7 @@ export class GradleTaskProvider implements TaskProvider {
           definition.task,
           _task.scope,
           gradleBuildFileUri,
-          await getGradleWrapperCommandFromFolder(folder)
+          await getGradleWrapperCommandFromPath(folder.uri.fsPath)
         );
       }
       return undefined;
@@ -104,18 +104,18 @@ export function isWorkspaceFolder(value: any): value is WorkspaceFolder {
   return value && typeof value !== 'number';
 }
 
-async function getGradleWrapperCommandFromFolder(
-  folder: WorkspaceFolder
+export async function getGradleWrapperCommandFromPath(
+  fsPath: string
 ): Promise<string> {
   const platform = process.platform;
   if (
     platform === 'win32' &&
-    (await exists(path.join(folder.uri.fsPath!, 'gradlew.bat')))
+    (await exists(path.join(fsPath, 'gradlew.bat')))
   ) {
     return '.\\gradlew.bat';
   } else if (
     (platform === 'linux' || platform === 'darwin') &&
-    (await exists(path.join(folder.uri.fsPath!, 'gradlew')))
+    (await exists(path.join(fsPath, 'gradlew')))
   ) {
     return './gradlew';
   } else {
@@ -187,7 +187,7 @@ async function provideGradleTasksForFolder(
   if (!folder) {
     return emptyTasks;
   }
-  const command = await getGradleWrapperCommandFromFolder(folder);
+  const command = await getGradleWrapperCommandFromPath(folder.uri.fsPath);
   if (!command) {
     return emptyTasks;
   }
@@ -331,37 +331,43 @@ export function parseGradleTasks(buffer: Buffer | string): StringMap {
   return tasks;
 }
 
-function spawn(
+function getBuffersAsString(buffers: Buffer[]): string {
+  return Buffer.concat(buffers)
+    .toString('utf8')
+    .trim();
+}
+
+function debugCommand(
   command: string,
-  args?: ReadonlyArray<string>,
-  options?: cp.ExecOptions,
+  args: ReadonlyArray<string> = [],
+  outputChannel: OutputChannel
+) {
+  outputChannel.append(`Executing: ${command} ${args.join(' ')}\n`);
+}
+
+export function spawn(
+  command: string,
+  args: ReadonlyArray<string> = [],
+  options: cp.ExecOptions = {},
   outputChannel?: OutputChannel
 ): Promise<string> {
   if (outputChannel) {
-    outputChannel.append(`Executing: ${command}\n`);
+    debugCommand(command, args, outputChannel);
   }
   return new Promise((resolve, reject) => {
     const stdoutBuffers: Buffer[] = [];
     const stderrBuffers: Buffer[] = [];
     const child = cp.spawn(command, args, options);
-    child.stdout.on('data', (b: Buffer) => stdoutBuffers.push(b));
-    child.stderr.on('data', (b: Buffer) => stderrBuffers.push(b));
-    child.on('error', reject);
+    child.stdout.on('data', (buffer: Buffer) => stdoutBuffers.push(buffer));
+    child.stderr.on('data', (buffer: Buffer) => stderrBuffers.push(buffer));
+    child.on('error', err => {
+      reject(err);
+    });
     child.on('exit', (code: number) => {
       if (code === 0) {
-        resolve(
-          Buffer.concat(stdoutBuffers)
-            .toString('utf8')
-            .trim()
-        );
+        resolve(getBuffersAsString(stdoutBuffers));
       } else {
-        reject(
-          new Error(
-            Buffer.concat(stderrBuffers)
-              .toString('utf8')
-              .trim()
-          )
-        );
+        reject(new Error(getBuffersAsString(stderrBuffers)));
       }
     });
   });
@@ -377,18 +383,18 @@ function getTasksFromGradle(
   statusBarItem.show();
 
   const args = ['--quiet', '--console', 'plain', 'tasks'];
-  const customBuildFile = getCustomBuildFile(folder);
-  if (customBuildFile) {
-    args.push('--build-file', customBuildFile);
-  }
   const tasksArgs = getTasksArgs(folder);
   if (tasksArgs) {
     args.push(tasksArgs);
   }
+  const customBuildFile = getCustomBuildFile(folder);
+  if (customBuildFile) {
+    args.push('--build-file', customBuildFile);
+  }
   const { fsPath: cwd } = folder.uri;
-  return spawn(command, args, { cwd }, outputChannel).finally(() =>
-    statusBarItem.hide()
-  );
+  return spawn(command, args, { cwd }, outputChannel).finally(() => {
+    statusBarItem.hide();
+  });
 }
 
 async function getTasks(

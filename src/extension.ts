@@ -5,7 +5,8 @@ import {
   ExtensionContext,
   Disposable,
   TaskProvider,
-  StatusBarAlignment
+  StatusBarAlignment,
+  OutputChannel
 } from 'vscode';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
@@ -19,7 +20,8 @@ import { getCustomBuildFile, getIsTasksExplorerEnabled } from './config';
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
-  context: ExtensionContext
+  context: ExtensionContext,
+  outputChannel: OutputChannel
 ): Disposable | undefined {
   function invalidateTaskCaches() {
     invalidateTasksCache();
@@ -57,8 +59,6 @@ function registerTaskProvider(
       1
     );
 
-    const outputChannel = window.createOutputChannel('Gradle Tasks');
-
     const provider: TaskProvider = new GradleTaskProvider(
       statusBarItem,
       outputChannel
@@ -68,7 +68,6 @@ function registerTaskProvider(
     context.subscriptions.push(watcher);
     context.subscriptions.push(workspaceWatcher);
     context.subscriptions.push(statusBarItem);
-    context.subscriptions.push(outputChannel);
     context.subscriptions.push(taskProvider);
     return taskProvider;
   }
@@ -111,12 +110,14 @@ interface ExtensionApi {}
 export async function activate(
   context: ExtensionContext
 ): Promise<ExtensionApi> {
-  registerTaskProvider(context);
+  const outputChannel = window.createOutputChannel('Gradle Tasks');
+  context.subscriptions.push(outputChannel);
+  registerTaskProvider(context, outputChannel);
   treeDataProvider = registerExplorer(context);
   if ((await hasGradleBuildFile()) && getIsTasksExplorerEnabled()) {
     commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
   }
-  return {};
+  return { outputChannel };
 }
 
 export function deactivate(): void {}
