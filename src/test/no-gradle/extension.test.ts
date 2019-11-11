@@ -1,12 +1,12 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 
-suite('without any build file or local gradle wrapper', () => {
-  test('it should not be present', () => {
+describe('without any build file or local gradle wrapper', () => {
+  it('should not be present', () => {
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
   });
 
-  test('it should not be activated', async () => {
+  it('should not be activated', async () => {
     const extension = vscode.extensions.getExtension(
       'richardwillis.vscode-gradle'
     );

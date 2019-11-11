@@ -33,7 +33,7 @@ async function runTestsWithGradle() {
         '--disable-extensions'
       ],
       extensionTestsEnv: {
-        FIXTURE_NAME: fixture.replace(/-/g, ' ')
+        FIXTURE_NAME: fixture
       }
     });
   }
