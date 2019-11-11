@@ -3,17 +3,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { getGradleWrapperCommandFromPath } from '../../tasks';
-
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
-const fixtureDir = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'test-fixtures',
-  fixtureName
-);
 
 describe(fixtureName, () => {
   afterEach(() => {
@@ -55,30 +45,15 @@ describe(fixtureName, () => {
       }
     });
 
-    it('should refresh tasks', async () => {
-      await vscode.commands.executeCommand('gradle.refresh');
-      const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        task => task.name === 'hello'
+    it('should run a subproject gradle task', async () => {
+      const task = tasks.find(
+        task => task.name === 'subproject-example:helloGroovyMultiProject'
       );
       assert.ok(task);
-    });
-  });
-
-  describe('logging', () => {
-    it('should show command statements in the outputchannel', async () => {
-      const extension = vscode.extensions.getExtension(
-        'richardwillis.vscode-gradle'
-      );
-      if (extension) {
-        const gradleWrapper = await getGradleWrapperCommandFromPath(fixtureDir);
-        const outputChannel = extension.exports.outputChannel;
-        sinon.replace(outputChannel, 'append', sinon.fake());
-        await vscode.commands.executeCommand('gradle.refresh');
-        assert.ok(
-          outputChannel.append.calledWith(
-            sinon.match(`Executing: ${gradleWrapper} --quiet tasks --all`)
-          )
-        );
+      if (task) {
+        await vscode.tasks.executeTask(task);
+      } else {
+        throw new Error('Task not found');
       }
     });
   });

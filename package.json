@@ -136,6 +136,12 @@
           "default": "",
           "scope": "resource",
           "description": "Filename of the gradle build file"
+        },
+        "gradle.explorerNestedSubProjects": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show nested sub-projects in the explorer"
         }
       }
     },
@@ -159,6 +165,10 @@
           "buildFile": {
             "type": "string",
             "description": "The build file that provides the task"
+          },
+          "subProjectBuildFile": {
+            "type": "string",
+            "description": "The subproject build file that provides the task"
           }
         }
       }

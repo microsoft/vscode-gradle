@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.1.6
+
+- Add support for multi-project builds (subprojects)
+
+## 2.1.5
+
+- Improve error handling
+
 ## 2.1.4
 
 - Fix refresh tasks error handling
