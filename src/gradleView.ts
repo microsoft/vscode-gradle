@@ -106,9 +106,10 @@ class GradleTaskTreeItem extends TreeItem {
   constructor(
     context: ExtensionContext,
     folderTreeItem: GradleTasksFolderTreeItem,
-    task: Task
+    task: Task,
+    label: string
   ) {
-    super(task.name, TreeItemCollapsibleState.None);
+    super(label, TreeItemCollapsibleState.None);
     const command: ExplorerCommands = 'run';
 
     const commandList = {
@@ -295,18 +296,19 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
               subProjectBuildFileTreeItem
             );
           }
-          task.name = task.name.replace(/[^:]+:/, '');
           const gradleTask = new GradleTaskTreeItem(
             this.extensionContext,
             subProjectBuildFileTreeItem,
-            task
+            task,
+            task.name.replace(/[^:]+:/, '')
           );
           subProjectBuildFileTreeItem.addTask(gradleTask);
         } else {
           const gradleTask = new GradleTaskTreeItem(
             this.extensionContext,
             buildFileTreeItem,
-            task
+            task,
+            task.name
           );
           buildFileTreeItem.addTask(gradleTask);
         }
