@@ -9,3 +9,9 @@ dependencies {
         exclude module: 'groovy-all'
     }
 }
+
+tasks.register("helloGroovyMultiProject") {
+    doLast {
+        println 'Hello, World!'
+    }
+}

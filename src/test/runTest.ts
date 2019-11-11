@@ -67,11 +67,26 @@ async function runTestsWithMultiRoot() {
   });
 }
 
+async function runTestsWithMultiProject() {
+  await runTests({
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, 'multi-project'),
+    launchArgs: [
+      path.resolve(__dirname, '../../test-fixtures/multi-project/'),
+      '--disable-extensions'
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: 'multi-project'
+    }
+  });
+}
+
 async function main() {
   try {
     await runUnitTests();
     await runTestsWithGradle();
     await runTestsWithMultiRoot();
+    await runTestsWithMultiProject();
     await runTestsWithoutGradle();
   } catch (err) {
     console.error('Failed to run tests');
