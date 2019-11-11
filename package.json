@@ -178,7 +178,7 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.6",
+    "@types/node": "^12.12.7",
     "glob": "^7.1.6",
     "mocha": "^6.2.2",
     "prettier": "^1.18.2",
