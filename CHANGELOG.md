@@ -32,10 +32,10 @@
 
 ## 2.0.0
 
-- Gradle tasks now run as VS Codes
+- Gradle tasks now run as VS Code tasks
 - Improvements to the Gradle Tasks Explorer
 - Auto-discover gradle wrapper executable
-- Fefactored to follow vscode exteiion standards
+- Refactored to follow vscode exteiion standards
 
 ## 1.1.0
 
