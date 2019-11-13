@@ -181,7 +181,7 @@
     "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
     "lint": "npm run lint:prettier && npm run lint:tslint",
-    "lint:prettier": "prettier --check '**/*.{ts,js,json}'",
+    "lint:prettier": "prettier --check \"**/*.{ts,js,json}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
     "format": "prettier --write '**/*.{ts,js,json}'"
   },
