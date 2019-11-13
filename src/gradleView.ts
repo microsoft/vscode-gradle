@@ -159,7 +159,7 @@ export class GradleTasksTreeDataProvider
     enableTaskDetection();
     this.taskTree = null;
     this.taskItemsPromise = vscode.tasks
-      .fetchTasks({ type: 'richardwillis.gradle' })
+      .fetchTasks({ type: 'gradle' })
       .then((tasks = []) => {
         this._onDidChangeTreeData.fire();
         return tasks;

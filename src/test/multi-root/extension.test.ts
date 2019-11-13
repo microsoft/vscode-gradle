@@ -23,7 +23,7 @@ describe(fixtureName, () => {
       let tasks: vscode.Task[];
 
       beforeEach(async () => {
-        tasks = await vscode.tasks.fetchTasks({ type: 'richardwillis.gradle' });
+        tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       });
 
       it('should load groovy default build file tasks', () => {
@@ -71,9 +71,9 @@ describe(fixtureName, () => {
 
       it('should refresh tasks', async () => {
         await vscode.commands.executeCommand('gradle.refresh');
-        const task = (
-          await vscode.tasks.fetchTasks({ type: 'richardwillis.gradle' })
-        ).find(task => task.name === 'hello');
+        const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
+          task => task.name === 'hello'
+        );
         assert.ok(task);
       });
     });

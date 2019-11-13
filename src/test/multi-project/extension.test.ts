@@ -28,7 +28,7 @@ describe(fixtureName, () => {
     let tasks: vscode.Task[];
 
     beforeEach(async () => {
-      tasks = await vscode.tasks.fetchTasks({ type: 'richardwillis.gradle' });
+      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     });
 
     it('should load tasks', async () => {

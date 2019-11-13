@@ -152,7 +152,7 @@
     ],
     "taskDefinitions": [
       {
-        "type": "richardwillis.gradle",
+        "type": "gradle",
         "required": [
           "task",
           "buildFile"
