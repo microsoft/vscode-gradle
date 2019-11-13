@@ -102,8 +102,8 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
-        'gradle.open',
-        treeDataProvider.open,
+        'gradle.openBuildFile',
+        treeDataProvider.openBuildFile,
         treeDataProvider
       )
     );

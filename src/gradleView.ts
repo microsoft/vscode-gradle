@@ -138,7 +138,7 @@ export class GradleTasksTreeDataProvider
     }
   }
 
-  async open(buildFileTreeItem: GradleBuildFileTreeItem) {
+  async openBuildFile(buildFileTreeItem: GradleBuildFileTreeItem) {
     const uri = buildFileTreeItem.resourceUri;
     if (uri) {
       await vscode.window.showTextDocument(

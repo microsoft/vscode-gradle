@@ -72,7 +72,7 @@
         "title": "Run Task"
       },
       {
-        "command": "gradle.open",
+        "command": "gradle.openBuildFile",
         "title": "Open Build File"
       },
       {
@@ -91,7 +91,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.open",
+          "command": "gradle.openBuildFile",
           "when": "false"
         }
       ],
@@ -108,7 +108,7 @@
           "when": "view == gradle-tree-view && viewItem == task"
         },
         {
-          "command": "gradle.open",
+          "command": "gradle.openBuildFile",
           "when": "view == gradle-tree-view && viewItem == buildFile"
         }
       ]
