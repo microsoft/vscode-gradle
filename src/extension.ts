@@ -1,13 +1,4 @@
-import {
-  window,
-  workspace,
-  commands,
-  ExtensionContext,
-  Disposable,
-  TaskProvider,
-  StatusBarAlignment,
-  OutputChannel
-} from 'vscode';
+import * as vscode from 'vscode';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
@@ -20,9 +11,9 @@ import { getCustomBuildFile, getIsTasksExplorerEnabled } from './config';
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
-  context: ExtensionContext,
-  outputChannel: OutputChannel
-): Disposable | undefined {
+  context: vscode.ExtensionContext,
+  outputChannel: vscode.OutputChannel
+): vscode.Disposable | undefined {
   function invalidateTaskCaches() {
     invalidateTasksCache();
     if (treeDataProvider) {
@@ -30,11 +21,11 @@ function registerTaskProvider(
     }
   }
 
-  if (workspace.workspaceFolders) {
+  if (vscode.workspace.workspaceFolders) {
     const defaultGroovyBuildFile = 'build.gradle';
     const defaultKotlinBuildFile = 'build.gradle.kts';
     const buildFiles = new Set<string>();
-    for (const folder of workspace.workspaceFolders) {
+    for (const folder of vscode.workspace.workspaceFolders) {
       const customBuildFile = getCustomBuildFile(folder.uri);
       if (customBuildFile) {
         buildFiles.add(customBuildFile);
@@ -45,25 +36,25 @@ function registerTaskProvider(
     }
 
     const buildFileGlob = `**/{${Array.from(buildFiles).join(',')}}`;
-    const watcher = workspace.createFileSystemWatcher(buildFileGlob);
+    const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
     watcher.onDidChange(() => invalidateTaskCaches());
     watcher.onDidDelete(() => invalidateTaskCaches());
     watcher.onDidCreate(() => invalidateTaskCaches());
 
-    const workspaceWatcher = workspace.onDidChangeWorkspaceFolders(() =>
+    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() =>
       invalidateTaskCaches()
     );
 
-    const statusBarItem = window.createStatusBarItem(
-      StatusBarAlignment.Left,
+    const statusBarItem = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
       1
     );
 
-    const provider: TaskProvider = new GradleTaskProvider(
+    const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
       outputChannel
     );
-    const taskProvider = workspace.registerTaskProvider('gradle', provider);
+    const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
 
     context.subscriptions.push(watcher);
     context.subscriptions.push(workspaceWatcher);
@@ -75,47 +66,66 @@ function registerTaskProvider(
 }
 
 function registerExplorer(
-  context: ExtensionContext
+  context: vscode.ExtensionContext
 ): GradleTasksTreeDataProvider | undefined {
-  if (workspace.workspaceFolders) {
+  if (vscode.workspace.workspaceFolders) {
     const treeDataProvider = new GradleTasksTreeDataProvider(context);
-    treeDataProvider.refresh();
     context.subscriptions.push(
-      window.createTreeView('gradle', {
+      vscode.window.createTreeView('gradle-tree-view', {
         treeDataProvider: treeDataProvider,
         showCollapseAll: true
       })
-    );
-    context.subscriptions.push(
-      commands.registerCommand(
-        'gradle.runTask',
-        treeDataProvider.runTask,
-        treeDataProvider
-      )
-    );
-    context.subscriptions.push(
-      commands.registerCommand(
-        'gradle.refresh',
-        treeDataProvider.refresh,
-        treeDataProvider
-      )
     );
     return treeDataProvider;
   }
   return undefined;
 }
 
-interface ExtensionApi {}
+function registerCommands(
+  context: vscode.ExtensionContext,
+  treeDataProvider: GradleTasksTreeDataProvider | undefined
+) {
+  if (treeDataProvider) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        'gradle.runTask',
+        treeDataProvider.runTask,
+        treeDataProvider
+      )
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        'gradle.refresh',
+        treeDataProvider.refresh,
+        treeDataProvider
+      )
+    );
+  }
+}
+
+export interface ExtensionApi {
+  outputChannel: vscode.OutputChannel;
+}
 
 export async function activate(
-  context: ExtensionContext
+  context: vscode.ExtensionContext
 ): Promise<ExtensionApi> {
-  const outputChannel = window.createOutputChannel('Gradle Tasks');
+  const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
   registerTaskProvider(context, outputChannel);
-  treeDataProvider = registerExplorer(context);
-  if ((await hasGradleBuildFile()) && getIsTasksExplorerEnabled()) {
-    commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
+  if (await hasGradleBuildFile()) {
+    treeDataProvider = registerExplorer(context);
+    registerCommands(context, treeDataProvider);
+    if (treeDataProvider) {
+      treeDataProvider.refresh();
+    }
+    if (getIsTasksExplorerEnabled()) {
+      vscode.commands.executeCommand(
+        'setContext',
+        'gradle:showTasksExplorer',
+        true
+      );
+    }
   }
   return { outputChannel };
 }

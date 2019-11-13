@@ -1,35 +1,37 @@
-import { workspace, WorkspaceFolder, Uri } from 'vscode';
+import * as vscode from 'vscode';
 
 type AutoDetect = 'on' | 'off';
 
-export function getCustomBuildFile(uri: Uri): string {
-  return workspace
+export function getCustomBuildFile(uri: vscode.Uri): string {
+  return vscode.workspace
     .getConfiguration('gradle', uri)
     .get<string>('customBuildFile', '');
 }
 
-export function getIsAutoDetectionEnabled(folder: WorkspaceFolder): boolean {
+export function getIsAutoDetectionEnabled(
+  folder: vscode.WorkspaceFolder
+): boolean {
   return (
-    workspace
+    vscode.workspace
       .getConfiguration('gradle', folder.uri)
       .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
 }
 
-export function getTasksArgs(folder: WorkspaceFolder): string {
-  return workspace
+export function getTasksArgs(folder: vscode.WorkspaceFolder): string {
+  return vscode.workspace
     .getConfiguration('gradle', folder.uri)
     .get<string>('tasksArgs', '--all');
 }
 
 export function getIsTasksExplorerEnabled(): boolean {
-  return workspace
+  return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('enableTasksExplorer', true);
 }
 
 export function getHasExplorerNestedSubProjects(): boolean {
-  return workspace
+  return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('explorerNestedSubProjects', true);
 }

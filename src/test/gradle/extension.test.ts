@@ -41,7 +41,7 @@ describe(fixtureName, () => {
       tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     });
 
-    it('should load tasks', async () => {
+    it('should load tasks', () => {
       assert.equal(tasks.length > 0, true);
     });
 

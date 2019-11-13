@@ -60,7 +60,7 @@
     "views": {
       "explorer": [
         {
-          "id": "gradle",
+          "id": "gradle-tree-view",
           "name": "Gradle Tasks",
           "when": "gradle:showTasksExplorer"
         }
@@ -94,14 +94,14 @@
       "view/title": [
         {
           "command": "gradle.refresh",
-          "when": "view == gradle",
+          "when": "view == gradle-tree-view",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradle && viewItem == task"
+          "when": "view == gradle-tree-view && viewItem == task"
         }
       ]
     },
@@ -140,7 +140,6 @@
         "gradle.explorerNestedSubProjects": {
           "type": "boolean",
           "default": true,
-          "scope": "resource",
           "description": "Show nested sub-projects in the explorer"
         }
       }
@@ -155,7 +154,8 @@
       {
         "type": "gradle",
         "required": [
-          "task"
+          "task",
+          "buildFile"
         ],
         "properties": {
           "task": {

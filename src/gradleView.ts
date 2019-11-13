@@ -1,17 +1,5 @@
 import * as path from 'path';
-import {
-  Event,
-  EventEmitter,
-  ExtensionContext,
-  ThemeIcon,
-  TreeDataProvider,
-  TreeItem,
-  Task,
-  TreeItemCollapsibleState,
-  Uri,
-  WorkspaceFolder,
-  tasks
-} from 'vscode';
+import * as vscode from 'vscode';
 
 import {
   GradleTaskDefinition,
@@ -22,16 +10,16 @@ import {
 
 import { getHasExplorerNestedSubProjects } from './config';
 
-class WorkspaceTreeItem extends TreeItem {
+class WorkspaceTreeItem extends vscode.TreeItem {
   buildFileTreeItems: GradleBuildFileTreeItem[] = [];
-  workspaceFolder: WorkspaceFolder;
+  workspaceFolder: vscode.WorkspaceFolder;
 
-  constructor(name: string, folder: WorkspaceFolder) {
-    super(name, TreeItemCollapsibleState.Expanded);
+  constructor(name: string, folder: vscode.WorkspaceFolder) {
+    super(name, vscode.TreeItemCollapsibleState.Expanded);
     this.contextValue = 'folder';
     this.resourceUri = folder.uri;
     this.workspaceFolder = folder;
-    this.iconPath = ThemeIcon.Folder;
+    this.iconPath = vscode.ThemeIcon.Folder;
   }
 
   addGradleBuildFileTreeItem(buildGradle: GradleBuildFileTreeItem) {
@@ -39,7 +27,7 @@ class WorkspaceTreeItem extends TreeItem {
   }
 }
 
-class GradleTasksFolderTreeItem extends TreeItem {
+class GradleTasksFolderTreeItem extends vscode.TreeItem {
   tasks: GradleTaskTreeItem[] = [];
   workspaceTreeItem: WorkspaceTreeItem;
   path: string;
@@ -49,7 +37,7 @@ class GradleTasksFolderTreeItem extends TreeItem {
     relativePath: string,
     name: string
   ) {
-    super(name, TreeItemCollapsibleState.Expanded);
+    super(name, vscode.TreeItemCollapsibleState.Expanded);
     this.workspaceTreeItem = workspaceTreeItem;
     this.path = relativePath;
     this.contextValue = name;
@@ -81,13 +69,15 @@ class GradleBuildFileTreeItem extends GradleTasksFolderTreeItem {
       GradleBuildFileTreeItem.getLabel(folder.label!, relativePath, name)
     );
     if (relativePath) {
-      this.resourceUri = Uri.file(
+      this.resourceUri = vscode.Uri.file(
         path.join(folder!.resourceUri!.fsPath, relativePath, name)
       );
     } else {
-      this.resourceUri = Uri.file(path.join(folder!.resourceUri!.fsPath, name));
+      this.resourceUri = vscode.Uri.file(
+        path.join(folder!.resourceUri!.fsPath, name)
+      );
     }
-    this.iconPath = ThemeIcon.File;
+    this.iconPath = vscode.ThemeIcon.File;
   }
 
   addSubProjectTreeItem(subProject: SubProjectTreeItem) {
@@ -99,17 +89,17 @@ class SubProjectTreeItem extends WorkspaceTreeItem {}
 
 type ExplorerCommands = 'run';
 
-class GradleTaskTreeItem extends TreeItem {
-  task: Task;
+class GradleTaskTreeItem extends vscode.TreeItem {
+  task: vscode.Task;
   folderTreeItem: GradleTasksFolderTreeItem;
 
   constructor(
-    context: ExtensionContext,
+    context: vscode.ExtensionContext,
     folderTreeItem: GradleTasksFolderTreeItem,
-    task: Task,
+    task: vscode.Task,
     label: string
   ) {
-    super(label, TreeItemCollapsibleState.None);
+    super(label, vscode.TreeItemCollapsibleState.None);
     const command: ExplorerCommands = 'run';
 
     const commandList = {
@@ -132,53 +122,56 @@ class GradleTaskTreeItem extends TreeItem {
     };
   }
 
-  getFolder(): WorkspaceFolder {
+  getFolder(): vscode.WorkspaceFolder {
     return this.folderTreeItem.workspaceTreeItem.workspaceFolder;
   }
 }
 
-class NoTasksTreeItem extends TreeItem {
+class NoTasksTreeItem extends vscode.TreeItem {
   constructor() {
-    super('No tasks found', TreeItemCollapsibleState.None);
+    super('No tasks found', vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'notasks';
   }
 }
 
-export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
-  private taskItemsPromise: Thenable<Task[]> | undefined = undefined;
+export class GradleTasksTreeDataProvider
+  implements vscode.TreeDataProvider<vscode.TreeItem> {
+  private taskItemsPromise: Thenable<vscode.Task[]> = Promise.resolve([]);
   private taskTree:
     | WorkspaceTreeItem[]
     | GradleBuildFileTreeItem[]
     | NoTasksTreeItem[]
     | null = null;
-  private _onDidChangeTreeData: EventEmitter<TreeItem | null> = new EventEmitter<TreeItem | null>();
-  readonly onDidChangeTreeData: Event<TreeItem | null> = this
+  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
+  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly extensionContext: ExtensionContext) {}
+  constructor(private readonly extensionContext: vscode.ExtensionContext) {}
 
   runTask(taskItem: GradleTaskTreeItem) {
     if (taskItem && taskItem.task) {
-      tasks.executeTask(taskItem.task);
+      vscode.tasks.executeTask(taskItem.task);
     }
   }
 
-  refresh() {
+  refresh(): Thenable<vscode.Task[]> {
     invalidateTasksCache();
     enableTaskDetection();
     this.taskTree = null;
-    this.taskItemsPromise = tasks
+    this.taskItemsPromise = vscode.tasks
       .fetchTasks({ type: 'gradle' })
-      .then((tasks = []) => tasks.filter(task => task.source === 'gradle'));
-    this._onDidChangeTreeData.fire();
+      .then((tasks = []) => {
+        this._onDidChangeTreeData.fire();
+        return tasks;
+      });
     return this.taskItemsPromise;
   }
 
-  getTreeItem(element: TreeItem): TreeItem {
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
-  getParent(element: TreeItem): TreeItem | null {
+  getParent(element: vscode.TreeItem): vscode.TreeItem | null {
     if (element instanceof WorkspaceTreeItem) {
       return null;
     }
@@ -194,7 +187,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     return null;
   }
 
-  async getChildren(element?: TreeItem): Promise<TreeItem[]> {
+  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!this.taskTree) {
       const taskItems = await this.taskItemsPromise;
       if (taskItems) {
@@ -228,7 +221,7 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
   }
 
   private buildTaskTree(
-    tasks: Task[]
+    tasks: vscode.Task[]
   ): WorkspaceTreeItem[] | GradleBuildFileTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<String, WorkspaceTreeItem> = new Map();
     const subProjectTreeItems: Map<String, SubProjectTreeItem> = new Map();
