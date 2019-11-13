@@ -38,10 +38,10 @@ describe(fixtureName, () => {
     let tasks: vscode.Task[];
 
     beforeEach(async () => {
-      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+      tasks = await vscode.tasks.fetchTasks({ type: 'richardwillis.gradle' });
     });
 
-    it('should load tasks', async () => {
+    it('should load tasks', () => {
       assert.equal(tasks.length > 0, true);
     });
 
@@ -57,9 +57,9 @@ describe(fixtureName, () => {
 
     it('should refresh tasks', async () => {
       await vscode.commands.executeCommand('gradle.refresh');
-      const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        task => task.name === 'hello'
-      );
+      const task = (
+        await vscode.tasks.fetchTasks({ type: 'richardwillis.gradle' })
+      ).find(task => task.name === 'hello');
       assert.ok(task);
     });
   });

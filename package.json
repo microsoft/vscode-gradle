@@ -94,14 +94,14 @@
       "view/title": [
         {
           "command": "gradle.refresh",
-          "when": "view == gradle",
+          "when": "view == gradle-tree-view",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradle && viewItem == task"
+          "when": "view == gradle-tree-view && viewItem == task"
         }
       ]
     },
