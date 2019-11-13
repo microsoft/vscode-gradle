@@ -5,6 +5,7 @@ import {
   GradleTaskProvider,
   hasGradleBuildFile
 } from './tasks';
+import { GradleBuildFileTreeItem } from './gradleView';
 
 import { getCustomBuildFile, getIsTasksExplorerEnabled } from './config';
 
@@ -101,6 +102,19 @@ function registerCommands(
       )
     );
   }
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'gradle.open',
+      async (buildFileTreeItem: GradleBuildFileTreeItem) => {
+        const uri = buildFileTreeItem.resourceUri;
+        if (uri) {
+          await vscode.window.showTextDocument(
+            await vscode.workspace.openTextDocument(uri)
+          );
+        }
+      }
+    )
+  );
 }
 
 export interface ExtensionApi {

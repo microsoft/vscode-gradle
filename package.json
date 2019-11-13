@@ -69,11 +69,11 @@
     "commands": [
       {
         "command": "gradle.runTask",
-        "title": "Gradle: Run Task",
-        "icon": {
-          "light": "resources/light/continue.svg",
-          "dark": "resources/dark/continue.svg"
-        }
+        "title": "Run Task"
+      },
+      {
+        "command": "gradle.open",
+        "title": "Open Build File"
       },
       {
         "command": "gradle.refresh",
@@ -89,6 +89,10 @@
         {
           "command": "gradle.runTask",
           "when": "false"
+        },
+        {
+          "command": "gradle.open",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -102,6 +106,10 @@
         {
           "command": "gradle.runTask",
           "when": "view == gradle-tree-view && viewItem == task"
+        },
+        {
+          "command": "gradle.open",
+          "when": "view == gradle-tree-view && viewItem == buildFile"
         }
       ]
     },

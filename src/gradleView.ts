@@ -27,7 +27,7 @@ class WorkspaceTreeItem extends vscode.TreeItem {
   }
 }
 
-class GradleBuildFileTreeItem extends vscode.TreeItem {
+export class GradleBuildFileTreeItem extends vscode.TreeItem {
   path: string;
   tasks: GradleTaskTreeItem[] = [];
   subProjects: SubProjectTreeItem[] = [];
@@ -48,6 +48,7 @@ class GradleBuildFileTreeItem extends vscode.TreeItem {
       GradleBuildFileTreeItem.getLabel(relativePath, contextValue),
       vscode.TreeItemCollapsibleState.Expanded
     );
+    this.contextValue = 'buildFile';
     this.path = relativePath;
     if (relativePath) {
       this.resourceUri = vscode.Uri.file(
@@ -76,11 +77,10 @@ class GradleBuildFileTreeItem extends vscode.TreeItem {
 
 class SubProjectTreeItem extends WorkspaceTreeItem {}
 
-type ExplorerCommands = 'run';
-
 class GradleTaskTreeItem extends vscode.TreeItem {
-  task: vscode.Task;
-  folderTreeItem: GradleBuildFileTreeItem;
+  public readonly task: vscode.Task;
+  public readonly folderTreeItem: GradleBuildFileTreeItem;
+  public readonly execution: vscode.TaskExecution | undefined;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -89,19 +89,14 @@ class GradleTaskTreeItem extends vscode.TreeItem {
     label: string
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
-    const command: ExplorerCommands = 'run';
-
-    const commandList = {
-      run: {
-        title: 'Run Task',
-        command: 'gradle.runTask',
-        arguments: [this]
-      }
+    this.command = {
+      title: 'Run Task',
+      command: 'gradle.runTask',
+      arguments: [this]
     };
     this.contextValue = 'task';
     this.folderTreeItem = folderTreeItem;
     this.task = task;
-    this.command = commandList[command];
 
     this.iconPath = {
       light: context.asAbsolutePath(
