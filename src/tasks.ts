@@ -22,7 +22,7 @@ import {
 } from './config';
 
 let autoDetectOverride: boolean = false;
-let cachedTasks: Task[] | undefined = undefined;
+let cachedTasks: Promise<Task[]> | undefined = undefined;
 
 export function enableTaskDetection() {
   autoDetectOverride = true;
@@ -42,7 +42,11 @@ export class GradleTaskProvider implements TaskProvider {
 
   async provideTasks() {
     try {
-      return await provideGradleTasks(this.statusBarItem, this.outputChannel);
+      const tasks = await provideGradleTasks(
+        this.statusBarItem,
+        this.outputChannel
+      );
+      return tasks;
     } catch (e) {
       this.outputChannel.append(`Error providing gradle tasks: ${e.message}\n`);
       this.outputChannel.show();
@@ -162,12 +166,12 @@ async function detectGradleTasks(
   }
 }
 
-export async function provideGradleTasks(
+export function provideGradleTasks(
   statusBarItem: StatusBarItem,
   outputChannel: OutputChannel
 ): Promise<Task[]> {
   if (!cachedTasks) {
-    cachedTasks = await detectGradleTasks(statusBarItem, outputChannel);
+    cachedTasks = detectGradleTasks(statusBarItem, outputChannel);
   }
   return cachedTasks;
 }
@@ -216,18 +220,17 @@ export function getTaskName(task: string, relativePath: string | undefined) {
 }
 
 export async function createTask(
-  taskDefinition: GradleTaskDefinition | string,
+  taskDefinitionOrTaskName: GradleTaskDefinition | string,
   taskName: string,
   folder: WorkspaceFolder,
   gradleBuildFileUri: Uri,
-  command: string,
-  subProjectBuildFileUri?: Uri
+  command: string
 ): Promise<Task> {
   let definition: GradleTaskDefinition;
-  if (typeof taskDefinition === 'string') {
+  if (typeof taskDefinitionOrTaskName === 'string') {
     let subProjectBuildFile: string | undefined = undefined;
-    if (taskDefinition.includes(':')) {
-      const [subProjectName] = taskDefinition.split(':');
+    if (taskDefinitionOrTaskName.includes(':')) {
+      const [subProjectName] = taskDefinitionOrTaskName.split(':');
       const subProjectPath = path.join(folder.uri.fsPath, subProjectName);
       const folderUri = Uri.file(subProjectPath);
       const buildFile = (await getBuildFilePaths(folderUri))[0];
@@ -235,13 +238,13 @@ export async function createTask(
     }
 
     definition = {
-      type: 'gradle',
-      task: taskDefinition,
+      type: 'richardwillis.gradle',
+      task: taskDefinitionOrTaskName,
       buildFile: path.basename(gradleBuildFileUri.fsPath),
       subProjectBuildFile
     };
   } else {
-    definition = taskDefinition;
+    definition = taskDefinitionOrTaskName;
   }
 
   function getCommandLine(task: string): string {

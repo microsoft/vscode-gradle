@@ -79,13 +79,22 @@ function registerExplorer(
 ): GradleTasksTreeDataProvider | undefined {
   if (workspace.workspaceFolders) {
     const treeDataProvider = new GradleTasksTreeDataProvider(context);
-    treeDataProvider.refresh();
     context.subscriptions.push(
-      window.createTreeView('gradle', {
+      window.createTreeView('gradle-tree-view', {
         treeDataProvider: treeDataProvider,
         showCollapseAll: true
       })
     );
+    return treeDataProvider;
+  }
+  return undefined;
+}
+
+function registerCommands(
+  context: ExtensionContext,
+  treeDataProvider: GradleTasksTreeDataProvider | undefined
+) {
+  if (treeDataProvider) {
     context.subscriptions.push(
       commands.registerCommand(
         'gradle.runTask',
@@ -100,22 +109,28 @@ function registerExplorer(
         treeDataProvider
       )
     );
-    return treeDataProvider;
   }
-  return undefined;
 }
 
-interface ExtensionApi {}
+export interface ExtensionApi {
+  outputChannel: OutputChannel;
+}
 
 export async function activate(
   context: ExtensionContext
 ): Promise<ExtensionApi> {
   const outputChannel = window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
-  registerTaskProvider(context, outputChannel);
-  treeDataProvider = registerExplorer(context);
-  if ((await hasGradleBuildFile()) && getIsTasksExplorerEnabled()) {
-    commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
+  if (await hasGradleBuildFile()) {
+    registerTaskProvider(context, outputChannel);
+    treeDataProvider = registerExplorer(context);
+    registerCommands(context, treeDataProvider);
+    if (treeDataProvider) {
+      treeDataProvider.refresh();
+    }
+    if (getIsTasksExplorerEnabled()) {
+      commands.executeCommand('setContext', 'gradle:showTasksExplorer', true);
+    }
   }
   return { outputChannel };
 }

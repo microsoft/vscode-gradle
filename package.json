@@ -60,7 +60,7 @@
     "views": {
       "explorer": [
         {
-          "id": "gradle",
+          "id": "gradle-tree-view",
           "name": "Gradle Tasks",
           "when": "gradle:showTasksExplorer"
         }
@@ -140,7 +140,6 @@
         "gradle.explorerNestedSubProjects": {
           "type": "boolean",
           "default": true,
-          "scope": "resource",
           "description": "Show nested sub-projects in the explorer"
         }
       }
@@ -153,9 +152,10 @@
     ],
     "taskDefinitions": [
       {
-        "type": "gradle",
+        "type": "richardwillis.gradle",
         "required": [
-          "task"
+          "task",
+          "buildFile"
         ],
         "properties": {
           "task": {

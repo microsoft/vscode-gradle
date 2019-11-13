@@ -145,7 +145,7 @@ class NoTasksTreeItem extends TreeItem {
 }
 
 export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
-  private taskItemsPromise: Thenable<Task[]> | undefined = undefined;
+  private taskItemsPromise: Thenable<Task[]> = Promise.resolve([]);
   private taskTree:
     | WorkspaceTreeItem[]
     | GradleBuildFileTreeItem[]
@@ -163,14 +163,16 @@ export class GradleTasksTreeDataProvider implements TreeDataProvider<TreeItem> {
     }
   }
 
-  refresh() {
+  refresh(): Thenable<Task[]> {
     invalidateTasksCache();
     enableTaskDetection();
     this.taskTree = null;
-    this.taskItemsPromise = tasks
-      .fetchTasks({ type: 'gradle' })
-      .then((tasks = []) => tasks.filter(task => task.source === 'gradle'));
-    this._onDidChangeTreeData.fire();
+    this.taskItemsPromise = tasks.fetchTasks().then((tasks = []) => {
+      this._onDidChangeTreeData.fire();
+      return tasks.filter(
+        task => task.definition.type === 'richardwillis.gradle'
+      );
+    });
     return this.taskItemsPromise;
   }
 
