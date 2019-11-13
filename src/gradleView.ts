@@ -138,6 +138,15 @@ export class GradleTasksTreeDataProvider
     }
   }
 
+  async open(buildFileTreeItem: GradleBuildFileTreeItem) {
+    const uri = buildFileTreeItem.resourceUri;
+    if (uri) {
+      await vscode.window.showTextDocument(
+        await vscode.workspace.openTextDocument(uri)
+      );
+    }
+  }
+
   refresh(): Thenable<vscode.Task[]> {
     invalidateTasksCache();
     enableTaskDetection();
