@@ -50,8 +50,6 @@ describe(fixtureName, () => {
       assert.ok(task);
       if (task) {
         await vscode.tasks.executeTask(task);
-      } else {
-        throw new Error('Task not found');
       }
     });
 

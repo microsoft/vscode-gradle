@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
@@ -40,8 +39,6 @@ describe(fixtureName, () => {
       assert.ok(task);
       if (task) {
         await vscode.tasks.executeTask(task);
-      } else {
-        throw new Error('Task not found');
       }
     });
 
@@ -52,8 +49,6 @@ describe(fixtureName, () => {
       assert.ok(task);
       if (task) {
         await vscode.tasks.executeTask(task);
-      } else {
-        throw new Error('Task not found');
       }
     });
   });

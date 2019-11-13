@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert';
-import * as vscode from 'vscode';
 
 import { parseGradleTasks } from '../../tasks';
 describe('tasks', () => {

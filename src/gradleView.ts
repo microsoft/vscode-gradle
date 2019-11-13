@@ -27,54 +27,39 @@ class WorkspaceTreeItem extends vscode.TreeItem {
   }
 }
 
-class GradleTasksFolderTreeItem extends vscode.TreeItem {
-  tasks: GradleTaskTreeItem[] = [];
-  workspaceTreeItem: WorkspaceTreeItem;
+class GradleBuildFileTreeItem extends vscode.TreeItem {
   path: string;
-
-  constructor(
-    workspaceTreeItem: WorkspaceTreeItem,
-    relativePath: string,
-    name: string
-  ) {
-    super(name, vscode.TreeItemCollapsibleState.Expanded);
-    this.workspaceTreeItem = workspaceTreeItem;
-    this.path = relativePath;
-    this.contextValue = name;
-  }
-
-  addTask(task: GradleTaskTreeItem) {
-    this.tasks.push(task);
-  }
-}
-
-class GradleBuildFileTreeItem extends GradleTasksFolderTreeItem {
+  tasks: GradleTaskTreeItem[] = [];
   subProjects: SubProjectTreeItem[] = [];
 
-  static getLabel(
-    _folderName: string,
-    relativePath: string,
-    name: string
-  ): string {
+  static getLabel(relativePath: string, name: string): string {
     if (relativePath.length > 0) {
       return path.join(relativePath, name);
     }
     return name;
   }
 
-  constructor(folder: WorkspaceTreeItem, relativePath: string, name: string) {
+  constructor(
+    readonly workspaceTreeItem: WorkspaceTreeItem,
+    relativePath: string,
+    readonly contextValue: string
+  ) {
     super(
-      folder,
-      relativePath,
-      GradleBuildFileTreeItem.getLabel(folder.label!, relativePath, name)
+      GradleBuildFileTreeItem.getLabel(relativePath, contextValue),
+      vscode.TreeItemCollapsibleState.Expanded
     );
+    this.path = relativePath;
     if (relativePath) {
       this.resourceUri = vscode.Uri.file(
-        path.join(folder!.resourceUri!.fsPath, relativePath, name)
+        path.join(
+          workspaceTreeItem!.resourceUri!.fsPath,
+          relativePath,
+          contextValue
+        )
       );
     } else {
       this.resourceUri = vscode.Uri.file(
-        path.join(folder!.resourceUri!.fsPath, name)
+        path.join(workspaceTreeItem!.resourceUri!.fsPath, contextValue)
       );
     }
     this.iconPath = vscode.ThemeIcon.File;
@@ -82,6 +67,10 @@ class GradleBuildFileTreeItem extends GradleTasksFolderTreeItem {
 
   addSubProjectTreeItem(subProject: SubProjectTreeItem) {
     this.subProjects.push(subProject);
+  }
+
+  addTask(task: GradleTaskTreeItem) {
+    this.tasks.push(task);
   }
 }
 
@@ -91,11 +80,11 @@ type ExplorerCommands = 'run';
 
 class GradleTaskTreeItem extends vscode.TreeItem {
   task: vscode.Task;
-  folderTreeItem: GradleTasksFolderTreeItem;
+  folderTreeItem: GradleBuildFileTreeItem;
 
   constructor(
     context: vscode.ExtensionContext,
-    folderTreeItem: GradleTasksFolderTreeItem,
+    folderTreeItem: GradleBuildFileTreeItem,
     task: vscode.Task,
     label: string
   ) {
@@ -175,7 +164,7 @@ export class GradleTasksTreeDataProvider
     if (element instanceof WorkspaceTreeItem) {
       return null;
     }
-    if (element instanceof GradleTasksFolderTreeItem) {
+    if (element instanceof GradleBuildFileTreeItem) {
       return element.workspaceTreeItem;
     }
     if (element instanceof GradleTaskTreeItem) {

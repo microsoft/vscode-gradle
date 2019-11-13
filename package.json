@@ -180,9 +180,10 @@
     "watch": "tsc -watch -p ./",
     "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
-    "postinstall": "vscode-install",
-    "lint": "prettier --check \"src/**/*.{ts,js,json}\"",
-    "format": "prettier --write \"src/**/*.{ts,js,json}\""
+    "lint": "npm run lint:prettier && npm run lint:tslint",
+    "lint:prettier": "prettier --check '**/*.{ts,js,json}'",
+    "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
+    "format": "prettier --write '**/*.{ts,js,json}'"
   },
   "dependencies": {},
   "devDependencies": {
@@ -190,12 +191,13 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.7",
     "@types/sinon": "^7.5.0",
+    "@types/vscode": "^1.40.0",
     "glob": "^7.1.6",
     "mocha": "^6.2.2",
     "prettier": "^1.19.1",
     "sinon": "^7.5.0",
+    "tslint": "^5.20.1",
     "typescript": "^3.7.2",
-    "vscode": "^1.1.36",
     "vscode-test": "^1.2.3"
   },
   "prettier": {
