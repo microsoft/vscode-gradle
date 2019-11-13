@@ -226,7 +226,7 @@ export async function createTask(
     }
 
     definition = {
-      type: 'gradle',
+      type: 'richardwillis.gradle',
       task: taskDefinitionOrTaskName,
       buildFile: path.basename(gradleBuildFileUri.fsPath),
       subProjectBuildFile
