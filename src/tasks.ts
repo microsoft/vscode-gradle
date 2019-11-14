@@ -17,9 +17,8 @@ export function enableTaskDetection() {
 }
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
-  task: string;
-  buildFile: string;
-  subProjectBuildFile: string | undefined;
+  script: string;
+  fileName: string;
 }
 
 export class GradleTaskProvider implements vscode.TaskProvider {
@@ -43,7 +42,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   public async resolveTask(
     _task: vscode.Task
   ): Promise<vscode.Task | undefined> {
-    const gradleTask = (<any>_task.definition).task;
+    const gradleTask = (<any>_task.definition).script;
     if (gradleTask) {
       const { definition } = <any>_task;
       let gradleBuildFileUri: vscode.Uri;
@@ -68,7 +67,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       if (folder) {
         return createTask(
           definition,
-          definition.task,
+          definition.script,
           _task.scope,
           gradleBuildFileUri,
           await getGradleWrapperCommandFromPath(folder.uri.fsPath)
@@ -215,21 +214,19 @@ export async function createTask(
   command: string
 ): Promise<vscode.Task> {
   let definition: GradleTaskDefinition;
+  let fileName: string = path.basename(gradleBuildFileUri.fsPath);
   if (typeof taskDefinitionOrTaskName === 'string') {
-    let subProjectBuildFile: string | undefined = undefined;
     if (taskDefinitionOrTaskName.includes(':')) {
       const [subProjectName] = taskDefinitionOrTaskName.split(':');
       const subProjectPath = path.join(folder.uri.fsPath, subProjectName);
       const folderUri = vscode.Uri.file(subProjectPath);
-      const buildFile = (await getBuildFilePaths(folderUri))[0];
-      subProjectBuildFile = buildFile.fsPath;
+      const uri = (await getBuildFilePaths(folderUri))[0];
+      fileName = path.basename(uri.fsPath);
     }
-
     definition = {
       type: 'gradle',
-      task: taskDefinitionOrTaskName,
-      buildFile: path.basename(gradleBuildFileUri.fsPath),
-      subProjectBuildFile
+      script: taskDefinitionOrTaskName,
+      fileName
     };
   } else {
     definition = taskDefinitionOrTaskName;
@@ -259,7 +256,10 @@ export async function createTask(
   if (relativeBuildGradle.length) {
     definition.path = relativeBuildGradle;
   }
-  const normalizedTaskName = getTaskName(definition.task, relativeBuildGradle);
+  const normalizedTaskName = getTaskName(
+    definition.script,
+    relativeBuildGradle
+  );
   const cwd = path.dirname(gradleBuildFileUri.fsPath);
   const task = new vscode.Task(
     definition,
@@ -274,7 +274,7 @@ export async function createTask(
     showReuseMessage: false,
     focus: true
   };
-  return task;
+  return Object.freeze(task);
 }
 
 export async function hasGradleBuildFile(): Promise<boolean> {

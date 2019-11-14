@@ -248,13 +248,13 @@ export class GradleTasksTreeDataProvider
           buildFileTreeItem = new GradleBuildFileTreeItem(
             workspaceTreeItem,
             relativePath,
-            definition.buildFile
+            definition.fileName
           );
           workspaceTreeItem.addGradleBuildFileTreeItem(buildFileTreeItem);
           buildFileTreeItems.set(fullPath, buildFileTreeItem);
         }
-        if (showNestedSubProjects && definition.subProjectBuildFile) {
-          const [subProjectName] = task.definition.task.split(':');
+        if (showNestedSubProjects && definition.script.includes(':')) {
+          const [subProjectName] = definition.script.split(':');
           let subProjectTreeItem = subProjectTreeItems.get(subProjectName);
           if (!subProjectTreeItem) {
             subProjectTreeItem = new SubProjectTreeItem(
@@ -272,7 +272,7 @@ export class GradleTasksTreeDataProvider
             subProjectBuildFileTreeItem = new GradleBuildFileTreeItem(
               workspaceTreeItem,
               relativePath,
-              path.basename(definition.subProjectBuildFile)
+              definition.fileName
             );
             subProjectTreeItem.addGradleBuildFileTreeItem(
               subProjectBuildFileTreeItem

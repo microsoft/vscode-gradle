@@ -162,21 +162,17 @@
       {
         "type": "gradle",
         "required": [
-          "task",
-          "buildFile"
+          "script",
+          "fileName"
         ],
         "properties": {
-          "task": {
+          "script": {
             "type": "string",
-            "description": "Gradle task name"
+            "description": "The task script name"
           },
-          "buildFile": {
+          "fileName": {
             "type": "string",
-            "description": "The build file that provides the task"
-          },
-          "subProjectBuildFile": {
-            "type": "string",
-            "description": "The subproject build file that provides the task"
+            "description": "The filename of the build file that provides the tasks"
           }
         }
       }
