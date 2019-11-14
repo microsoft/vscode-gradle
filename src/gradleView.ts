@@ -14,10 +14,14 @@ class WorkspaceTreeItem extends vscode.TreeItem {
   buildFileTreeItems: GradleBuildFileTreeItem[] = [];
   workspaceFolder: vscode.WorkspaceFolder;
 
-  constructor(name: string, folder: vscode.WorkspaceFolder) {
+  constructor(
+    name: string,
+    folder: vscode.WorkspaceFolder,
+    resourceUri: vscode.Uri
+  ) {
     super(name, vscode.TreeItemCollapsibleState.Expanded);
     this.contextValue = 'folder';
-    this.resourceUri = folder.uri;
+    this.resourceUri = resourceUri;
     this.workspaceFolder = folder;
     this.iconPath = vscode.ThemeIcon.Folder;
   }
@@ -42,25 +46,21 @@ export class GradleBuildFileTreeItem extends vscode.TreeItem {
   constructor(
     readonly workspaceTreeItem: WorkspaceTreeItem,
     relativePath: string,
-    readonly contextValue: string
+    readonly name: string
   ) {
     super(
-      GradleBuildFileTreeItem.getLabel(relativePath, contextValue),
+      GradleBuildFileTreeItem.getLabel(relativePath, name),
       vscode.TreeItemCollapsibleState.Expanded
     );
     this.contextValue = 'buildFile';
     this.path = relativePath;
     if (relativePath) {
       this.resourceUri = vscode.Uri.file(
-        path.join(
-          workspaceTreeItem!.resourceUri!.fsPath,
-          relativePath,
-          contextValue
-        )
+        path.join(workspaceTreeItem!.resourceUri!.fsPath, relativePath, name)
       );
     } else {
       this.resourceUri = vscode.Uri.file(
-        path.join(workspaceTreeItem!.resourceUri!.fsPath, contextValue)
+        path.join(workspaceTreeItem!.resourceUri!.fsPath, name)
       );
     }
     this.iconPath = vscode.ThemeIcon.File;
@@ -234,7 +234,8 @@ export class GradleTasksTreeDataProvider
         if (!workspaceTreeItem) {
           workspaceTreeItem = new WorkspaceTreeItem(
             task.scope.name,
-            task.scope
+            task.scope,
+            task.scope.uri
           );
           workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
         }
@@ -259,7 +260,8 @@ export class GradleTasksTreeDataProvider
           if (!subProjectTreeItem) {
             subProjectTreeItem = new SubProjectTreeItem(
               subProjectName,
-              task.scope
+              task.scope,
+              vscode.Uri.file(path.join(task.scope.uri.fsPath, subProjectName))
             );
             buildFileTreeItem.addSubProjectTreeItem(subProjectTreeItem);
             subProjectTreeItems.set(subProjectName, subProjectTreeItem);
@@ -270,7 +272,7 @@ export class GradleTasksTreeDataProvider
           );
           if (!subProjectBuildFileTreeItem) {
             subProjectBuildFileTreeItem = new GradleBuildFileTreeItem(
-              workspaceTreeItem,
+              subProjectTreeItem,
               relativePath,
               definition.fileName
             );
