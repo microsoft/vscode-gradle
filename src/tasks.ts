@@ -274,7 +274,7 @@ export async function createTask(
     showReuseMessage: false,
     focus: true
   };
-  return Object.freeze(task);
+  return task;
 }
 
 export async function hasGradleBuildFile(): Promise<boolean> {
