@@ -23,7 +23,8 @@
     "vscode": "^1.39.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Snippets"
   ],
   "keywords": [
     "java",
@@ -42,6 +43,16 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "snippets": [
+      {
+        "language": "groovy",
+        "path": "./snippets/build.gradle.json"
+      },
+      {
+        "language": "kotlinscript",
+        "path": "./snippets/build.gradle.kts.json"
+      }
+    ],
     "problemMatchers": [
       {
         "owner": "gradle",
@@ -88,6 +99,14 @@
         "title": "Open Build File"
       },
       {
+        "command": "gradle.addTask",
+        "title": "Add Task",
+        "icon": {
+          "light": "resources/light/add.svg",
+          "dark": "resources/dark/add.svg"
+        }
+      },
+      {
         "command": "gradle.refresh",
         "title": "Gradle: Refresh Tasks",
         "icon": {
@@ -100,6 +119,10 @@
       "commandPalette": [
         {
           "command": "gradle.runTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.addTask",
           "when": "false"
         },
         {
@@ -126,6 +149,15 @@
         {
           "command": "gradle.openBuildFile",
           "when": "view == gradle-tree-view && viewItem == buildFile"
+        },
+        {
+          "command": "gradle.addTask",
+          "when": "view == gradle-tree-view && viewItem == buildFile"
+        },
+        {
+          "command": "gradle.addTask",
+          "when": "view == gradle-tree-view && viewItem == buildFile",
+          "group": "inline"
         },
         {
           "command": "gradle.runTask",
@@ -199,6 +231,10 @@
           "fileName": {
             "type": "string",
             "description": "The filename of the build file that provides the tasks"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the task"
           }
         }
       }
@@ -211,9 +247,9 @@
     "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
     "lint": "npm run lint:prettier && npm run lint:tslint",
-    "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg}\"",
+    "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
-    "format": "prettier --write '**/*.{ts,js,json,svg}'"
+    "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'"
   },
   "dependencies": {},
   "devDependencies": {

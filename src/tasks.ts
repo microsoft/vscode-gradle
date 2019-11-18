@@ -9,6 +9,7 @@ import {
   getTasksArgs
 } from './config';
 
+type StringMap = { [s: string]: string };
 let autoDetectOverride: boolean = false;
 let cachedTasks: Promise<vscode.Task[]> | undefined = undefined;
 
@@ -19,6 +20,7 @@ export function enableTaskDetection() {
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
   fileName: string;
+  description: string;
 }
 
 export class GradleTaskProvider implements vscode.TaskProvider {
@@ -42,39 +44,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   public async resolveTask(
     _task: vscode.Task
   ): Promise<vscode.Task | undefined> {
-    const gradleTask = (<any>_task.definition).script;
-    if (gradleTask) {
-      const { definition } = <any>_task;
-      let gradleBuildFileUri: vscode.Uri;
-      if (
-        _task.scope === undefined ||
-        _task.scope === vscode.TaskScope.Global ||
-        _task.scope === vscode.TaskScope.Workspace
-      ) {
-        // scope is required to be a WorkspaceFolder for resolveTask
-        return undefined;
-      }
-      if (definition.path) {
-        gradleBuildFileUri = _task.scope.uri.with({
-          path: _task.scope.uri.path + '/' + definition.path + 'build.gradle'
-        });
-      } else {
-        gradleBuildFileUri = _task.scope.uri.with({
-          path: _task.scope.uri.path + '/build.gradle'
-        });
-      }
-      const folder = vscode.workspace.getWorkspaceFolder(gradleBuildFileUri);
-      if (folder) {
-        return createTask(
-          definition,
-          definition.script,
-          _task.scope,
-          gradleBuildFileUri,
-          await getGradleWrapperCommandFromPath(folder.uri.fsPath)
-        );
-      }
-      return undefined;
-    }
     return undefined;
   }
 }
@@ -178,7 +147,7 @@ async function provideGradleTasksForFolder(
   if (!command) {
     return emptyTasks;
   }
-  const tasksMap = await getTasks(
+  const tasksMap: StringMap | undefined = await getTasks(
     command,
     folder,
     statusBarItem,
@@ -191,9 +160,15 @@ async function provideGradleTasksForFolder(
   const sortedKeys = Object.keys(tasksMap).sort((a, b) => a.localeCompare(b));
 
   const tasks: vscode.Task[] = [];
-  for (const task of sortedKeys) {
+  for (const taskName of sortedKeys) {
     tasks.push(
-      await createTask(task, task, folder!, gradleBuildFileUri, command)
+      await createTask(
+        taskName,
+        tasksMap[taskName],
+        folder!,
+        gradleBuildFileUri,
+        command
+      )
     );
   }
   return tasks;
@@ -207,31 +182,12 @@ export function getTaskName(task: string, relativePath: string | undefined) {
 }
 
 export async function createTask(
-  taskDefinitionOrTaskName: GradleTaskDefinition | string,
   taskName: string,
+  taskDescription: string,
   folder: vscode.WorkspaceFolder,
   gradleBuildFileUri: vscode.Uri,
   command: string
 ): Promise<vscode.Task> {
-  let definition: GradleTaskDefinition;
-  let fileName: string = path.basename(gradleBuildFileUri.fsPath);
-  if (typeof taskDefinitionOrTaskName === 'string') {
-    if (taskDefinitionOrTaskName.includes(':')) {
-      const [subProjectName] = taskDefinitionOrTaskName.split(':');
-      const subProjectPath = path.join(folder.uri.fsPath, subProjectName);
-      const folderUri = vscode.Uri.file(subProjectPath);
-      const uri = (await getBuildFilePaths(folderUri))[0];
-      fileName = path.basename(uri.fsPath);
-    }
-    definition = {
-      type: 'gradle',
-      script: taskDefinitionOrTaskName,
-      fileName
-    };
-  } else {
-    definition = taskDefinitionOrTaskName;
-  }
-
   function getCommandLine(task: string): string {
     const args: string[] = [];
     args.push(task);
@@ -251,6 +207,21 @@ export async function createTask(
       path.dirname(gradleBuildFileUri.fsPath)
     );
   }
+
+  let fileName: string = path.basename(gradleBuildFileUri.fsPath);
+  if (taskName.includes(':')) {
+    const [subProjectName] = taskName.split(':');
+    const subProjectPath = path.join(folder.uri.fsPath, subProjectName);
+    const folderUri = vscode.Uri.file(subProjectPath);
+    const uri = (await getBuildFilePaths(folderUri))[0];
+    fileName = path.basename(uri.fsPath);
+  }
+  const definition: GradleTaskDefinition = {
+    type: 'gradle',
+    script: taskName,
+    fileName,
+    description: taskDescription
+  };
 
   const relativeBuildGradle = getRelativePath(folder, gradleBuildFileUri);
   if (relativeBuildGradle.length) {
@@ -321,8 +292,6 @@ async function exists(file: string): Promise<boolean> {
     });
   });
 }
-
-type StringMap = { [s: string]: string };
 
 const TASK_REGEX: RegExp = /$\s*(([^:\s]*:)?([a-z]+[A-Z0-9]?[a-z0-9]*[A-Za-z0-9]*))\b(\s-\s(.*))?/gm;
 

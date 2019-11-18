@@ -9,7 +9,7 @@ Run gradle tasks in VS Code.
 
 ## Features
 
-- Run gradle tasks as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
+- Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
 - List & run gradle tasks in the Explorer
 - Multi-root workspace folders supported
 - Default Groovy/Kotlin & custom build files supported
@@ -26,6 +26,12 @@ This extension contributes the following settings:
 - `gradle.enableTasksExplorer`: Enable an explorer view for gradle tasks
 - `gradle.customBuildFile`: Custom gradle build filename
 - `gradle.explorerNestedSubProjects`: Show nested subprojects in the explorer
+
+## Snippets
+
+This extensions provides snippets for the groovy and kotlin build files:
+
+- `cgt`: Create a new gradle task
 
 ## Slow Task Provider Warning
 
