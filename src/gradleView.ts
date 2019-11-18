@@ -96,7 +96,8 @@ class GradleTaskTreeItem extends vscode.TreeItem {
     context: vscode.ExtensionContext,
     folderTreeItem: GradleBuildFileTreeItem,
     task: vscode.Task,
-    label: string
+    label: string,
+    description?: string
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
@@ -104,6 +105,7 @@ class GradleTaskTreeItem extends vscode.TreeItem {
       command: 'gradle.runTask',
       arguments: [this]
     };
+    this.tooltip = description || label;
     this.folderTreeItem = folderTreeItem;
     this.task = task;
     this.execution = getTaskExecution(task);
@@ -189,6 +191,22 @@ export class GradleTasksTreeDataProvider
       await vscode.window.showTextDocument(
         await vscode.workspace.openTextDocument(uri)
       );
+    }
+  }
+
+  async addTask(buildFileTreeItem: GradleBuildFileTreeItem) {
+    const uri = buildFileTreeItem.resourceUri;
+    if (uri) {
+      const textEditor = await vscode.window.showTextDocument(
+        await vscode.workspace.openTextDocument(uri)
+      );
+
+      const position = new vscode.Position(textEditor.document.lineCount, 0);
+      textEditor.selection = new vscode.Selection(position, position);
+
+      vscode.commands.executeCommand('editor.action.insertSnippet', {
+        name: 'createGradleTask'
+      });
     }
   }
 
@@ -333,7 +351,8 @@ export class GradleTasksTreeDataProvider
             this.extensionContext,
             subProjectBuildFileTreeItem,
             task,
-            task.name.replace(/[^:]+:/, '')
+            task.name.replace(/[^:]+:/, ''),
+            task.definition.description
           );
           subProjectBuildFileTreeItem.addTask(gradleTask);
         } else {
@@ -341,7 +360,8 @@ export class GradleTasksTreeDataProvider
             this.extensionContext,
             buildFileTreeItem,
             task,
-            task.name
+            task.name,
+            task.definition.description
           );
           buildFileTreeItem.addTask(gradleTask);
         }

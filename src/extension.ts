@@ -114,6 +114,13 @@ function registerCommands(
         treeDataProvider
       )
     );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        'gradle.addTask',
+        treeDataProvider.addTask,
+        treeDataProvider
+      )
+    );
   }
 }
 

@@ -4,7 +4,6 @@ about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: badsyntax
-
 ---
 
 **Describe the bug**
@@ -20,7 +19,8 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
- - OS: [e.g. iOS]
+
+- OS: [e.g. iOS]
 
 **Output from "Gradle Tasks"**
 You can find this by clicking on the "Output" panel, then selecting the "Gradle Tasks" channel from the dropdown.
