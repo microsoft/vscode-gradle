@@ -2,10 +2,6 @@ plugins {
     id 'groovy'
 }
 
-subprojects {
-    version = "1.0"
-}
-
 tasks.register("helloGroovyMultiProject") {
     doLast {
         println 'Hello, World!'

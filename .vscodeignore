@@ -11,3 +11,4 @@ vsc-extension-quickstart.md
 **/*.ts
 test-fixtures/**
 images/**
+java-gradle-tasks/**

@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.gradle:gradle-tooling-api:4.3'
+    compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    testImplementation 'junit:junit:4.12'
+}
+
+application {
+    mainClassName = 'com.github.badsyntax.gradletasks.CliApp'
+}
+
+shadowJar {
+    minimize()
+}

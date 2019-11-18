@@ -52,7 +52,8 @@ function registerTaskProvider(
 
     const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
-      outputChannel
+      outputChannel,
+      context
     );
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
 

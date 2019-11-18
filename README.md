@@ -22,7 +22,6 @@ Run gradle tasks in VS Code.
 This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect gradle tasks
-- `gradle.tasksArgs`: Custom gradle tasks arguments
 - `gradle.enableTasksExplorer`: Enable an explorer view for gradle tasks
 - `gradle.customBuildFile`: Custom gradle build filename
 - `gradle.explorerNestedSubProjects`: Show nested subprojects in the explorer

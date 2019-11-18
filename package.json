@@ -191,12 +191,6 @@
           "default": true,
           "description": "Enable an explorer view for gradle tasks"
         },
-        "gradle.tasksArgs": {
-          "type": "string",
-          "default": "--all",
-          "scope": "resource",
-          "description": "Custom gradle tasks arguments"
-        },
         "gradle.customBuildFile": {
           "type": "string",
           "default": "",
@@ -207,6 +201,11 @@
           "type": "boolean",
           "default": true,
           "description": "Show nested sub-projects in the explorer"
+        },
+        "gradle.explorerNestedGroups": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show nested groups in the explorer"
         }
       }
     },
@@ -235,6 +234,18 @@
           "description": {
             "type": "string",
             "description": "Description of the task"
+          },
+          "group": {
+            "type": "string",
+            "description": "Task group"
+          },
+          "subproject": {
+            "type": "string",
+            "description": "Task subproject"
+          },
+          "path": {
+            "type": "string",
+            "description": "The full task path"
           }
         }
       }
@@ -249,7 +260,9 @@
     "lint": "npm run lint:prettier && npm run lint:tslint",
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
-    "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'"
+    "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
+    "prebuild:jar": "mkdir -p lib",
+    "build:jar": "cd java-gradle-tasks && ./gradlew build && cp build/libs/gradle-tasks-all.jar ../lib/ && cp build/scriptsShadow/* ../lib/"
   },
   "dependencies": {},
   "devDependencies": {

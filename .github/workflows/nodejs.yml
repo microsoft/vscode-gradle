@@ -24,6 +24,9 @@ jobs:
         with:
           java-version: '12.0.2'
           architecture: x64
+      - name: Build dist jar file
+        run: |
+          npm run build:jar
       - name: Build & test extension
         run: |
           export DISPLAY=':99.0'

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>gradle</name>
-	<comment>Project gradle created by Buildship.</comment>
+	<name>gradle-groovy-custom-build-file</name>
+	<comment>Project gradle-groovy-custom-build-file created by Buildship.</comment>
 	<projects>
 	</projects>
 	<buildSpec>

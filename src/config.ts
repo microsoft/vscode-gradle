@@ -18,12 +18,6 @@ export function getIsAutoDetectionEnabled(
   );
 }
 
-export function getTasksArgs(folder: vscode.WorkspaceFolder): string {
-  return vscode.workspace
-    .getConfiguration('gradle', folder.uri)
-    .get<string>('tasksArgs', '--all');
-}
-
 export function getIsTasksExplorerEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
@@ -34,4 +28,10 @@ export function getHasExplorerNestedSubProjects(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('explorerNestedSubProjects', true);
+}
+
+export function getHasExplorerNestedGroups(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('explorerNestedGroups', true);
 }
