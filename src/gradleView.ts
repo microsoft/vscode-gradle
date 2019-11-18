@@ -10,6 +10,16 @@ import {
 
 import { getHasExplorerNestedSubProjects } from './config';
 
+function getTaskExecution(task: vscode.Task) {
+  return vscode.tasks.taskExecutions.find(
+    e =>
+      e.task.name === task.name &&
+      e.task.source === task.source &&
+      e.task.scope === task.scope &&
+      e.task.definition.path === task.definition.path
+  );
+}
+
 class WorkspaceTreeItem extends vscode.TreeItem {
   buildFileTreeItems: GradleBuildFileTreeItem[] = [];
   workspaceFolder: vscode.WorkspaceFolder;
@@ -94,16 +104,30 @@ class GradleTaskTreeItem extends vscode.TreeItem {
       command: 'gradle.runTask',
       arguments: [this]
     };
-    this.contextValue = 'task';
     this.folderTreeItem = folderTreeItem;
     this.task = task;
+    this.execution = getTaskExecution(task);
+    this.contextValue = this.execution ? 'runningTask' : 'task';
 
-    this.iconPath = {
-      light: context.asAbsolutePath(
-        path.join('resources', 'light', 'script.svg')
-      ),
-      dark: context.asAbsolutePath(path.join('resources', 'dark', 'script.svg'))
-    };
+    if (this.execution) {
+      this.iconPath = {
+        light: context.asAbsolutePath(
+          path.join('resources', 'light', 'loading.svg')
+        ),
+        dark: context.asAbsolutePath(
+          path.join('resources', 'dark', 'loading.svg')
+        )
+      };
+    } else {
+      this.iconPath = {
+        light: context.asAbsolutePath(
+          path.join('resources', 'light', 'script.svg')
+        ),
+        dark: context.asAbsolutePath(
+          path.join('resources', 'dark', 'script.svg')
+        )
+      };
+    }
   }
 
   getFolder(): vscode.WorkspaceFolder {
@@ -130,11 +154,37 @@ export class GradleTasksTreeDataProvider
   readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly extensionContext: vscode.ExtensionContext) {}
+  constructor(private readonly extensionContext: vscode.ExtensionContext) {
+    extensionContext.subscriptions.push(
+      vscode.tasks.onDidStartTask(event => {
+        this.taskTree = null;
+        this._onDidChangeTreeData.fire(
+          event.execution.task.definition.treeItem
+        );
+      })
+    );
+    extensionContext.subscriptions.push(
+      vscode.tasks.onDidEndTask(event => {
+        this.taskTree = null;
+        this._onDidChangeTreeData.fire(
+          event.execution.task.definition.treeItem
+        );
+      })
+    );
+  }
 
   runTask(taskItem: GradleTaskTreeItem) {
     if (taskItem && taskItem.task) {
       vscode.tasks.executeTask(taskItem.task);
+    }
+  }
+
+  stopTask(taskItem: GradleTaskTreeItem) {
+    if (taskItem && taskItem.task) {
+      const execution = getTaskExecution(taskItem.task);
+      if (execution) {
+        execution.terminate();
+      }
     }
   }
 

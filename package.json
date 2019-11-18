@@ -69,7 +69,19 @@
     "commands": [
       {
         "command": "gradle.runTask",
-        "title": "Run Task"
+        "title": "Run Task",
+        "icon": {
+          "light": "resources/light/continue.svg",
+          "dark": "resources/dark/continue.svg"
+        }
+      },
+      {
+        "command": "gradle.stopTask",
+        "title": "Stop Task",
+        "icon": {
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
+        }
       },
       {
         "command": "gradle.openBuildFile",
@@ -88,6 +100,10 @@
       "commandPalette": [
         {
           "command": "gradle.runTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.stopTask",
           "when": "false"
         },
         {
@@ -110,6 +126,16 @@
         {
           "command": "gradle.openBuildFile",
           "when": "view == gradle-tree-view && viewItem == buildFile"
+        },
+        {
+          "command": "gradle.runTask",
+          "when": "view == gradle-tree-view && viewItem == task",
+          "group": "inline"
+        },
+        {
+          "command": "gradle.stopTask",
+          "when": "view == gradle-tree-view && viewItem == runningTask",
+          "group": "inline"
         }
       ]
     },
@@ -185,9 +211,9 @@
     "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
     "lint": "npm run lint:prettier && npm run lint:tslint",
-    "lint:prettier": "prettier --check \"**/*.{ts,js,json}\"",
+    "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
-    "format": "prettier --write '**/*.{ts,js,json}'"
+    "format": "prettier --write '**/*.{ts,js,json,svg}'"
   },
   "dependencies": {},
   "devDependencies": {
@@ -207,6 +233,14 @@
   "prettier": {
     "singleQuote": true,
     "tabWidth": 2,
-    "printWidth": 80
+    "printWidth": 80,
+    "overrides": [
+      {
+        "files": "*.svg",
+        "options": {
+          "parser": "html"
+        }
+      }
+    ]
   }
 }

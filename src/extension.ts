@@ -95,6 +95,13 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
+        'gradle.stopTask',
+        treeDataProvider.stopTask,
+        treeDataProvider
+      )
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
         'gradle.refresh',
         treeDataProvider.refresh,
         treeDataProvider
