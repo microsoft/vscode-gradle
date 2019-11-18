@@ -156,21 +156,16 @@ export class GradleTasksTreeDataProvider
 
   constructor(private readonly extensionContext: vscode.ExtensionContext) {
     extensionContext.subscriptions.push(
-      vscode.tasks.onDidStartTask(event => {
-        this.taskTree = null;
-        this._onDidChangeTreeData.fire(
-          event.execution.task.definition.treeItem
-        );
-      })
+      vscode.tasks.onDidStartTask(this.onTaskStatusChange, this)
     );
     extensionContext.subscriptions.push(
-      vscode.tasks.onDidEndTask(event => {
-        this.taskTree = null;
-        this._onDidChangeTreeData.fire(
-          event.execution.task.definition.treeItem
-        );
-      })
+      vscode.tasks.onDidEndTask(this.onTaskStatusChange, this)
     );
+  }
+
+  onTaskStatusChange(event: vscode.TaskStartEvent) {
+    this.taskTree = null;
+    this._onDidChangeTreeData.fire(event.execution.task.definition.treeItem);
   }
 
   runTask(taskItem: GradleTaskTreeItem) {
