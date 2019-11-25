@@ -95,23 +95,27 @@
         }
       },
       {
-        "command": "gradle.openBuildFile",
-        "title": "Open Build File"
-      },
-      {
-        "command": "gradle.addTask",
-        "title": "Add Task",
-        "icon": {
-          "light": "resources/light/add.svg",
-          "dark": "resources/dark/add.svg"
-        }
-      },
-      {
         "command": "gradle.refresh",
         "title": "Gradle: Refresh Tasks",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "gradle.explorerFlat",
+        "title": "Show flat list",
+        "icon": {
+          "light": "resources/light/list-flat.svg",
+          "dark": "resources/dark/list-flat.svg"
+        }
+      },
+      {
+        "command": "gradle.explorerTree",
+        "title": "Show tree",
+        "icon": {
+          "light": "resources/light/list-tree.svg",
+          "dark": "resources/dark/list-tree.svg"
         }
       }
     ],
@@ -122,15 +126,15 @@
           "when": "false"
         },
         {
-          "command": "gradle.addTask",
-          "when": "false"
-        },
-        {
           "command": "gradle.stopTask",
           "when": "false"
         },
         {
-          "command": "gradle.openBuildFile",
+          "command": "gradle.explorerFlat",
+          "when": "false"
+        },
+        {
+          "command": "gradle.explorerTree",
           "when": "false"
         }
       ],
@@ -139,25 +143,22 @@
           "command": "gradle.refresh",
           "when": "view == gradle-tree-view",
           "group": "navigation"
+        },
+        {
+          "command": "gradle.explorerFlat",
+          "when": "view == gradle-tree-view && !gradle:explorerCollapsed",
+          "group": "navigation"
+        },
+        {
+          "command": "gradle.explorerTree",
+          "when": "view == gradle-tree-view && gradle:explorerCollapsed",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
           "when": "view == gradle-tree-view && viewItem == task"
-        },
-        {
-          "command": "gradle.openBuildFile",
-          "when": "view == gradle-tree-view && viewItem == buildFile"
-        },
-        {
-          "command": "gradle.addTask",
-          "when": "view == gradle-tree-view && viewItem == buildFile"
-        },
-        {
-          "command": "gradle.addTask",
-          "when": "view == gradle-tree-view && viewItem == buildFile",
-          "group": "inline"
         },
         {
           "command": "gradle.runTask",
@@ -190,22 +191,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable an explorer view for gradle tasks"
-        },
-        "gradle.customBuildFile": {
-          "type": "string",
-          "default": "",
-          "scope": "resource",
-          "description": "Filename of the gradle build file"
-        },
-        "gradle.explorerNestedSubProjects": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show nested sub-projects in the explorer"
-        },
-        "gradle.explorerNestedGroups": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show nested groups in the explorer"
         }
       }
     },
@@ -219,17 +204,12 @@
       {
         "type": "gradle",
         "required": [
-          "script",
-          "fileName"
+          "script"
         ],
         "properties": {
           "script": {
             "type": "string",
             "description": "The task script name"
-          },
-          "fileName": {
-            "type": "string",
-            "description": "The filename of the build file that provides the tasks"
           },
           "description": {
             "type": "string",
@@ -239,9 +219,17 @@
             "type": "string",
             "description": "Task group"
           },
-          "subproject": {
+          "project": {
             "type": "string",
-            "description": "Task subproject"
+            "description": "The project this task belongs to"
+          },
+          "rootBuildFilePath": {
+            "type": "string",
+            "description": "The full path to root project build file"
+          },
+          "rootProject": {
+            "type": "string",
+            "description": "The root project this task belongs to"
           },
           "path": {
             "type": "string",

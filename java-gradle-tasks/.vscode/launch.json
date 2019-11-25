@@ -8,9 +8,9 @@
       "type": "java",
       "name": "CodeLens (Launch) - App",
       "request": "launch",
-      "mainClass": "com.github.badsyntax.gradletasks.App",
-      "projectName": "java-gradle-tasks",
-      "args": "../test-fixtures/multi-project"
+      "mainClass": "com.github.badsyntax.gradletasks.CliApp",
+      "projectName": "gradle-tasks",
+      "args": "../test-fixtures/gradle-groovy-custom-build-file"
     }
   ]
 }

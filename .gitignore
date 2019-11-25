@@ -7,3 +7,4 @@ node_modules
 lib/**
 .classpath
 .settings
+.idea

@@ -32,7 +32,7 @@ describe(fixtureName, () => {
         );
         assert.ok(groovyDefaultTask);
         if (groovyDefaultTask) {
-          assert.equal(groovyDefaultTask.definition.fileName, 'build.gradle');
+          assert.equal(groovyDefaultTask.definition.project, 'gradle');
         }
       });
 
@@ -42,7 +42,7 @@ describe(fixtureName, () => {
         );
         assert.ok(kotlinTask);
         if (kotlinTask) {
-          assert.equal(kotlinTask.definition.fileName, 'build.gradle.kts');
+          assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
         }
       });
 
@@ -53,8 +53,8 @@ describe(fixtureName, () => {
         assert.ok(groovyCustomTask);
         if (groovyCustomTask) {
           assert.equal(
-            groovyCustomTask.definition.fileName,
-            'my-custom-build.gradle'
+            groovyCustomTask.definition.project,
+            'gradle-groovy-custom-build-file'
           );
         }
       });

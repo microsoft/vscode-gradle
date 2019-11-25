@@ -6,7 +6,7 @@ subprojects {
     version = "1.0"
 }
 
-tasks.register("helloGroovyMultiProject") {
+tasks.register("helloGroovySubProject") {
     doLast {
         println 'Hello, World!'
     }

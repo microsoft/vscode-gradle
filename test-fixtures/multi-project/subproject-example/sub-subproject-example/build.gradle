@@ -2,7 +2,7 @@ plugins {
     id 'groovy'
 }
 
-tasks.register("helloGroovyMultiProject") {
+tasks.register("helloGroovySubSubProject") {
     doLast {
         println 'Hello, World!'
     }
