@@ -47,7 +47,9 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     try {
       return await this.provideGradleTasks();
     } catch (e) {
-      this.outputChannel.append(`Error providing gradle tasks: ${e.message}\n`);
+      const message = `Error providing gradle tasks: ${e.message}`;
+      console.error(message);
+      this.outputChannel.append(`${message}\n`);
     }
   }
 
@@ -111,7 +113,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     const gradleProjects:
       | GradleProject[]
-      | undefined = await this.getGradleProjects(folder, gradleBuildFileUri);
+      | undefined = await this.getGradleProjects(folder);
     if (!gradleProjects || !gradleProjects.length) {
       return emptyTasks;
     }
@@ -152,29 +154,22 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 
   private async getProjectsFromGradle(
-    folder: vscode.WorkspaceFolder,
-    gradleBuildFileUri: vscode.Uri
+    folder: vscode.WorkspaceFolder
   ): Promise<string> {
     this.statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
     this.statusBarItem.show();
-    const command = this.context.asAbsolutePath(
-      path.join('lib', getTasksScriptCommand())
-    );
+    const command = getTasksScriptCommand();
+    const cwd = this.context.asAbsolutePath('lib');
     const args = [folder.uri.fsPath];
-    const { fsPath: cwd } = folder.uri;
     return spawn(command, args, { cwd }, this.outputChannel).finally(() => {
       this.statusBarItem.hide();
     });
   }
 
   private async getGradleProjects(
-    folder: vscode.WorkspaceFolder,
-    rootGradleBuildFileUri: vscode.Uri
+    folder: vscode.WorkspaceFolder
   ): Promise<GradleProject[] | undefined> {
-    const stdout = await this.getProjectsFromGradle(
-      folder,
-      rootGradleBuildFileUri
-    );
+    const stdout = await this.getProjectsFromGradle(folder);
     return parseGradleProjects(stdout);
   }
 }
@@ -322,21 +317,21 @@ function getBuffersAsString(buffers: Buffer[]): string {
 
 function debugCommand(
   command: string,
-  args: ReadonlyArray<string> = [],
+  args: ReadonlyArray<string>,
+  options: cp.SpawnOptionsWithoutStdio,
   outputChannel: vscode.OutputChannel
 ) {
-  console.log(`Executing: ${command} ${args.join(' ')}\n`);
   outputChannel.append(`Executing: ${command} ${args.join(' ')}\n`);
 }
 
 export function spawn(
   command: string,
   args: ReadonlyArray<string> = [],
-  options: cp.ExecOptions = {},
+  options: cp.SpawnOptionsWithoutStdio = {},
   outputChannel?: vscode.OutputChannel
 ): Promise<string> {
   if (outputChannel) {
-    debugCommand(command, args, outputChannel);
+    debugCommand(command, args, options, outputChannel);
   }
   return new Promise((resolve, reject) => {
     const stdoutBuffers: Buffer[] = [];
@@ -351,7 +346,6 @@ export function spawn(
       if (code === 0) {
         resolve(getBuffersAsString(stdoutBuffers));
       } else {
-        console.log('error', stderrBuffers.toString());
         reject(new Error(getBuffersAsString(stderrBuffers)));
       }
     });

@@ -28,3 +28,13 @@ application {
 shadowJar {
     minimize()
 }
+
+task copyLibToParent(type: Copy) {
+    dependsOn build
+
+    from file("$buildDir/lib/gradle-tasks-all.jar")
+    into file("$buildDir/../../lib/gradle-tasks-all.jar")
+
+    from "$buildDir/scriptsShadow/gradle-tasks", "$buildDir/scriptsShadow/gradle-tasks.bat"
+    into "$buildDir/../../lib"
+}

@@ -27,15 +27,6 @@ function registerTaskProvider(
     const buildFiles = new Set<string>();
     buildFiles.add(defaultGroovyBuildFile);
     buildFiles.add(defaultKotlinBuildFile);
-    // for (const folder of vscode.workspace.workspaceFolders) {
-    //   const customBuildFile = getCustomBuildFile(folder.uri);
-    //   if (customBuildFile) {
-    //     buildFiles.add(customBuildFile);
-    //   } else {
-    //     buildFiles.add(defaultGroovyBuildFile);
-    //     buildFiles.add(defaultKotlinBuildFile);
-    //   }
-    // }
 
     const buildFileGlob = `**/{${Array.from(buildFiles).join(',')}}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);

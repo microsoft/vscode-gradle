@@ -250,7 +250,7 @@
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
     "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
     "precompile:jar": "mkdir -p lib",
-    "compile:jar": "cd java-gradle-tasks && ./gradlew build && cp build/lib/gradle-tasks-all.jar ../lib/ && cp build/scriptsShadow/* ../lib/"
+    "compile:jar": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
   },
   "dependencies": {},
   "devDependencies": {
