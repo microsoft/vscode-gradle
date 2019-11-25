@@ -26,7 +26,7 @@ jobs:
           architecture: x64
       - name: Build dist jar file
         run: |
-          npm run build:jar
+          npm run compile:jar
       - name: Build & test extension
         run: |
           export DISPLAY=':99.0'

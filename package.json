@@ -249,8 +249,8 @@
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
     "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
-    "prebuild:jar": "mkdir -p lib",
-    "build:jar": "cd java-gradle-tasks && ./gradlew build && cp build/libs/gradle-tasks-all.jar ../lib/ && cp build/scriptsShadow/* ../lib/"
+    "precompile:jar": "mkdir -p lib",
+    "compile:jar": "cd java-gradle-tasks && ./gradlew build && cp build/lib/gradle-tasks-all.jar ../lib/ && cp build/scriptsShadow/* ../lib/"
   },
   "dependencies": {},
   "devDependencies": {
