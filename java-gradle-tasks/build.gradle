@@ -1,0 +1,41 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.gradle.org/gradle/libs-releases'
+    }
+}
+
+sourceSets {
+    libsDirName = 'lib'
+}
+
+dependencies {
+    compile 'org.gradle:gradle-tooling-api:6.0.1'
+    compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    runtimeOnly 'org.slf4j:slf4j-simple:1.7.10'
+    testImplementation 'junit:junit:4.12'
+}
+
+application {
+    mainClassName = 'com.github.badsyntax.gradletasks.CliApp'
+}
+
+shadowJar {
+    minimize()
+}
+
+task copyLibToParent(type: Copy) {
+    dependsOn build
+
+    from file("$buildDir/lib/gradle-tasks-all.jar")
+    into file("$buildDir/../../lib/gradle-tasks-all.jar")
+
+    from "$buildDir/scriptsShadow/gradle-tasks", "$buildDir/scriptsShadow/gradle-tasks.bat"
+    into "$buildDir/../../lib"
+}

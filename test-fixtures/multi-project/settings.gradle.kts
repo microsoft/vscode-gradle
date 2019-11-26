@@ -9,4 +9,4 @@
 
 rootProject.name = "multi-project"
 
-include("subproject-example")
+include("subproject-example:sub-subproject-example")

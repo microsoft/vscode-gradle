@@ -95,24 +95,32 @@
         }
       },
       {
-        "command": "gradle.openBuildFile",
-        "title": "Open Build File"
-      },
-      {
-        "command": "gradle.addTask",
-        "title": "Add Task",
-        "icon": {
-          "light": "resources/light/add.svg",
-          "dark": "resources/dark/add.svg"
-        }
-      },
-      {
         "command": "gradle.refresh",
         "title": "Gradle: Refresh Tasks",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
+      },
+      {
+        "command": "gradle.explorerFlat",
+        "title": "Show flat list",
+        "icon": {
+          "light": "resources/light/list-flat.svg",
+          "dark": "resources/dark/list-flat.svg"
+        }
+      },
+      {
+        "command": "gradle.explorerTree",
+        "title": "Show tree",
+        "icon": {
+          "light": "resources/light/list-tree.svg",
+          "dark": "resources/dark/list-tree.svg"
+        }
+      },
+      {
+        "command": "gradle.killRefreshProcess",
+        "title": "Gradle: Kill refresh process"
       }
     ],
     "menus": {
@@ -122,15 +130,15 @@
           "when": "false"
         },
         {
-          "command": "gradle.addTask",
-          "when": "false"
-        },
-        {
           "command": "gradle.stopTask",
           "when": "false"
         },
         {
-          "command": "gradle.openBuildFile",
+          "command": "gradle.explorerFlat",
+          "when": "false"
+        },
+        {
+          "command": "gradle.explorerTree",
           "when": "false"
         }
       ],
@@ -139,25 +147,22 @@
           "command": "gradle.refresh",
           "when": "view == gradle-tree-view",
           "group": "navigation"
+        },
+        {
+          "command": "gradle.explorerFlat",
+          "when": "view == gradle-tree-view && !gradle:explorerCollapsed",
+          "group": "navigation"
+        },
+        {
+          "command": "gradle.explorerTree",
+          "when": "view == gradle-tree-view && gradle:explorerCollapsed",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
           "when": "view == gradle-tree-view && viewItem == task"
-        },
-        {
-          "command": "gradle.openBuildFile",
-          "when": "view == gradle-tree-view && viewItem == buildFile"
-        },
-        {
-          "command": "gradle.addTask",
-          "when": "view == gradle-tree-view && viewItem == buildFile"
-        },
-        {
-          "command": "gradle.addTask",
-          "when": "view == gradle-tree-view && viewItem == buildFile",
-          "group": "inline"
         },
         {
           "command": "gradle.runTask",
@@ -190,23 +195,6 @@
           "type": "boolean",
           "default": true,
           "description": "Enable an explorer view for gradle tasks"
-        },
-        "gradle.tasksArgs": {
-          "type": "string",
-          "default": "--all",
-          "scope": "resource",
-          "description": "Custom gradle tasks arguments"
-        },
-        "gradle.customBuildFile": {
-          "type": "string",
-          "default": "",
-          "scope": "resource",
-          "description": "Filename of the gradle build file"
-        },
-        "gradle.explorerNestedSubProjects": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show nested sub-projects in the explorer"
         }
       }
     },
@@ -220,21 +208,36 @@
       {
         "type": "gradle",
         "required": [
-          "script",
-          "fileName"
+          "script"
         ],
         "properties": {
           "script": {
             "type": "string",
             "description": "The task script name"
           },
-          "fileName": {
-            "type": "string",
-            "description": "The filename of the build file that provides the tasks"
-          },
           "description": {
             "type": "string",
             "description": "Description of the task"
+          },
+          "group": {
+            "type": "string",
+            "description": "Task group"
+          },
+          "project": {
+            "type": "string",
+            "description": "The project this task belongs to"
+          },
+          "buildFile": {
+            "type": "string",
+            "description": "The full path to task project build file"
+          },
+          "rootProject": {
+            "type": "string",
+            "description": "The root project this task belongs to"
+          },
+          "path": {
+            "type": "string",
+            "description": "The full task path"
           }
         }
       }
@@ -249,7 +252,8 @@
     "lint": "npm run lint:prettier && npm run lint:tslint",
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
-    "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'"
+    "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
+    "compile:jar": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
   },
   "dependencies": {},
   "devDependencies": {

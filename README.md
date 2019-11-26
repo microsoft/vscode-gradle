@@ -12,7 +12,7 @@ Run gradle tasks in VS Code.
 - Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
 - List & run gradle tasks in the Explorer
 - Multi-root workspace folders supported
-- Default Groovy/Kotlin & custom build files supported
+- Groovy/Kotlin build files supported
 - Multi-project builds supported
 
 > **Note:** Local gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
@@ -22,10 +22,7 @@ Run gradle tasks in VS Code.
 This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect gradle tasks
-- `gradle.tasksArgs`: Custom gradle tasks arguments
 - `gradle.enableTasksExplorer`: Enable an explorer view for gradle tasks
-- `gradle.customBuildFile`: Custom gradle build filename
-- `gradle.explorerNestedSubProjects`: Show nested subprojects in the explorer
 
 ## Snippets
 
@@ -35,7 +32,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 ## Slow Task Provider Warning
 
-[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning), you will start seeing warning notifications when the gradle task provider takes too long.
+[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the gradle task provider takes too long.
 
 <img src="./images/slow-task-provider-warning.png" width="400" />
 

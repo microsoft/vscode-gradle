@@ -1,5 +1,21 @@
 # Change Log
 
+## 2.1.9
+
+- Add loading state and stop command to the explorer view
+- Add snippets and basic support for adding new gradle tasks
+
+## 2.1.8
+
+- Fix sub-project build file uri
+
+## 2.1.7
+
+- Change gradle task definition for better support with other task extensions
+- Add open build file task content menu action to explorer
+- Add community docs
+- Better dev tooling & linting
+
 ## 2.1.6
 
 - Add support for multi-project builds (subprojects)

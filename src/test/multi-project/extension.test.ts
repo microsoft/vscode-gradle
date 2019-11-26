@@ -44,7 +44,9 @@ describe(fixtureName, () => {
 
     it('should run a subproject gradle task', async () => {
       const task = tasks.find(
-        task => task.name === 'subproject-example:helloGroovyMultiProject'
+        task =>
+          task.definition.script ===
+          'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);
       if (task) {

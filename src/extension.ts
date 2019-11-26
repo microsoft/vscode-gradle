@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
+  killRefreshProcess,
   GradleTaskProvider,
-  hasGradleBuildFile
+  hasGradleProject
 } from './tasks';
 
-import { getCustomBuildFile, getIsTasksExplorerEnabled } from './config';
+import { getIsTasksExplorerEnabled } from './config';
 
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
@@ -22,18 +23,11 @@ function registerTaskProvider(
   }
 
   if (vscode.workspace.workspaceFolders) {
-    const defaultGroovyBuildFile = 'build.gradle';
-    const defaultKotlinBuildFile = 'build.gradle.kts';
+    const defaultGroovyBuildFile = '*.gradle';
+    const defaultKotlinBuildFile = '*.gradle.kts';
     const buildFiles = new Set<string>();
-    for (const folder of vscode.workspace.workspaceFolders) {
-      const customBuildFile = getCustomBuildFile(folder.uri);
-      if (customBuildFile) {
-        buildFiles.add(customBuildFile);
-      } else {
-        buildFiles.add(defaultGroovyBuildFile);
-        buildFiles.add(defaultKotlinBuildFile);
-      }
-    }
+    buildFiles.add(defaultGroovyBuildFile);
+    buildFiles.add(defaultKotlinBuildFile);
 
     const buildFileGlob = `**/{${Array.from(buildFiles).join(',')}}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
@@ -49,11 +43,15 @@ function registerTaskProvider(
       vscode.StatusBarAlignment.Left,
       1
     );
+    statusBarItem.tooltip = 'Cancel';
+    statusBarItem.command = 'gradle.killRefreshProcess';
 
     const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
-      outputChannel
+      outputChannel,
+      context
     );
+
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
 
     context.subscriptions.push(watcher);
@@ -66,10 +64,14 @@ function registerTaskProvider(
 }
 
 function registerExplorer(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  collapsed: boolean
 ): GradleTasksTreeDataProvider | undefined {
   if (vscode.workspace.workspaceFolders) {
-    const treeDataProvider = new GradleTasksTreeDataProvider(context);
+    const treeDataProvider = new GradleTasksTreeDataProvider(
+      context,
+      collapsed
+    );
     context.subscriptions.push(
       vscode.window.createTreeView('gradle-tree-view', {
         treeDataProvider: treeDataProvider,
@@ -101,24 +103,28 @@ function registerCommands(
       )
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.refresh',
-        treeDataProvider.refresh,
-        treeDataProvider
+      vscode.commands.registerCommand('gradle.refresh', () =>
+        treeDataProvider.refresh()
       )
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.openBuildFile',
-        treeDataProvider.openBuildFile,
-        treeDataProvider
-      )
+      vscode.commands.registerCommand('gradle.explorerTree', () => {
+        context.workspaceState.update('explorerCollapsed', false);
+        treeDataProvider.setCollapsed(false);
+        treeDataProvider.render();
+      })
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand('gradle.explorerFlat', () => {
+        context.workspaceState.update('explorerCollapsed', true);
+        treeDataProvider.setCollapsed(true);
+        treeDataProvider.render();
+      })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
-        'gradle.addTask',
-        treeDataProvider.addTask,
-        treeDataProvider
+        'gradle.killRefreshProcess',
+        killRefreshProcess
       )
     );
   }
@@ -131,11 +137,15 @@ export interface ExtensionApi {
 export async function activate(
   context: vscode.ExtensionContext
 ): Promise<ExtensionApi> {
+  const explorerCollapsed = context.workspaceState.get(
+    'explorerCollapsed',
+    true
+  );
   const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
   registerTaskProvider(context, outputChannel);
-  if (await hasGradleBuildFile()) {
-    treeDataProvider = registerExplorer(context);
+  if (await hasGradleProject()) {
+    treeDataProvider = registerExplorer(context, explorerCollapsed);
     registerCommands(context, treeDataProvider);
     if (treeDataProvider) {
       treeDataProvider.refresh();

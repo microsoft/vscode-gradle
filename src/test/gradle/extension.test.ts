@@ -1,19 +1,8 @@
-import * as path from 'path';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { getGradleWrapperCommandFromPath } from '../../tasks';
-
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
-const fixtureDir = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'test-fixtures',
-  fixtureName
-);
 
 describe(fixtureName, () => {
   afterEach(() => {
@@ -68,14 +57,11 @@ describe(fixtureName, () => {
         'richardwillis.vscode-gradle'
       );
       if (extension) {
-        const gradleWrapper = await getGradleWrapperCommandFromPath(fixtureDir);
         const outputChannel = extension.exports.outputChannel;
-        sinon.replace(outputChannel, 'append', sinon.fake());
+        sinon.replace(outputChannel, 'appendLine', sinon.fake());
         await vscode.commands.executeCommand('gradle.refresh');
         assert.ok(
-          outputChannel.append.calledWith(
-            sinon.match(`Executing: ${gradleWrapper} --quiet tasks --all`)
-          )
+          outputChannel.appendLine.calledWith(sinon.match(/Executing/))
         );
       }
     });

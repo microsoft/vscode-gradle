@@ -17,12 +17,12 @@ subprojects {
 
 tasks.register("hello") {
     doLast {
-        println("Hello, World!")
+        println "Hello, World!"
     }
 }
 
-tasks.register("helloKotlinDefault") {
+tasks.register("helloGroovyRoot") {
     doLast {
-        println("Hello, World!")
+        println "Hello, World!"
     }
 }

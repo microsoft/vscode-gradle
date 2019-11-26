@@ -22,8 +22,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - uses: actions/setup-java@v1
         with:
-          java-version: '12.0.2'
+          java-version: '8'
           architecture: x64
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build copyLibToParent
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           export DISPLAY=':99.0'
@@ -47,8 +52,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - uses: actions/setup-java@v1
         with:
-          java-version: '12.0.2'
+          java-version: '8'
           architecture: x64
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build copyLibToParent
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           unset npm_config_prefix
@@ -71,8 +81,13 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - uses: actions/setup-java@v1
         with:
-          java-version: '12.0.2'
+          java-version: '8'
           architecture: x64
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build copyLibToParent
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           npm ci
@@ -81,7 +96,7 @@ jobs:
         shell: pwsh
 
   publish:
-    needs: [build-test-linux, build-test-windows]
+    needs: [build-test-linux, build-test-macos, build-test-windows]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
 
