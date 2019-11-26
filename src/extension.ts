@@ -143,8 +143,8 @@ export async function activate(
   );
   const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
-  registerTaskProvider(context, outputChannel);
   if (await hasGradleProject()) {
+    registerTaskProvider(context, outputChannel);
     treeDataProvider = registerExplorer(context, explorerCollapsed);
     registerCommands(context, treeDataProvider);
     if (treeDataProvider) {
