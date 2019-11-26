@@ -110,6 +110,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build copyLibToParent
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Install deps
         run: |
           npm install -g vsce
