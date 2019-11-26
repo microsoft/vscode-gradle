@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.2.1
+
+- Fix publishing jar file
+
+## 2.2.0
+
+- Use gradle tooling API to list tasks
+- Add groups to explorer
+- Add flat/tree toggle to explorer
+- Add command to kill refresh tasks process
+- Proper support for sub-projects/multi-project builds
+
 ## 2.1.9
 
 - Add loading state and stop command to the explorer view
