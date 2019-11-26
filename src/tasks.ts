@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as cp from 'child_process';
 
 import { getIsAutoDetectionEnabled } from './config';
@@ -30,10 +31,17 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 }
 
 let autoDetectOverride: boolean = false;
-let cachedTasks: Promise<vscode.Task[]> | undefined = undefined;
+let cachedTasks: Promise<vscode.Task[]> | undefined;
+let refreshProcess: cp.ChildProcessWithoutNullStreams | undefined;
 
 export function enableTaskDetection() {
   autoDetectOverride = true;
+}
+
+export function killRefreshProcess() {
+  if (refreshProcess) {
+    refreshProcess.kill();
+  }
 }
 
 export class GradleTaskProvider implements vscode.TaskProvider {
@@ -49,7 +57,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     } catch (e) {
       const message = `Error providing gradle tasks: ${e.message}`;
       console.error(message);
-      this.outputChannel.append(`${message}\n`);
+      this.outputChannel.appendLine(message);
     }
   }
 
@@ -158,12 +166,22 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   ): Promise<string> {
     this.statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
     this.statusBarItem.show();
+    const tempDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'vscode-gradle-')
+    );
+    const tempFile = path.join(tempDir, 'tasks.json');
     const command = getTasksScriptCommand();
     const cwd = this.context.asAbsolutePath('lib');
-    const args = [folder.uri.fsPath];
-    return spawn(command, args, { cwd }, this.outputChannel).finally(() => {
-      this.statusBarItem.hide();
-    });
+    const args = [folder.uri.fsPath, tempFile];
+    return spawn(command, args, { cwd }, this.outputChannel)
+      .then(() => fs.promises.readFile(tempFile, 'utf8'))
+      .finally(async () => {
+        this.statusBarItem.hide();
+        if (await exists(tempFile)) {
+          await fs.promises.unlink(tempFile);
+        }
+        await fs.promises.rmdir(tempDir);
+      });
   }
 
   private async getGradleProjects(
@@ -321,32 +339,30 @@ function debugCommand(
   options: cp.SpawnOptionsWithoutStdio,
   outputChannel: vscode.OutputChannel
 ) {
-  outputChannel.append(`Executing: ${command} ${args.join(' ')}\n`);
+  outputChannel.appendLine(`Executing: ${command} ${args.join(' ')}`);
 }
 
 export function spawn(
   command: string,
   args: ReadonlyArray<string> = [],
   options: cp.SpawnOptionsWithoutStdio = {},
-  outputChannel?: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel
 ): Promise<string> {
-  if (outputChannel) {
-    debugCommand(command, args, options, outputChannel);
-  }
+  debugCommand(command, args, options, outputChannel);
   return new Promise((resolve, reject) => {
-    const stdoutBuffers: Buffer[] = [];
-    const stderrBuffers: Buffer[] = [];
-    const child = cp.spawn(command, args, options);
-    child.stdout.on('data', (buffer: Buffer) => stdoutBuffers.push(buffer));
-    child.stderr.on('data', (buffer: Buffer) => stderrBuffers.push(buffer));
-    child.on('error', err => {
-      reject(err);
-    });
-    child.on('exit', (code: number) => {
+    refreshProcess = cp.spawn(command, args, options);
+    refreshProcess.stdout.on('data', (buffer: Buffer) =>
+      outputChannel.append(buffer.toString())
+    );
+    refreshProcess.stderr.on('data', (buffer: Buffer) =>
+      outputChannel.append(buffer.toString())
+    );
+    refreshProcess.on('error', reject);
+    refreshProcess.on('exit', (code: number) => {
       if (code === 0) {
-        resolve(getBuffersAsString(stdoutBuffers));
+        resolve();
       } else {
-        reject(new Error(getBuffersAsString(stderrBuffers)));
+        reject();
       }
     });
   });

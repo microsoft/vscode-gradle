@@ -10,7 +10,7 @@
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.CliApp",
       "projectName": "gradle-tasks",
-      "args": "../test-fixtures/gradle-groovy-custom-build-file"
+      "args": "../test-fixtures/gradle-groovy-custom-build-file tasks.json",
     }
   ]
 }

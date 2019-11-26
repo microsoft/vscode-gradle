@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
+  killRefreshProcess,
   GradleTaskProvider,
   hasGradleBuildFile
 } from './tasks';
@@ -42,12 +43,14 @@ function registerTaskProvider(
       vscode.StatusBarAlignment.Left,
       1
     );
+    statusBarItem.command = 'gradle.killRefreshProcess';
 
     const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
       outputChannel,
       context
     );
+
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
 
     context.subscriptions.push(watcher);
@@ -116,6 +119,12 @@ function registerCommands(
         treeDataProvider.setCollapsed(true);
         treeDataProvider.render();
       })
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        'gradle.killRefreshProcess',
+        killRefreshProcess
+      )
     );
   }
 }
