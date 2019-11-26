@@ -32,7 +32,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 ## Slow Task Provider Warning
 
-[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning), you will start seeing warning notifications when the gradle task provider takes too long.
+[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the gradle task provider takes too long.
 
 <img src="./images/slow-task-provider-warning.png" width="400" />
 
