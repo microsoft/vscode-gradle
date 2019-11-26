@@ -37,7 +37,7 @@ class WorkspaceTreeItem extends vscode.TreeItem {
   }
 }
 
-class TreeItemWithTasks extends vscode.TreeItem {
+class TreeItemWithTasksOrGroups extends vscode.TreeItem {
   private _tasks: GradleTaskTreeItem[] = [];
   private _groups: GroupTreeItem[] = [];
   public readonly parentTreeItem: vscode.TreeItem;
@@ -71,11 +71,11 @@ class TreeItemWithTasks extends vscode.TreeItem {
   }
 }
 
-class ProjectTreeItem extends TreeItemWithTasks {
+class ProjectTreeItem extends TreeItemWithTasksOrGroups {
   public readonly iconPath = vscode.ThemeIcon.File;
 }
 
-class GroupTreeItem extends TreeItemWithTasks {
+class GroupTreeItem extends TreeItemWithTasksOrGroups {
   constructor(
     name: string,
     parentTreeItem: vscode.TreeItem,
@@ -221,7 +221,7 @@ export class GradleTasksTreeDataProvider
     if (element instanceof ProjectTreeItem) {
       return element.parentTreeItem;
     }
-    if (element instanceof TreeItemWithTasks) {
+    if (element instanceof TreeItemWithTasksOrGroups) {
       return element.parentTreeItem;
     }
     if (element instanceof GradleTaskTreeItem) {
@@ -244,11 +244,8 @@ export class GradleTasksTreeDataProvider
       }
     }
     if (element instanceof WorkspaceTreeItem) {
-      return [/*...element.buildFileTreeItems, */ ...element.projects];
+      return [...element.projects];
     }
-    // if (element instanceof GradleBuildFileTreeItem) {
-    //   return [...element.subprojects, ...element.groups, ...element.tasks];
-    // }
     if (element instanceof ProjectTreeItem) {
       return [...element.groups, ...element.tasks];
     }
@@ -296,7 +293,7 @@ export class GradleTasksTreeDataProvider
           projectTreeItem = new ProjectTreeItem(
             projectName,
             workspaceTreeItem,
-            vscode.Uri.file(task.definition.rootBuildFilePath)
+            vscode.Uri.file(task.definition.buildFile)
           );
           workspaceTreeItem.addProject(projectTreeItem);
           projectTreeItems.set(projectName, projectTreeItem);

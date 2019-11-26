@@ -11,6 +11,7 @@ import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.gradle.tooling.model.gradle.GradleBuild;
+import org.gradle.tooling.model.gradle.GradleScript;
 
 public class CliApp {
     private File sourceDir;
@@ -64,10 +65,12 @@ public class CliApp {
             }).forEach(jsonTasks::add);
 
             GradleProject parentProject = gradleProject.getParent();
+            GradleScript buildScript = gradleProject.getBuildScript();
             String parentProjectName = parentProject != null ? parentProject.getName() : null;
 
             return Json.object().add("name", gradleProject.getName())
                     .add("parent", parentProjectName).add("path", gradleProject.getPath())
+                    .add("buildFile", buildScript.getSourceFile().getAbsolutePath())
                     .add("tasks", jsonTasks);
         }).forEach(jsonProjects::add);
         connection.close();

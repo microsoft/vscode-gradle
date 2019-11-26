@@ -227,9 +227,9 @@
             "type": "string",
             "description": "The project this task belongs to"
           },
-          "rootBuildFilePath": {
+          "buildFile": {
             "type": "string",
-            "description": "The full path to root project build file"
+            "description": "The full path to task project build file"
           },
           "rootProject": {
             "type": "string",
@@ -253,7 +253,6 @@
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
     "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
-    "precompile:jar": "mkdir -p lib",
     "compile:jar": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
   },
   "dependencies": {},

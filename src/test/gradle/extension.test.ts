@@ -58,9 +58,11 @@ describe(fixtureName, () => {
       );
       if (extension) {
         const outputChannel = extension.exports.outputChannel;
-        sinon.replace(outputChannel, 'append', sinon.fake());
+        sinon.replace(outputChannel, 'appendLine', sinon.fake());
         await vscode.commands.executeCommand('gradle.refresh');
-        assert.ok(outputChannel.append.calledWith(sinon.match(/Executing/)));
+        assert.ok(
+          outputChannel.appendLine.calledWith(sinon.match(/Executing/))
+        );
       }
     });
   });

@@ -61,7 +61,6 @@ jobs:
           wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
-          echo $JAVA_HOME
           unset npm_config_prefix
           npm ci
           npm run lint
