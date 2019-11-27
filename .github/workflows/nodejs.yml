@@ -1,4 +1,4 @@
-name: Node CI
+name: Build
 on:
   push:
     branches:
@@ -7,30 +7,54 @@ on:
     types: [published]
 
 jobs:
+  artifacts:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Java 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+          architecture: x64
+      - name: Build lib
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build copyLibToParent
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
+      - name: Upload lib
+        uses: actions/upload-artifact@v1
+        with:
+          name: lib
+          path: lib
+
   build-test-linux:
+    needs: [artifacts]
     runs-on: ubuntu-18.04
 
     strategy:
       matrix:
         node-version: [12.x]
+        java-version: ['8', '12.0.2']
 
     steps:
       - uses: actions/checkout@v1
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/setup-java@v1
+      - name: Use Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v1
         with:
-          java-version: '8'
+          java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
+          chmod +x lib/gradle-tasks
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           npm ci
@@ -38,56 +62,61 @@ jobs:
           npm test
 
   build-test-macos:
+    needs: [artifacts]
     runs-on: macos-latest
 
     strategy:
       matrix:
         node-version: [12.x]
+        java-version: ['8', '12.0.2']
 
     steps:
       - uses: actions/checkout@v1
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/setup-java@v1
+      - name: Use Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v1
         with:
-          java-version: '8'
+          java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
+          chmod +x lib/gradle-tasks
           unset npm_config_prefix
           npm ci
           npm run lint
           npm test
 
   build-test-windows:
+    needs: [artifacts]
     runs-on: windows-latest
 
     strategy:
       matrix:
         node-version: [12.x]
+        java-version: ['8', '12.0.2']
 
     steps:
       - uses: actions/checkout@v1
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/setup-java@v1
+      - name: Use Java ${{ matrix.java-version }}
+        uses: actions/setup-java@v1
         with:
-          java-version: '8'
+          java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           npm ci
@@ -106,21 +135,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
+      - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Install deps
         run: |
           npm install -g vsce
           npm ci
       - name: Package extension
         run: |
+          chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
