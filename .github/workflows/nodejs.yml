@@ -50,11 +50,6 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           export DISPLAY=':99.0'
@@ -86,11 +81,6 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           unset npm_config_prefix
@@ -121,11 +111,6 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build copyLibToParent
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
       - name: Build & test extension
         run: |
           npm ci
