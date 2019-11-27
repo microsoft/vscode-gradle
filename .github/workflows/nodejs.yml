@@ -51,6 +51,7 @@ jobs:
           architecture: x64
       - name: Build & test extension
         run: |
+          chmod +x lib/gradle-tasks
           export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           npm ci
@@ -81,6 +82,7 @@ jobs:
           architecture: x64
       - name: Build & test extension
         run: |
+          chmod +x lib/gradle-tasks
           unset npm_config_prefix
           npm ci
           npm run lint
@@ -139,6 +141,7 @@ jobs:
           npm ci
       - name: Package extension
         run: |
+          chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
