@@ -115,10 +115,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   ): Promise<vscode.Task[]> {
     const emptyTasks: vscode.Task[] = [];
 
-    // const folder = vscode.workspace.getWorkspaceFolder(gradleBuildFileUri);
-    // if (!folder) {
-    //   return emptyTasks;
-    // }
     const command = await getGradleWrapperCommandFromPath(folder.uri.fsPath);
     if (!command) {
       return emptyTasks;
@@ -303,7 +299,10 @@ function debugCommand(
   options: cp.SpawnOptionsWithoutStdio,
   outputChannel: vscode.OutputChannel
 ) {
-  outputChannel.appendLine(`Executing: ${command} ${args.join(' ')}`);
+  const message = `Executing: ${command} ${args.join(' ')}`;
+  console.log(message);
+  console.log('options', options);
+  outputChannel.appendLine(message);
 }
 
 export function spawn(
