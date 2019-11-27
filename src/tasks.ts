@@ -300,8 +300,6 @@ function debugCommand(
   outputChannel: vscode.OutputChannel
 ) {
   const message = `Executing: ${command} ${args.join(' ')}`;
-  console.log(message);
-  console.log('options', options);
   outputChannel.appendLine(message);
 }
 
