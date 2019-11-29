@@ -13,7 +13,8 @@ async function runUnitTests() {
         __dirname,
         '../../test-fixtures/gradle-groovy-default-build-file'
       ),
-      '--disable-extensions'
+      '--disable-extensions',
+      '--no-sandbox'
     ]
   });
 }
@@ -30,7 +31,8 @@ async function runTestsWithGradle() {
       extensionTestsPath: path.resolve(__dirname, 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
-        '--disable-extensions'
+        '--disable-extensions',
+        '--no-sandbox'
       ],
       extensionTestsEnv: {
         FIXTURE_NAME: fixture
@@ -45,7 +47,8 @@ async function runTestsWithoutGradle() {
     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
-      '--disable-extensions'
+      '--disable-extensions',
+      '--no-sandbox'
     ]
   });
 }
@@ -59,7 +62,8 @@ async function runTestsWithMultiRoot() {
         __dirname,
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
-      '--disable-extensions'
+      '--disable-extensions',
+      '--no-sandbox'
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root'
@@ -73,7 +77,8 @@ async function runTestsWithMultiProject() {
     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
-      '--disable-extensions'
+      '--disable-extensions',
+      '--no-sandbox'
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project'
