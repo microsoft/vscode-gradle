@@ -18,9 +18,7 @@ describe(fixtureName, () => {
       'richardwillis.vscode-gradle'
     );
     assert.ok(extension);
-    if (extension) {
-      assert.equal(extension.isActive, true);
-    }
+    assert.equal(extension!.isActive, true);
   });
 
   describe('tasks', () => {
@@ -37,21 +35,22 @@ describe(fixtureName, () => {
     it('should run a gradle task', async () => {
       const task = tasks.find(task => task.name === 'hello');
       assert.ok(task);
-      if (task) {
-        await vscode.tasks.executeTask(task);
-      }
+      await vscode.tasks.executeTask(task!);
     });
 
-    it('should run a subproject gradle task', async () => {
+    it('should run a subproject gradle task', done => {
       const task = tasks.find(
         task =>
           task.definition.script ===
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);
-      if (task) {
-        await vscode.tasks.executeTask(task);
-      }
+      vscode.tasks.onDidEndTaskProcess(e => {
+        if (e.execution.task === task) {
+          done(e.exitCode === 0 ? undefined : 'Process error');
+        }
+      });
+      vscode.tasks.executeTask(task!);
     });
   });
 });
