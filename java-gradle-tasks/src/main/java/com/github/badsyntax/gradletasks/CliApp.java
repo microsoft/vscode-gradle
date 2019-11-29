@@ -22,14 +22,14 @@ public class CliApp {
         this.targetFile = targetFile;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws CliAppException, IOException {
         if (args.length < 2) {
-            throw new RuntimeException("No source directory and/or target file specified");
+            throw new CliAppException("No source directory and/or target file specified");
         }
         String dirName = args[0];
         File sourceDir = new File(dirName);
         if (!sourceDir.exists()) {
-            throw new RuntimeException("Source directory does not exist");
+            throw new CliAppException("Source directory does not exist");
         }
         String targetFileName = args[1];
         File targetFile = new File(targetFileName);

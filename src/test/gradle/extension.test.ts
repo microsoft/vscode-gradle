@@ -34,12 +34,15 @@ describe(fixtureName, () => {
       assert.equal(tasks.length > 0, true);
     });
 
-    it('should run a gradle task', async () => {
+    it('should run a gradle task', done => {
       const task = tasks.find(task => task.name === 'hello');
       assert.ok(task);
-      if (task) {
-        await vscode.tasks.executeTask(task);
-      }
+      vscode.tasks.onDidEndTaskProcess(e => {
+        if (e.execution.task === task) {
+          done(e.exitCode === 0 ? undefined : 'Process error');
+        }
+      });
+      vscode.tasks.executeTask(task!);
     });
 
     it('should refresh tasks', async () => {
@@ -51,19 +54,17 @@ describe(fixtureName, () => {
     });
   });
 
+  describe('explorer', () => {});
+
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
       const extension = vscode.extensions.getExtension(
         'richardwillis.vscode-gradle'
       );
-      if (extension) {
-        const outputChannel = extension.exports.outputChannel;
-        sinon.replace(outputChannel, 'appendLine', sinon.fake());
-        await vscode.commands.executeCommand('gradle.refresh');
-        assert.ok(
-          outputChannel.appendLine.calledWith(sinon.match(/Executing/))
-        );
-      }
+      const outputChannel = extension!.exports.outputChannel;
+      sinon.replace(outputChannel, 'appendLine', sinon.fake());
+      await vscode.commands.executeCommand('gradle.refresh');
+      assert.ok(outputChannel.appendLine.calledWith(sinon.match(/Executing/)));
     });
   });
 });

@@ -31,9 +31,7 @@ describe(fixtureName, () => {
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
-        if (groovyDefaultTask) {
-          assert.equal(groovyDefaultTask.definition.project, 'gradle');
-        }
+        assert.equal(groovyDefaultTask!.definition.project, 'gradle');
       });
 
       it('should load kotlin default build file tasks', () => {
@@ -41,9 +39,7 @@ describe(fixtureName, () => {
           ({ name }) => name === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
-        if (kotlinTask) {
-          assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
-        }
+        assert.equal(kotlinTask!.definition.project, 'gradle-kotlin');
       });
 
       it('should load groovy custom build file tasks', () => {
@@ -51,20 +47,21 @@ describe(fixtureName, () => {
           ({ name }) => name === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
-        if (groovyCustomTask) {
-          assert.equal(
-            groovyCustomTask.definition.project,
-            'gradle-groovy-custom-build-file'
-          );
-        }
+        assert.equal(
+          groovyCustomTask!.definition.project,
+          'gradle-groovy-custom-build-file'
+        );
       });
 
-      it('should successfully run a custom task', async () => {
+      it('should successfully run a custom task', done => {
         const task = tasks.find(task => task.name === 'hello');
         assert.ok(task);
-        if (task) {
-          await vscode.tasks.executeTask(task);
-        }
+        vscode.tasks.onDidEndTaskProcess(e => {
+          if (e.execution.task === task) {
+            done(e.exitCode === 0 ? undefined : 'Process error');
+          }
+        });
+        vscode.tasks.executeTask(task!);
       });
 
       it('should refresh tasks', async () => {
