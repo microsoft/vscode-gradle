@@ -28,14 +28,15 @@ jobs:
           name: lib
           path: lib
 
-  build-test-linux:
+  build-test:
     needs: [artifacts]
-    runs-on: ubuntu-18.04
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         node-version: [12.x]
         java-version: ['8', '12.0.2']
+        os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
       - uses: actions/checkout@v1
@@ -52,80 +53,28 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - name: Build & test extension
+      - name: Set xvfb
         run: |
-          chmod +x lib/gradle-tasks
-          export DISPLAY=':99.0'
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          npm ci
-          npm run lint
-          npm test
-
-  build-test-macos:
-    needs: [artifacts]
-    runs-on: macos-latest
-
-    strategy:
-      matrix:
-        node-version: [12.x]
-        java-version: ['8', '12.0.2']
-
-    steps:
-      - uses: actions/checkout@v1
-      - name: Download lib
-        uses: actions/download-artifact@v1
-        with:
-          name: lib
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Use Java ${{ matrix.java-version }}
-        uses: actions/setup-java@v1
-        with:
-          java-version: ${{ matrix.java-version }}
-          architecture: x64
-      - name: Build & test extension
+        env:
+          DISPLAY: ':99.0'
+        if: matrix.os == 'ubuntu-latest'
+      - name: Set perms
         run: |
           chmod +x lib/gradle-tasks
           unset npm_config_prefix
-          npm ci
-          npm run lint
-          npm test
-
-  build-test-windows:
-    needs: [artifacts]
-    runs-on: windows-latest
-
-    strategy:
-      matrix:
-        node-version: [12.x]
-        java-version: ['8', '12.0.2']
-
-    steps:
-      - uses: actions/checkout@v1
-      - name: Download lib
-        uses: actions/download-artifact@v1
-        with:
-          name: lib
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Use Java ${{ matrix.java-version }}
-        uses: actions/setup-java@v1
-        with:
-          java-version: ${{ matrix.java-version }}
-          architecture: x64
-      - name: Build & test extension
+        if: matrix.os != 'windows-latest'
+      - name: Build & test extension on ${{ matrix.os }}
         run: |
           npm ci
           npm run lint
           npm test
-        shell: pwsh
+        env:
+          DISPLAY: ':99.0'
+          CI: 'true'
 
   publish:
-    needs: [build-test-linux, build-test-macos, build-test-windows]
+    needs: [build-test]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
 
