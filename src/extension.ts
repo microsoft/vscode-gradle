@@ -72,7 +72,6 @@ function registerExplorer(
       context,
       collapsed
     );
-    console.log('REGISTRY EXPLORER');
     context.subscriptions.push(
       vscode.window.createTreeView('gradle-tree-view', {
         treeDataProvider: treeDataProvider,
