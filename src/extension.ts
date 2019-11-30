@@ -97,6 +97,13 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
+        'gradle.runTaskWithArgs',
+        treeDataProvider.runTaskWithArgs,
+        treeDataProvider
+      )
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
         'gradle.stopTask',
         treeDataProvider.stopTask,
         treeDataProvider
@@ -132,6 +139,7 @@ function registerCommands(
 
 export interface ExtensionApi {
   outputChannel: vscode.OutputChannel;
+  treeDataProvider: GradleTasksTreeDataProvider | undefined;
 }
 
 export async function activate(
@@ -158,7 +166,7 @@ export async function activate(
       );
     }
   }
-  return { outputChannel };
+  return { outputChannel, treeDataProvider };
 }
 
 export function deactivate(): void {}

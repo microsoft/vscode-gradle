@@ -5,7 +5,8 @@ import {
   // GradleTaskDefinition,
   isWorkspaceFolder,
   invalidateTasksCache,
-  enableTaskDetection
+  enableTaskDetection,
+  cloneTask
 } from './tasks';
 
 function getTaskExecution(task: vscode.Task) {
@@ -146,11 +147,7 @@ class NoTasksTreeItem extends vscode.TreeItem {
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private taskItemsPromise: Thenable<vscode.Task[]> = Promise.resolve([]);
-  private taskTree:
-    | WorkspaceTreeItem[]
-    // | GradleBuildFileTreeItem[]
-    | NoTasksTreeItem[]
-    | null = null;
+  private taskTree: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
@@ -185,6 +182,21 @@ export class GradleTasksTreeDataProvider
   runTask(taskItem: GradleTaskTreeItem) {
     if (taskItem && taskItem.task) {
       vscode.tasks.executeTask(taskItem.task);
+    }
+  }
+
+  async runTaskWithArgs(taskItem: GradleTaskTreeItem) {
+    if (taskItem && taskItem.task) {
+      const args = await vscode.window.showInputBox({
+        placeHolder: 'For example: --all',
+        ignoreFocusOut: true
+      });
+      if (args !== undefined) {
+        const task = await cloneTask(taskItem!.task, args.split(' '));
+        if (task) {
+          vscode.tasks.executeTask(task);
+        }
+      }
     }
   }
 
@@ -268,7 +280,7 @@ export class GradleTasksTreeDataProvider
 
   private buildTaskTree(
     tasks: vscode.Task[]
-  ): WorkspaceTreeItem[] /* | GradleBuildFileTreeItem[]*/ | NoTasksTreeItem[] {
+  ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<String, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<String, ProjectTreeItem> = new Map();
     const groupTreeItems: Map<String, GroupTreeItem> = new Map();
