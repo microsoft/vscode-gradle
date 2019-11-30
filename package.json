@@ -87,6 +87,10 @@
         }
       },
       {
+        "command": "gradle.runTaskWithArgs",
+        "title": "Run Task With Args"
+      },
+      {
         "command": "gradle.stopTask",
         "title": "Stop Task",
         "icon": {
@@ -104,7 +108,7 @@
       },
       {
         "command": "gradle.explorerFlat",
-        "title": "Show flat list",
+        "title": "Show Flat List",
         "icon": {
           "light": "resources/light/list-flat.svg",
           "dark": "resources/dark/list-flat.svg"
@@ -112,7 +116,7 @@
       },
       {
         "command": "gradle.explorerTree",
-        "title": "Show tree",
+        "title": "Show Tree",
         "icon": {
           "light": "resources/light/list-tree.svg",
           "dark": "resources/dark/list-tree.svg"
@@ -127,6 +131,10 @@
       "commandPalette": [
         {
           "command": "gradle.runTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.runTaskWithArgs",
           "when": "false"
         },
         {
@@ -162,6 +170,10 @@
       "view/item/context": [
         {
           "command": "gradle.runTask",
+          "when": "view == gradle-tree-view && viewItem == task"
+        },
+        {
+          "command": "gradle.runTaskWithArgs",
           "when": "view == gradle-tree-view && viewItem == task"
         },
         {

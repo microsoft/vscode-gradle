@@ -33,15 +33,15 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 
 let autoDetectOverride: boolean = false;
 let cachedTasks: Promise<vscode.Task[]> | undefined;
-let refreshProcess: cp.ChildProcessWithoutNullStreams | undefined;
+let gradleTasksProcess: cp.ChildProcessWithoutNullStreams | undefined;
 
 export function enableTaskDetection() {
   autoDetectOverride = true;
 }
 
 export function killRefreshProcess() {
-  if (refreshProcess) {
-    refreshProcess.kill();
+  if (gradleTasksProcess) {
+    gradleTasksProcess.kill();
   }
 }
 
@@ -133,23 +133,22 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       return emptyTasks;
     }
 
-    const tasks: vscode.Task[] = [];
-
-    for (const gradleProject of gradleProjects) {
-      for (const gradleTask of gradleProject.tasks) {
-        tasks.push(
-          await createTask(
-            gradleTask,
-            folder!,
-            command,
-            rootProject.name,
-            vscode.Uri.file(gradleProject.buildFile)
+    return gradleProjects.reduce(
+      (allTasks: vscode.Task[], gradleProject: GradleProject) => {
+        return allTasks.concat(
+          gradleProject.tasks.map(gradleTask =>
+            createTaskFromGradleTask(
+              gradleTask,
+              folder!,
+              command,
+              rootProject.name,
+              vscode.Uri.file(gradleProject.buildFile)
+            )
           )
         );
-      }
-    }
-
-    return tasks;
+      },
+      []
+    );
   }
 
   private async getProjectsFromGradle(
@@ -164,7 +163,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     const command = getTasksScriptCommand();
     const cwd = this.context.asAbsolutePath('lib');
     const args = [folder.uri.fsPath, tempFile];
-    return spawn(command, args, { cwd }, this.outputChannel)
+    return executeGradleTasksCommand(command, args, { cwd }, this.outputChannel)
       .then(() => fs.promises.readFile(tempFile, 'utf8'))
       .finally(async () => {
         this.statusBarItem.hide();
@@ -221,17 +220,39 @@ export function getTasksScriptCommand(): string {
   }
 }
 
-export async function createTask(
+export function createTaskFromDefinition(
+  definition: vscode.TaskDefinition,
+  folder: vscode.WorkspaceFolder,
+  cmd: string,
+  args: string[] = []
+) {
+  const crossShellCmd = `"${cmd}"`;
+  const cwd = folder.uri.fsPath;
+  const allArgs = [definition.script, ...args];
+  const task = new vscode.Task(
+    definition,
+    folder,
+    definition.script,
+    'gradle',
+    new vscode.ShellExecution(crossShellCmd, allArgs, { cwd }),
+    ['$gradle']
+  );
+  task.presentationOptions = {
+    clear: true,
+    showReuseMessage: false,
+    focus: true
+  };
+  return task;
+}
+
+export function createTaskFromGradleTask(
   gradleTask: GradleTask,
   folder: vscode.WorkspaceFolder,
   command: string,
   rootProject: string,
-  buildFile: vscode.Uri
-): Promise<vscode.Task> {
-  function getCommandLine(task: string): string {
-    return `"${command}" ${task}`;
-  }
-
+  buildFile: vscode.Uri,
+  shellArgs: string[] = []
+): vscode.Task {
   const friendlyTaskName = gradleTask.path.replace(/^:/, '');
   const definition: GradleTaskDefinition = {
     type: 'gradle',
@@ -242,22 +263,19 @@ export async function createTask(
     buildFile: buildFile.fsPath,
     rootProject
   };
-  const cwd = folder.uri.fsPath;
-  const cmd = getCommandLine(definition.script);
-  const task = new vscode.Task(
-    definition,
-    folder,
-    definition.script,
-    'gradle',
-    new vscode.ShellExecution(cmd, { cwd }),
-    ['$gradle']
-  );
-  task.presentationOptions = {
-    clear: true,
-    showReuseMessage: false,
-    focus: true
-  };
-  return task;
+  return createTaskFromDefinition(definition, folder, command, shellArgs);
+}
+
+export async function cloneTask(
+  task: vscode.Task,
+  args: string[] = []
+): Promise<vscode.Task | undefined> {
+  const folder = task.scope as vscode.WorkspaceFolder;
+  const command = await getGradleWrapperCommandFromPath(folder.uri.fsPath);
+  if (!command) {
+    return undefined;
+  }
+  return createTaskFromDefinition(task.definition, folder, command, args);
 }
 
 export async function hasGradleProject(): Promise<boolean> {
@@ -296,34 +314,33 @@ export function parseGradleProjects(buffer: Buffer | string): GradleProject[] {
 function debugCommand(
   command: string,
   args: ReadonlyArray<string>,
-  options: cp.SpawnOptionsWithoutStdio,
   outputChannel: vscode.OutputChannel
 ) {
   const message = `Executing: ${command} ${args.join(' ')}`;
   outputChannel.appendLine(message);
 }
 
-export function spawn(
+export function executeGradleTasksCommand(
   command: string,
   args: ReadonlyArray<string> = [],
   options: cp.SpawnOptionsWithoutStdio = {},
   outputChannel: vscode.OutputChannel
 ): Promise<string> {
-  debugCommand(command, args, options, outputChannel);
+  debugCommand(command, args, outputChannel);
   return new Promise((resolve, reject) => {
-    refreshProcess = cp.spawn(command, args, options);
-    refreshProcess.stdout.on('data', (buffer: Buffer) =>
+    gradleTasksProcess = cp.spawn(command, args, options);
+    gradleTasksProcess.stdout.on('data', (buffer: Buffer) =>
       outputChannel.append(buffer.toString())
     );
-    refreshProcess.stderr.on('data', (buffer: Buffer) =>
+    gradleTasksProcess.stderr.on('data', (buffer: Buffer) =>
       outputChannel.append(buffer.toString())
     );
-    refreshProcess.on('error', reject);
-    refreshProcess.on('exit', (code: number) => {
+    gradleTasksProcess.on('error', reject);
+    gradleTasksProcess.on('exit', (code: number) => {
       if (code === 0) {
         resolve();
       } else {
-        reject();
+        reject(new Error(`Process exited with code ${code}`));
       }
     });
   });
