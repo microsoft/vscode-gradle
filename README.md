@@ -4,40 +4,40 @@
 [![Marketplace Version](https://vsmarketplacebadge.apphb.com/version-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 [![Installs](https://vsmarketplacebadge.apphb.com/installs-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 
-Run gradle tasks in VS Code.
+Run Gradle tasks in VS Code.
 
 ![Screencat](images/screencast.gif)
 
 ## Features
 
 - Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
-- List & run gradle tasks in the Explorer
+- List & run Gradle tasks in the Explorer
 - Multi-root workspace folders supported
 - Groovy/Kotlin build files supported
 - Multi-project builds supported
 
-> **Note:** Local gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
+> **Note:** Local Gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
 
 ## Extension Settings
 
 This extension contributes the following settings:
 
-- `gradle.autoDetect`: Automatically detect gradle tasks
-- `gradle.enableTasksExplorer`: Enable an explorer view for gradle tasks
+- `gradle.autoDetect`: Automatically detect Gradle tasks
+- `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
 
 ## Snippets
 
 This extensions provides snippets for the groovy and kotlin build files:
 
-- `cgt`: Create a new gradle task
+- `cgt`: Create a new Gradle task
 
 ## Slow Task Provider Warning
 
-[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the gradle task provider takes too long.
+[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the Gradle task provider takes too long.
 
 <img src="./images/slow-task-provider-warning.png" width="400" />
 
-It can take a while to refresh the gradle tasks, so you should permanently ignore this warning by clicking on "Don't warn again for gradle tasks", or add the following to your `settings.json`:
+It can take a while to refresh the Gradle tasks, so you should permanently ignore this warning by clicking on "Don't warn again for Gradle tasks", or add the following to your `settings.json`:
 
 ```json
 "task.slowProviderWarning": [
