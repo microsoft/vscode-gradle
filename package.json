@@ -265,7 +265,7 @@
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:tslint": "tslint -c tslint.json 'src/**/*.ts'",
     "format": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
-    "compile:jar": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
+    "compile:java": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
   },
   "dependencies": {},
   "devDependencies": {
