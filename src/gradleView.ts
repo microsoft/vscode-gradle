@@ -91,7 +91,7 @@ class GroupTreeItem extends TreeItemWithTasksOrGroups {
   }
 }
 
-class GradleTaskTreeItem extends vscode.TreeItem {
+export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution: vscode.TaskExecution | undefined;
@@ -148,8 +148,9 @@ export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private taskItemsPromise: Thenable<vscode.Task[]> = Promise.resolve([]);
   private taskTree: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
+
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
-  readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
+  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
   constructor(
@@ -278,9 +279,7 @@ export class GradleTasksTreeDataProvider
     return [];
   }
 
-  private buildTaskTree(
-    tasks: vscode.Task[]
-  ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
+  buildTaskTree(tasks: vscode.Task[]): WorkspaceTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<String, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<String, ProjectTreeItem> = new Map();
     const groupTreeItems: Map<String, GroupTreeItem> = new Map();

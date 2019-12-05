@@ -16,3 +16,11 @@ tasks.register("helloKotlinDefault") {
         println("Hello, World!")
     }
 }
+
+val customProp: String by project
+
+tasks.register("helloProjectProperty") {
+    doLast {
+        println("Hello, World!" + customProp)
+    }
+}
