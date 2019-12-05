@@ -1,7 +1,7 @@
 {
   "name": "vscode-gradle",
   "displayName": "Gradle Tasks",
-  "description": "Run gradle tasks in VS Code",
+  "description": "Run Gradle tasks in VS Code",
   "version": "0.0.0",
   "private": true,
   "publisher": "richardwillis",
@@ -39,7 +39,7 @@
     "onCommand:gradle.runTask",
     "workspaceContains:gradlew",
     "workspaceContains:gradlew.bat",
-    "onView:gradle"
+    "onView:gradleTreeView"
   ],
   "main": "./out/extension",
   "contributes": {
