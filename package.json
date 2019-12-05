@@ -71,7 +71,7 @@
     "views": {
       "explorer": [
         {
-          "id": "gradle-tree-view",
+          "id": "gradleTreeView",
           "name": "Gradle Tasks",
           "when": "gradle:showTasksExplorer"
         }
@@ -153,37 +153,37 @@
       "view/title": [
         {
           "command": "gradle.refresh",
-          "when": "view == gradle-tree-view",
+          "when": "view == gradleTreeView",
           "group": "navigation"
         },
         {
           "command": "gradle.explorerFlat",
-          "when": "view == gradle-tree-view && !gradle:explorerCollapsed",
+          "when": "view == gradleTreeView && !gradle:explorerCollapsed",
           "group": "navigation"
         },
         {
           "command": "gradle.explorerTree",
-          "when": "view == gradle-tree-view && gradle:explorerCollapsed",
+          "when": "view == gradleTreeView && gradle:explorerCollapsed",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradle-tree-view && viewItem == task"
+          "when": "view == gradleTreeView && viewItem == task"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view == gradle-tree-view && viewItem == task"
+          "when": "view == gradleTreeView && viewItem == task"
         },
         {
           "command": "gradle.runTask",
-          "when": "view == gradle-tree-view && viewItem == task",
+          "when": "view == gradleTreeView && viewItem == task",
           "group": "inline"
         },
         {
           "command": "gradle.stopTask",
-          "when": "view == gradle-tree-view && viewItem == runningTask",
+          "when": "view == gradleTreeView && viewItem == runningTask",
           "group": "inline"
         }
       ]
