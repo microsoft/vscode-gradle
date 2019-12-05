@@ -73,7 +73,7 @@ function registerExplorer(
       collapsed
     );
     context.subscriptions.push(
-      vscode.window.createTreeView('gradle-tree-view', {
+      vscode.window.createTreeView('gradleTreeView', {
         treeDataProvider: treeDataProvider,
         showCollapseAll: true
       })
@@ -140,6 +140,7 @@ function registerCommands(
 export interface ExtensionApi {
   outputChannel: vscode.OutputChannel;
   treeDataProvider: GradleTasksTreeDataProvider | undefined;
+  context: vscode.ExtensionContext;
 }
 
 export async function activate(
@@ -166,7 +167,7 @@ export async function activate(
       );
     }
   }
-  return { outputChannel, treeDataProvider };
+  return { outputChannel, treeDataProvider, context };
 }
 
 export function deactivate(): void {}

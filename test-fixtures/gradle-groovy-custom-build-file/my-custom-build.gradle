@@ -11,6 +11,12 @@ tasks.register("hello") {
     }
 }
 
+tasks.register("helloProjectProperty") {
+    doLast {
+        println 'Hello, World!' + customProp
+    }
+}
+
 tasks.register("helloGroovyCustom") {
     doLast {
         println 'Hello, World!'

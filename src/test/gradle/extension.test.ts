@@ -2,6 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
+import { GradleTaskTreeItem } from '../../gradleView';
+
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
@@ -24,33 +26,70 @@ describe(fixtureName, () => {
   });
 
   describe('tasks', () => {
-    let tasks: vscode.Task[];
-
-    beforeEach(async () => {
-      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-    });
-
-    it('should load tasks', () => {
+    it('should load gradle tasks', async () => {
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.equal(tasks.length > 0, true);
+      const helloTask = tasks.find(task => task.name === 'hello');
+      assert.ok(helloTask);
     });
 
-    it('should run a gradle task', done => {
-      const task = tasks.find(task => task.name === 'hello');
-      assert.ok(task);
-      vscode.tasks.onDidEndTaskProcess(e => {
-        if (e.execution.task === task) {
-          done(e.exitCode === 0 ? undefined : 'Process error');
-        }
-      });
-      vscode.tasks.executeTask(task!);
-    });
-
-    it('should refresh tasks', async () => {
+    it('should refresh gradle tasks when command is executed', async () => {
+      const extension = vscode.extensions.getExtension(
+        'richardwillis.vscode-gradle'
+      );
+      const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
       await vscode.commands.executeCommand('gradle.refresh');
+      assert.ok(stub.called);
+    });
+
+    it('should run a gradle task', async () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         task => task.name === 'hello'
       );
       assert.ok(task);
+      await new Promise(resolve => {
+        vscode.tasks.onDidEndTaskProcess(e => {
+          if (e.execution.task === task) {
+            assert.equal(e.exitCode, 0);
+            resolve();
+          }
+        });
+        vscode.tasks.executeTask(task!);
+      });
+    });
+
+    it('should run a gradle task with custom args', async () => {
+      sinon
+        .stub(vscode.window, 'showInputBox')
+        .returns(Promise.resolve('-PcustomProp=foo'));
+
+      const extension = vscode.extensions.getExtension(
+        'richardwillis.vscode-gradle'
+      );
+      assert.ok(extension);
+
+      const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
+        task => task.name === 'helloProjectProperty'
+      );
+      assert.ok(task);
+
+      await new Promise(resolve => {
+        vscode.tasks.onDidEndTaskProcess(e => {
+          if (e.execution.task.definition === task!.definition) {
+            assert.equal(e.exitCode, 0);
+            resolve();
+          }
+        });
+
+        const treeItem = new GradleTaskTreeItem(
+          extension!.exports.context,
+          new vscode.TreeItem('parentTreeItem'),
+          task!,
+          task!.name,
+          task!.definition.description
+        );
+        vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
+      });
     });
   });
 
