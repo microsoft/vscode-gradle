@@ -93,7 +93,7 @@ describe(fixtureName, () => {
     });
   });
 
-  describe('explorer', () => {});
+  // describe('explorer', () => {});
 
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {

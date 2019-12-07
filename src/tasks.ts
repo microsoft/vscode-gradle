@@ -31,15 +31,15 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   buildFile: string;
 }
 
-let autoDetectOverride: boolean = false;
+let autoDetectOverride = false;
 let cachedTasks: Promise<vscode.Task[]> | undefined;
 let gradleTasksProcess: cp.ChildProcessWithoutNullStreams | undefined;
 
-export function enableTaskDetection() {
+export function enableTaskDetection(): void {
   autoDetectOverride = true;
 }
 
-export function killRefreshProcess() {
+export function killRefreshProcess(): void {
   if (gradleTasksProcess) {
     gradleTasksProcess.kill();
   }
@@ -64,7 +64,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     readonly context: vscode.ExtensionContext
   ) {}
 
-  async provideTasks() {
+  async provideTasks(): Promise<vscode.Task[] | undefined> {
     try {
       return await this.provideGradleTasks();
     } catch (e) {
@@ -75,9 +75,11 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 
   // TODO
-  public async resolveTask(
+  public async resolveTask(/*
     _task: vscode.Task
-  ): Promise<vscode.Task | undefined> {
+  */): Promise<
+    vscode.Task | undefined
+  > {
     return undefined;
   }
 
@@ -182,10 +184,11 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 }
 
-export function invalidateTasksCache() {
+export function invalidateTasksCache(): void {
   cachedTasks = undefined;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
 }
@@ -225,7 +228,7 @@ export function createTaskFromDefinition(
   folder: vscode.WorkspaceFolder,
   cmd: string,
   args: string[] = []
-) {
+): vscode.Task {
   const crossShellCmd = `"${cmd}"`;
   const cwd = folder.uri.fsPath;
   const allArgs = [definition.script, ...args];
@@ -295,7 +298,7 @@ export async function hasGradleProject(): Promise<boolean> {
 }
 
 async function exists(file: string): Promise<boolean> {
-  return new Promise<boolean>((resolve, _reject) => {
+  return new Promise<boolean>(resolve => {
     fs.exists(file, value => {
       resolve(value);
     });
@@ -315,7 +318,7 @@ function debugCommand(
   command: string,
   args: ReadonlyArray<string>,
   outputChannel: vscode.OutputChannel
-) {
+): void {
   const message = `Executing: ${command} ${args.join(' ')}`;
   outputChannel.appendLine(message);
 }

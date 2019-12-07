@@ -4,7 +4,7 @@ import { runTests } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
-async function runUnitTests() {
+async function runUnitTests(): Promise<void> {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'unit'),
@@ -18,7 +18,7 @@ async function runUnitTests() {
   });
 }
 
-async function runTestsWithGradle() {
+async function runTestsWithGradle(): Promise<void> {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
@@ -39,7 +39,7 @@ async function runTestsWithGradle() {
   }
 }
 
-async function runTestsWithoutGradle() {
+async function runTestsWithoutGradle(): Promise<void> {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
@@ -50,7 +50,7 @@ async function runTestsWithoutGradle() {
   });
 }
 
-async function runTestsWithMultiRoot() {
+async function runTestsWithMultiRoot(): Promise<void> {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-root'),
@@ -67,7 +67,7 @@ async function runTestsWithMultiRoot() {
   });
 }
 
-async function runTestsWithMultiProject() {
+async function runTestsWithMultiProject(): Promise<void> {
   await runTests({
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
@@ -81,7 +81,7 @@ async function runTestsWithMultiProject() {
   });
 }
 
-async function main() {
+async function main(): Promise<void> {
   try {
     await runUnitTests();
     await runTestsWithGradle();

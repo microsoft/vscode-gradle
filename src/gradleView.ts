@@ -9,7 +9,7 @@ import {
   cloneTask
 } from './tasks';
 
-function getTaskExecution(task: vscode.Task) {
+function getTaskExecution(task: vscode.Task): vscode.TaskExecution | undefined {
   return vscode.tasks.taskExecutions.find(
     e =>
       e.task.name === task.name &&
@@ -19,7 +19,10 @@ function getTaskExecution(task: vscode.Task) {
   );
 }
 
-function treeItemSortCompareFunc(a: vscode.TreeItem, b: vscode.TreeItem) {
+function treeItemSortCompareFunc(
+  a: vscode.TreeItem,
+  b: vscode.TreeItem
+): number {
   return a.label!.localeCompare(b.label!);
 }
 
@@ -33,7 +36,7 @@ class WorkspaceTreeItem extends vscode.TreeItem {
     this.iconPath = vscode.ThemeIcon.Folder;
   }
 
-  addProject(project: ProjectTreeItem) {
+  addProject(project: ProjectTreeItem): void {
     this.projects.push(project);
   }
 }
@@ -55,7 +58,7 @@ class TreeItemWithTasksOrGroups extends vscode.TreeItem {
     this.parentTreeItem = parentTreeItem;
   }
 
-  addTask(task: GradleTaskTreeItem) {
+  addTask(task: GradleTaskTreeItem): void {
     this._tasks.push(task);
   }
 
@@ -63,7 +66,7 @@ class TreeItemWithTasksOrGroups extends vscode.TreeItem {
     return this._tasks.sort(treeItemSortCompareFunc);
   }
 
-  addGroup(group: GroupTreeItem) {
+  addGroup(group: GroupTreeItem): void {
     this._groups.push(group);
   }
 
@@ -166,7 +169,7 @@ export class GradleTasksTreeDataProvider
     this.setCollapsed(collapsed);
   }
 
-  setCollapsed(collapsed: boolean) {
+  setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
     vscode.commands.executeCommand(
       'setContext',
@@ -175,18 +178,18 @@ export class GradleTasksTreeDataProvider
     );
   }
 
-  onTaskStatusChange(event: vscode.TaskStartEvent) {
+  onTaskStatusChange(event: vscode.TaskStartEvent): void {
     this.taskTree = null;
     this._onDidChangeTreeData.fire(event.execution.task.definition.treeItem);
   }
 
-  runTask(taskItem: GradleTaskTreeItem) {
+  runTask(taskItem: GradleTaskTreeItem): void {
     if (taskItem && taskItem.task) {
       vscode.tasks.executeTask(taskItem.task);
     }
   }
 
-  async runTaskWithArgs(taskItem: GradleTaskTreeItem) {
+  async runTaskWithArgs(taskItem: GradleTaskTreeItem): Promise<void> {
     if (taskItem && taskItem.task) {
       const args = await vscode.window.showInputBox({
         placeHolder: 'For example: --all',
@@ -201,7 +204,7 @@ export class GradleTasksTreeDataProvider
     }
   }
 
-  stopTask(taskItem: GradleTaskTreeItem) {
+  stopTask(taskItem: GradleTaskTreeItem): void {
     if (taskItem && taskItem.task) {
       const execution = getTaskExecution(taskItem.task);
       if (execution) {
@@ -280,9 +283,9 @@ export class GradleTasksTreeDataProvider
   }
 
   buildTaskTree(tasks: vscode.Task[]): WorkspaceTreeItem[] | NoTasksTreeItem[] {
-    const workspaceTreeItems: Map<String, WorkspaceTreeItem> = new Map();
-    const projectTreeItems: Map<String, ProjectTreeItem> = new Map();
-    const groupTreeItems: Map<String, GroupTreeItem> = new Map();
+    const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
+    const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
+    const groupTreeItems: Map<string, GroupTreeItem> = new Map();
     let workspaceTreeItem = null;
 
     tasks.forEach(task => {

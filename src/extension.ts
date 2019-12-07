@@ -15,7 +15,7 @@ function registerTaskProvider(
   context: vscode.ExtensionContext,
   outputChannel: vscode.OutputChannel
 ): vscode.Disposable | undefined {
-  function invalidateTaskCaches() {
+  function invalidateTaskCaches(): void {
     invalidateTasksCache();
     if (treeDataProvider) {
       treeDataProvider.refresh();
@@ -86,7 +86,7 @@ function registerExplorer(
 function registerCommands(
   context: vscode.ExtensionContext,
   treeDataProvider: GradleTasksTreeDataProvider | undefined
-) {
+): void {
   if (treeDataProvider) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -170,4 +170,5 @@ export async function activate(
   return { outputChannel, treeDataProvider, context };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export function deactivate(): void {}

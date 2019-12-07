@@ -5,6 +5,7 @@ import glob from 'glob';
 export function createTestRunner(pattern: string) {
   return function run(
     testsRoot: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     cb: (error: any, failures?: number) => void
   ): void {
     // Create the mocha test

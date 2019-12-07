@@ -4,9 +4,10 @@
 out/test/**
 src/**
 .gitignore
-vsc-extension-quickstart.md
 **/tsconfig.json
-**/tslint.json
+**/.eslintignore
+**/.eslintrc.js
+**/.prettierrc.js
 **/*.map
 **/*.ts
 test-fixtures/**
