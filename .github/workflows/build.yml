@@ -20,20 +20,17 @@ jobs:
         with:
           java-version: '8'
           architecture: x64
-      - name: SonarQube Analyse Java
+      - name: Install Node Packages
+        run: npm ci
+      - name: Lint Files
+        run: npm run lint
+      - name: Build Java
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: sonarqube
+          arguments: build
           build-root-directory: java-gradle-tasks
           wrapper-directory: java-gradle-tasks
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      - name: Lint Typescript
-        run: |
-          npm ci
-          npm run lint
-      - name: SonarQube Analyse Typescript
+      - name: SonarQube Analyse
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
@@ -62,7 +59,7 @@ jobs:
           name: lib
           path: lib
 
-  build-test-extension:
+  test-extension:
     needs: [build-jar-artifacts]
     runs-on: ${{ matrix.os }}
 
@@ -106,15 +103,10 @@ jobs:
           DISPLAY: ':99.0'
           CI: 'true'
 
-  publish:
-    needs: [build-test-extension]
+  publish-extension:
+    needs: [test-extension]
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
-
-    strategy:
-      matrix:
-        node-version: [12.x]
-
     steps:
       - uses: actions/checkout@v1
       - name: Download lib
@@ -123,7 +115,7 @@ jobs:
           name: lib
       - uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 12.x
       - name: Install deps
         run: |
           npm install -g vsce
