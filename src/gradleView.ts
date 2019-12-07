@@ -216,8 +216,12 @@ export class GradleTasksTreeDataProvider
   refresh(): Thenable<vscode.Task[]> {
     enableTaskDetection();
     invalidateTasksCache();
-    this.taskItemsPromise = vscode.tasks.fetchTasks({ type: 'gradle' });
-    this.render();
+    this.taskItemsPromise = vscode.tasks
+      .fetchTasks({ type: 'gradle' })
+      .then(tasks => {
+        this.render();
+        return tasks;
+      });
     return this.taskItemsPromise;
   }
 
