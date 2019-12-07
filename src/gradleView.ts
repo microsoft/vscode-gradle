@@ -274,14 +274,13 @@ export class GradleTasksTreeDataProvider
     if (element instanceof NoTasksTreeItem) {
       return [];
     }
-    if (!element) {
-      if (this.taskTree) {
-        return this.taskTree;
-      }
+    if (!element && this.taskTree) {
+      return this.taskTree;
     }
     return [];
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   buildTaskTree(tasks: vscode.Task[]): WorkspaceTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<string, ProjectTreeItem> = new Map();

@@ -13,6 +13,7 @@ async function runUnitTests(): Promise<void> {
         __dirname,
         '../../test-fixtures/gradle-groovy-default-build-file'
       ),
+      // eslint-disable-next-line sonarjs/no-duplicate-string
       '--disable-extensions'
     ]
   });
