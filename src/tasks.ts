@@ -99,11 +99,12 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     try {
       for (const folder of folders) {
-        if (autoDetectOverride || getIsAutoDetectionEnabled(folder)) {
-          if (await isGradleProject(folder)) {
-            const tasks = await this.provideGradleTasksForFolder(folder);
-            allTasks.push(...tasks);
-          }
+        if (
+          (autoDetectOverride || getIsAutoDetectionEnabled(folder)) &&
+          (await isGradleProject(folder))
+        ) {
+          const tasks = await this.provideGradleTasksForFolder(folder);
+          allTasks.push(...tasks);
         }
       }
       return allTasks;

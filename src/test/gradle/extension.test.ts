@@ -12,6 +12,7 @@ describe(fixtureName, () => {
   });
 
   it('should be present', () => {
+    // eslint-disable-next-line sonarjs/no-duplicate-string
     assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
   });
 
