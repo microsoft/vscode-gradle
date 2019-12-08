@@ -65,10 +65,10 @@ public class CliApp {
     private void writeProjectsToFile() throws IOException, CliAppException {
         JsonArray projects = getProjects();
         String jsonString = projects.toString();
-        FileOutputStream outputStream = new FileOutputStream(targetFile);
-        byte[] strToBytes = jsonString.getBytes();
-        outputStream.write(strToBytes);
-        outputStream.close();
+        try (FileOutputStream outputStream = new FileOutputStream(targetFile)) {
+            byte[] strToBytes = jsonString.getBytes();
+            outputStream.write(strToBytes);
+        }
     }
 
     private JsonArray getProjects() throws CliAppException {
@@ -109,11 +109,12 @@ public class CliApp {
 
             JsonArray jsonTasks = Json.array();
 
-            gradleProject.getTasks().stream().map(task -> {
-                return Json.object().add("name", task.getName()).add("group", task.getGroup())
-                        .add("path", task.getPath()).add("project", gradleProject.getName())
-                        .add("description", task.getDescription());
-            }).forEach(jsonTasks::add);
+            gradleProject.getTasks().stream()
+                    .map(task -> Json.object().add("name", task.getName())
+                            .add("group", task.getGroup()).add("path", task.getPath())
+                            .add("project", gradleProject.getName())
+                            .add("description", task.getDescription()))
+                    .forEach(jsonTasks::add);
 
             GradleProject parentProject = gradleProject.getParent();
             GradleScript buildScript = gradleProject.getBuildScript();

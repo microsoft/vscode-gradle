@@ -33,15 +33,15 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
-      const task = tasks.find(task => task.name === 'hello');
+      const task = tasks.find(({ name }) => name === 'hello');
       assert.ok(task);
       await vscode.tasks.executeTask(task!);
     });
 
     it('should run a subproject gradle task', done => {
       const task = tasks.find(
-        task =>
-          task.definition.script ===
+        ({ definition }) =>
+          definition.script ===
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);

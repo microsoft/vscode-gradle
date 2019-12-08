@@ -5,9 +5,6 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 
-import com.github.badsyntax.gradletasks.CliApp;
-import com.github.badsyntax.gradletasks.CliAppException;
-
 public class CliAppTest {
     @Test
     public void testAppValidatesArguments() {

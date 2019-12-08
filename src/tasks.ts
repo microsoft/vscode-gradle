@@ -142,7 +142,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
           gradleProject.tasks.map(gradleTask =>
             createTaskFromGradleTask(
               gradleTask,
-              folder!,
+              folder,
               command,
               rootProject.name,
               vscode.Uri.file(gradleProject.buildFile)

@@ -45,7 +45,7 @@ describe(fixtureName, () => {
 
     it('should run a gradle task', async () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        task => task.name === 'hello'
+        ({ name }) => name === 'hello'
       );
       assert.ok(task);
       await new Promise(resolve => {
@@ -70,7 +70,7 @@ describe(fixtureName, () => {
       assert.ok(extension);
 
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        task => task.name === 'helloProjectProperty'
+        ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
 
