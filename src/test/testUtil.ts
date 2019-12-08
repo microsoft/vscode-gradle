@@ -28,8 +28,8 @@ export function createTestRunner(pattern: string) {
         mocha.run(failures => {
           cb(null, failures);
         });
-      } catch (err) {
-        cb(err);
+      } catch (e) {
+        cb(e);
       }
     });
   };
