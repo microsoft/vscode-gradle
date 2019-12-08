@@ -1,5 +1,18 @@
 # Change Log
 
+## 2.2.4
+
+- Tooling upgrades (replaced tslint with eslint, added sonarqube)
+- Improved gradle-tasks process logging
+
+## 2.2.3
+
+- Fixed refresh process not completing when build file has errors
+
+## 2.2.2
+
+- Add feature to run task with custom args
+
 ## 2.2.1
 
 - Fix publishing jar file
