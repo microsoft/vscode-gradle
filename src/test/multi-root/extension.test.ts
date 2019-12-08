@@ -54,7 +54,7 @@ describe(fixtureName, () => {
       });
 
       it('should successfully run a custom task', done => {
-        const task = tasks.find(task => task.name === 'hello');
+        const task = tasks.find(({ name }) => name === 'hello');
         assert.ok(task);
         vscode.tasks.onDidEndTaskProcess(e => {
           if (e.execution.task === task) {
@@ -67,7 +67,7 @@ describe(fixtureName, () => {
       it('should refresh tasks', async () => {
         await vscode.commands.executeCommand('gradle.refresh');
         const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-          task => task.name === 'hello'
+          ({ name }) => name === 'hello'
         );
         assert.ok(task);
       });

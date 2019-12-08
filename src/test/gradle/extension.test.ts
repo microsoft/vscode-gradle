@@ -30,7 +30,7 @@ describe(fixtureName, () => {
     it('should load gradle tasks', async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.equal(tasks.length > 0, true);
-      const helloTask = tasks.find(task => task.name === 'hello');
+      const helloTask = tasks.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
     });
 
