@@ -264,6 +264,7 @@
     "lint": "npm run lint:prettier && npm run lint:eslint",
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:eslint": "eslint . --ext .js,.ts",
+    "snyk": "snyk test",
     "format": "npm run format:prettier && npm run lint:eslint -- --fix",
     "format:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:java": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
@@ -285,6 +286,7 @@
     "mocha": "^6.2.2",
     "prettier": "^1.19.1",
     "sinon": "^7.5.0",
+    "snyk": "^1.258.1",
     "typescript": "^3.7.3",
     "vscode-test": "^1.2.3"
   }
