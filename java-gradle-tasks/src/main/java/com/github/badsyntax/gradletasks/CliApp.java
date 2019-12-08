@@ -8,6 +8,9 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import org.gradle.tooling.GradleConnectionException;
 import org.gradle.tooling.GradleConnector;
+import org.gradle.tooling.ModelBuilder;
+import org.gradle.tooling.ProgressEvent;
+import org.gradle.tooling.ProgressListener;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.gradle.tooling.model.gradle.GradleBuild;
@@ -52,10 +55,26 @@ public class CliApp {
         GradleBuild rootBuild;
         GradleProject rootProject;
 
+        ProgressListener progressListener = new ProgressListener() {
+            @Override
+            public void statusChanged(ProgressEvent progressEvent) {
+                System.out.print(".");
+            }
+        };
+
         try {
             connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
-            rootBuild = connection.model(GradleBuild.class).get();
-            rootProject = connection.model(GradleProject.class).get();
+            ModelBuilder<GradleBuild> rootBuilder = connection.model(GradleBuild.class);
+            rootBuilder.addProgressListener(progressListener);
+            rootBuilder.setStandardOutput(System.out);
+            rootBuilder.setStandardError(System.out);
+            rootBuild = rootBuilder.get();
+
+            ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
+            rootProjectBuilder.addProgressListener(progressListener);
+            rootProjectBuilder.setStandardOutput(System.out);
+            rootProjectBuilder.setStandardError(System.out);
+            rootProject = rootProjectBuilder.get();
         } catch (GradleConnectionException err) {
             if (connection != null) {
                 connection.close();
@@ -85,7 +104,6 @@ public class CliApp {
         }).forEach(jsonProjects::add);
 
         connection.close();
-
         return jsonProjects;
     }
 }
