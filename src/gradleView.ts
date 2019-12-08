@@ -196,7 +196,7 @@ export class GradleTasksTreeDataProvider
         ignoreFocusOut: true
       });
       if (args !== undefined) {
-        const task = await cloneTask(taskItem!.task, args.split(' '));
+        const task = await cloneTask(taskItem.task, args.split(' '));
         if (task) {
           vscode.tasks.executeTask(task);
         }
@@ -347,8 +347,7 @@ export class GradleTasksTreeDataProvider
       }
     });
     if (workspaceTreeItems.size === 1) {
-      const workspaceTreeItem = workspaceTreeItems.values().next().value;
-      return workspaceTreeItem.projects;
+      return workspaceTreeItems.values().next().value.projects;
     }
     return [...workspaceTreeItems.values()];
   }

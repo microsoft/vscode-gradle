@@ -66,27 +66,19 @@ function registerTaskProvider(
 function registerExplorer(
   context: vscode.ExtensionContext,
   collapsed: boolean
-): GradleTasksTreeDataProvider | undefined {
+): void {
   if (vscode.workspace.workspaceFolders) {
-    const treeDataProvider = new GradleTasksTreeDataProvider(
-      context,
-      collapsed
-    );
+    treeDataProvider = new GradleTasksTreeDataProvider(context, collapsed);
     context.subscriptions.push(
       vscode.window.createTreeView('gradleTreeView', {
         treeDataProvider: treeDataProvider,
         showCollapseAll: true
       })
     );
-    return treeDataProvider;
   }
-  return undefined;
 }
 
-function registerCommands(
-  context: vscode.ExtensionContext,
-  treeDataProvider: GradleTasksTreeDataProvider | undefined
-): void {
+function registerCommands(context: vscode.ExtensionContext): void {
   if (treeDataProvider) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -111,21 +103,21 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.refresh', () =>
-        treeDataProvider.refresh()
+        treeDataProvider!.refresh()
       )
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerTree', () => {
         context.workspaceState.update('explorerCollapsed', false);
-        treeDataProvider.setCollapsed(false);
-        treeDataProvider.render();
+        treeDataProvider!.setCollapsed(false);
+        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerFlat', () => {
         context.workspaceState.update('explorerCollapsed', true);
-        treeDataProvider.setCollapsed(true);
-        treeDataProvider.render();
+        treeDataProvider!.setCollapsed(true);
+        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
@@ -154,8 +146,8 @@ export async function activate(
   context.subscriptions.push(outputChannel);
   registerTaskProvider(context, outputChannel);
   if (await hasGradleProject()) {
-    treeDataProvider = registerExplorer(context, explorerCollapsed);
-    registerCommands(context, treeDataProvider);
+    registerExplorer(context, explorerCollapsed);
+    registerCommands(context);
     if (treeDataProvider) {
       treeDataProvider.refresh();
     }
