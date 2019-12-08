@@ -3,11 +3,19 @@ package com.github.badsyntax.gradletasks;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.StreamHandler;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import org.gradle.tooling.GradleConnectionException;
 import org.gradle.tooling.GradleConnector;
+import org.gradle.tooling.ModelBuilder;
+import org.gradle.tooling.ProgressEvent;
+import org.gradle.tooling.ProgressListener;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.gradle.tooling.model.gradle.GradleBuild;
@@ -16,10 +24,27 @@ import org.gradle.tooling.model.gradle.GradleScript;
 public class CliApp {
     private File sourceDir;
     private File targetFile;
+    private Logger logger;
+    private StreamHandler handler;
 
     public CliApp(File sourceDir, File targetFile) {
         this.sourceDir = sourceDir;
         this.targetFile = targetFile;
+
+        this.handler = new ConsoleHandler();
+        this.handler.setFormatter(new BasicWriteFormatter());
+        this.handler.setLevel(Level.ALL);
+
+        this.logger = Logger.getLogger("CliApp");
+        this.logger.setUseParentHandlers(false);
+        this.logger.addHandler(handler);
+    }
+
+    private static class BasicWriteFormatter extends Formatter {
+        @Override
+        public String format(LogRecord record) {
+            return record.getMessage();
+        }
     }
 
     public static void main(String[] args) throws CliAppException, IOException {
@@ -52,10 +77,26 @@ public class CliApp {
         GradleBuild rootBuild;
         GradleProject rootProject;
 
+        ProgressListener progressListener = new ProgressListener() {
+            @Override
+            public void statusChanged(ProgressEvent progressEvent) {
+                logger.info(".");
+            }
+        };
+
         try {
             connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
-            rootBuild = connection.model(GradleBuild.class).get();
-            rootProject = connection.model(GradleProject.class).get();
+            ModelBuilder<GradleBuild> rootBuilder = connection.model(GradleBuild.class);
+            rootBuilder.addProgressListener(progressListener);
+            rootBuilder.setStandardOutput(System.out);
+            rootBuilder.setStandardError(System.out);
+            rootBuild = rootBuilder.get();
+
+            ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
+            rootProjectBuilder.addProgressListener(progressListener);
+            rootProjectBuilder.setStandardOutput(System.out);
+            rootProjectBuilder.setStandardError(System.out);
+            rootProject = rootProjectBuilder.get();
         } catch (GradleConnectionException err) {
             if (connection != null) {
                 connection.close();
@@ -85,7 +126,6 @@ public class CliApp {
         }).forEach(jsonProjects::add);
 
         connection.close();
-
         return jsonProjects;
     }
 }
