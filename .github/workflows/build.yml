@@ -24,10 +24,6 @@ jobs:
         run: npm ci
       - name: Lint Files
         run: npm run lint
-      - name: Security check
-        run: npm run snyk
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       - name: Build Java
         uses: eskatos/gradle-command-action@v1
         with:
@@ -88,11 +84,9 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - name: Set xvfb
+      - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        env:
-          DISPLAY: ':99.0'
         if: matrix.os == 'ubuntu-latest'
       - name: Set perms
         run: |
@@ -120,19 +114,15 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Install deps
-        run: |
-          npm install -g vsce
-          npm ci
       - name: Package extension
         run: |
           chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
-          vsce package
+          npx vsce package
       - name: Publish extension to marketplace
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
-          vsce publish -p "$AZURE_TOKEN"
+          npx vsce publish -p "$AZURE_TOKEN"
