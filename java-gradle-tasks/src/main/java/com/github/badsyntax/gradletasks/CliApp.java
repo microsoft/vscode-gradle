@@ -25,19 +25,26 @@ public class CliApp {
     private File sourceDir;
     private File targetFile;
     private Logger logger;
-    private StreamHandler handler;
+    private ProgressListener progressListener;
 
     public CliApp(File sourceDir, File targetFile) {
         this.sourceDir = sourceDir;
         this.targetFile = targetFile;
 
-        this.handler = new ConsoleHandler();
-        this.handler.setFormatter(new BasicWriteFormatter());
-        this.handler.setLevel(Level.ALL);
+        StreamHandler handler = new ConsoleHandler();
+        handler.setFormatter(new BasicWriteFormatter());
+        handler.setLevel(Level.ALL);
 
         this.logger = Logger.getLogger("CliApp");
         this.logger.setUseParentHandlers(false);
         this.logger.addHandler(handler);
+
+        this.progressListener = new ProgressListener() {
+            @Override
+            public void statusChanged(ProgressEvent progressEvent) {
+                logger.info(".");
+            }
+        };
     }
 
     private static class BasicWriteFormatter extends Formatter {
@@ -69,6 +76,9 @@ public class CliApp {
             byte[] strToBytes = jsonString.getBytes();
             outputStream.write(strToBytes);
         }
+        String lineSep = System.lineSeparator();
+        String absolutePath = targetFile.getAbsolutePath();
+        logger.info(String.format("%sSuccessfully written: %s%s", lineSep, absolutePath, lineSep));
     }
 
     private JsonArray getProjects() throws CliAppException {
@@ -76,13 +86,6 @@ public class CliApp {
         ProjectConnection connection = null;
         GradleBuild rootBuild;
         GradleProject rootProject;
-
-        ProgressListener progressListener = new ProgressListener() {
-            @Override
-            public void statusChanged(ProgressEvent progressEvent) {
-                logger.info(".");
-            }
-        };
 
         try {
             connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
