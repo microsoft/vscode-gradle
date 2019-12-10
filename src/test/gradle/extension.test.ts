@@ -104,7 +104,9 @@ describe(fixtureName, () => {
       const outputChannel = extension!.exports.outputChannel;
       sinon.replace(outputChannel, 'appendLine', sinon.fake());
       await vscode.commands.executeCommand('gradle.refresh');
-      assert.ok(outputChannel.appendLine.calledWith(sinon.match(/Executing/)));
+      assert.ok(
+        outputChannel.appendLine.calledWith(sinon.match(/gradle-tasks/))
+      );
     });
   });
 });

@@ -320,7 +320,7 @@ function debugCommand(
   args: ReadonlyArray<string>,
   outputChannel: vscode.OutputChannel
 ): void {
-  const message = `Executing: ${command} ${args.join(' ')}`;
+  const message = `${command} ${args.join(' ')}`;
   outputChannel.appendLine(message);
 }
 
