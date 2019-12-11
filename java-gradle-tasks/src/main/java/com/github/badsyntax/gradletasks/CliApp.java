@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
-import java.util.logging.Formatter;
 import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
 import com.eclipsesource.json.Json;
@@ -14,8 +12,6 @@ import com.eclipsesource.json.JsonArray;
 import org.gradle.tooling.GradleConnectionException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
-import org.gradle.tooling.ProgressEvent;
-import org.gradle.tooling.ProgressListener;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.gradle.tooling.model.gradle.GradleBuild;
@@ -24,34 +20,13 @@ import org.gradle.tooling.model.gradle.GradleScript;
 public class CliApp {
     private File sourceDir;
     private File targetFile;
-    private Logger logger;
-    private ProgressListener progressListener;
+    private Logger logger = Logger.getLogger(CliApp.class.getName());
 
-    public CliApp(File sourceDir, File targetFile) {
+    public CliApp(File sourceDir, File targetFile, StreamHandler logHandler) {
         this.sourceDir = sourceDir;
         this.targetFile = targetFile;
-
-        StreamHandler handler = new ConsoleHandler();
-        handler.setFormatter(new BasicWriteFormatter());
-        handler.setLevel(Level.ALL);
-
-        this.logger = Logger.getLogger("CliApp");
         this.logger.setUseParentHandlers(false);
-        this.logger.addHandler(handler);
-
-        this.progressListener = new ProgressListener() {
-            @Override
-            public void statusChanged(ProgressEvent progressEvent) {
-                logger.info(".");
-            }
-        };
-    }
-
-    private static class BasicWriteFormatter extends Formatter {
-        @Override
-        public String format(LogRecord record) {
-            return record.getMessage();
-        }
+        this.logger.addHandler(logHandler);
     }
 
     public static void main(String[] args) throws CliAppException, IOException {
@@ -63,9 +38,15 @@ public class CliApp {
         if (!sourceDir.exists()) {
             throw new CliAppException("Source directory does not exist");
         }
+
         String targetFileName = args[1];
         File targetFile = new File(targetFileName);
-        CliApp app = new CliApp(sourceDir, targetFile);
+
+        StreamHandler logHandler = new ConsoleHandler();
+        logHandler.setFormatter(new BasicWriteFormatter());
+        logHandler.setLevel(Level.ALL);
+
+        CliApp app = new CliApp(sourceDir, targetFile, logHandler);
         app.writeProjectsToFile();
     }
 
@@ -86,6 +67,7 @@ public class CliApp {
         ProjectConnection connection = null;
         GradleBuild rootBuild;
         GradleProject rootProject;
+        GradleProgressListener progressListener = new GradleProgressListener(this.logger);
 
         try {
             connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
