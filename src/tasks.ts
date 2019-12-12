@@ -30,6 +30,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   rootProject: string;
   buildFile: string;
   projectFolder: string;
+  workspaceFolder: string;
 }
 
 let autoDetectOverride = false;
@@ -288,7 +289,8 @@ export function createTaskFromGradleTask(
     project: gradleTask.project,
     buildFile: buildFile.fsPath,
     rootProject,
-    projectFolder: projectFolder.fsPath
+    projectFolder: projectFolder.fsPath,
+    workspaceFolder: folder.uri.fsPath
   };
   return createTaskFromDefinition(
     definition,
