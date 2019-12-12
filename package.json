@@ -37,8 +37,8 @@
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:gradle.refresh",
     "onCommand:gradle.runTask",
-    "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat",
+    "workspaceContains:**/gradlew",
+    "workspaceContains:**/gradlew.bat",
     "onView:gradleTreeView"
   ],
   "main": "./out/extension",
