@@ -48,13 +48,17 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 
 ## Troubleshooting
 
-View the Gradle Tasks refresh process output and errors by selecting "Gradle Tasks" in the output panel:
+<details><summary>View the Gradle Tasks refresh process output and errors by selecting "Gradle Tasks" in the output panel.</summary>
 
 <img src="./images/output.png" width="600" />
 
-Gradle Task output and errors will be shown in Terminal panel after you've run a task:
+</details>
+
+<details><summary>Gradle Task output and errors will be shown in Terminal panel after you've run a task.</summary>
 
 <img src="./images/terminal.png" width="600" />
+
+</details>
 
 ## Credits
 
