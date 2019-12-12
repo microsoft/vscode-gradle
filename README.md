@@ -54,7 +54,7 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 
 </details>
 
-<details><summary>Gradle Task output and errors will be shown in Terminal panel after you've run a task.</summary>
+<details><summary>Gradle Task output and errors will be shown in the Terminal panel after you've run a task.</summary>
 
 <img src="./images/terminal.png" width="600" />
 
@@ -67,8 +67,8 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 
 ## Release Notes
 
-See [CHANGELOG.md](./CHANGELOG.md)
+See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 
-See [LICENSE.md](./LICENSE.md)
+See [LICENSE.md](./LICENSE.md).
