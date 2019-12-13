@@ -120,11 +120,13 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: lib
-      - name: Move lib to extension
-        run: mv lib extension/
+      - name: Move files to extension
+        run: |
+          mv lib extension/
+          mv images extension/
+          mv README.md extension/
       - name: Package extension
         run: |
-          cp README.md extension/
           cd extension
           chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
