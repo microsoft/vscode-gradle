@@ -11,5 +11,3 @@ src/**
 **/*.map
 **/*.ts
 test-fixtures/**
-images/**
-java-gradle-tasks/**

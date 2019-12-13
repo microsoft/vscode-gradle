@@ -123,7 +123,6 @@ jobs:
       - name: Move files to extension
         run: |
           mv lib extension/
-          mv images extension/
           mv README.md extension/
       - name: Package extension
         run: |
