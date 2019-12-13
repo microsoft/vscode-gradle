@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.2.6
+
+- Fix task label containing project directory name in explorer for nested projects
+
 ## 2.2.5
 
 - Add support for nested gradle projects (#88)
