@@ -19,7 +19,7 @@ sourceSets {
 dependencies {
     compile 'org.gradle:gradle-tooling-api:6.0.1'
     compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    runtimeOnly 'org.slf4j:slf4j-simple:1.7.10'
+    runtimeOnly 'org.slf4j:slf4j-simple:1.7.29'
     testImplementation 'junit:junit:4.12'
 }
 
