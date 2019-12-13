@@ -23,4 +23,4 @@ class LoggerOutputStream extends OutputStream {
             baos.write(b);
         }
     }
-};
+}
