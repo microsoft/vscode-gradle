@@ -7,7 +7,7 @@
 
 Run Gradle tasks in VS Code.
 
-![Screencat](images/screencast.gif)
+![Screencat](extension/images/screencast.gif)
 
 ## Features
 
@@ -36,7 +36,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 [Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the Gradle task provider takes too long.
 
-<img src="./images/slow-task-provider-warning.png" width="400" />
+<img src="./extension/images/slow-task-provider-warning.png" width="400" />
 
 It can take a while to refresh the Gradle tasks, so you should permanently ignore this warning by clicking on "Don't warn again for Gradle tasks", or add the following to your `settings.json`:
 
@@ -50,13 +50,13 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 
 <details><summary>View the Gradle Tasks refresh process output and errors by selecting "Gradle Tasks" in the output panel.</summary>
 
-<img src="./images/output.png" width="600" />
+<img src="./extension/images/output.png" width="600" />
 
 </details>
 
 <details><summary>Gradle Task output and errors will be shown in the Terminal panel after you've run a task.</summary>
 
-<img src="./images/terminal.png" width="600" />
+<img src="./extension/images/terminal.png" width="600" />
 
 </details>
 
