@@ -65,7 +65,7 @@ jobs:
 
   test-extension:
     needs: [build-jar-artifacts]
-    name: "Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}"
+    name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
 
     strategy:
