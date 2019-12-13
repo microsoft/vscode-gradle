@@ -3,3 +3,4 @@ node_modules/
 out/
 test-fixtures/
 package-lock.json
+java-gradle-tasks/
