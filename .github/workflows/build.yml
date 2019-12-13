@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Use Node.js 12.x
+      - name: Use Node 12.x
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
@@ -76,11 +76,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Download lib
-        uses: actions/download-artifact@v1
-        with:
-          name: lib
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
@@ -89,6 +85,10 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -113,24 +113,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+      - name: Use Node 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
       - name: Download lib
         uses: actions/download-artifact@v1
         with:
           name: lib
-      - name: Move files to extension
-        run: |
-          mv lib extension/
-          mv images extension/
-          mv README.md extension/
-      - name: Move lib to extension
-        run: mv lib extension/
-      - name: Package extension
-        run: |
-          cp README.md extension/
-          cd extension
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12.x
       - name: Package extension
         run: |
           chmod +x lib/gradle-tasks
