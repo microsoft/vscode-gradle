@@ -8,6 +8,7 @@ on:
 
 jobs:
   analyse:
+    name: Analyse
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
@@ -21,26 +22,25 @@ jobs:
           java-version: '8'
           architecture: x64
       - name: Install Node Packages
-        run: npm ci
+        run: npm ci --prefix extension
       - name: Lint Files
-        run: npm run lint
+        run: npm run lint --prefix extension
       - name: Build Java
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build
           build-root-directory: java-gradle-tasks
           wrapper-directory: java-gradle-tasks
-        if: github.ref != 'master'
       - name: SonarQube Analyse
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ''
-        if: github.ref != 'master'
 
   build-jar-artifacts:
     needs: [analyse]
+    name: Build Jar Artifacts
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
@@ -63,6 +63,7 @@ jobs:
 
   test-extension:
     needs: [build-jar-artifacts]
+    name: "Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -73,10 +74,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: Download lib
-        uses: actions/download-artifact@v1
-        with:
-          name: lib
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
@@ -86,38 +83,49 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
+      - name: Move lib to extension
+        run: mv lib extension/
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
         if: matrix.os == 'ubuntu-latest'
       - name: Set perms
         run: |
-          chmod +x lib/gradle-tasks
+          chmod +x extension/lib/gradle-tasks
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Build & test extension on ${{ matrix.os }}
         run: |
-          npm ci
-          npm test
+          npm ci --prefix extension
+          npm test --prefix extension
         env:
           DISPLAY: ':99.0'
           CI: 'true'
 
   publish-extension:
     needs: [test-extension]
+    name: Publish extension
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
       - name: Download lib
         uses: actions/download-artifact@v1
         with:
           name: lib
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12.x
+      - name: Move lib to extension
+        run: mv lib extension/
       - name: Package extension
         run: |
+          cp README.md extension/
+          cd extension
           chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"

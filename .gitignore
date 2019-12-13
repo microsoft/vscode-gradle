@@ -1,11 +1,3 @@
-out
-node_modules
-*.vsix
-.vscode-test
+.scannerwork
 .DS_Store
 .envrc
-lib/**
-.classpath
-.settings
-.idea
-.scannerwork
