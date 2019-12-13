@@ -117,8 +117,11 @@ jobs:
         run: |
           mv lib extension/
           mv README.md extension/
+      - name: Move lib to extension
+        run: mv lib extension/
       - name: Package extension
         run: |
+          cp README.md extension/
           cd extension
       - uses: actions/setup-node@v1
         with:
