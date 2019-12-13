@@ -343,7 +343,7 @@ export class GradleTasksTreeDataProvider
           projectTreeItems.set(projectName, projectTreeItem);
         }
 
-        let taskName: string = task.name;
+        let taskName: string = task.definition.script;
         let parentTreeItem: ProjectTreeItem | GroupTreeItem = projectTreeItem;
 
         if (!this.collapsed) {

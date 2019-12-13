@@ -162,7 +162,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       (allTasks: vscode.Task[], gradleProject: GradleProject) => {
         return allTasks.concat(
           gradleProject.tasks.map(gradleTask =>
-            createTaskFromGradleTask(
+            createVSCodeTaskFromGradleTask(
               gradleTask,
               workspaceFolder,
               command,
@@ -184,7 +184,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       path.join(os.tmpdir(), 'vscode-gradle-')
     );
     const tempFile = path.join(tempDir, 'tasks.json');
-    const command = getTasksScriptCommand();
+    const command = getGradleTasksCommand();
     const cwd = this.context.asAbsolutePath('lib');
     const args = [folder.fsPath, tempFile];
     return executeGradleTasksCommand(command, args, { cwd }, this.outputChannel)
@@ -234,7 +234,7 @@ export async function getGradleWrapperCommandFromPath(
   }
 }
 
-export function getTasksScriptCommand(): string {
+export function getGradleTasksCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
     return '.\\gradle-tasks.bat';
@@ -245,8 +245,18 @@ export function getTasksScriptCommand(): string {
   }
 }
 
+function isTaskOfType(definition: GradleTaskDefinition, type: string): boolean {
+  return (
+    definition.group.toLowerCase() === type ||
+    definition.script
+      .split(' ')[0]
+      .split(':')
+      .pop() === type
+  );
+}
+
 export function createTaskFromDefinition(
-  definition: vscode.TaskDefinition,
+  definition: GradleTaskDefinition,
   workspaceFolder: vscode.WorkspaceFolder,
   cmd: string,
   projectFolder: vscode.Uri,
@@ -255,10 +265,18 @@ export function createTaskFromDefinition(
   const crossShellCmd = `"${cmd}"`;
   const cwd = projectFolder.fsPath;
   const allArgs = [definition.script, ...args];
+  let taskName = definition.script;
+  if (definition.projectFolder !== definition.workspaceFolder) {
+    const relativePath = path.relative(
+      definition.workspaceFolder,
+      definition.projectFolder
+    );
+    taskName += ` - ${relativePath}`;
+  }
   const task = new vscode.Task(
     definition,
     workspaceFolder,
-    definition.script,
+    taskName,
     'gradle',
     new vscode.ShellExecution(crossShellCmd, allArgs, { cwd }),
     ['$gradle']
@@ -268,10 +286,16 @@ export function createTaskFromDefinition(
     showReuseMessage: false,
     focus: true
   };
+  if (isTaskOfType(definition, 'build')) {
+    task.group = vscode.TaskGroup.Build;
+  }
+  if (isTaskOfType(definition, 'test')) {
+    task.group = vscode.TaskGroup.Test;
+  }
   return task;
 }
 
-export function createTaskFromGradleTask(
+export function createVSCodeTaskFromGradleTask(
   gradleTask: GradleTask,
   folder: vscode.WorkspaceFolder,
   command: string,
@@ -280,10 +304,10 @@ export function createTaskFromGradleTask(
   projectFolder: vscode.Uri,
   shellArgs: string[] = []
 ): vscode.Task {
-  const friendlyTaskName = gradleTask.path.replace(/^:/, '');
+  const script = gradleTask.path.replace(/^:/, '');
   const definition: GradleTaskDefinition = {
     type: 'gradle',
-    script: friendlyTaskName,
+    script,
     description: gradleTask.description,
     group: (gradleTask.group || 'other').toLowerCase(),
     project: gradleTask.project,
@@ -292,6 +316,7 @@ export function createTaskFromGradleTask(
     projectFolder: projectFolder.fsPath,
     workspaceFolder: folder.uri.fsPath
   };
+
   return createTaskFromDefinition(
     definition,
     folder,
@@ -311,7 +336,7 @@ export async function cloneTask(
     return undefined;
   }
   return createTaskFromDefinition(
-    task.definition,
+    task.definition as GradleTaskDefinition,
     folder,
     command,
     task.definition.projectFolder,
