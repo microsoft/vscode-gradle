@@ -37,8 +37,8 @@
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:gradle.refresh",
     "onCommand:gradle.runTask",
-    "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat",
+    "workspaceContains:**/gradlew",
+    "workspaceContains:**/gradlew.bat",
     "onView:gradleTreeView"
   ],
   "main": "./out/extension",
@@ -250,6 +250,14 @@
           "path": {
             "type": "string",
             "description": "The full task path"
+          },
+          "projectFolder": {
+            "type": "string",
+            "description": "The gradle project folder path"
+          },
+          "workspaceFolder": {
+            "type": "string",
+            "description": "The workspace folder path"
           }
         }
       }

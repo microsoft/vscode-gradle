@@ -7,8 +7,10 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
+
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
+
 import org.gradle.tooling.GradleConnectionException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
@@ -21,12 +23,14 @@ public class CliApp {
     private File sourceDir;
     private File targetFile;
     private Logger logger = Logger.getLogger(CliApp.class.getName());
+    private LoggerOutputStream loggerOutputStream;
 
     public CliApp(File sourceDir, File targetFile, StreamHandler logHandler) {
         this.sourceDir = sourceDir;
         this.targetFile = targetFile;
         this.logger.setUseParentHandlers(false);
         this.logger.addHandler(logHandler);
+        this.loggerOutputStream = new LoggerOutputStream(logger);
     }
 
     public static void main(String[] args) throws CliAppException, IOException {
@@ -64,28 +68,25 @@ public class CliApp {
 
     private JsonArray getProjects() throws CliAppException {
         JsonArray jsonProjects = Json.array();
-        ProjectConnection connection = null;
         GradleBuild rootBuild;
         GradleProject rootProject;
         GradleProgressListener progressListener = new GradleProgressListener(this.logger);
+        ProjectConnection connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
 
         try {
-            connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
             ModelBuilder<GradleBuild> rootBuilder = connection.model(GradleBuild.class);
             rootBuilder.addProgressListener(progressListener);
-            rootBuilder.setStandardOutput(System.out);
-            rootBuilder.setStandardError(System.out);
+            rootBuilder.setStandardOutput(loggerOutputStream);
+            rootBuilder.setStandardError(loggerOutputStream);
             rootBuild = rootBuilder.get();
 
             ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
             rootProjectBuilder.addProgressListener(progressListener);
-            rootProjectBuilder.setStandardOutput(System.out);
-            rootProjectBuilder.setStandardError(System.out);
+            rootProjectBuilder.setStandardOutput(loggerOutputStream);
+            rootProjectBuilder.setStandardError(loggerOutputStream);
             rootProject = rootProjectBuilder.get();
         } catch (GradleConnectionException err) {
-            if (connection != null) {
-                connection.close();
-            }
+            connection.close();
             throw new CliAppException(err.getMessage());
         }
 
@@ -95,9 +96,8 @@ public class CliApp {
             JsonArray jsonTasks = Json.array();
 
             gradleProject.getTasks().stream()
-                    .map(task -> Json.object().add("name", task.getName())
-                            .add("group", task.getGroup()).add("path", task.getPath())
-                            .add("project", gradleProject.getName())
+                    .map(task -> Json.object().add("name", task.getName()).add("group", task.getGroup())
+                            .add("path", task.getPath()).add("project", gradleProject.getName())
                             .add("description", task.getDescription()))
                     .forEach(jsonTasks::add);
 
@@ -105,10 +105,9 @@ public class CliApp {
             GradleScript buildScript = gradleProject.getBuildScript();
             String parentProjectName = parentProject != null ? parentProject.getName() : null;
 
-            return Json.object().add("name", gradleProject.getName())
-                    .add("parent", parentProjectName).add("path", gradleProject.getPath())
-                    .add("buildFile", buildScript.getSourceFile().getAbsolutePath())
-                    .add("tasks", jsonTasks);
+            return Json.object().add("name", gradleProject.getName()).add("parent", parentProjectName)
+                    .add("path", gradleProject.getPath())
+                    .add("buildFile", buildScript.getSourceFile().getAbsolutePath()).add("tasks", jsonTasks);
         }).forEach(jsonProjects::add);
 
         connection.close();

@@ -28,6 +28,8 @@ function treeItemSortCompareFunc(
 
 class WorkspaceTreeItem extends vscode.TreeItem {
   projects: ProjectTreeItem[] = [];
+  projectFolders: WorkspaceTreeItem[] = [];
+  parentTreeItem: WorkspaceTreeItem | null = null;
 
   constructor(name: string, resourceUri: vscode.Uri) {
     super(name, vscode.TreeItemCollapsibleState.Expanded);
@@ -38,6 +40,10 @@ class WorkspaceTreeItem extends vscode.TreeItem {
 
   addProject(project: ProjectTreeItem): void {
     this.projects.push(project);
+  }
+
+  addProjectFolder(projectFolder: WorkspaceTreeItem): void {
+    this.projectFolders.push(projectFolder);
   }
 }
 
@@ -236,7 +242,7 @@ export class GradleTasksTreeDataProvider
 
   getParent(element: vscode.TreeItem): vscode.TreeItem | null {
     if (element instanceof WorkspaceTreeItem) {
-      return null;
+      return element.parentTreeItem;
     }
     if (element instanceof ProjectTreeItem) {
       return element.parentTreeItem;
@@ -264,7 +270,7 @@ export class GradleTasksTreeDataProvider
       }
     }
     if (element instanceof WorkspaceTreeItem) {
-      return [...element.projects];
+      return [...element.projectFolders, ...element.projects];
     }
     if (element instanceof ProjectTreeItem) {
       return [...element.groups, ...element.tasks];
@@ -287,6 +293,7 @@ export class GradleTasksTreeDataProvider
   // eslint-disable-next-line sonarjs/cognitive-complexity
   buildTaskTree(tasks: vscode.Task[]): WorkspaceTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
+    const nestedWorkspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
     const groupTreeItems: Map<string, GroupTreeItem> = new Map();
     let workspaceTreeItem = null;
@@ -300,6 +307,26 @@ export class GradleTasksTreeDataProvider
             task.scope.uri
           );
           workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
+        }
+
+        if (task.definition.projectFolder !== task.definition.workspaceFolder) {
+          const relativePath = path.relative(
+            task.definition.workspaceFolder,
+            task.definition.projectFolder
+          );
+          let nestedWorkspaceTreeItem = nestedWorkspaceTreeItems.get(
+            relativePath
+          );
+          if (!nestedWorkspaceTreeItem) {
+            nestedWorkspaceTreeItem = new WorkspaceTreeItem(
+              relativePath,
+              vscode.Uri.file(task.definition.projectFolder)
+            );
+            nestedWorkspaceTreeItems.set(relativePath, nestedWorkspaceTreeItem);
+            nestedWorkspaceTreeItem.parentTreeItem = workspaceTreeItem;
+            workspaceTreeItem.addProjectFolder(nestedWorkspaceTreeItem);
+          }
+          workspaceTreeItem = nestedWorkspaceTreeItem;
         }
 
         const projectName = this.collapsed
@@ -316,7 +343,7 @@ export class GradleTasksTreeDataProvider
           projectTreeItems.set(projectName, projectTreeItem);
         }
 
-        let taskName: string = task.name;
+        let taskName: string = task.definition.script;
         let parentTreeItem: ProjectTreeItem | GroupTreeItem = projectTreeItem;
 
         if (!this.collapsed) {
@@ -347,7 +374,10 @@ export class GradleTasksTreeDataProvider
       }
     });
     if (workspaceTreeItems.size === 1) {
-      return workspaceTreeItems.values().next().value.projects;
+      return [
+        ...workspaceTreeItems.values().next().value.projectFolders,
+        ...workspaceTreeItems.values().next().value.projects
+      ];
     }
     return [...workspaceTreeItems.values()];
   }

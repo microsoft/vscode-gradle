@@ -82,12 +82,27 @@ async function runTestsWithMultiProject(): Promise<void> {
   });
 }
 
+async function runTestsWithNestedProjects(): Promise<void> {
+  await runTests({
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, 'nested-projects'),
+    launchArgs: [
+      path.resolve(__dirname, '../../test-fixtures'),
+      '--disable-extensions'
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: 'nested-projects'
+    }
+  });
+}
+
 async function main(): Promise<void> {
   try {
     await runUnitTests();
     await runTestsWithGradle();
     await runTestsWithMultiRoot();
     await runTestsWithMultiProject();
+    await runTestsWithNestedProjects();
     await runTestsWithoutGradle();
   } catch (err) {
     console.error('Failed to run tests');
