@@ -359,7 +359,7 @@ export class GradleTasksTreeDataProvider
             groupTreeItems.set(groupId, groupTreeItem);
           }
           parentTreeItem = groupTreeItem;
-          taskName = task.name.split(':').pop() as string;
+          taskName = task.definition.script.split(':').pop() as string;
         }
 
         parentTreeItem.addTask(
