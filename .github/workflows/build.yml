@@ -120,6 +120,7 @@ jobs:
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
+          npm ci
           npx vsce package
       - name: Publish extension to marketplace
         env:
