@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.2.5
+
+- Add support for nested gradle projects (#88)
+- Add Troubleshooting section to README
+
 ## 2.2.4
 
 - Tooling upgrades (replaced tslint with eslint, added sonarqube)
