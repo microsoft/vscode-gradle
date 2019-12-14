@@ -125,6 +125,10 @@
       {
         "command": "gradle.killRefreshProcess",
         "title": "Gradle: Kill refresh process"
+      },
+      {
+        "command": "gradle.showRefreshInformationMessage",
+        "title": "Show Gradle Refresh information message box"
       }
     ],
     "menus": {
@@ -147,6 +151,10 @@
         },
         {
           "command": "gradle.explorerTree",
+          "when": "false"
+        },
+        {
+          "command": "gradle.showRefreshInformationMessage",
           "when": "false"
         }
       ],
