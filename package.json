@@ -282,7 +282,7 @@
     "lint:eslint": "eslint . --ext .js,.ts",
     "format": "npm run format:prettier && npm run lint:eslint -- --fix",
     "format:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
-    "compile:java": "cd java-gradle-tasks && ./gradlew build copyLibToParent"
+    "compile:java": "cd java-gradle-tasks && ./gradlew generateLib"
   },
   "dependencies": {},
   "devDependencies": {

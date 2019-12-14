@@ -13,6 +13,6 @@ class GradleProgressListener implements ProgressListener {
 
     @Override
     public void statusChanged(ProgressEvent progressEvent) {
-        logger.info(".");
+        logger.info(progressEvent.getDescription());
     }
 }

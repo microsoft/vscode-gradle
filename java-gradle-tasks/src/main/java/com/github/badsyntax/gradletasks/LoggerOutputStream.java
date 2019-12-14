@@ -16,8 +16,8 @@ class LoggerOutputStream extends OutputStream {
     @Override
     public final void write(int b) throws IOException {
         char c = (char) b;
-        if (c == '\n') {
-            logger.info(String.format("%s%s", baos.toString(), "\n"));
+        if (c == System.lineSeparator().charAt(0)) {
+            logger.info(baos.toString());
             baos.reset();
         } else {
             baos.write(b);

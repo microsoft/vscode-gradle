@@ -12,13 +12,7 @@ type GradleTask = {
   name: string;
   group: string;
   project: string;
-};
-
-type GradleProject = {
-  name: string;
-  path: string;
-  parent: string;
-  tasks: GradleTask[];
+  rootProject: string;
   buildFile: string;
 };
 
@@ -139,45 +133,29 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     projectFolder: vscode.Uri
   ): Promise<vscode.Task[]> {
     const emptyTasks: vscode.Task[] = [];
-
     const command = await getGradleWrapperCommandFromPath(projectFolder.fsPath);
     if (!command) {
       return emptyTasks;
     }
-    const gradleProjects:
-      | GradleProject[]
-      | undefined = await this.getGradleProjects(projectFolder);
-    if (!gradleProjects || !gradleProjects.length) {
-      return emptyTasks;
-    }
-
-    const rootProject: GradleProject | undefined = gradleProjects.find(
-      project => !project.parent
+    const gradleTasks: GradleTask[] | undefined = await this.getGradleTasks(
+      projectFolder
     );
-    if (!rootProject) {
+    if (!gradleTasks || !gradleTasks.length) {
       return emptyTasks;
     }
-
-    return gradleProjects.reduce(
-      (allTasks: vscode.Task[], gradleProject: GradleProject) => {
-        return allTasks.concat(
-          gradleProject.tasks.map(gradleTask =>
-            createVSCodeTaskFromGradleTask(
-              gradleTask,
-              workspaceFolder,
-              command,
-              rootProject.name,
-              vscode.Uri.file(gradleProject.buildFile),
-              projectFolder
-            )
-          )
-        );
-      },
-      []
+    return gradleTasks.map(gradleTask =>
+      createVSCodeTaskFromGradleTask(
+        gradleTask,
+        workspaceFolder,
+        command,
+        gradleTask.rootProject,
+        vscode.Uri.file(gradleTask.buildFile),
+        projectFolder
+      )
     );
   }
 
-  private async getProjectsFromGradle(folder: vscode.Uri): Promise<string> {
+  private async getTasksFromGradle(folder: vscode.Uri): Promise<string> {
     this.statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
     this.statusBarItem.show();
     const tempDir = await fs.promises.mkdtemp(
@@ -198,11 +176,11 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       });
   }
 
-  private async getGradleProjects(
+  private async getGradleTasks(
     projectFolder: vscode.Uri
-  ): Promise<GradleProject[] | undefined> {
-    const stdout = await this.getProjectsFromGradle(projectFolder);
-    return parseGradleProjects(stdout);
+  ): Promise<GradleTask[] | undefined> {
+    const stdout = await this.getTasksFromGradle(projectFolder);
+    return parseGradleTasks(stdout);
   }
 }
 
@@ -369,7 +347,7 @@ async function exists(file: string): Promise<boolean> {
   });
 }
 
-export function parseGradleProjects(buffer: Buffer | string): GradleProject[] {
+export function parseGradleTasks(buffer: Buffer | string): GradleTask[] {
   const input = buffer.toString();
   try {
     return JSON.parse(input);

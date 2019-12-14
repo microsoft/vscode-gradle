@@ -31,14 +31,12 @@ jobs:
           arguments: build
           build-root-directory: java-gradle-tasks
           wrapper-directory: java-gradle-tasks
-        if: github.ref != 'master'
       - name: SonarQube Analyse
         uses: sonarsource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ''
-        if: github.ref != 'master'
 
   build-jar-artifacts:
     needs: [analyse]
@@ -54,7 +52,7 @@ jobs:
       - name: Build lib
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build copyLibToParent
+          arguments: generateLib
           build-root-directory: java-gradle-tasks
           wrapper-directory: java-gradle-tasks
       - name: Upload lib

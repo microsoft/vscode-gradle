@@ -6,6 +6,6 @@ import java.util.logging.LogRecord;
 class BasicWriteFormatter extends Formatter {
     @Override
     public String format(LogRecord record) {
-        return record.getMessage();
+        return String.format("%s%s", record.getMessage(), System.lineSeparator());
     }
 }
