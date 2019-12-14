@@ -23,13 +23,7 @@ function registerTaskProvider(
   }
 
   if (vscode.workspace.workspaceFolders) {
-    const defaultGroovyBuildFile = '*.gradle';
-    const defaultKotlinBuildFile = '*.gradle.kts';
-    const buildFiles = new Set<string>();
-    buildFiles.add(defaultGroovyBuildFile);
-    buildFiles.add(defaultKotlinBuildFile);
-
-    const buildFileGlob = `**/{${Array.from(buildFiles).join(',')}}`;
+    const buildFileGlob = `**/*.{gradle,gradle.kts}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
     watcher.onDidChange(() => invalidateTaskCaches());
     watcher.onDidDelete(() => invalidateTaskCaches());
@@ -44,7 +38,7 @@ function registerTaskProvider(
       1
     );
     statusBarItem.tooltip = 'Cancel';
-    statusBarItem.command = 'gradle.killRefreshProcess';
+    statusBarItem.command = 'gradle.showRefreshInformationMessage';
 
     const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
@@ -78,7 +72,10 @@ function registerExplorer(
   }
 }
 
-function registerCommands(context: vscode.ExtensionContext): void {
+function registerCommands(
+  context: vscode.ExtensionContext,
+  outputChannel: vscode.OutputChannel
+): void {
   if (treeDataProvider) {
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -126,6 +123,25 @@ function registerCommands(context: vscode.ExtensionContext): void {
         killRefreshProcess
       )
     );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        'gradle.showRefreshInformationMessage',
+        async () => {
+          const OPT_LOGS = 'View Logs';
+          const OPT_CANCEL = 'Cancel Process';
+          const input = await vscode.window.showInformationMessage(
+            'Gradle Refresh Process',
+            OPT_LOGS,
+            OPT_CANCEL
+          );
+          if (input === OPT_LOGS) {
+            outputChannel.show();
+          } else if (input === OPT_CANCEL) {
+            vscode.commands.executeCommand('gradle.killRefreshProcess');
+          }
+        }
+      )
+    );
   }
 }
 
@@ -147,7 +163,7 @@ export async function activate(
   registerTaskProvider(context, outputChannel);
   if (await hasGradleProject()) {
     registerExplorer(context, explorerCollapsed);
-    registerCommands(context);
+    registerCommands(context, outputChannel);
     if (treeDataProvider) {
       treeDataProvider.refresh();
     }
