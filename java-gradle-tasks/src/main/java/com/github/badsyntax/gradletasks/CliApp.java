@@ -7,10 +7,10 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
-
+import java.util.stream.Stream;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
-
+import com.eclipsesource.json.JsonObject;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
@@ -53,7 +53,7 @@ public class CliApp {
         try {
             CliApp app = new CliApp(sourceDir, targetFile, logger);
             app.writeTasksToFile();
-        } catch(CliAppException ex) {
+        } catch (CliAppException ex) {
             logger.info(ex.getMessage());
             System.exit(1);
         }
@@ -68,23 +68,37 @@ public class CliApp {
         }
     }
 
+    private void buildTasksListFromProjectTree(GradleProject project, JsonArray jsonTasks) {
+        buildTasksListFromProjectTree(project, project, jsonTasks);
+    }
+
+    private void buildTasksListFromProjectTree(GradleProject project, GradleProject rootProject,
+            JsonArray jsonTasks) {
+        project.getTasks().stream().map(task -> Json.object().add("name", task.getName())
+                .add("group", task.getGroup()).add("path", task.getPath())
+                .add("project", task.getProject().getName())
+                .add("buildFile",
+                        task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
+                .add("rootProject", rootProject.getName())
+                .add("description", task.getDescription())).forEach(jsonTasks::add);
+        project.getChildren().stream().forEach(childProject -> {
+            buildTasksListFromProjectTree(childProject, rootProject, jsonTasks);
+        });
+    }
+
     private JsonArray getTasks() throws CliAppException {
         JsonArray jsonTasks = Json.array();
         GradleProgressListener progressListener = new GradleProgressListener(this.logger);
-        ProjectConnection connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
+        ProjectConnection connection =
+                GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
         try {
             ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
             rootProjectBuilder.addProgressListener(progressListener);
             rootProjectBuilder.setStandardOutput(loggerOutputStream);
             rootProjectBuilder.setStandardError(loggerOutputStream);
-            rootProjectBuilder.setColorOutput(true);
+            rootProjectBuilder.setColorOutput(false);
             GradleProject rootProject = rootProjectBuilder.get();
-            rootProject.getTasks().stream()
-                    .map(task -> Json.object().add("name", task.getName()).add("group", task.getGroup())
-                            .add("path", task.getPath()).add("project", task.getProject().getName())
-                            .add("buildFile", task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
-                            .add("rootProject", rootProject.getName()).add("description", task.getDescription()))
-                    .forEach(jsonTasks::add);
+            buildTasksListFromProjectTree(rootProject, jsonTasks);
         } catch (Exception err) {
             throw new CliAppException(err.getMessage());
         } finally {
