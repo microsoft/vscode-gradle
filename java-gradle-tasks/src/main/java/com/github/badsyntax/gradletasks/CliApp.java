@@ -42,7 +42,11 @@ public class CliApp {
         String targetFileName = args[1];
         File targetFile = new File(targetFileName);
 
-        StreamHandler logHandler = new ConsoleHandler();
+        StreamHandler logHandler = new ConsoleHandler() {
+            {
+                setOutputStream(System.out);
+            }
+        };
         logHandler.setFormatter(new BasicWriteFormatter());
         logHandler.setLevel(Level.ALL);
 
@@ -87,7 +91,6 @@ public class CliApp {
     }
 
     private JsonArray getTasks() throws CliAppException {
-        JsonArray jsonTasks = Json.array();
         GradleProgressListener progressListener = new GradleProgressListener(this.logger);
         ProjectConnection connection =
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
@@ -98,12 +101,13 @@ public class CliApp {
             rootProjectBuilder.setStandardError(loggerOutputStream);
             rootProjectBuilder.setColorOutput(false);
             GradleProject rootProject = rootProjectBuilder.get();
+            JsonArray jsonTasks = Json.array();
             buildTasksListFromProjectTree(rootProject, jsonTasks);
+            return jsonTasks;
         } catch (Exception err) {
             throw new CliAppException(err.getMessage());
         } finally {
             connection.close();
         }
-        return jsonTasks;
     }
 }

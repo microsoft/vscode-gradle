@@ -156,7 +156,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 
   private async getTasksFromGradle(folder: vscode.Uri): Promise<string> {
-    this.statusBarItem.text = '$(sync~spin) Refreshing gradle tasks';
+    this.statusBarItem.text = '$(sync~spin) Gradle: Refreshing Tasks';
     this.statusBarItem.show();
     const tempDir = await fs.promises.mkdtemp(
       path.join(os.tmpdir(), 'vscode-gradle-')
@@ -165,16 +165,43 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     const command = getGradleTasksCommand();
     const cwd = this.context.asAbsolutePath('lib');
     const args = [folder.fsPath, tempFile];
-    return executeGradleTasksCommand(command, args, { cwd }, this.outputChannel)
-      .then(() => fs.promises.readFile(tempFile, 'utf8'))
-      .finally(async () => {
-        this.statusBarItem.hide();
-        if (await exists(tempFile)) {
-          await fs.promises.unlink(tempFile);
-        }
-        await fs.promises.rmdir(tempDir);
-      });
+
+    debugCommand(command, args, this.outputChannel);
+
+    try {
+      await executeGradleTasksCommand(
+        command,
+        args,
+        { cwd },
+        this.onGradleTasksProcessOutput
+      );
+      return await fs.promises.readFile(tempFile, 'utf8');
+    } finally {
+      this.statusBarItem.hide();
+      if (await exists(tempFile)) {
+        await fs.promises.unlink(tempFile);
+      }
+      await fs.promises.rmdir(tempDir);
+    }
   }
+
+  private onGradleTasksProcessOutput = (output: string): void => {
+    this.outputChannel.append(output);
+    const trimmedOutput = output.trim();
+    if (trimmedOutput && trimmedOutput[0] !== '.') {
+      const maxLength = 42;
+      const ellipsis = '...';
+      let statusText = trimmedOutput
+        .split('\n')
+        .pop()!
+        .slice(0, maxLength);
+      if (statusText.length === maxLength) {
+        statusText += ellipsis;
+      }
+      this.statusBarItem.text = `$(sync~spin) Gradle: ${statusText}`;
+      this.statusBarItem.show();
+    }
+  };
 
   private async getGradleTasks(
     projectFolder: vscode.Uri
@@ -369,17 +396,16 @@ export function executeGradleTasksCommand(
   command: string,
   args: ReadonlyArray<string> = [],
   options: cp.SpawnOptionsWithoutStdio = {},
-  outputChannel: vscode.OutputChannel
+  onOutput: (output: string) => void
 ): Promise<string> {
-  debugCommand(command, args, outputChannel);
   return new Promise((resolve, reject) => {
     gradleTasksProcess = cp.spawn(command, args, options);
-    gradleTasksProcess.stdout.on('data', (buffer: Buffer) =>
-      outputChannel.append(buffer.toString())
-    );
-    gradleTasksProcess.stderr.on('data', (buffer: Buffer) =>
-      outputChannel.append(buffer.toString())
-    );
+    gradleTasksProcess.stdout.on('data', (buffer: Buffer) => {
+      onOutput(buffer.toString());
+    });
+    gradleTasksProcess.stderr.on('data', (buffer: Buffer) => {
+      onOutput(buffer.toString());
+    });
     gradleTasksProcess.on('error', reject);
     gradleTasksProcess.on('exit', (code: number) => {
       if (code === 0) {

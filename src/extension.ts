@@ -33,10 +33,7 @@ function registerTaskProvider(
       invalidateTaskCaches()
     );
 
-    const statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      1
-    );
+    const statusBarItem = vscode.window.createStatusBarItem();
     statusBarItem.tooltip = 'Cancel';
     statusBarItem.command = 'gradle.showRefreshInformationMessage';
 
