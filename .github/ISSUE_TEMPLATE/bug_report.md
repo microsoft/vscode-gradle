@@ -25,5 +25,8 @@ If applicable, add screenshots to help explain your problem.
 **Output from "Gradle Tasks"**
 You can find this by clicking on the "Output" panel, then selecting the "Gradle Tasks" channel from the dropdown.
 
+**Does the bug still exist if you disable all other extensions?**
+Yes/No
+
 **Additional context**
 Add any other context about the problem here.
