@@ -8,6 +8,7 @@ import {
   enableTaskDetection,
   cloneTask
 } from './tasks';
+import { GradleTasksClient } from './server';
 
 function getTaskExecution(task: vscode.Task): vscode.TaskExecution | undefined {
   return vscode.tasks.taskExecutions.find(
@@ -164,7 +165,8 @@ export class GradleTasksTreeDataProvider
 
   constructor(
     private readonly extensionContext: vscode.ExtensionContext,
-    private collapsed: boolean = true
+    private collapsed: boolean = true,
+    private readonly client: GradleTasksClient
   ) {
     extensionContext.subscriptions.push(
       vscode.tasks.onDidStartTask(this.onTaskStatusChange, this)
@@ -177,11 +179,13 @@ export class GradleTasksTreeDataProvider
 
   setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
+    this.extensionContext.workspaceState.update('explorerCollapsed', collapsed);
     vscode.commands.executeCommand(
       'setContext',
       'gradle:explorerCollapsed',
       collapsed
     );
+    this.render();
   }
 
   onTaskStatusChange(event: vscode.TaskStartEvent): void {
@@ -202,7 +206,11 @@ export class GradleTasksTreeDataProvider
         ignoreFocusOut: true
       });
       if (args !== undefined) {
-        const task = await cloneTask(taskItem.task, args.split(' '));
+        const task = await cloneTask(
+          taskItem.task,
+          args.split(' '),
+          this.client
+        );
         if (task) {
           vscode.tasks.executeTask(task);
         }

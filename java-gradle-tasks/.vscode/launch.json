@@ -10,7 +10,7 @@
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.CliApp",
       "projectName": "gradle-tasks",
-      "args": "../test-fixtures/multi-project tasks.json",
+      "args": "8888"
     }
   ]
 }

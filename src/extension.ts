@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import getPort from 'get-port';
+
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
@@ -6,6 +8,12 @@ import {
   GradleTaskProvider,
   hasGradleProject
 } from './tasks';
+import {
+  registerServer,
+  registerClient,
+  GradleTasksClient,
+  GradleTasksServer
+} from './server';
 
 import { getIsTasksExplorerEnabled } from './config';
 
@@ -13,7 +21,9 @@ let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.OutputChannel
+  client: GradleTasksClient,
+  outputChannel: vscode.OutputChannel,
+  statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable | undefined {
   function invalidateTaskCaches(): void {
     invalidateTasksCache();
@@ -25,30 +35,26 @@ function registerTaskProvider(
   if (vscode.workspace.workspaceFolders) {
     const buildFileGlob = `**/*.{gradle,gradle.kts}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
-    watcher.onDidChange(() => invalidateTaskCaches());
-    watcher.onDidDelete(() => invalidateTaskCaches());
-    watcher.onDidCreate(() => invalidateTaskCaches());
+    context.subscriptions.push(watcher);
+    watcher.onDidChange(invalidateTaskCaches);
+    watcher.onDidDelete(invalidateTaskCaches);
+    watcher.onDidCreate(invalidateTaskCaches);
 
-    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() =>
-      invalidateTaskCaches()
+    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(
+      invalidateTaskCaches
     );
-
-    const statusBarItem = vscode.window.createStatusBarItem();
-    statusBarItem.tooltip = 'Cancel';
-    statusBarItem.command = 'gradle.showRefreshInformationMessage';
+    context.subscriptions.push(workspaceWatcher);
 
     const provider: vscode.TaskProvider = new GradleTaskProvider(
       statusBarItem,
       outputChannel,
-      context
+      context,
+      client
     );
 
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
-
-    context.subscriptions.push(watcher);
-    context.subscriptions.push(workspaceWatcher);
-    context.subscriptions.push(statusBarItem);
     context.subscriptions.push(taskProvider);
+
     return taskProvider;
   }
   return undefined;
@@ -56,10 +62,15 @@ function registerTaskProvider(
 
 function registerExplorer(
   context: vscode.ExtensionContext,
-  collapsed: boolean
+  collapsed: boolean,
+  client: GradleTasksClient
 ): void {
   if (vscode.workspace.workspaceFolders) {
-    treeDataProvider = new GradleTasksTreeDataProvider(context, collapsed);
+    treeDataProvider = new GradleTasksTreeDataProvider(
+      context,
+      collapsed,
+      client
+    );
     context.subscriptions.push(
       vscode.window.createTreeView('gradleTreeView', {
         treeDataProvider: treeDataProvider,
@@ -102,16 +113,12 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerTree', () => {
-        context.workspaceState.update('explorerCollapsed', false);
         treeDataProvider!.setCollapsed(false);
-        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerFlat', () => {
-        context.workspaceState.update('explorerCollapsed', true);
         treeDataProvider!.setCollapsed(true);
-        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
@@ -143,7 +150,6 @@ function registerCommands(
 }
 
 export interface ExtensionApi {
-  outputChannel: vscode.OutputChannel;
   treeDataProvider: GradleTasksTreeDataProvider | undefined;
   context: vscode.ExtensionContext;
 }
@@ -151,28 +157,52 @@ export interface ExtensionApi {
 export async function activate(
   context: vscode.ExtensionContext
 ): Promise<ExtensionApi> {
-  const explorerCollapsed = context.workspaceState.get(
-    'explorerCollapsed',
-    true
-  );
-  const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
-  context.subscriptions.push(outputChannel);
-  registerTaskProvider(context, outputChannel);
   if (await hasGradleProject()) {
-    registerExplorer(context, explorerCollapsed);
-    registerCommands(context, outputChannel);
-    if (treeDataProvider) {
-      treeDataProvider.refresh();
-    }
-    if (getIsTasksExplorerEnabled()) {
-      vscode.commands.executeCommand(
-        'setContext',
-        'gradle:showTasksExplorer',
-        true
+    const explorerCollapsed = context.workspaceState.get(
+      'explorerCollapsed',
+      true
+    );
+    const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
+    context.subscriptions.push(outputChannel);
+
+    const statusBarItem = vscode.window.createStatusBarItem();
+    context.subscriptions.push(statusBarItem);
+    statusBarItem.command = 'gradle.showRefreshInformationMessage';
+
+    let server: GradleTasksServer | undefined;
+    let client: GradleTasksClient | undefined;
+
+    const port = await getPort();
+    try {
+      server = await registerServer(
+        { port, host: 'localhost' },
+        outputChannel,
+        context
       );
+      context.subscriptions.push(server);
+      client = await registerClient(server, outputChannel, statusBarItem);
+    } catch (e) {
+      outputChannel.appendLine(`Unable to start tasks server: ${e.toString()}`);
+    }
+
+    if (client) {
+      registerTaskProvider(context, client, outputChannel, statusBarItem);
+      registerExplorer(context, explorerCollapsed, client);
+      registerCommands(context, outputChannel);
+
+      if (treeDataProvider) {
+        treeDataProvider.refresh();
+      }
+      if (getIsTasksExplorerEnabled()) {
+        vscode.commands.executeCommand(
+          'setContext',
+          'gradle:showTasksExplorer',
+          true
+        );
+      }
     }
   }
-  return { outputChannel, treeDataProvider, context };
+  return { treeDataProvider, context };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

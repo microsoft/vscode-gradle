@@ -1,12 +1,12 @@
 package com.github.badsyntax.gradletasks;
 
-import org.junit.Test;
+// import org.junit.Test;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
 
 public class CliAppTest {
-    @Test
+    // @Test
     public void testAppValidatesArguments() {
         final String exceptionMessage = "No source directory and/or target file specified";
         final String[] noArgs = {};

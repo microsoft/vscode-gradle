@@ -284,13 +284,17 @@
     "format:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:java": "cd java-gradle-tasks && ./gradlew generateLib"
   },
-  "dependencies": {},
+  "dependencies": {
+    "get-port": "^5.0.0",
+    "ws": "^7.2.1"
+  },
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.21",
     "@types/sinon": "^7.5.1",
     "@types/vscode": "^1.39.0",
+    "@types/ws": "^6.0.4",
     "@typescript-eslint/eslint-plugin": "^2.12.0",
     "@typescript-eslint/parser": "^2.12.0",
     "eslint": "^6.7.2",

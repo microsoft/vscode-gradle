@@ -17,7 +17,7 @@ subprojects {
 
 tasks.register("hello") {
     doLast {
-        println "Hello, World!"
+        println "Hello, sadas asdsa asdWorld!"
     }
 }
 

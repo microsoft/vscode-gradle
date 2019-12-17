@@ -1,52 +1,23 @@
 package com.github.badsyntax.gradletasks;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
-import java.util.stream.Stream;
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import org.gradle.tooling.GradleConnector;
-import org.gradle.tooling.ModelBuilder;
-import org.gradle.tooling.ProjectConnection;
-import org.gradle.tooling.model.GradleProject;
+
+import com.github.badsyntax.gradletasks.server.GradleTasksServer;
 
 public class CliApp {
-    private File sourceDir;
-    private File targetFile;
     private Logger logger;
-    private LoggerOutputStream loggerOutputStream;
 
-    public CliApp(File sourceDir, File targetFile, Logger logger) {
-        this.sourceDir = sourceDir;
-        this.targetFile = targetFile;
+    public CliApp(Logger logger) {
         this.logger = logger;
-        this.loggerOutputStream = new LoggerOutputStream(logger);
     }
 
     public static void main(String[] args) throws CliAppException, IOException {
-        if (args.length < 2) {
-            throw new CliAppException("No source directory and/or target file specified");
-        }
-        String dirName = args[0];
-        File sourceDir = new File(dirName);
-        if (!sourceDir.exists()) {
-            throw new CliAppException("Source directory does not exist");
-        }
-
-        String targetFileName = args[1];
-        File targetFile = new File(targetFileName);
-
-        StreamHandler logHandler = new ConsoleHandler() {
-            {
-                setOutputStream(System.out);
-            }
-        };
+        StreamHandler logHandler = new ConsoleHandler();
         logHandler.setFormatter(new BasicWriteFormatter());
         logHandler.setLevel(Level.ALL);
 
@@ -54,60 +25,31 @@ public class CliApp {
         logger.setUseParentHandlers(false);
         logger.addHandler(logHandler);
 
+        int port = 8887;
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                throw new CliAppException("Invalid port");
+            }
+        }
+
         try {
-            CliApp app = new CliApp(sourceDir, targetFile, logger);
-            app.writeTasksToFile();
+            CliApp app = new CliApp(logger);
+            app.startServer(port);
         } catch (CliAppException ex) {
             logger.info(ex.getMessage());
             System.exit(1);
         }
     }
 
-    private void writeTasksToFile() throws IOException, CliAppException {
-        JsonArray tasks = getTasks();
-        String jsonString = tasks.toString();
-        try (FileOutputStream outputStream = new FileOutputStream(targetFile)) {
-            byte[] strToBytes = jsonString.getBytes();
-            outputStream.write(strToBytes);
-        }
-    }
-
-    private void buildTasksListFromProjectTree(GradleProject project, JsonArray jsonTasks) {
-        buildTasksListFromProjectTree(project, project, jsonTasks);
-    }
-
-    private void buildTasksListFromProjectTree(GradleProject project, GradleProject rootProject,
-            JsonArray jsonTasks) {
-        project.getTasks().stream().map(task -> Json.object().add("name", task.getName())
-                .add("group", task.getGroup()).add("path", task.getPath())
-                .add("project", task.getProject().getName())
-                .add("buildFile",
-                        task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
-                .add("rootProject", rootProject.getName())
-                .add("description", task.getDescription())).forEach(jsonTasks::add);
-        project.getChildren().stream().forEach(childProject -> {
-            buildTasksListFromProjectTree(childProject, rootProject, jsonTasks);
-        });
-    }
-
-    private JsonArray getTasks() throws CliAppException {
-        GradleProgressListener progressListener = new GradleProgressListener(this.logger);
-        ProjectConnection connection =
-                GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
+    private void startServer(int port) throws CliAppException {
         try {
-            ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
-            rootProjectBuilder.addProgressListener(progressListener);
-            rootProjectBuilder.setStandardOutput(loggerOutputStream);
-            rootProjectBuilder.setStandardError(loggerOutputStream);
-            rootProjectBuilder.setColorOutput(false);
-            GradleProject rootProject = rootProjectBuilder.get();
-            JsonArray jsonTasks = Json.array();
-            buildTasksListFromProjectTree(rootProject, jsonTasks);
-            return jsonTasks;
-        } catch (Exception err) {
-            throw new CliAppException(err.getMessage());
-        } finally {
-            connection.close();
+            GradleTasksServer server = new GradleTasksServer(port, logger);
+            logger.info(String.format("Attempting to start server on port %s", port));
+            server.start();
+        } catch (UnknownHostException e) {
+            throw new CliAppException(e.getMessage());
         }
     }
 }
