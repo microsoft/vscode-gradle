@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradletasks.server.actions;
 
 import java.io.File;
+import java.util.Map;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
@@ -9,6 +10,7 @@ import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
 import com.github.badsyntax.gradletasks.server.listeners.GradleProgressListener;
 import com.github.badsyntax.gradletasks.server.messages.TasksMessage;
 
+import org.gradle.tooling.CancellationTokenSource;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
@@ -21,13 +23,15 @@ public class GetTasksAction implements Action {
     private GradleProgressListener progressListener;
     private GradleOutputListener stdoutListener;
     private GradleOutputListener stderrListener;
+    private Map<String, CancellationTokenSource> getTasksPool;
 
-    public GetTasksAction(WebSocketServer server, File sourceDir) {
+    public GetTasksAction(WebSocketServer server, File sourceDir, Map<String, CancellationTokenSource> getTasksPool) {
         this.server = server;
         this.sourceDir = sourceDir;
         this.progressListener = new GradleProgressListener(server);
         this.stdoutListener = new GradleOutputListener(server, GradleOutputListener.TYPES.STDOUT);
         this.stderrListener = new GradleOutputListener(server, GradleOutputListener.TYPES.STDERR);
+        this.getTasksPool = getTasksPool;
     }
 
     public void run() throws GradleTasksServerException {
@@ -35,8 +39,13 @@ public class GetTasksAction implements Action {
             throw new GradleTasksServerException("Source directory does not exist");
         }
         ProjectConnection connection = GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
+        CancellationTokenSource cancellationTokenSource =
+                GradleConnector.newCancellationTokenSource();
+        String key = sourceDir.getAbsolutePath();
+        getTasksPool.put(key, cancellationTokenSource);
         try {
             ModelBuilder<GradleProject> rootProjectBuilder = connection.model(GradleProject.class);
+            rootProjectBuilder.withCancellationToken(cancellationTokenSource.token());
             rootProjectBuilder.addProgressListener(progressListener);
             rootProjectBuilder.setStandardOutput(stdoutListener);
             rootProjectBuilder.setStandardError(stderrListener);

@@ -6,7 +6,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
-
+import com.github.badsyntax.gradletasks.logging.BasicWriteFormatter;
 import com.github.badsyntax.gradletasks.server.GradleTasksServer;
 
 public class CliApp {
@@ -46,7 +46,7 @@ public class CliApp {
     private void startServer(int port) throws CliAppException {
         try {
             GradleTasksServer server = new GradleTasksServer(port, logger);
-            logger.info(String.format("Attempting to start server on port %s", port));
+            logger.info(String.format("Starting server on localhost:%s", port));
             server.start();
         } catch (UnknownHostException e) {
             throw new CliAppException(e.getMessage());

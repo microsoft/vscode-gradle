@@ -82,7 +82,8 @@ function registerExplorer(
 
 function registerCommands(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  statusBarItem: vscode.StatusBarItem
 ): void {
   if (treeDataProvider) {
     context.subscriptions.push(
@@ -100,11 +101,10 @@ function registerCommands(
       )
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.stopTask',
-        treeDataProvider.stopTask,
-        treeDataProvider
-      )
+      vscode.commands.registerCommand('gradle.stopTask', task => {
+        treeDataProvider!.stopTask(task);
+        statusBarItem.hide();
+      })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.refresh', () =>
@@ -157,6 +157,7 @@ export interface ExtensionApi {
 export async function activate(
   context: vscode.ExtensionContext
 ): Promise<ExtensionApi> {
+  const api = { treeDataProvider, context };
   if (await hasGradleProject()) {
     const explorerCollapsed = context.workspaceState.get(
       'explorerCollapsed',
@@ -173,6 +174,7 @@ export async function activate(
     let client: GradleTasksClient | undefined;
 
     const port = await getPort();
+    // const port = 8887;
     try {
       server = await registerServer(
         { port, host: 'localhost' },
@@ -180,15 +182,25 @@ export async function activate(
         context
       );
       context.subscriptions.push(server);
-      client = await registerClient(server, outputChannel, statusBarItem);
     } catch (e) {
       outputChannel.appendLine(`Unable to start tasks server: ${e.toString()}`);
+      return api;
+    }
+
+    try {
+      client = await registerClient(server, outputChannel, statusBarItem);
+      context.subscriptions.push(client);
+    } catch (e) {
+      outputChannel.appendLine(
+        `Unable to connect to tasks server: ${e.toString()}`
+      );
+      return api;
     }
 
     if (client) {
       registerTaskProvider(context, client, outputChannel, statusBarItem);
       registerExplorer(context, explorerCollapsed, client);
-      registerCommands(context, outputChannel);
+      registerCommands(context, outputChannel, statusBarItem);
 
       if (treeDataProvider) {
         treeDataProvider.refresh();
@@ -202,7 +214,7 @@ export async function activate(
       }
     }
   }
-  return { treeDataProvider, context };
+  return api;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

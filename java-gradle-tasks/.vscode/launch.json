@@ -10,7 +10,7 @@
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.CliApp",
       "projectName": "gradle-tasks",
-      "args": "8888"
+      "args": "8887"
     }
   ]
 }

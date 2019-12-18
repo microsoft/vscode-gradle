@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 
 import { getIsAutoDetectionEnabled } from './config';
-import { GradleTasksClient, GradleTask } from './server';
+import { GradleTasksClient, GradleTask, ServerMessage } from './server';
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -249,14 +249,23 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   close(): void {
-    //
+    this.client.stopTask(this.sourceDir, this.task);
+    // TODO: cancel the process if it's still running.
+    // this might involve sending a different message type to the server
   }
 
   private async doBuild(): Promise<void> {
-    this.writeEmitter.fire('Starting build...\r\n');
-    await this.client.runTask(this.sourceDir, this.task, this.args);
-    this.writeEmitter.fire('Build complete.\r\n\r\n');
-    this.closeEmitter.fire();
+    await this.client.runTask(
+      this.sourceDir,
+      this.task,
+      this.args,
+      (message: ServerMessage) => {
+        this.writeEmitter.fire(message.message?.toString() + '\r\n');
+      }
+    );
+    setTimeout(() => {
+      this.closeEmitter.fire();
+    }, 100); // give the UI some time to render the terminal
   }
 }
 

@@ -12,6 +12,10 @@ public class GenericMessage {
         this.type = type;
     }
 
+    public GenericMessage(String message) {
+        this(message, "GENERIC_MESSAGE");
+    }
+
     public String toString() {
         return Json.object().add("type", type).add("message", message).toString();
     }
