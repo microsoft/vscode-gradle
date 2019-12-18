@@ -2,13 +2,12 @@ package com.github.badsyntax.gradletasks.server.messages;
 
 import com.eclipsesource.json.Json;
 
-public class GradleTasksProgressMessage {
+public class ProgressMessage {
 
     String message;
-    private static final String TYPE = "GRADLE_TASKS_PROGRESS";
+    private static final String TYPE = "GRADLE_PROGRESS";
 
-
-    public GradleTasksProgressMessage(String message) {
+    public ProgressMessage(String message) {
         this.message = message;
     }
 

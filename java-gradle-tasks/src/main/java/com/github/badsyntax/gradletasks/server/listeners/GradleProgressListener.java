@@ -1,6 +1,6 @@
 package com.github.badsyntax.gradletasks.server.listeners;
 
-import com.github.badsyntax.gradletasks.server.messages.ProgressStatusChangedMessage;
+import com.github.badsyntax.gradletasks.server.messages.ProgressMessage;
 
 import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProgressListener;
@@ -16,6 +16,6 @@ public class GradleProgressListener implements ProgressListener {
     @Override
     public void statusChanged(ProgressEvent progressEvent) {
         server.broadcast(
-                new ProgressStatusChangedMessage(progressEvent.getDescription()).toString());
+                new ProgressMessage(progressEvent.getDescription()).toString());
     }
 }

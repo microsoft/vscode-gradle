@@ -18,7 +18,7 @@ interface ServerOptions {
 }
 
 interface ClientMessage {
-  type: 'runTask' | 'getTasks' | 'stopTask';
+  type: 'runTask' | 'getTasks' | 'stopTask' | 'stopGetTasks';
 }
 
 interface GetTasksMessage extends ClientMessage {
@@ -34,6 +34,10 @@ interface RunTaskMessage extends ClientMessage {
 interface StopTaskMessage extends ClientMessage {
   sourceDir: string;
   task: string;
+}
+
+interface StopGetTasksMessage extends ClientMessage {
+  sourceDir: string;
 }
 
 export interface ServerMessage {
@@ -53,25 +57,14 @@ class Message {
   }
 }
 
-function getMessage(
-  ws: WebSocket,
-  type: string,
-  progressType?: string
-): Promise<ServerMessage> {
-  return new Promise((resolve, reject) => {
+function getMessage(ws: WebSocket, type: string): Promise<ServerMessage> {
+  return new Promise(resolve => {
     function listener(data: WebSocket.Data): void {
       try {
         const message: ServerMessage = JSON.parse(data.toString());
         if (message.type === type) {
           ws.off('message', listener);
           return resolve(message);
-        } else if (
-          progressType &&
-          message.type === progressType &&
-          message.message === 'STOP'
-        ) {
-          ws.off('message', listener);
-          return reject();
         }
       } catch (e) {}
     }
@@ -136,8 +129,7 @@ export class GradleTasksClient implements vscode.Disposable {
       try {
         const serverMessage: GradleTasksServerMessage = (await getMessage(
           this.connection,
-          'GRADLE_TASKS',
-          'GRADLE_TASKS_PROGRESS'
+          'GRADLE_TASKS'
         )) as GradleTasksServerMessage;
         return serverMessage.tasks;
       } finally {
@@ -163,8 +155,7 @@ export class GradleTasksClient implements vscode.Disposable {
       };
       this.connection.send(new Message(clientMessage).toString());
       try {
-        const message = await getMessage(this.connection, 'GRADLE_RUN_TASK');
-        console.log('message', message);
+        await getMessage(this.connection, 'GRADLE_RUN_TASK');
       } finally {
         this.statusBarItem.hide();
         this.removeOutputListener(outputListener);
@@ -183,16 +174,20 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
+  public stopGetTasks(sourceDir = ''): void {
+    if (this.connection) {
+      const clientMessage: StopGetTasksMessage = {
+        type: 'stopGetTasks',
+        sourceDir
+      };
+      this.connection.send(new Message(clientMessage).toString());
+    }
+  }
+
   private addProgressListener(
     progressListener: (message: ServerMessage) => void
   ): void {
     this.progressListeners.add(progressListener);
-  }
-
-  private removeProgressListener(
-    progressListener: (message: ServerMessage) => void
-  ): void {
-    this.progressListeners.delete(progressListener);
   }
 
   private addOutputListener(
@@ -266,7 +261,6 @@ export class GradleTasksServer implements vscode.Disposable {
   ) {}
 
   public start(): Promise<cp.ChildProcessWithoutNullStreams | void> {
-    // return Promise.resolve();
     const cwd = this.context.asAbsolutePath('lib');
     const cmd = getGradleTasksServerCommand();
     return new Promise((resolve, reject) => {
@@ -297,7 +291,7 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 }
 
-export function getGradleTasksServerCommand(): string {
+function getGradleTasksServerCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
     return '.\\gradle-tasks.bat';

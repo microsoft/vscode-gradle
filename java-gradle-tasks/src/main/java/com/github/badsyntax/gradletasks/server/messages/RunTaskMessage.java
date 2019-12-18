@@ -5,7 +5,7 @@ import com.eclipsesource.json.Json;
 public class RunTaskMessage extends GenericMessage {
 
     private String task;
-    private static String TYPE = "GRADLE_RUN_TASK";
+    private static final String TYPE = "GRADLE_RUN_TASK";
 
     public RunTaskMessage(String message, String task) {
         super(message, TYPE);

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as cp from 'child_process';
 
 import { getIsAutoDetectionEnabled } from './config';
 import { GradleTasksClient, GradleTask, ServerMessage } from './server';
@@ -19,16 +18,9 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 
 let autoDetectOverride = false;
 let cachedTasks: Promise<vscode.Task[]> | undefined;
-let gradleTasksProcess: cp.ChildProcessWithoutNullStreams | undefined;
 
 export function enableTaskDetection(): void {
   autoDetectOverride = true;
-}
-
-export function killRefreshProcess(): void {
-  if (gradleTasksProcess) {
-    gradleTasksProcess.kill();
-  }
 }
 
 async function hasGradleBuildFile(folder: vscode.Uri): Promise<boolean> {
@@ -41,10 +33,10 @@ async function hasGradleBuildFile(folder: vscode.Uri): Promise<boolean> {
 }
 
 async function getGradleProjectFolders(
-  rootWorkspacefolder: vscode.WorkspaceFolder
+  rootWorkspaceFolder: vscode.WorkspaceFolder
 ): Promise<vscode.Uri[]> {
   const gradleWrapperFiles = await vscode.workspace.findFiles(
-    new vscode.RelativePattern(rootWorkspacefolder, '**/*{gradlew,gradlew.bat}')
+    new vscode.RelativePattern(rootWorkspaceFolder, '**/*{gradlew,gradlew.bat}')
   );
   const gradleWrapperFolders = Array.from(
     new Set(gradleWrapperFiles.map(file => path.dirname(file.fsPath)))

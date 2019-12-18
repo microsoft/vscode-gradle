@@ -13,7 +13,7 @@ tasks.register("hello") {
 
 tasks.register("helloKotlinDefault") {
     doLast {
-        println("Hello, World!")
+        println("Hello, helloKotlinDefault!")
     }
 }
 

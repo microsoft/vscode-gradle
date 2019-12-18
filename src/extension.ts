@@ -4,7 +4,6 @@ import getPort from 'get-port';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
-  killRefreshProcess,
   GradleTaskProvider,
   hasGradleProject
 } from './tasks';
@@ -83,7 +82,8 @@ function registerExplorer(
 function registerCommands(
   context: vscode.ExtensionContext,
   outputChannel: vscode.OutputChannel,
-  statusBarItem: vscode.StatusBarItem
+  statusBarItem: vscode.StatusBarItem,
+  client: GradleTasksClient
 ): void {
   if (treeDataProvider) {
     context.subscriptions.push(
@@ -122,10 +122,9 @@ function registerCommands(
       })
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.killRefreshProcess',
-        killRefreshProcess
-      )
+      vscode.commands.registerCommand('gradle.killRefreshProcess', () => {
+        client.stopGetTasks();
+      })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -156,8 +155,7 @@ export interface ExtensionApi {
 
 export async function activate(
   context: vscode.ExtensionContext
-): Promise<ExtensionApi> {
-  const api = { treeDataProvider, context };
+): Promise<ExtensionApi | void> {
   if (await hasGradleProject()) {
     const explorerCollapsed = context.workspaceState.get(
       'explorerCollapsed',
@@ -184,7 +182,7 @@ export async function activate(
       context.subscriptions.push(server);
     } catch (e) {
       outputChannel.appendLine(`Unable to start tasks server: ${e.toString()}`);
-      return api;
+      return;
     }
 
     try {
@@ -194,13 +192,13 @@ export async function activate(
       outputChannel.appendLine(
         `Unable to connect to tasks server: ${e.toString()}`
       );
-      return api;
+      return;
     }
 
     if (client) {
       registerTaskProvider(context, client, outputChannel, statusBarItem);
       registerExplorer(context, explorerCollapsed, client);
-      registerCommands(context, outputChannel, statusBarItem);
+      registerCommands(context, outputChannel, statusBarItem, client);
 
       if (treeDataProvider) {
         treeDataProvider.refresh();
@@ -214,7 +212,7 @@ export async function activate(
       }
     }
   }
-  return api;
+  return { treeDataProvider, context };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

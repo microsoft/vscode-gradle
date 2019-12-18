@@ -16,13 +16,22 @@ public class StopGetTasksAction implements Action {
     }
 
     public void run() throws GradleTasksServerException {
-        if (!sourceDir.exists()) {
+        if (sourceDir.getAbsolutePath() != null && !sourceDir.exists()) {
             throw new GradleTasksServerException("Source directory does not exist");
         }
         String key = sourceDir.getAbsolutePath();
-        CancellationTokenSource cancellationTokenSource = getTasksPool.get(key);
-        if (cancellationTokenSource != null) {
-            cancellationTokenSource.cancel();
+        if (key != null) {
+            CancellationTokenSource cancellationTokenSource = getTasksPool.get(key);
+            if (cancellationTokenSource != null) {
+                cancellationTokenSource.cancel();
+                getTasksPool.remove(key);
+            }
+        } else {
+            getTasksPool.keySet().stream().forEach(keySet -> {
+                CancellationTokenSource cancellationTokenSource = getTasksPool.get(keySet);
+                cancellationTokenSource.cancel();
+                getTasksPool.remove(key);
+            });
         }
     }
 }

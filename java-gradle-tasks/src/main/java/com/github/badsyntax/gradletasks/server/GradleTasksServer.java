@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
+
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.github.badsyntax.gradletasks.server.actions.GetTasksAction;
 import com.github.badsyntax.gradletasks.server.actions.RunTaskAction;
@@ -17,8 +20,9 @@ import com.github.badsyntax.gradletasks.server.actions.StopTaskAction;
 import com.github.badsyntax.gradletasks.server.messages.ClientMessage;
 import com.github.badsyntax.gradletasks.server.messages.GenericErrorMessage;
 import com.github.badsyntax.gradletasks.server.messages.GenericMessage;
-import com.github.badsyntax.gradletasks.server.messages.GradleTasksProgressMessage;
 import com.github.badsyntax.gradletasks.server.messages.RunTaskMessage;
+import com.github.badsyntax.gradletasks.server.messages.TasksMessage;
+
 import org.gradle.tooling.CancellationTokenSource;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -28,10 +32,11 @@ public class GradleTasksServer extends WebSocketServer {
 
     private final ExecutorService taskExecutor = Executors.newCachedThreadPool();
     private Logger logger;
-    private Map<String, CancellationTokenSource> runTaskPool =
-            new HashMap<String, CancellationTokenSource>();
-    private Map<String, CancellationTokenSource> getTasksPool =
-            new HashMap<String, CancellationTokenSource>();
+    private Map<String, CancellationTokenSource> runTaskPool = new HashMap<>();
+    private Map<String, CancellationTokenSource> getTasksPool = new HashMap<>();
+    private static final String MESSAGE_SOURCE_DIR_KEY = "sourceDir";
+    private static final String MESSAGE_TYPE_KEY = "type";
+    private static final String MESSAGE_TASK_KEY = "task";
 
     public GradleTasksServer(int port) throws UnknownHostException {
         super(new InetSocketAddress(port));
@@ -57,7 +62,7 @@ public class GradleTasksServer extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket connection, int code, String reason, boolean remote) {
-
+        // Nothing to cleanup yet
     }
 
     @Override
@@ -72,7 +77,7 @@ public class GradleTasksServer extends WebSocketServer {
 
     private void handleMessageAction(ClientMessage clientMessage) {
         JsonObject message = clientMessage.getMessage();
-        String messageType = message.get("type").asString();
+        String messageType = message.get(MESSAGE_TYPE_KEY).asString();
         switch (messageType) {
             case "runTask":
                 runTask(message);
@@ -93,26 +98,24 @@ public class GradleTasksServer extends WebSocketServer {
 
     private void runTask(JsonObject message) {
         GradleTasksServer server = this;
-        taskExecutor.submit(new Runnable() {
-            public void run() {
-                String task = message.get("task").asString();
-                String sourceDir = message.get("sourceDir").asString();
-                RunTaskAction action =
-                        new RunTaskAction(server, new File(sourceDir), task, runTaskPool);
-                try {
-                    action.run();
-                } catch (GradleTasksServerException e) {
-                    logError(e.getMessage());
-                } finally {
-                    broadcast(new RunTaskMessage("Completed runTask action", task).toString());
-                }
+        taskExecutor.submit(() -> {
+            String task = message.get(MESSAGE_TASK_KEY).asString();
+            String sourceDir = message.get(MESSAGE_SOURCE_DIR_KEY).asString();
+            RunTaskAction action =
+                    new RunTaskAction(server, new File(sourceDir), task, runTaskPool);
+            try {
+                action.run();
+            } catch (GradleTasksServerException e) {
+                logError(e.getMessage());
+            } finally {
+                broadcast(new RunTaskMessage("Completed runTask action", task).toString());
             }
         });
     }
 
     private void stopTask(JsonObject message) {
-        String task = message.get("task").asString();
-        String sourceDir = message.get("sourceDir").asString();
+        String task = message.get(MESSAGE_TASK_KEY).asString();
+        String sourceDir = message.get(MESSAGE_SOURCE_DIR_KEY).asString();
         StopTaskAction action = new StopTaskAction(this, new File(sourceDir), task, runTaskPool);
         try {
             action.run();
@@ -123,7 +126,7 @@ public class GradleTasksServer extends WebSocketServer {
     }
 
     private void stopGetTasks(JsonObject message) {
-        String sourceDir = message.get("sourceDir").asString();
+        String sourceDir = message.get(MESSAGE_SOURCE_DIR_KEY).asString();
         StopGetTasksAction action = new StopGetTasksAction(this, new File(sourceDir), getTasksPool);
         try {
             action.run();
@@ -135,18 +138,18 @@ public class GradleTasksServer extends WebSocketServer {
 
     private void getTasks(JsonObject message) {
         GradleTasksServer server = this;
-        taskExecutor.submit(new Runnable() {
-            public void run() {
-                String sourceDir = message.get("sourceDir").asString();
-                broadcast(new GradleTasksProgressMessage("START").toString());
-                try {
-                    GetTasksAction action = new GetTasksAction(server, new File(sourceDir), getTasksPool);
-                    action.run();
-                } catch (GradleTasksServerException e) {
-                    logError(e.getMessage());
-                } finally {
-                    broadcast(new GradleTasksProgressMessage("COMPLETE").toString());
-                }
+        taskExecutor.submit(() -> {
+            String sourceDir = message.get(MESSAGE_SOURCE_DIR_KEY).asString();
+            JsonArray jsonTasks = Json.array();
+            try {
+                GetTasksAction action =
+                        new GetTasksAction(server, new File(sourceDir), getTasksPool);
+                action.run();
+                jsonTasks = action.getJsonTasks();
+            } catch (GradleTasksServerException e) {
+                logError(e.getMessage());
+            } finally {
+                server.broadcast(new TasksMessage(jsonTasks).toString());
             }
         });
     }
