@@ -14,6 +14,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   buildFile: string;
   projectFolder: string;
   workspaceFolder: string;
+  args: string;
 }
 
 let autoDetectOverride = false;
@@ -51,12 +52,17 @@ async function getGradleProjectFolders(
 }
 
 export class GradleTaskProvider implements vscode.TaskProvider {
+  private client: GradleTasksClient | undefined = undefined;
+
   constructor(
     readonly statusBarItem: vscode.StatusBarItem,
     readonly outputChannel: vscode.OutputChannel,
-    readonly context: vscode.ExtensionContext,
-    readonly client: GradleTasksClient
+    readonly context: vscode.ExtensionContext
   ) {}
+
+  public setClient(client: GradleTasksClient): void {
+    this.client = client;
+  }
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     try {
@@ -132,7 +138,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         workspaceFolder,
         gradleTask.rootProject,
         vscode.Uri.file(gradleTask.buildFile),
-        projectFolder
+        projectFolder,
+        ''
       )
     );
   }
@@ -143,7 +150,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     rootProject: string,
     buildFile: vscode.Uri,
     projectFolder: vscode.Uri,
-    shellArgs: string[] = []
+    args: string
   ): vscode.Task {
     const script = gradleTask.path.replace(/^:/, '');
     const definition: GradleTaskDefinition = {
@@ -155,22 +162,22 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       buildFile: buildFile.fsPath,
       rootProject,
       projectFolder: projectFolder.fsPath,
-      workspaceFolder: workspaceFolder.uri.fsPath
+      workspaceFolder: workspaceFolder.uri.fsPath,
+      args
     };
 
     return createTaskFromDefinition(
       definition,
       workspaceFolder,
       projectFolder,
-      shellArgs,
-      this.client
+      this.client!
     );
   }
 
   private async getGradleTasks(
     projectFolder: vscode.Uri
   ): Promise<GradleTask[] | undefined> {
-    return this.client.getTasks(projectFolder.fsPath);
+    return this.client?.getTasks(projectFolder.fsPath);
   }
 }
 
@@ -242,8 +249,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   close(): void {
     this.client.stopTask(this.sourceDir, this.task);
-    // TODO: cancel the process if it's still running.
-    // this might involve sending a different message type to the server
   }
 
   private async doBuild(): Promise<void> {
@@ -265,7 +270,6 @@ export function createTaskFromDefinition(
   definition: GradleTaskDefinition,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri,
-  args: string[] = [],
   client: GradleTasksClient
 ): vscode.Task {
   let taskName = definition.script;
@@ -287,7 +291,7 @@ export function createTaskFromDefinition(
           client,
           projectFolder.fsPath,
           definition.script,
-          args
+          definition.args.split(' ').filter(Boolean)
         );
       }
     ),
@@ -309,7 +313,7 @@ export function createTaskFromDefinition(
 
 export async function cloneTask(
   task: vscode.Task,
-  args: string[] = [],
+  args: string,
   client: GradleTasksClient
 ): Promise<vscode.Task | undefined> {
   const folder = task.scope as vscode.WorkspaceFolder;
@@ -317,11 +321,11 @@ export async function cloneTask(
   if (!command) {
     return undefined;
   }
+  const definition = { ...(task.definition as GradleTaskDefinition), args };
   return createTaskFromDefinition(
-    task.definition as GradleTaskDefinition,
+    definition as GradleTaskDefinition,
     folder,
-    task.definition.projectFolder,
-    args,
+    vscode.Uri.file(definition.projectFolder),
     client
   );
 }

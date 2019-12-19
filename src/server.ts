@@ -260,26 +260,22 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {}
 
-  public start(): Promise<cp.ChildProcessWithoutNullStreams | void> {
+  public start(): void {
     const cwd = this.context.asAbsolutePath('lib');
     const cmd = getGradleTasksServerCommand();
-    return new Promise((resolve, reject) => {
-      this.process = startProcess(
-        cmd,
-        [this.opts.port.toString()],
-        { cwd },
-        (output: string) => {
-          this.outputChannel.append(output);
-        },
-        (err: Error) => {
-          this.outputChannel.appendLine(
-            'Error starting the server: ' + err.toString()
-          );
-          reject(err);
-        }
-      );
-      resolve(this.process);
-    });
+    this.process = startProcess(
+      cmd,
+      [this.opts.port.toString()],
+      { cwd },
+      (output: string) => {
+        this.outputChannel.append(output);
+      },
+      (err: Error) => {
+        this.outputChannel.appendLine(
+          'Error starting the server: ' + err.toString()
+        );
+      }
+    );
   }
 
   public dispose(): void {
@@ -329,7 +325,7 @@ export async function registerServer(
   context: vscode.ExtensionContext
 ): Promise<GradleTasksServer> {
   const server = new GradleTasksServer(opts, outputChannel, context);
-  await server.start();
+  server.start();
   return server;
 }
 
@@ -342,10 +338,6 @@ export async function registerClient(
     server,
     outputChannel,
     statusBarItem
-  );
-  const serverOpts = server.getOpts();
-  outputChannel.appendLine(
-    `Connecting to ${serverOpts.host}:${serverOpts.port}`
   );
   await gradleTasksClient.connect();
   return gradleTasksClient;

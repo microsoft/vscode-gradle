@@ -26,6 +26,7 @@ public class StopTaskAction implements Action {
         CancellationTokenSource cancellationTokenSource = taskPool.get(key);
         if (cancellationTokenSource != null) {
             cancellationTokenSource.cancel();
+            taskPool.remove(key);
         }
     }
 }

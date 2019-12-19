@@ -20,10 +20,9 @@ let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
   context: vscode.ExtensionContext,
-  client: GradleTasksClient,
   outputChannel: vscode.OutputChannel,
   statusBarItem: vscode.StatusBarItem
-): vscode.Disposable | undefined {
+): GradleTaskProvider | undefined {
   function invalidateTaskCaches(): void {
     invalidateTasksCache();
     if (treeDataProvider) {
@@ -44,17 +43,16 @@ function registerTaskProvider(
     );
     context.subscriptions.push(workspaceWatcher);
 
-    const provider: vscode.TaskProvider = new GradleTaskProvider(
+    const provider = new GradleTaskProvider(
       statusBarItem,
       outputChannel,
-      context,
-      client
+      context
     );
 
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
     context.subscriptions.push(taskProvider);
 
-    return taskProvider;
+    return provider;
   }
   return undefined;
 }
@@ -151,28 +149,30 @@ function registerCommands(
 export interface ExtensionApi {
   treeDataProvider: GradleTasksTreeDataProvider | undefined;
   context: vscode.ExtensionContext;
+  outputChannel: vscode.OutputChannel;
 }
 
 export async function activate(
   context: vscode.ExtensionContext
 ): Promise<ExtensionApi | void> {
+  const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
+  context.subscriptions.push(outputChannel);
+
+  let server: GradleTasksServer | undefined;
+  let client: GradleTasksClient | undefined;
+
+  const statusBarItem = vscode.window.createStatusBarItem();
+  context.subscriptions.push(statusBarItem);
+  statusBarItem.command = 'gradle.showRefreshInformationMessage';
+
+  const taskProvider = registerTaskProvider(
+    context,
+    outputChannel,
+    statusBarItem
+  );
+
   if (await hasGradleProject()) {
-    const explorerCollapsed = context.workspaceState.get(
-      'explorerCollapsed',
-      true
-    );
-    const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
-    context.subscriptions.push(outputChannel);
-
-    const statusBarItem = vscode.window.createStatusBarItem();
-    context.subscriptions.push(statusBarItem);
-    statusBarItem.command = 'gradle.showRefreshInformationMessage';
-
-    let server: GradleTasksServer | undefined;
-    let client: GradleTasksClient | undefined;
-
     const port = await getPort();
-    // const port = 8887;
     try {
       server = await registerServer(
         { port, host: 'localhost' },
@@ -196,7 +196,11 @@ export async function activate(
     }
 
     if (client) {
-      registerTaskProvider(context, client, outputChannel, statusBarItem);
+      taskProvider?.setClient(client);
+      const explorerCollapsed = context.workspaceState.get(
+        'explorerCollapsed',
+        true
+      );
       registerExplorer(context, explorerCollapsed, client);
       registerCommands(context, outputChannel, statusBarItem, client);
 
@@ -212,7 +216,7 @@ export async function activate(
       }
     }
   }
-  return { treeDataProvider, context };
+  return { treeDataProvider, context, outputChannel };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

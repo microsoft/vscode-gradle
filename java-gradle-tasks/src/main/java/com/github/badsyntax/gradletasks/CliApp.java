@@ -46,7 +46,6 @@ public class CliApp {
     private void startServer(int port) throws CliAppException {
         try {
             GradleTasksServer server = new GradleTasksServer(port, logger);
-            logger.info(String.format("Starting server on localhost:%s", port));
             server.start();
         } catch (UnknownHostException e) {
             throw new CliAppException(e.getMessage());

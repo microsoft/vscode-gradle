@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
+const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
@@ -10,13 +11,11 @@ describe(fixtureName, () => {
   });
 
   it('should be present', () => {
-    assert.ok(vscode.extensions.getExtension('richardwillis.vscode-gradle'));
+    assert.ok(vscode.extensions.getExtension(extensionName));
   });
 
   it('should be activated', () => {
-    const extension = vscode.extensions.getExtension(
-      'richardwillis.vscode-gradle'
-    );
+    const extension = vscode.extensions.getExtension(extensionName);
     assert.ok(extension);
     assert.equal(extension!.isActive, true);
   });
@@ -33,24 +32,52 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
+      const extension = vscode.extensions.getExtension(extensionName);
+      assert.ok(extension);
       const task = tasks.find(({ name }) => name === 'hello');
       assert.ok(task);
-      await vscode.tasks.executeTask(task!);
+      const outputChannel = extension!.exports.outputChannel;
+      sinon.stub(outputChannel, 'appendLine');
+      await new Promise(resolve => {
+        vscode.tasks.onDidEndTaskProcess(e => {
+          if (e.execution.task === task) {
+            resolve();
+          }
+        });
+        vscode.tasks.executeTask(task!);
+      });
+      assert.ok(
+        outputChannel.appendLine.calledWith(sinon.match('Hello, World!'))
+      );
     });
 
-    it('should run a subproject gradle task', done => {
+    it('should run a subproject gradle task', async () => {
+      const extension = vscode.extensions.getExtension(extensionName);
+      assert.ok(extension);
       const task = tasks.find(
         ({ definition }) =>
           definition.script ===
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);
-      vscode.tasks.onDidEndTaskProcess(e => {
-        if (e.execution.task === task) {
-          done(e.exitCode === 0 ? undefined : 'Process error');
-        }
+
+      const outputChannel = extension!.exports.outputChannel;
+      sinon.stub(outputChannel, 'appendLine');
+      // eslint-disable-next-line sonarjs/no-identical-functions
+      await new Promise(resolve => {
+        // eslint-disable-next-line sonarjs/no-identical-functions
+        vscode.tasks.onDidEndTaskProcess(e => {
+          if (e.execution.task === task) {
+            resolve();
+          }
+        });
+        vscode.tasks.executeTask(task!);
       });
-      vscode.tasks.executeTask(task!);
+      assert.ok(
+        outputChannel.appendLine.calledWith(
+          sinon.match('Hello, World! SubSubProject')
+        )
+      );
     });
   });
 });

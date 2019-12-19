@@ -30,7 +30,7 @@ public class StopGetTasksAction implements Action {
             getTasksPool.keySet().stream().forEach(keySet -> {
                 CancellationTokenSource cancellationTokenSource = getTasksPool.get(keySet);
                 cancellationTokenSource.cancel();
-                getTasksPool.remove(key);
+                getTasksPool.remove(keySet);
             });
         }
     }

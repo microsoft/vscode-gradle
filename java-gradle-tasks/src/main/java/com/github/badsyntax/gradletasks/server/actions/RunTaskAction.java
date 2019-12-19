@@ -16,16 +16,18 @@ public class RunTaskAction implements Action {
     private GradleProgressListener progressListener;
     private GradleOutputListener stdoutListener;
     private GradleOutputListener stderrListener;
-    private String tasks;
+    private String task;
+    private String[] args;
     private Map<String, CancellationTokenSource> taskPool;
 
-    public RunTaskAction(WebSocketServer server, File sourceDir, String tasks,
+    public RunTaskAction(WebSocketServer server, File sourceDir, String task, String[] args,
             Map<String, CancellationTokenSource> taskPool) {
         this.sourceDir = sourceDir;
         this.progressListener = new GradleProgressListener(server);
         this.stdoutListener = new GradleOutputListener(server, GradleOutputListener.TYPES.STDOUT);
         this.stderrListener = new GradleOutputListener(server, GradleOutputListener.TYPES.STDERR);
-        this.tasks = tasks;
+        this.task = task;
+        this.args = args;
         this.taskPool = taskPool;
     }
 
@@ -38,14 +40,16 @@ public class RunTaskAction implements Action {
         CancellationTokenSource cancellationTokenSource =
                 GradleConnector.newCancellationTokenSource();
         try {
-            taskPool.put(sourceDir.getAbsolutePath() + tasks, cancellationTokenSource);
+            String key = sourceDir.getAbsolutePath() + task + String.join("", args);
+            taskPool.put(key, cancellationTokenSource);
             BuildLauncher build = connection.newBuild();
             build.withCancellationToken(cancellationTokenSource.token());
             build.addProgressListener(progressListener);
             build.setStandardOutput(stdoutListener);
             build.setStandardError(stderrListener);
             build.setColorOutput(false);
-            build.forTasks(tasks);
+            build.withArguments(args);
+            build.forTasks(task);
             build.run();
         } catch (Exception err) {
             throw new GradleTasksServerException(err.getMessage());

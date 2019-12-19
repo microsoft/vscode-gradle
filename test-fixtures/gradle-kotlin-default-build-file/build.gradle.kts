@@ -21,6 +21,6 @@ val customProp: String by project
 
 tasks.register("helloProjectProperty") {
     doLast {
-        println("Hello, World!" + customProp)
+        println("Hello, Project Property!" + customProp)
     }
 }

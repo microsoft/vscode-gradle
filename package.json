@@ -266,6 +266,10 @@
           "workspaceFolder": {
             "type": "string",
             "description": "The workspace folder path"
+          },
+          "args": {
+            "type": "string",
+            "description": "Task args"
           }
         }
       }

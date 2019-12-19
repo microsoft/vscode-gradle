@@ -206,11 +206,7 @@ export class GradleTasksTreeDataProvider
         ignoreFocusOut: true
       });
       if (args !== undefined) {
-        const task = await cloneTask(
-          taskItem.task,
-          args.split(' '),
-          this.client
-        );
+        const task = await cloneTask(taskItem.task, args, this.client);
         if (task) {
           vscode.tasks.executeTask(task);
         }
