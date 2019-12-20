@@ -2,36 +2,53 @@ package com.github.badsyntax.gradletasks.server.actions;
 
 import java.io.File;
 import java.util.Map;
-import com.github.badsyntax.gradletasks.server.GradleTasksServerException;
+import java.util.concurrent.ExecutorService;
+import java.util.logging.Logger;
+import com.eclipsesource.json.JsonObject;
+import com.github.badsyntax.gradletasks.server.GradleTaskPool;
+import com.github.badsyntax.gradletasks.server.messages.GenericMessage;
 import org.gradle.tooling.CancellationTokenSource;
-import org.java_websocket.server.WebSocketServer;
+import org.java_websocket.WebSocket;
 
-public class StopGetTasksAction implements Action {
-    private File sourceDir;
-    private Map<String, CancellationTokenSource> getTasksPool;
+public class StopGetTasksAction extends Action {
 
-    public StopGetTasksAction(WebSocketServer server, File sourceDir, Map<String, CancellationTokenSource> getTasksPool) {
-        this.sourceDir = sourceDir;
-        this.getTasksPool = getTasksPool;
+    public static final String KEY = "stopGetTasks";
+
+    public StopGetTasksAction(WebSocket connection, JsonObject message,
+            ExecutorService taskExecutor, Logger logger, GradleTaskPool taskPool) {
+        super(connection, message, taskExecutor, logger, taskPool);
     }
 
-    public void run() throws GradleTasksServerException {
-        if (sourceDir.getAbsolutePath() != null && !sourceDir.exists()) {
-            throw new GradleTasksServerException("Source directory does not exist");
-        }
-        String key = sourceDir.getAbsolutePath();
-        if (key != null) {
-            CancellationTokenSource cancellationTokenSource = getTasksPool.get(key);
-            if (cancellationTokenSource != null) {
-                cancellationTokenSource.cancel();
-                getTasksPool.remove(key);
+    public void run() {
+        try {
+            File sourceDir = new File(message.get(MESSAGE_SOURCE_DIR_KEY).asString());
+            if (!sourceDir.getPath().equals("")) {
+                if (sourceDir.getAbsolutePath() != null && !sourceDir.exists()) {
+                    throw new ActionException("Source directory does not exist");
+                }
+                String key = GetTasksAction.getTaskKey(sourceDir);
+                CancellationTokenSource cancellationTokenSource =
+                        taskPool.get(key, GradleTaskPool.TYPE.GET);
+                if (cancellationTokenSource != null) {
+                    cancellationTokenSource.cancel();
+                    taskPool.remove(key, GradleTaskPool.TYPE.GET);
+                }
+            } else {
+                Map<String, CancellationTokenSource> getPool =
+                        taskPool.getPoolType(GradleTaskPool.TYPE.GET);
+                getPool.keySet().stream().forEach(keySet -> {
+                    CancellationTokenSource cancellationTokenSource = getPool.get(keySet);
+                    cancellationTokenSource.cancel();
+                    getPool.remove(keySet);
+                });
             }
-        } else {
-            getTasksPool.keySet().stream().forEach(keySet -> {
-                CancellationTokenSource cancellationTokenSource = getTasksPool.get(keySet);
-                cancellationTokenSource.cancel();
-                getTasksPool.remove(keySet);
-            });
+        } catch (ActionException e) {
+            logError(e.getMessage());
+        } finally {
+            if (connection.isOpen()) {
+                connection.send(
+                        new GenericMessage(String.format("Completed %s action", KEY)).toString());
+            }
         }
     }
 }

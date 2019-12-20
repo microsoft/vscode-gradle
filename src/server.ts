@@ -1,6 +1,9 @@
 import WebSocket from 'ws';
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import stripAnsi from 'strip-ansi';
+
+import { getIsDebugEnabled } from './config';
 
 export type GradleTask = {
   path: string;
@@ -210,7 +213,7 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private handleOutput = (message: ServerMessage): void => {
-    this.outputChannel.appendLine(message.message!);
+    this.outputChannel.appendLine(stripAnsi(message.message!));
   };
 
   private callListeners(
@@ -226,6 +229,9 @@ export class GradleTasksClient implements vscode.Disposable {
     let serverMessage: ServerMessage;
     try {
       serverMessage = JSON.parse(data.toString());
+      if (getIsDebugEnabled()) {
+        this.outputChannel.appendLine(data.toString());
+      }
     } catch (e) {
       this.outputChannel.appendLine(
         `Unable to parse message from server: ${e.message}`
@@ -237,6 +243,7 @@ export class GradleTasksClient implements vscode.Disposable {
         this.callListeners(this.progressListeners, serverMessage);
         break;
       case 'GRADLE_OUTPUT':
+      case 'ERROR':
         this.callListeners(this.outputListeners, serverMessage);
         break;
       case 'GENERIC_MESSAGE':

@@ -1,21 +1,19 @@
 package com.github.badsyntax.gradletasks.server.listeners;
 
 import com.github.badsyntax.gradletasks.server.messages.ProgressMessage;
-
 import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProgressListener;
-import org.java_websocket.server.WebSocketServer;
+import org.java_websocket.WebSocket;
 
 public class GradleProgressListener implements ProgressListener {
-    private WebSocketServer server;
+    private WebSocket connection;
 
-    public GradleProgressListener(WebSocketServer server) {
-        this.server = server;
+    public GradleProgressListener(WebSocket connection) {
+        this.connection = connection;
     }
 
     @Override
     public void statusChanged(ProgressEvent progressEvent) {
-        server.broadcast(
-                new ProgressMessage(progressEvent.getDescription()).toString());
+        connection.send(new ProgressMessage(progressEvent.getDescription()).toString());
     }
 }

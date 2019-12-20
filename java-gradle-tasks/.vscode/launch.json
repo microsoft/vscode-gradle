@@ -6,11 +6,10 @@
   "configurations": [
     {
       "type": "java",
-      "name": "CodeLens (Launch) - App",
+      "name": "CodeLens (Launch) - Application",
       "request": "launch",
-      "mainClass": "com.github.badsyntax.gradletasks.CliApp",
-      "projectName": "gradle-tasks",
-      "args": "8887"
+      "mainClass": "com.github.badsyntax.gradletasks.Application",
+      "projectName": "gradle-tasks"
     }
   ]
 }

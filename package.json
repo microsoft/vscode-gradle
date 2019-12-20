@@ -215,6 +215,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable an explorer view for gradle tasks"
+        },
+        "gradle.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Shows extra debug info in the output panel"
         }
       }
     },
@@ -290,6 +295,7 @@
   },
   "dependencies": {
     "get-port": "^5.0.0",
+    "strip-ansi": "^6.0.0",
     "ws": "^7.2.1"
   },
   "devDependencies": {

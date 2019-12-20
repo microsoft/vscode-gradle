@@ -14,18 +14,23 @@ repositories {
 
 sourceSets {
     libsDirName = 'lib'
+    generated {
+        java.srcDir "${buildDir}/generated/sources/annotationProcessor/java/main"
+    }
 }
 
 dependencies {
     compile 'org.gradle:gradle-tooling-api:6.0.1'
     compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     compile "org.java-websocket:Java-WebSocket:1.4.0"
+    compile "com.google.dagger:dagger:2.25.3"
+    annotationProcessor "com.google.dagger:dagger-compiler:2.25.3"
     runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
     testImplementation 'junit:junit:4.12'
 }
 
 application {
-    mainClassName = 'com.github.badsyntax.gradletasks.CliApp'
+    mainClassName = 'com.github.badsyntax.gradletasks.Application'
 }
 
 shadowJar {
