@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.3.1
+
+- Fix stopping Gradle processes via terminal and statusbar
+
 ## 2.3.0
 
 - Performance improvements, for both listing and running tasks (using websocket server)
