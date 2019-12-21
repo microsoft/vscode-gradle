@@ -13,7 +13,7 @@ tasks.register("hello") {
 
 tasks.register("helloProjectProperty") {
     doLast {
-        println 'Hello, World!' + customProp
+        println 'Hello, Project Property!' + customProp
     }
 }
 

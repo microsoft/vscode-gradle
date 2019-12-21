@@ -17,3 +17,9 @@ export function getIsTasksExplorerEnabled(): boolean {
     .getConfiguration('gradle')
     .get<boolean>('enableTasksExplorer', true);
 }
+
+export function getIsDebugEnabled(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('debug', false);
+}

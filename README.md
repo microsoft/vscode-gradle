@@ -1,10 +1,8 @@
 # vscode-gradle
 
-[![Build status](https://img.shields.io/github/workflow/status/badsyntax/vscode-gradle/Build)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3ABuild)
 [![Marketplace Version](https://vsmarketplacebadge.apphb.com/version-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
-[![Installs](https://vsmarketplacebadge.apphb.com/installs-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
+[![Build status](https://img.shields.io/github/workflow/status/badsyntax/vscode-gradle/Build)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3ABuild)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=badsyntax_vscode-gradle&metric=security_rating)](https://sonarcloud.io/dashboard?id=badsyntax_vscode-gradle)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=badsyntax/vscode-gradle)](https://dependabot.com)
 
 Run Gradle tasks in VS Code.
 
@@ -14,9 +12,6 @@ Run Gradle tasks in VS Code.
 
 - Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
 - List & run Gradle tasks in the Explorer
-- Multi-root workspace folders supported
-- Groovy/Kotlin build files supported
-- Multi-project builds supported
 
 > **Note:** Local Gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
 
@@ -26,6 +21,7 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
+- `gradle.debug`: Show extra debug info in the output panel
 
 ## Snippets
 
@@ -58,6 +54,12 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 <details><summary>Gradle Task output and errors will be shown in the Terminal panel after you've run a task.</summary>
 
 <img src="./images/terminal.png" width="600" />
+
+</details>
+
+<details><summary>Set the `gradle.debug` setting to `true` to view websocket messages from the server in the output panel.</summary>
+
+<img src="./images/debug-output.png" width="600" />
 
 </details>
 

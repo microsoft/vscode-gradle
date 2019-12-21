@@ -1,11 +1,18 @@
 import * as vscode from 'vscode';
+import getPort from 'get-port';
+
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
-  killRefreshProcess,
   GradleTaskProvider,
   hasGradleProject
 } from './tasks';
+import {
+  registerServer,
+  registerClient,
+  GradleTasksClient,
+  GradleTasksServer
+} from './server';
 
 import { getIsTasksExplorerEnabled } from './config';
 
@@ -13,8 +20,9 @@ let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
 function registerTaskProvider(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.OutputChannel
-): vscode.Disposable | undefined {
+  outputChannel: vscode.OutputChannel,
+  statusBarItem: vscode.StatusBarItem
+): GradleTaskProvider | undefined {
   function invalidateTaskCaches(): void {
     invalidateTasksCache();
     if (treeDataProvider) {
@@ -25,44 +33,41 @@ function registerTaskProvider(
   if (vscode.workspace.workspaceFolders) {
     const buildFileGlob = `**/*.{gradle,gradle.kts}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
-    watcher.onDidChange(() => invalidateTaskCaches());
-    watcher.onDidDelete(() => invalidateTaskCaches());
-    watcher.onDidCreate(() => invalidateTaskCaches());
+    context.subscriptions.push(watcher);
+    watcher.onDidChange(invalidateTaskCaches);
+    watcher.onDidDelete(invalidateTaskCaches);
+    watcher.onDidCreate(invalidateTaskCaches);
 
-    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(() =>
-      invalidateTaskCaches()
+    const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(
+      invalidateTaskCaches
     );
+    context.subscriptions.push(workspaceWatcher);
 
-    const statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      1
-    );
-    statusBarItem.tooltip = 'Cancel';
-    statusBarItem.command = 'gradle.showRefreshInformationMessage';
-
-    const provider: vscode.TaskProvider = new GradleTaskProvider(
+    const provider = new GradleTaskProvider(
       statusBarItem,
       outputChannel,
       context
     );
 
     const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
-
-    context.subscriptions.push(watcher);
-    context.subscriptions.push(workspaceWatcher);
-    context.subscriptions.push(statusBarItem);
     context.subscriptions.push(taskProvider);
-    return taskProvider;
+
+    return provider;
   }
   return undefined;
 }
 
 function registerExplorer(
   context: vscode.ExtensionContext,
-  collapsed: boolean
+  collapsed: boolean,
+  client: GradleTasksClient
 ): void {
   if (vscode.workspace.workspaceFolders) {
-    treeDataProvider = new GradleTasksTreeDataProvider(context, collapsed);
+    treeDataProvider = new GradleTasksTreeDataProvider(
+      context,
+      collapsed,
+      client
+    );
     context.subscriptions.push(
       vscode.window.createTreeView('gradleTreeView', {
         treeDataProvider: treeDataProvider,
@@ -74,7 +79,9 @@ function registerExplorer(
 
 function registerCommands(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  statusBarItem: vscode.StatusBarItem,
+  client: GradleTasksClient
 ): void {
   if (treeDataProvider) {
     context.subscriptions.push(
@@ -92,11 +99,10 @@ function registerCommands(
       )
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.stopTask',
-        treeDataProvider.stopTask,
-        treeDataProvider
-      )
+      vscode.commands.registerCommand('gradle.stopTask', task => {
+        treeDataProvider!.stopTask(task);
+        statusBarItem.hide();
+      })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.refresh', () =>
@@ -105,23 +111,18 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerTree', () => {
-        context.workspaceState.update('explorerCollapsed', false);
         treeDataProvider!.setCollapsed(false);
-        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.explorerFlat', () => {
-        context.workspaceState.update('explorerCollapsed', true);
         treeDataProvider!.setCollapsed(true);
-        treeDataProvider!.render();
       })
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.killRefreshProcess',
-        killRefreshProcess
-      )
+      vscode.commands.registerCommand('gradle.killRefreshProcess', () => {
+        client.stopGetTasks();
+      })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
@@ -146,36 +147,76 @@ function registerCommands(
 }
 
 export interface ExtensionApi {
-  outputChannel: vscode.OutputChannel;
   treeDataProvider: GradleTasksTreeDataProvider | undefined;
   context: vscode.ExtensionContext;
+  outputChannel: vscode.OutputChannel;
 }
 
 export async function activate(
   context: vscode.ExtensionContext
-): Promise<ExtensionApi> {
-  const explorerCollapsed = context.workspaceState.get(
-    'explorerCollapsed',
-    true
-  );
+): Promise<ExtensionApi | void> {
   const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
-  registerTaskProvider(context, outputChannel);
+
+  let server: GradleTasksServer | undefined;
+  let client: GradleTasksClient | undefined;
+
+  const statusBarItem = vscode.window.createStatusBarItem();
+  context.subscriptions.push(statusBarItem);
+  statusBarItem.command = 'gradle.showRefreshInformationMessage';
+
+  const taskProvider = registerTaskProvider(
+    context,
+    outputChannel,
+    statusBarItem
+  );
+
   if (await hasGradleProject()) {
-    registerExplorer(context, explorerCollapsed);
-    registerCommands(context, outputChannel);
-    if (treeDataProvider) {
-      treeDataProvider.refresh();
+    const port = await getPort();
+    try {
+      server = await registerServer(
+        { port, host: 'localhost' },
+        outputChannel,
+        context
+      );
+      context.subscriptions.push(server);
+    } catch (e) {
+      outputChannel.appendLine(`Unable to start tasks server: ${e.toString()}`);
+      return;
     }
-    if (getIsTasksExplorerEnabled()) {
-      vscode.commands.executeCommand(
-        'setContext',
-        'gradle:showTasksExplorer',
+
+    try {
+      client = await registerClient(server, outputChannel, statusBarItem);
+      context.subscriptions.push(client);
+    } catch (e) {
+      outputChannel.appendLine(
+        `Unable to connect to tasks server: ${e.toString()}`
+      );
+      return;
+    }
+
+    if (client) {
+      taskProvider?.setClient(client);
+      const explorerCollapsed = context.workspaceState.get(
+        'explorerCollapsed',
         true
       );
+      registerExplorer(context, explorerCollapsed, client);
+      registerCommands(context, outputChannel, statusBarItem, client);
+
+      if (treeDataProvider) {
+        treeDataProvider.refresh();
+      }
+      if (getIsTasksExplorerEnabled()) {
+        vscode.commands.executeCommand(
+          'setContext',
+          'gradle:showTasksExplorer',
+          true
+        );
+      }
     }
   }
-  return { outputChannel, treeDataProvider, context };
+  return { treeDataProvider, context, outputChannel };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
