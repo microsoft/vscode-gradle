@@ -5,11 +5,7 @@
 - Performance improvements, for both listing and running tasks (using websocket server)
 - Better feedback shown in the statusbar when refreshing or running tasks
 - Use gradle cancellation tokens for clean shutdown of gradle processes
-
-## 2.2.7
-
 - Add information message dialog on statusbar item click, to view logs or cancel refresh process
-- Improve refresh performance and logging (now showing progress event descriptions with colour output)
 
 ## 2.2.6
 
