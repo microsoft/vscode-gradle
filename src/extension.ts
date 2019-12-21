@@ -5,7 +5,9 @@ import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   invalidateTasksCache,
   GradleTaskProvider,
-  hasGradleProject
+  hasGradleProject,
+  stopTask,
+  stopRunningGradleTasks
 } from './tasks';
 import {
   registerServer,
@@ -100,8 +102,17 @@ function registerCommands(
     );
     context.subscriptions.push(
       vscode.commands.registerCommand('gradle.stopTask', task => {
-        treeDataProvider!.stopTask(task);
-        statusBarItem.hide();
+        if (task) {
+          stopTask(task);
+          statusBarItem.hide();
+        }
+      })
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand('gradle.stopTreeItemTask', treeItem => {
+        if (treeItem && treeItem.task) {
+          vscode.commands.executeCommand('gradle.stopTask', treeItem.task);
+        }
       })
     );
     context.subscriptions.push(
@@ -120,25 +131,27 @@ function registerCommands(
       })
     );
     context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.killRefreshProcess', () => {
+      vscode.commands.registerCommand('gradle.killGradleProcess', () => {
         client.stopGetTasks();
+        stopRunningGradleTasks();
+        statusBarItem.hide();
       })
     );
     context.subscriptions.push(
       vscode.commands.registerCommand(
-        'gradle.showRefreshInformationMessage',
+        'gradle.showGradleProcessInformationMessage',
         async () => {
           const OPT_LOGS = 'View Logs';
           const OPT_CANCEL = 'Cancel Process';
           const input = await vscode.window.showInformationMessage(
-            'Gradle Refresh Process',
+            'Gradle Tasks Process',
             OPT_LOGS,
             OPT_CANCEL
           );
           if (input === OPT_LOGS) {
             outputChannel.show();
           } else if (input === OPT_CANCEL) {
-            vscode.commands.executeCommand('gradle.killRefreshProcess');
+            vscode.commands.executeCommand('gradle.killGradleProcess');
           }
         }
       )
@@ -163,7 +176,7 @@ export async function activate(
 
   const statusBarItem = vscode.window.createStatusBarItem();
   context.subscriptions.push(statusBarItem);
-  statusBarItem.command = 'gradle.showRefreshInformationMessage';
+  statusBarItem.command = 'gradle.showGradleProcessInformationMessage';
 
   const taskProvider = registerTaskProvider(
     context,

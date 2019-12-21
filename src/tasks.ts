@@ -24,6 +24,36 @@ export function enableTaskDetection(): void {
   autoDetectOverride = true;
 }
 
+export function getTaskExecution(
+  task: vscode.Task
+): vscode.TaskExecution | undefined {
+  return vscode.tasks.taskExecutions.find(
+    e =>
+      e.task.name === task.name &&
+      e.task.source === task.source &&
+      e.task.scope === task.scope &&
+      e.task.definition.path === task.definition.path
+  );
+}
+
+export function getGradleTaskExecutions(): vscode.TaskExecution[] {
+  return vscode.tasks.taskExecutions.filter(e => e.task.source === 'gradle');
+}
+
+export function stopRunningGradleTasks(): void {
+  const taskExecutions = getGradleTaskExecutions();
+  taskExecutions.forEach(execution => {
+    vscode.commands.executeCommand('gradle.stopTask', execution.task);
+  });
+}
+
+export function stopTask(task: vscode.Task): void {
+  const execution = getTaskExecution(task);
+  if (execution) {
+    execution.terminate();
+  }
+}
+
 async function hasGradleBuildFile(folder: vscode.Uri): Promise<boolean> {
   const relativePattern = new vscode.RelativePattern(
     folder.fsPath,
@@ -239,8 +269,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   constructor(
     private readonly client: GradleTasksClient,
     private readonly sourceDir: string,
-    private readonly task: string,
-    private readonly args: string[]
+    private readonly task: vscode.Task
   ) {}
 
   open(): void {
@@ -248,14 +277,15 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   close(): void {
-    this.client.stopTask(this.sourceDir, this.task);
+    this.client.stopTask(this.sourceDir, this.task.definition.script);
   }
 
   private async doBuild(): Promise<void> {
+    const args = this.task.definition.args.split(' ').filter(Boolean);
     await this.client.runTask(
       this.sourceDir,
-      this.task,
-      this.args,
+      this.task.definition.script,
+      args,
       (message: ServerMessage) => {
         this.writeEmitter.fire(message.message?.toString() + '\r\n');
       }
@@ -263,6 +293,12 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     setTimeout(() => {
       this.closeEmitter.fire();
     }, 100); // give the UI some time to render the terminal
+  }
+
+  handleInput(data: string): void {
+    if (data === '\x03') {
+      vscode.commands.executeCommand('gradle.stopTask', this.task);
+    }
   }
 }
 
@@ -287,12 +323,7 @@ export function createTaskFromDefinition(
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {
-        return new CustomBuildTaskTerminal(
-          client,
-          projectFolder.fsPath,
-          definition.script,
-          definition.args.split(' ').filter(Boolean)
-        );
+        return new CustomBuildTaskTerminal(client, projectFolder.fsPath, task);
       }
     ),
     ['$gradle']

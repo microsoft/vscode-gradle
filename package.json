@@ -92,6 +92,10 @@
       },
       {
         "command": "gradle.stopTask",
+        "title": "Stop Task"
+      },
+      {
+        "command": "gradle.stopTreeItemTask",
         "title": "Stop Task",
         "icon": {
           "light": "resources/light/stop.svg",
@@ -123,12 +127,12 @@
         }
       },
       {
-        "command": "gradle.killRefreshProcess",
-        "title": "Gradle: Kill refresh process"
+        "command": "gradle.killGradleProcess",
+        "title": "Gradle: Kill Gradle process"
       },
       {
-        "command": "gradle.showRefreshInformationMessage",
-        "title": "Show Gradle Refresh information message box"
+        "command": "gradle.showGradleProcessInformationMessage",
+        "title": "Show Gradle process information message box"
       }
     ],
     "menus": {
@@ -146,6 +150,10 @@
           "when": "false"
         },
         {
+          "command": "gradle.stopTreeItemTask",
+          "when": "false"
+        },
+        {
           "command": "gradle.explorerFlat",
           "when": "false"
         },
@@ -154,7 +162,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.showRefreshInformationMessage",
+          "command": "gradle.showGradleProcessInformationMessage",
           "when": "false"
         }
       ],
@@ -190,7 +198,7 @@
           "group": "inline"
         },
         {
-          "command": "gradle.stopTask",
+          "command": "gradle.stopTreeItemTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
           "group": "inline"
         }
