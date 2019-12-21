@@ -6,19 +6,10 @@ import {
   isWorkspaceFolder,
   invalidateTasksCache,
   enableTaskDetection,
-  cloneTask
+  cloneTask,
+  getTaskExecution
 } from './tasks';
 import { GradleTasksClient } from './server';
-
-function getTaskExecution(task: vscode.Task): vscode.TaskExecution | undefined {
-  return vscode.tasks.taskExecutions.find(
-    e =>
-      e.task.name === task.name &&
-      e.task.source === task.source &&
-      e.task.scope === task.scope &&
-      e.task.definition.path === task.definition.path
-  );
-}
 
 function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -210,15 +201,6 @@ export class GradleTasksTreeDataProvider
         if (task) {
           vscode.tasks.executeTask(task);
         }
-      }
-    }
-  }
-
-  stopTask(taskItem: GradleTaskTreeItem): void {
-    if (taskItem && taskItem.task) {
-      const execution = getTaskExecution(taskItem.task);
-      if (execution) {
-        execution.terminate();
       }
     }
   }

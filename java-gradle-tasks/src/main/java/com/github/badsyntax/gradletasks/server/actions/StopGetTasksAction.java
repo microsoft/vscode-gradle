@@ -36,10 +36,10 @@ public class StopGetTasksAction extends Action {
             } else {
                 Map<String, CancellationTokenSource> getPool =
                         taskPool.getPoolType(GradleTaskPool.TYPE.GET);
-                getPool.keySet().stream().forEach(keySet -> {
-                    CancellationTokenSource cancellationTokenSource = getPool.get(keySet);
+                getPool.keySet().stream().forEach(key -> {
+                    CancellationTokenSource cancellationTokenSource = getPool.get(key);
                     cancellationTokenSource.cancel();
-                    getPool.remove(keySet);
+                    getPool.remove(key);
                 });
             }
         } catch (ActionException e) {
