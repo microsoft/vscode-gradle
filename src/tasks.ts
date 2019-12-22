@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 
 import { getIsAutoDetectionEnabled } from './config';
-import { GradleTasksClient, GradleTask, ServerMessage } from './server';
+import { GradleTasksClient, GradleTask, ServerMessage } from './client';
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -18,7 +17,8 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 }
 
 let autoDetectOverride = false;
-let cachedTasks: Promise<vscode.Task[]> | undefined;
+let cachedTasks: vscode.Task[] = [];
+const emptyTasks: vscode.Task[] = [];
 
 export function enableTaskDetection(): void {
   autoDetectOverride = true;
@@ -83,6 +83,7 @@ async function getGradleProjectFolders(
 
 export class GradleTaskProvider implements vscode.TaskProvider {
   private client: GradleTasksClient | undefined = undefined;
+  private refreshPromise: Promise<void> | undefined = undefined;
 
   constructor(
     readonly statusBarItem: vscode.StatusBarItem,
@@ -95,13 +96,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
-    try {
-      return await this.provideGradleTasks();
-    } catch (e) {
-      const message = `Error providing gradle tasks: ${e.message}`;
-      console.error(message);
-      this.outputChannel.appendLine(message);
-    }
+    return cachedTasks;
   }
 
   // TODO
@@ -113,20 +108,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     return undefined;
   }
 
-  private provideGradleTasks(): Promise<vscode.Task[]> {
-    if (!cachedTasks) {
-      cachedTasks = this.detectGradleTasks();
-    }
-    return cachedTasks;
-  }
-
-  private async detectGradleTasks(): Promise<vscode.Task[]> {
-    const emptyTasks: vscode.Task[] = [];
+  private async refreshTasks(folders: vscode.WorkspaceFolder[]): Promise<void> {
     const allTasks: vscode.Task[] = [];
-    const folders = vscode.workspace.workspaceFolders;
-    if (!folders) {
-      return emptyTasks;
-    }
     try {
       for (const workspaceFolder of folders) {
         if (autoDetectOverride || getIsAutoDetectionEnabled(workspaceFolder)) {
@@ -141,21 +124,34 @@ export class GradleTaskProvider implements vscode.TaskProvider {
           }
         }
       }
-      return allTasks;
-    } catch (error) {
-      return Promise.reject(error);
+      cachedTasks = allTasks;
+    } catch (e) {
+      cachedTasks = emptyTasks;
+      const message = `Error providing gradle tasks: ${e.message}`;
+      console.error(message);
+      this.outputChannel.appendLine(message);
     }
+  }
+
+  public async refresh(): Promise<vscode.Task[]> {
+    const folders = vscode.workspace.workspaceFolders;
+    if (!folders) {
+      cachedTasks = emptyTasks;
+    } else {
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.refreshTasks(folders).then(() => {
+          this.refreshPromise = undefined;
+        });
+      }
+      await this.refreshPromise;
+    }
+    return cachedTasks;
   }
 
   private async provideGradleTasksForFolder(
     workspaceFolder: vscode.WorkspaceFolder,
     projectFolder: vscode.Uri
   ): Promise<vscode.Task[]> {
-    const emptyTasks: vscode.Task[] = [];
-    const command = await getGradleWrapperCommandFromPath(projectFolder.fsPath);
-    if (!command) {
-      return emptyTasks;
-    }
     const gradleTasks: GradleTask[] | undefined = await this.getGradleTasks(
       projectFolder
     );
@@ -168,8 +164,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         workspaceFolder,
         gradleTask.rootProject,
         vscode.Uri.file(gradleTask.buildFile),
-        projectFolder,
-        ''
+        projectFolder
       )
     );
   }
@@ -180,7 +175,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     rootProject: string,
     buildFile: vscode.Uri,
     projectFolder: vscode.Uri,
-    args: string
+    args = ''
   ): vscode.Task {
     const script = gradleTask.path.replace(/^:/, '');
     const definition: GradleTaskDefinition = {
@@ -212,31 +207,12 @@ export class GradleTaskProvider implements vscode.TaskProvider {
 }
 
 export function invalidateTasksCache(): void {
-  cachedTasks = undefined;
+  cachedTasks = emptyTasks;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
-}
-
-export async function getGradleWrapperCommandFromPath(
-  fsPath: string
-): Promise<string> {
-  const platform = process.platform;
-  if (
-    platform === 'win32' &&
-    (await exists(path.join(fsPath, 'gradlew.bat')))
-  ) {
-    return '.\\gradlew.bat';
-  } else if (
-    (platform === 'linux' || platform === 'darwin') &&
-    (await exists(path.join(fsPath, 'gradlew')))
-  ) {
-    return './gradlew';
-  } else {
-    throw new Error('Gradle wrapper executable not found');
-  }
 }
 
 export function getGradleTasksCommand(): string {
@@ -348,10 +324,6 @@ export async function cloneTask(
   client: GradleTasksClient
 ): Promise<vscode.Task | undefined> {
   const folder = task.scope as vscode.WorkspaceFolder;
-  const command = await getGradleWrapperCommandFromPath(folder.uri.fsPath);
-  if (!command) {
-    return undefined;
-  }
   const definition = { ...(task.definition as GradleTaskDefinition), args };
   return createTaskFromDefinition(
     definition as GradleTaskDefinition,
@@ -376,12 +348,4 @@ export async function hasGradleProject(): Promise<boolean> {
     }
   }
   return false;
-}
-
-async function exists(file: string): Promise<boolean> {
-  return new Promise<boolean>(resolve => {
-    fs.exists(file, value => {
-      resolve(value);
-    });
-  });
 }

@@ -21,20 +21,20 @@ describe(fixtureName, () => {
   });
 
   describe('tasks', () => {
-    let tasks: vscode.Task[];
+    let tasks: vscode.Task[] | undefined;
 
     beforeEach(async () => {
-      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+      tasks = await vscode.commands.executeCommand('gradle.refresh');
     });
 
     it('should load tasks', async () => {
-      assert.equal(tasks.length > 0, true);
+      assert.equal(tasks!.length > 0, true);
     });
 
     it('should run a gradle task', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const task = tasks.find(({ name }) => name === 'hello');
+      const task = tasks!.find(({ name }) => name === 'hello');
       assert.ok(task);
       const outputChannel = extension!.exports.outputChannel;
       sinon.stub(outputChannel, 'appendLine');
@@ -54,7 +54,7 @@ describe(fixtureName, () => {
     it('should run a subproject gradle task', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const task = tasks.find(
+      const task = tasks!.find(
         ({ definition }) =>
           definition.script ===
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
