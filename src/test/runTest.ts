@@ -1,23 +1,9 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import * as path from 'path';
 
 import { runTests } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-
-async function runUnitTests(): Promise<void> {
-  await runTests({
-    extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'unit'),
-    launchArgs: [
-      path.resolve(
-        __dirname,
-        '../../test-fixtures/gradle-groovy-default-build-file'
-      ),
-      // eslint-disable-next-line sonarjs/no-duplicate-string
-      '--disable-extensions'
-    ]
-  });
-}
 
 async function runTestsWithGradle(): Promise<void> {
   const fixtures = [
@@ -98,7 +84,6 @@ async function runTestsWithNestedProjects(): Promise<void> {
 
 async function main(): Promise<void> {
   try {
-    await runUnitTests();
     await runTestsWithGradle();
     await runTestsWithMultiRoot();
     await runTestsWithMultiProject();
