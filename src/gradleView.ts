@@ -1,15 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {
-  // GradleTaskDefinition,
-  isWorkspaceFolder,
-  invalidateTasksCache,
-  enableTaskDetection,
-  cloneTask,
-  getTaskExecution
-} from './tasks';
-import { GradleTasksClient } from './server';
+import { isWorkspaceFolder, cloneTask, getTaskExecution } from './tasks';
+import { GradleTasksClient } from './client';
 
 function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -147,7 +140,7 @@ class NoTasksTreeItem extends vscode.TreeItem {
 
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private taskItemsPromise: Thenable<vscode.Task[]> = Promise.resolve([]);
+  private taskItems: vscode.Task[] = [];
   private taskTree: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
 
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
@@ -205,16 +198,11 @@ export class GradleTasksTreeDataProvider
     }
   }
 
-  refresh(): Thenable<vscode.Task[]> {
-    enableTaskDetection();
-    invalidateTasksCache();
-    this.taskItemsPromise = vscode.tasks
-      .fetchTasks({ type: 'gradle' })
-      .then(tasks => {
-        this.render();
-        return tasks;
-      });
-    return this.taskItemsPromise;
+  async refresh(): Promise<void> {
+    // enableTaskDetection();
+    // invalidateTasksCache();
+    this.taskItems = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    this.render();
   }
 
   render(): void {
@@ -247,12 +235,10 @@ export class GradleTasksTreeDataProvider
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (!this.taskTree) {
-      const taskItems = await this.taskItemsPromise;
-      if (taskItems) {
-        this.taskTree = this.buildTaskTree(taskItems);
-        if (this.taskTree.length === 0) {
-          this.taskTree = [new NoTasksTreeItem()];
-        }
+      if (this.taskItems.length === 0) {
+        this.taskTree = [new NoTasksTreeItem()];
+      } else {
+        this.taskTree = this.buildTaskTree(this.taskItems);
       }
     }
     if (element instanceof WorkspaceTreeItem) {

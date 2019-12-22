@@ -5,6 +5,7 @@ import * as sinon from 'sinon';
 import { GradleTaskTreeItem } from '../../gradleView';
 
 const extensionName = 'richardwillis.vscode-gradle';
+const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
@@ -27,9 +28,14 @@ describe(fixtureName, () => {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   describe('tasks', () => {
     it('should load gradle tasks', async () => {
-      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-      assert.equal(tasks.length > 0, true);
-      const helloTask = tasks.find(({ name }) => name === 'hello');
+      const extension = vscode.extensions.getExtension(extensionName);
+      assert.ok(extension);
+      const tasks:
+        | vscode.Task[]
+        | undefined = await vscode.commands.executeCommand(refreshCommand);
+      assert.ok(tasks);
+      assert.equal(tasks!.length > 0, true);
+      const helloTask = tasks!.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
     });
 
@@ -37,7 +43,7 @@ describe(fixtureName, () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
-      await vscode.commands.executeCommand('gradle.refresh');
+      await vscode.commands.executeCommand(refreshCommand);
       assert.ok(stub.called);
     });
 

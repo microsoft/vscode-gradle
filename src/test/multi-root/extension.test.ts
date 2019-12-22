@@ -20,14 +20,14 @@ describe(fixtureName, () => {
     });
 
     describe('tasks', () => {
-      let tasks: vscode.Task[];
+      let tasks: vscode.Task[] | undefined;
 
       beforeEach(async () => {
-        tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+        tasks = await vscode.commands.executeCommand('gradle.refresh');
       });
 
       it('should load groovy default build file tasks', () => {
-        const groovyDefaultTask = tasks.find(
+        const groovyDefaultTask = tasks!.find(
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
@@ -35,7 +35,7 @@ describe(fixtureName, () => {
       });
 
       it('should load kotlin default build file tasks', () => {
-        const kotlinTask = tasks.find(
+        const kotlinTask = tasks!.find(
           ({ name }) => name === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
@@ -43,7 +43,7 @@ describe(fixtureName, () => {
       });
 
       it('should load groovy custom build file tasks', () => {
-        const groovyCustomTask = tasks.find(
+        const groovyCustomTask = tasks!.find(
           ({ name }) => name === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
@@ -57,7 +57,7 @@ describe(fixtureName, () => {
         const extension = vscode.extensions.getExtension(extensionName);
         assert.ok(extension);
 
-        const task = tasks.find(({ name }) => name === 'hello');
+        const task = tasks!.find(({ name }) => name === 'hello');
         assert.ok(task);
 
         const outputChannel = extension!.exports.outputChannel;

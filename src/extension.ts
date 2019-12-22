@@ -2,21 +2,20 @@ import * as vscode from 'vscode';
 import getPort from 'get-port';
 
 import { GradleTasksTreeDataProvider } from './gradleView';
+import { GradleTaskProvider, hasGradleProject } from './tasks';
+import { registerServer, GradleTasksServer } from './server';
+import { registerClient, GradleTasksClient } from './client';
 import {
-  invalidateTasksCache,
-  GradleTaskProvider,
-  hasGradleProject,
-  stopTask,
-  stopRunningGradleTasks
-} from './tasks';
-import {
-  registerServer,
-  registerClient,
-  GradleTasksClient,
-  GradleTasksServer
-} from './server';
-
-import { getIsTasksExplorerEnabled } from './config';
+  runTaskCommand,
+  runTaskWithArgsCommand,
+  stopTaskCommand,
+  stopTreeItemTaskCommand,
+  refreshCommand,
+  explorerTreeCommand,
+  explorerFlatCommand,
+  killGradleProcessCommand,
+  showGradleProcessInformationMessageCommand
+} from './commands';
 
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
 
@@ -25,23 +24,20 @@ function registerTaskProvider(
   outputChannel: vscode.OutputChannel,
   statusBarItem: vscode.StatusBarItem
 ): GradleTaskProvider | undefined {
-  function invalidateTaskCaches(): void {
-    invalidateTasksCache();
-    if (treeDataProvider) {
-      treeDataProvider.refresh();
-    }
+  function refreshTasks(): void {
+    vscode.commands.executeCommand('gradle.refresh', false);
   }
 
   if (vscode.workspace.workspaceFolders) {
     const buildFileGlob = `**/*.{gradle,gradle.kts}`;
     const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
     context.subscriptions.push(watcher);
-    watcher.onDidChange(invalidateTaskCaches);
-    watcher.onDidDelete(invalidateTaskCaches);
-    watcher.onDidCreate(invalidateTaskCaches);
+    watcher.onDidChange(refreshTasks);
+    watcher.onDidDelete(refreshTasks);
+    watcher.onDidCreate(refreshTasks);
 
     const workspaceWatcher = vscode.workspace.onDidChangeWorkspaceFolders(
-      invalidateTaskCaches
+      refreshTasks
     );
     context.subscriptions.push(workspaceWatcher);
 
@@ -83,78 +79,20 @@ function registerCommands(
   context: vscode.ExtensionContext,
   outputChannel: vscode.OutputChannel,
   statusBarItem: vscode.StatusBarItem,
-  client: GradleTasksClient
+  client: GradleTasksClient,
+  taskProvider?: GradleTaskProvider
 ): void {
   if (treeDataProvider) {
     context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.runTask',
-        treeDataProvider.runTask,
-        treeDataProvider
-      )
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.runTaskWithArgs',
-        treeDataProvider.runTaskWithArgs,
-        treeDataProvider
-      )
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.stopTask', task => {
-        if (task) {
-          stopTask(task);
-          statusBarItem.hide();
-        }
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.stopTreeItemTask', treeItem => {
-        if (treeItem && treeItem.task) {
-          vscode.commands.executeCommand('gradle.stopTask', treeItem.task);
-        }
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.refresh', () =>
-        treeDataProvider!.refresh()
-      )
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.explorerTree', () => {
-        treeDataProvider!.setCollapsed(false);
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.explorerFlat', () => {
-        treeDataProvider!.setCollapsed(true);
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand('gradle.killGradleProcess', () => {
-        client.stopGetTasks();
-        stopRunningGradleTasks();
-        statusBarItem.hide();
-      })
-    );
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        'gradle.showGradleProcessInformationMessage',
-        async () => {
-          const OPT_LOGS = 'View Logs';
-          const OPT_CANCEL = 'Cancel Process';
-          const input = await vscode.window.showInformationMessage(
-            'Gradle Tasks Process',
-            OPT_LOGS,
-            OPT_CANCEL
-          );
-          if (input === OPT_LOGS) {
-            outputChannel.show();
-          } else if (input === OPT_CANCEL) {
-            vscode.commands.executeCommand('gradle.killGradleProcess');
-          }
-        }
-      )
+      runTaskCommand(treeDataProvider),
+      runTaskWithArgsCommand(treeDataProvider),
+      stopTaskCommand(statusBarItem),
+      stopTreeItemTaskCommand(),
+      refreshCommand(taskProvider, treeDataProvider),
+      explorerTreeCommand(treeDataProvider),
+      explorerFlatCommand(treeDataProvider),
+      killGradleProcessCommand(client, statusBarItem),
+      showGradleProcessInformationMessageCommand(outputChannel)
     );
   }
 }
@@ -215,18 +153,15 @@ export async function activate(
         true
       );
       registerExplorer(context, explorerCollapsed, client);
-      registerCommands(context, outputChannel, statusBarItem, client);
+      registerCommands(
+        context,
+        outputChannel,
+        statusBarItem,
+        client,
+        taskProvider
+      );
 
-      if (treeDataProvider) {
-        treeDataProvider.refresh();
-      }
-      if (getIsTasksExplorerEnabled()) {
-        vscode.commands.executeCommand(
-          'setContext',
-          'gradle:showTasksExplorer',
-          true
-        );
-      }
+      vscode.commands.executeCommand('gradle.refresh', false);
     }
   }
   return { treeDataProvider, context, outputChannel };

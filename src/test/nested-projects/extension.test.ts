@@ -20,9 +20,12 @@ describe(fixtureName, () => {
 
   describe('tasks', () => {
     it('should load gradle tasks', async () => {
-      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-      assert.equal(tasks.length > 0, true);
-      const helloGroovyDefaultTask = tasks.find(
+      const tasks:
+        | vscode.Task[]
+        | undefined = await vscode.commands.executeCommand('gradle.refresh');
+      assert.ok(tasks);
+      assert.equal(tasks!.length > 0, true);
+      const helloGroovyDefaultTask = tasks!.find(
         ({ definition }) => definition.script === 'helloGroovyDefault'
       );
       assert.ok(helloGroovyDefaultTask);
@@ -30,7 +33,7 @@ describe(fixtureName, () => {
         helloGroovyDefaultTask!.name,
         'helloGroovyDefault - gradle-groovy-default-build-file'
       );
-      const helloGroovyCustomTask = tasks.find(
+      const helloGroovyCustomTask = tasks!.find(
         ({ definition }) => definition.script === 'helloGroovyCustom'
       );
       assert.ok(helloGroovyCustomTask);
@@ -38,7 +41,7 @@ describe(fixtureName, () => {
         helloGroovyCustomTask!.name,
         'helloGroovyCustom - gradle-groovy-custom-build-file'
       );
-      const helloKotlinDefaultTask = tasks.find(
+      const helloKotlinDefaultTask = tasks!.find(
         ({ definition }) => definition.script === 'helloKotlinDefault'
       );
       assert.ok(helloKotlinDefaultTask);
@@ -46,7 +49,7 @@ describe(fixtureName, () => {
         helloKotlinDefaultTask!.name,
         'helloKotlinDefault - gradle-kotlin-default-build-file'
       );
-      const helloGroovySubSubProjectTask = tasks.find(
+      const helloGroovySubSubProjectTask = tasks!.find(
         ({ definition }) =>
           definition.script ===
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'

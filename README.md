@@ -29,20 +29,6 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 - `cgt`: Create a new Gradle task
 
-## Slow Task Provider Warning
-
-[Since vscode v1.40](https://code.visualstudio.com/updates/v1_40#_slow-task-provider-warning) you will see warning notifications when the Gradle task provider takes too long.
-
-<img src="./images/slow-task-provider-warning.png" width="400" />
-
-It can take a while to refresh the Gradle tasks, so you should permanently ignore this warning by clicking on "Don't warn again for Gradle tasks", or add the following to your `settings.json`:
-
-```json
-"task.slowProviderWarning": [
-  "gradle"
-]
-```
-
 ## Troubleshooting
 
 <details><summary>View the Gradle Tasks refresh process output and errors by selecting "Gradle Tasks" in the output panel.</summary>
