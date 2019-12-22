@@ -63,6 +63,16 @@ It can take a while to refresh the Gradle tasks, so you should permanently ignor
 
 </details>
 
+## Contributing
+
+Any sort of feedback is helpful, be it a bug report, a feature request or a general comment on the user experience.
+
+- 👉[Submit a bug report](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=bug&template=bug_report.md&title=)
+- 👉[Submit a feature request](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=enhancement&template=feature_request.md&title=)
+- 👉[Submit general feedack](https://github.com/badsyntax/vscode-gradle/issues/new)
+
+Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the project.
+
 ## Credits
 
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
@@ -75,3 +85,7 @@ See [CHANGELOG.md](./CHANGELOG.md).
 ## License
 
 See [LICENSE.md](./LICENSE.md).
+
+---
+
+> 😃*The Shadow knows...*
