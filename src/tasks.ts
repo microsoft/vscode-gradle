@@ -16,6 +16,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   args: string;
 }
 
+const stoppingTasks: Set<vscode.Task> = new Set();
 let autoDetectOverride = false;
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -27,13 +28,7 @@ export function enableTaskDetection(): void {
 export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
-  return vscode.tasks.taskExecutions.find(
-    e =>
-      e.task.name === task.name &&
-      e.task.source === task.source &&
-      e.task.scope === task.scope &&
-      e.task.definition.path === task.definition.path
-  );
+  return vscode.tasks.taskExecutions.find(e => e.task === task);
 }
 
 export function getGradleTaskExecutions(): vscode.TaskExecution[] {
@@ -51,6 +46,28 @@ export function stopTask(task: vscode.Task): void {
   const execution = getTaskExecution(task);
   if (execution) {
     execution.terminate();
+    stoppingTasks.add(task);
+  }
+}
+
+export function isTaskRunning(task: vscode.Task): boolean {
+  return getTaskExecution(task) !== undefined;
+}
+
+export function isTaskStopping(task: vscode.Task): boolean {
+  return stoppingTasks.has(task);
+}
+
+export function setStoppedTaskAsComplete(
+  task: string,
+  sourceDir: string
+): void {
+  const stoppingTask = Array.from(stoppingTasks).find(
+    ({ definition }) =>
+      definition.script === task && definition.projectFolder === sourceDir
+  );
+  if (stoppingTask) {
+    stoppingTasks.delete(stoppingTask);
   }
 }
 

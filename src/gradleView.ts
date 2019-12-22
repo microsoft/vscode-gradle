@@ -1,7 +1,12 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import { isWorkspaceFolder, cloneTask, getTaskExecution } from './tasks';
+import {
+  isWorkspaceFolder,
+  cloneTask,
+  isTaskStopping,
+  isTaskRunning
+} from './tasks';
 import { GradleTasksClient } from './client';
 
 function treeItemSortCompareFunc(
@@ -85,10 +90,24 @@ class GroupTreeItem extends TreeItemWithTasksOrGroups {
   }
 }
 
+function getTreeItemState(task: vscode.Task): string {
+  if (isTaskRunning(task)) {
+    return GradleTaskTreeItem.STATE_RUNNING;
+  }
+  if (isTaskStopping(task)) {
+    return GradleTaskTreeItem.STATE_STOPPING;
+  }
+  return GradleTaskTreeItem.STATE_IDLE;
+}
+
 export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution: vscode.TaskExecution | undefined;
+
+  public static STATE_RUNNING = 'runningTask';
+  public static STATE_STOPPING = 'stoppingTask';
+  public static STATE_IDLE = 'task';
 
   constructor(
     context: vscode.ExtensionContext,
@@ -100,16 +119,15 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
       title: 'Run Task',
-      command: 'gradle.runTask',
+      command: 'gradle.openBuildFile',
       arguments: [this]
     };
     this.tooltip = description || label;
     this.parentTreeItem = parentTreeItem;
     this.task = task;
-    this.execution = getTaskExecution(task);
-    this.contextValue = this.execution ? 'runningTask' : 'task';
+    this.contextValue = getTreeItemState(task);
 
-    if (this.execution) {
+    if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
       this.iconPath = {
         light: context.asAbsolutePath(
           path.join('resources', 'light', 'loading.svg')

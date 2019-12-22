@@ -36,13 +36,11 @@ public class Server extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket connection, ClientHandshake handshake) {
-        String remoteHostAddress =
-                connection.getRemoteSocketAddress().getAddress().getHostAddress();
         String localHostAddress = connection.getLocalSocketAddress().getAddress().getHostAddress();
         int localPort = connection.getLocalSocketAddress().getPort();
         connection.send(
-                new GenericMessage(String.format("Connected to %s:%d from %s. Welcome client!",
-                        localHostAddress, localPort, remoteHostAddress)).toString());
+                new GenericMessage(String.format("Connected to %s:%d. Welcome client!",
+                        localHostAddress, localPort)).toString());
     }
 
     @Override

@@ -82,13 +82,17 @@
         "command": "gradle.runTask",
         "title": "Run Task",
         "icon": {
-          "light": "resources/light/continue.svg",
-          "dark": "resources/dark/continue.svg"
+          "light": "resources/light/run.svg",
+          "dark": "resources/dark/run.svg"
         }
       },
       {
         "command": "gradle.runTaskWithArgs",
         "title": "Run Task With Args"
+      },
+      {
+        "command": "gradle.openBuildFile",
+        "title": "Open Task Build File"
       },
       {
         "command": "gradle.stopTask",
@@ -100,14 +104,6 @@
         "icon": {
           "light": "resources/light/stop.svg",
           "dark": "resources/dark/stop.svg"
-        }
-      },
-      {
-        "command": "gradle.refresh",
-        "title": "Gradle: Refresh Tasks",
-        "icon": {
-          "light": "resources/light/refresh.svg",
-          "dark": "resources/dark/refresh.svg"
         }
       },
       {
@@ -133,12 +129,40 @@
       {
         "command": "gradle.showGradleProcessInformationMessage",
         "title": "Show Gradle process information message box"
+      },
+      {
+        "command": "gradle.refresh",
+        "title": "Gradle: Refresh Tasks",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "gradle.openSettings",
+        "title": "Open Settings",
+        "icon": {
+          "light": "resources/light/gear.svg",
+          "dark": "resources/dark/gear.svg"
+        }
+      },
+      {
+        "command": "gradle.stoppingTreeItemTask",
+        "title": "Show Stopping Task Message",
+        "icon": {
+          "light": "resources/light/loading.svg",
+          "dark": "resources/dark/loading.svg"
+        }
       }
     ],
     "menus": {
       "commandPalette": [
         {
           "command": "gradle.runTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.openBuildFile",
           "when": "false"
         },
         {
@@ -164,23 +188,36 @@
         {
           "command": "gradle.showGradleProcessInformationMessage",
           "when": "false"
+        },
+        {
+          "command": "gradle.openSettings",
+          "when": "false"
+        },
+        {
+          "command": "gradle.stoppingTreeItemTask",
+          "when": "false"
         }
       ],
       "view/title": [
         {
-          "command": "gradle.refresh",
+          "command": "gradle.openSettings",
           "when": "view == gradleTreeView",
-          "group": "navigation"
+          "group": "navigation@0"
         },
         {
           "command": "gradle.explorerFlat",
           "when": "view == gradleTreeView && !gradle:explorerCollapsed",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "gradle.explorerTree",
           "when": "view == gradleTreeView && gradle:explorerCollapsed",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "gradle.refresh",
+          "when": "view == gradleTreeView",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -200,6 +237,11 @@
         {
           "command": "gradle.stopTreeItemTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
+          "group": "inline"
+        },
+        {
+          "command": "gradle.stoppingTreeItemTask",
+          "when": "view == gradleTreeView && viewItem == stoppingTask",
           "group": "inline"
         }
       ]
