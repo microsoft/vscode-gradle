@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
+import * as path from 'path';
 
 import { GradleTaskTreeItem } from '../../gradleView';
 
@@ -37,6 +38,10 @@ describe(fixtureName, () => {
       assert.equal(tasks!.length > 0, true);
       const helloTask = tasks!.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
+      assert.equal(
+        path.basename(helloTask!.definition.projectFolder),
+        fixtureName
+      );
     });
 
     it('should refresh gradle tasks when command is executed', async () => {

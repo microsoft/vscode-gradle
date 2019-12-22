@@ -83,6 +83,7 @@ async function getGradleProjectFolders(
 
 export class GradleTaskProvider implements vscode.TaskProvider {
   private client: GradleTasksClient | undefined = undefined;
+  private refreshPromise: Promise<void> | undefined = undefined;
 
   constructor(
     readonly statusBarItem: vscode.StatusBarItem,
@@ -107,38 +108,42 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     return undefined;
   }
 
-  public async refresh(): Promise<vscode.Task[]> {
+  private async refreshTasks(folders: vscode.WorkspaceFolder[]): Promise<void> {
     const allTasks: vscode.Task[] = [];
+    try {
+      for (const workspaceFolder of folders) {
+        if (autoDetectOverride || getIsAutoDetectionEnabled(workspaceFolder)) {
+          const projectFolders = await getGradleProjectFolders(workspaceFolder);
+          for (const projectFolder of projectFolders) {
+            allTasks.push(
+              ...(await this.provideGradleTasksForFolder(
+                workspaceFolder,
+                projectFolder
+              ))
+            );
+          }
+        }
+      }
+      cachedTasks = allTasks;
+    } catch (e) {
+      cachedTasks = emptyTasks;
+      const message = `Error providing gradle tasks: ${e.message}`;
+      console.error(message);
+      this.outputChannel.appendLine(message);
+    }
+  }
+
+  public async refresh(): Promise<vscode.Task[]> {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
       cachedTasks = emptyTasks;
     } else {
-      try {
-        for (const workspaceFolder of folders) {
-          if (
-            autoDetectOverride ||
-            getIsAutoDetectionEnabled(workspaceFolder)
-          ) {
-            const projectFolders = await getGradleProjectFolders(
-              workspaceFolder
-            );
-            for (const projectFolder of projectFolders) {
-              allTasks.push(
-                ...(await this.provideGradleTasksForFolder(
-                  workspaceFolder,
-                  projectFolder
-                ))
-              );
-            }
-          }
-        }
-        cachedTasks = allTasks;
-      } catch (e) {
-        cachedTasks = emptyTasks;
-        const message = `Error providing gradle tasks: ${e.message}`;
-        console.error(message);
-        this.outputChannel.appendLine(message);
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.refreshTasks(folders).then(() => {
+          this.refreshPromise = undefined;
+        });
       }
+      await this.refreshPromise;
     }
     return cachedTasks;
   }
