@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.4.0
+
+- Run task refresh process in the background (which prevents the editor from waiting for tasks)
+
 ## 2.3.1
 
 - Fix stopping Gradle processes via terminal and statusbar
