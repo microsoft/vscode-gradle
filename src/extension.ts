@@ -2,19 +2,30 @@ import * as vscode from 'vscode';
 import getPort from 'get-port';
 
 import { GradleTasksTreeDataProvider } from './gradleView';
-import { GradleTaskProvider, hasGradleProject } from './tasks';
-import { registerServer, GradleTasksServer } from './server';
-import { registerClient, GradleTasksClient } from './client';
 import {
-  runTaskCommand,
-  runTaskWithArgsCommand,
-  stopTaskCommand,
-  stopTreeItemTaskCommand,
-  refreshCommand,
-  explorerTreeCommand,
-  explorerFlatCommand,
-  killGradleProcessCommand,
-  showGradleProcessInformationMessageCommand
+  GradleTaskProvider,
+  hasGradleProject,
+  setStoppedTaskAsComplete
+} from './tasks';
+import { registerServer, GradleTasksServer } from './server';
+import {
+  registerClient,
+  GradleTasksClient,
+  ServerCancelledMessage
+} from './client';
+import {
+  registerRunTaskCommand,
+  registerRunTaskWithArgsCommand,
+  registerStopTaskCommand,
+  registerStopTreeItemTaskCommand,
+  registerRefreshCommand,
+  registerExplorerTreeCommand,
+  registerExplorerFlatCommand,
+  registerKillGradleProcessCommand,
+  registerShowGradleProcessInformationMessageCommand,
+  registerOpenSettingsCommand,
+  registerOpenBuildFileCommand,
+  registerStoppingTreeItemTaskCommand
 } from './commands';
 
 let treeDataProvider: GradleTasksTreeDataProvider | undefined;
@@ -82,17 +93,20 @@ function registerCommands(
   client: GradleTasksClient,
   taskProvider?: GradleTaskProvider
 ): void {
-  if (treeDataProvider) {
+  if (treeDataProvider && taskProvider) {
     context.subscriptions.push(
-      runTaskCommand(treeDataProvider),
-      runTaskWithArgsCommand(treeDataProvider),
-      stopTaskCommand(statusBarItem),
-      stopTreeItemTaskCommand(),
-      refreshCommand(taskProvider, treeDataProvider),
-      explorerTreeCommand(treeDataProvider),
-      explorerFlatCommand(treeDataProvider),
-      killGradleProcessCommand(client, statusBarItem),
-      showGradleProcessInformationMessageCommand(outputChannel)
+      registerRunTaskCommand(treeDataProvider),
+      registerRunTaskWithArgsCommand(treeDataProvider),
+      registerStopTaskCommand(statusBarItem),
+      registerStopTreeItemTaskCommand(),
+      registerRefreshCommand(taskProvider, treeDataProvider),
+      registerExplorerTreeCommand(treeDataProvider),
+      registerExplorerFlatCommand(treeDataProvider),
+      registerKillGradleProcessCommand(client, statusBarItem),
+      registerShowGradleProcessInformationMessageCommand(outputChannel),
+      registerOpenSettingsCommand(),
+      registerOpenBuildFileCommand(),
+      registerStoppingTreeItemTaskCommand()
     );
   }
 }
@@ -150,9 +164,14 @@ export async function activate(
       taskProvider?.setClient(client);
       const explorerCollapsed = context.workspaceState.get(
         'explorerCollapsed',
-        true
+        false
       );
       registerExplorer(context, explorerCollapsed, client);
+      client.addCancelledListener((message: ServerCancelledMessage): void => {
+        setStoppedTaskAsComplete(message.task, message.sourceDir);
+        treeDataProvider?.render();
+        outputChannel.appendLine(`Task cancelled: ${message.message}`);
+      });
       registerCommands(
         context,
         outputChannel,
@@ -160,7 +179,6 @@ export async function activate(
         client,
         taskProvider
       );
-
       vscode.commands.executeCommand('gradle.refresh', false);
     }
   }

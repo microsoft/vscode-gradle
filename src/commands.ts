@@ -1,15 +1,22 @@
 import * as vscode from 'vscode';
-import { GradleTasksTreeDataProvider } from './gradleView';
+import * as fs from 'fs';
+import * as path from 'path';
+import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
   stopTask,
   GradleTaskProvider,
   enableTaskDetection,
-  stopRunningGradleTasks
+  stopRunningGradleTasks,
+  isTaskRunning
 } from './tasks';
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
 
-export const runTaskCommand = (
+const packageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../package.json')).toString()
+);
+
+export const registerRunTaskCommand = (
   treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable =>
   vscode.commands.registerCommand(
@@ -18,7 +25,7 @@ export const runTaskCommand = (
     treeDataProvider
   );
 
-export const runTaskWithArgsCommand = (
+export const registerRunTaskWithArgsCommand = (
   treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable =>
   vscode.commands.registerCommand(
@@ -27,26 +34,26 @@ export const runTaskWithArgsCommand = (
     treeDataProvider
   );
 
-export const stopTaskCommand = (
+export const registerStopTaskCommand = (
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.stopTask', task => {
-    if (task) {
+    if (task && isTaskRunning(task)) {
       stopTask(task);
-      statusBarItem.hide();
     }
+    statusBarItem.hide();
   });
 
-export const stopTreeItemTaskCommand = (): vscode.Disposable =>
+export const registerStopTreeItemTaskCommand = (): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.stopTreeItemTask', treeItem => {
     if (treeItem && treeItem.task) {
       vscode.commands.executeCommand('gradle.stopTask', treeItem.task);
     }
   });
 
-export const refreshCommand = (
-  taskProvider?: GradleTaskProvider,
-  treeDataProvider?: GradleTasksTreeDataProvider
+export const registerRefreshCommand = (
+  taskProvider: GradleTaskProvider,
+  treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable =>
   vscode.commands.registerCommand(
     'gradle.refresh',
@@ -54,7 +61,7 @@ export const refreshCommand = (
       if (forceDetection) {
         enableTaskDetection();
       }
-      const tasks = await taskProvider?.refresh();
+      const tasks = await taskProvider.refresh();
       await treeDataProvider?.refresh();
       if (getIsTasksExplorerEnabled()) {
         vscode.commands.executeCommand(
@@ -67,21 +74,21 @@ export const refreshCommand = (
     }
   );
 
-export const explorerTreeCommand = (
+export const registerExplorerTreeCommand = (
   treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.explorerTree', () => {
     treeDataProvider!.setCollapsed(false);
   });
 
-export const explorerFlatCommand = (
+export const registerExplorerFlatCommand = (
   treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.explorerFlat', () => {
     treeDataProvider!.setCollapsed(true);
   });
 
-export const killGradleProcessCommand = (
+export const registerKillGradleProcessCommand = (
   client: GradleTasksClient,
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable =>
@@ -91,7 +98,7 @@ export const killGradleProcessCommand = (
     statusBarItem.hide();
   });
 
-export const showGradleProcessInformationMessageCommand = (
+export const registerShowGradleProcessInformationMessageCommand = (
   outputChannel: vscode.OutputChannel
 ): vscode.Disposable =>
   vscode.commands.registerCommand(
@@ -111,3 +118,27 @@ export const showGradleProcessInformationMessageCommand = (
       }
     }
   );
+
+export const registerOpenSettingsCommand = (): vscode.Disposable =>
+  vscode.commands.registerCommand('gradle.openSettings', (): void => {
+    vscode.commands.executeCommand(
+      'workbench.action.openSettings',
+      `@ext:${packageJson.publisher}.${packageJson.name}`
+    );
+  });
+
+export const registerOpenBuildFileCommand = (): vscode.Disposable =>
+  vscode.commands.registerCommand(
+    'gradle.openBuildFile',
+    (taskItem: GradleTaskTreeItem): void => {
+      vscode.commands.executeCommand(
+        'vscode.open',
+        vscode.Uri.file(taskItem.task.definition.buildFile)
+      );
+    }
+  );
+
+export const registerStoppingTreeItemTaskCommand = (): vscode.Disposable =>
+  vscode.commands.registerCommand('gradle.stoppingTreeItemTask', () => {
+    vscode.window.showInformationMessage(`Gradle task is shutting down`);
+  });
