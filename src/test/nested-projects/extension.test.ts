@@ -25,6 +25,8 @@ describe(fixtureName, () => {
         | undefined = await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
+
+      console.log('GOT TASKS', JSON.stringify(tasks, null, 2));
       const helloGroovyDefaultTask = tasks!.find(
         ({ definition }) => definition.script === 'helloGroovyDefault'
       );
