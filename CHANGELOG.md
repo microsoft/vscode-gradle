@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.4.1
+
+- Handle stopping tasks better by showing cancel state in explorer
+- Add open settings command to explorer
+
 ## 2.4.0
 
 - Run task refresh process in the background (which prevents the editor from waiting for tasks)
