@@ -1,39 +1,69 @@
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
+import getPort from 'get-port';
+
+import { buildGradleServerTask } from './tasks';
 
 export interface ServerOptions {
   host: string;
-  port: number;
 }
 
 export class GradleTasksServer implements vscode.Disposable {
-  private process: cp.ChildProcessWithoutNullStreams | undefined;
+  private taskExecution: vscode.TaskExecution | undefined;
+
+  private _onStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  public readonly onStart: vscode.Event<null> = this._onStart.event;
+
+  private port: number | undefined;
+  private taskName = 'Gradle Server';
+
   constructor(
     private readonly opts: ServerOptions,
     private readonly outputChannel: vscode.OutputChannel,
     private readonly context: vscode.ExtensionContext
-  ) {}
-
-  public start(): void {
-    const cwd = this.context.asAbsolutePath('lib');
-    const cmd = getGradleTasksServerCommand();
-    this.process = startProcess(
-      cmd,
-      [this.opts.port.toString()],
-      { cwd },
-      (output: string) => {
-        this.outputChannel.append(output);
-      },
-      (err: Error) => {
-        this.outputChannel.appendLine(
-          'Error starting the server: ' + err.toString()
-        );
-      }
+  ) {
+    context.subscriptions.push(
+      vscode.tasks.onDidStartTaskProcess(event => {
+        if (event.execution.task.name === this.taskName) {
+          if (event.processId) {
+            this.outputChannel.appendLine('Gradle server started');
+          }
+          this._onStart.fire();
+        }
+      }),
+      vscode.tasks.onDidEndTaskProcess(event => {
+        if (event.execution.task.name === this.taskName) {
+          this.outputChannel.appendLine(`Gradle server stopped`);
+          this.showRestartMessage();
+        }
+      })
     );
   }
 
+  public async tryStartServer(): Promise<void> {
+    this.port = await getPort();
+    const cwd = this.context.asAbsolutePath('lib');
+    const task = buildGradleServerTask(this.taskName, cwd, [String(this.port)]);
+    this.taskExecution = await vscode.tasks.executeTask(task);
+  }
+
+  public async showRestartMessage(): Promise<void> {
+    const OPT_RESTART = 'Restart Server';
+    const input = await vscode.window.showErrorMessage(
+      'No connection to gradle server. Try restarting the server.',
+      OPT_RESTART
+    );
+    if (input === OPT_RESTART) {
+      this.tryStartServer();
+    }
+  }
+
   public dispose(): void {
-    this.process?.kill();
+    this.taskExecution?.terminate();
+    this._onStart.dispose();
+  }
+
+  public getPort(): number | undefined {
+    return this.port;
   }
 
   public getOpts(): ServerOptions {
@@ -41,44 +71,10 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 }
 
-function getGradleTasksServerCommand(): string {
-  const platform = process.platform;
-  if (platform === 'win32') {
-    return '.\\gradle-tasks.bat';
-  } else if (platform === 'linux' || platform === 'darwin') {
-    return './gradle-tasks';
-  } else {
-    throw new Error('Unsupported platform');
-  }
-}
-
-function startProcess(
-  cmd: string,
-  args: ReadonlyArray<string> = [],
-  options: cp.SpawnOptionsWithoutStdio = {},
-  onOutput: (output: string) => void,
-  onError: (err: Error) => void
-): cp.ChildProcessWithoutNullStreams {
-  const process = cp.spawn(cmd, args, options);
-  process.stdout.on('data', (buffer: Buffer) => {
-    onOutput(buffer.toString());
-  });
-  process.stderr.on('data', (buffer: Buffer) => {
-    onOutput(buffer.toString());
-  });
-  process.on('error', onError);
-  process.on('exit', (code: number) => {
-    onError(new Error(`Process exited with code ${code}`));
-  });
-  return process;
-}
-
-export async function registerServer(
+export function registerServer(
   opts: ServerOptions,
   outputChannel: vscode.OutputChannel,
   context: vscode.ExtensionContext
-): Promise<GradleTasksServer> {
-  const server = new GradleTasksServer(opts, outputChannel, context);
-  server.start();
-  return server;
+): GradleTasksServer {
+  return new GradleTasksServer(opts, outputChannel, context);
 }

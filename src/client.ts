@@ -79,9 +79,16 @@ function getMessage(ws: WebSocket, type: string): Promise<ServerMessage> {
 export class GradleTasksClient implements vscode.Disposable {
   private connectTries = 0;
   private connection: WebSocket | undefined = undefined;
-  private outputListeners: Set<(message: any) => void> = new Set();
-  private cancelledListeners: Set<(message: any) => void> = new Set();
-  private progressListeners: Set<(message: any) => void> = new Set();
+  private outputListeners: Set<(message: ServerMessage) => void> = new Set();
+  private cancelledListeners: Set<
+    (message: ServerCancelledMessage) => void
+  > = new Set();
+  private progressListeners: Set<(message: ServerMessage) => void> = new Set();
+
+  private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
+    null
+  >();
+  public readonly onConnect: vscode.Event<null> = this._onConnect.event;
 
   constructor(
     private readonly server: GradleTasksServer,
@@ -90,18 +97,35 @@ export class GradleTasksClient implements vscode.Disposable {
   ) {
     this.addProgressListener(this.handleProgressMessage);
     this.addOutputListener(this.handleOutputMessage);
+    server.onStart(this.onServerStart);
   }
+
+  public onServerStart = async (): Promise<void> => {
+    try {
+      await this.connect();
+    } catch (e) {
+      this.outputChannel.appendLine(
+        `Unable to connect to tasks server: ${e.message}`
+      );
+    }
+  };
 
   connect(retries = 5, retryDelay = 400): Promise<void> {
     return new Promise((resolve, reject) => {
       const opts: ServerOptions = this.server.getOpts();
-      const ws = new WebSocket(`ws://${opts.host}:${opts.port}`);
+      const port = this.server.getPort();
+      const ws = new WebSocket(`ws://${opts.host}:${port}`);
 
       ws.on('message', this.onMessage);
 
       ws.on('open', () => {
         this.connection = ws;
+        this._onConnect.fire();
         resolve();
+      });
+
+      ws.on('close', () => {
+        this.connection = undefined;
       });
 
       ws.on('error', async err => {
@@ -125,13 +149,21 @@ export class GradleTasksClient implements vscode.Disposable {
     this.connection?.close();
   }
 
+  private async handleConnectionError(): Promise<void> {
+    this.outputChannel.appendLine('No connection to gradle server');
+    this.server.showRestartMessage();
+  }
+
   public async getTasks(sourceDir: string): Promise<GradleTask[] | undefined> {
     if (this.connection) {
       this.statusBarItem.text = '$(sync~spin) Gradle: Refreshing Tasks';
       this.statusBarItem.show();
-      const clientMessage: GetTasksMessage = { type: 'getTasks', sourceDir };
-      this.connection.send(new Message(clientMessage).toString());
       try {
+        const clientMessage: GetTasksMessage = {
+          type: 'getTasks',
+          sourceDir
+        };
+        await this.sendMessage(new Message(clientMessage));
         const serverMessage: GradleTasksServerMessage = (await getMessage(
           this.connection,
           'GRADLE_TASKS'
@@ -140,6 +172,8 @@ export class GradleTasksClient implements vscode.Disposable {
       } finally {
         this.statusBarItem.hide();
       }
+    } else {
+      this.handleConnectionError();
     }
   }
 
@@ -158,35 +192,58 @@ export class GradleTasksClient implements vscode.Disposable {
         task,
         args
       };
-      this.connection.send(new Message(clientMessage).toString());
+      await this.sendMessage(new Message(clientMessage));
       try {
         await getMessage(this.connection, 'GRADLE_RUN_TASK');
       } finally {
         this.statusBarItem.hide();
         this.removeOutputListener(outputListener);
       }
+    } else {
+      this.handleConnectionError();
     }
   }
 
-  public stopTask(sourceDir: string, task: string): void {
+  public async stopTask(sourceDir: string, task: string): Promise<void> {
     if (this.connection) {
       const clientMessage: StopTaskMessage = {
         type: 'stopTask',
         sourceDir,
         task
       };
-      this.connection.send(new Message(clientMessage).toString());
+      await this.sendMessage(new Message(clientMessage));
+    } else {
+      this.handleConnectionError();
     }
   }
 
-  public stopGetTasks(sourceDir = ''): void {
+  public async stopGetTasks(sourceDir = ''): Promise<void> {
     if (this.connection) {
       const clientMessage: StopGetTasksMessage = {
         type: 'stopGetTasks',
         sourceDir
       };
-      this.connection.send(new Message(clientMessage).toString());
+      await this.sendMessage(new Message(clientMessage));
+    } else {
+      this.handleConnectionError();
     }
+  }
+
+  private sendMessage(message: Message): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.connection) {
+        this.connection.send(message.toString(), (err?: Error) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        this.handleConnectionError();
+        resolve();
+      }
+    });
   }
 
   private addProgressListener(
@@ -225,7 +282,8 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private callListeners(
-    listeners: Set<(data: ServerMessage | ServerCancelledMessage) => void>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    listeners: Set<(data: any) => void>,
     message: ServerMessage
   ): void {
     Array.from(listeners).forEach(listener => {
@@ -270,16 +328,10 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 }
 
-export async function registerClient(
+export function registerClient(
   server: GradleTasksServer,
   outputChannel: vscode.OutputChannel,
   statusBarItem: vscode.StatusBarItem
-): Promise<GradleTasksClient> {
-  const gradleTasksClient = new GradleTasksClient(
-    server,
-    outputChannel,
-    statusBarItem
-  );
-  await gradleTasksClient.connect();
-  return gradleTasksClient;
+): GradleTasksClient {
+  return new GradleTasksClient(server, outputChannel, statusBarItem);
 }

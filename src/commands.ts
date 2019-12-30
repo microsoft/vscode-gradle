@@ -38,10 +38,14 @@ export const registerStopTaskCommand = (
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.stopTask', task => {
-    if (task && isTaskRunning(task)) {
-      stopTask(task);
+    try {
+      if (task && isTaskRunning(task)) {
+        stopTask(task);
+      }
+      statusBarItem.hide();
+    } catch (e) {
+      // TODO: handle error
     }
-    statusBarItem.hide();
   });
 
 export const registerStopTreeItemTaskCommand = (): vscode.Disposable =>
@@ -61,6 +65,7 @@ export const registerRefreshCommand = (
       if (forceDetection) {
         enableTaskDetection();
       }
+      // TODO: handle errors?
       const tasks = await taskProvider.refresh();
       await treeDataProvider?.refresh();
       if (getIsTasksExplorerEnabled()) {
@@ -93,9 +98,14 @@ export const registerKillGradleProcessCommand = (
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.killGradleProcess', () => {
-    client.stopGetTasks();
-    stopRunningGradleTasks();
-    statusBarItem.hide();
+    try {
+      client.stopGetTasks();
+      stopRunningGradleTasks();
+      statusBarItem.hide();
+    } catch (e) {
+      // TODO: handle error
+      // * show in outputpanel
+    }
   });
 
 export const registerShowGradleProcessInformationMessageCommand = (

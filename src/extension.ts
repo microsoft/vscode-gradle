@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import getPort from 'get-port';
 
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
@@ -7,7 +6,7 @@ import {
   hasGradleProject,
   setStoppedTaskAsComplete
 } from './tasks';
-import { registerServer, GradleTasksServer } from './server';
+import { registerServer } from './server';
 import {
   registerClient,
   GradleTasksClient,
@@ -123,9 +122,6 @@ export async function activate(
   const outputChannel = vscode.window.createOutputChannel('Gradle Tasks');
   context.subscriptions.push(outputChannel);
 
-  let server: GradleTasksServer | undefined;
-  let client: GradleTasksClient | undefined;
-
   const statusBarItem = vscode.window.createStatusBarItem();
   context.subscriptions.push(statusBarItem);
   statusBarItem.command = 'gradle.showGradleProcessInformationMessage';
@@ -137,50 +133,36 @@ export async function activate(
   );
 
   if (await hasGradleProject()) {
-    const port = await getPort();
-    try {
-      server = await registerServer(
-        { port, host: 'localhost' },
-        outputChannel,
-        context
-      );
-      context.subscriptions.push(server);
-    } catch (e) {
-      outputChannel.appendLine(`Unable to start tasks server: ${e.toString()}`);
-      return;
-    }
-
-    try {
-      client = await registerClient(server, outputChannel, statusBarItem);
-      context.subscriptions.push(client);
-    } catch (e) {
-      outputChannel.appendLine(
-        `Unable to connect to tasks server: ${e.toString()}`
-      );
-      return;
-    }
-
-    if (client) {
-      taskProvider?.setClient(client);
-      const explorerCollapsed = context.workspaceState.get(
-        'explorerCollapsed',
-        false
-      );
-      registerExplorer(context, explorerCollapsed, client);
-      client.addCancelledListener((message: ServerCancelledMessage): void => {
-        setStoppedTaskAsComplete(message.task, message.sourceDir);
-        treeDataProvider?.render();
-        outputChannel.appendLine(`Task cancelled: ${message.message}`);
-      });
-      registerCommands(
-        context,
-        outputChannel,
-        statusBarItem,
-        client,
-        taskProvider
-      );
+    const server = registerServer(
+      { host: 'localhost' },
+      outputChannel,
+      context
+    );
+    const client = registerClient(server, outputChannel, statusBarItem);
+    context.subscriptions.push(server, client);
+    server.tryStartServer();
+    client.onConnect(() => {
       vscode.commands.executeCommand('gradle.refresh', false);
-    }
+    });
+
+    taskProvider?.setClient(client);
+    const explorerCollapsed = context.workspaceState.get(
+      'explorerCollapsed',
+      false
+    );
+    registerExplorer(context, explorerCollapsed, client);
+    client.addCancelledListener((message: ServerCancelledMessage): void => {
+      setStoppedTaskAsComplete(message.task, message.sourceDir);
+      treeDataProvider?.render();
+      outputChannel.appendLine(`Task cancelled: ${message.message}`);
+    });
+    registerCommands(
+      context,
+      outputChannel,
+      statusBarItem,
+      client,
+      taskProvider
+    );
   }
   return { treeDataProvider, context, outputChannel };
 }
