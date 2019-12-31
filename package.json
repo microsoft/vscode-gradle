@@ -351,7 +351,7 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^13.1.1",
+    "@types/node": "^13.1.2",
     "@types/sinon": "^7.5.1",
     "@types/vscode": "^1.39.0",
     "@types/ws": "^6.0.4",
