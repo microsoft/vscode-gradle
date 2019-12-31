@@ -43,9 +43,10 @@ export const registerStopTaskCommand = (
       if (task && isTaskRunning(task)) {
         stopTask(task);
       }
-      statusBarItem.hide();
     } catch (e) {
       outputChannel.appendLine(`Unable to stop task: ${e.message}`);
+    } finally {
+      statusBarItem.hide();
     }
   });
 

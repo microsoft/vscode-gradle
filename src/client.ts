@@ -31,6 +31,10 @@ export interface ServerCancelledMessage extends ServerMessage {
   sourceDir: string;
 }
 
+export interface ServerOutputMessage extends ServerMessage {
+  outputType: 'STDOUT' | 'STDERR';
+}
+
 interface ClientMessage {
   type: 'runTask' | 'getTasks' | 'stopTask' | 'stopGetTasks';
 }
@@ -100,6 +104,7 @@ class WebSocketClient implements vscode.Disposable {
       }
       this._onClose.fire(code);
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.instance.on('error', (err: any) => {
       if (err.code === 'ECONNREFUSED') {
         this.reconnect();
@@ -134,6 +139,11 @@ class WebSocketClient implements vscode.Disposable {
     }
     this.instance?.removeAllListeners();
     this.instance?.close();
+    this._onClose.dispose();
+    this._onError.dispose();
+    this._onLog.dispose();
+    this._onMessage.dispose();
+    this._onOpen.dispose();
   }
 
   getInstance(): WebSocket | undefined {
@@ -148,27 +158,7 @@ class Message {
   }
 }
 
-function getMessage(ws: WebSocket, type: string): Promise<ServerMessage> {
-  return new Promise(resolve => {
-    function listener(data: WebSocket.Data): void {
-      try {
-        const message: ServerMessage = JSON.parse(data.toString());
-        if (message.type === type) {
-          ws.off('message', listener);
-          return resolve(message);
-        }
-      } catch (e) {}
-    }
-    ws.on('message', listener);
-  });
-}
-
 export class GradleTasksClient implements vscode.Disposable {
-  private outputListeners: Set<(message: ServerMessage) => void> = new Set();
-  private cancelledListeners: Set<
-    (message: ServerCancelledMessage) => void
-  > = new Set();
-  private progressListeners: Set<(message: ServerMessage) => void> = new Set();
   private wsClient: WebSocketClient | undefined;
 
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
@@ -176,22 +166,47 @@ export class GradleTasksClient implements vscode.Disposable {
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
 
-  private _onAction: vscode.EventEmitter<string> = new vscode.EventEmitter<
-    string
-  >();
-  public readonly onAction: vscode.Event<string> = this._onAction.event;
+  private _onGradleProgress: vscode.EventEmitter<
+    ServerMessage
+  > = new vscode.EventEmitter<ServerMessage>();
+  public readonly onGradleProgress: vscode.Event<ServerMessage> = this
+    ._onGradleProgress.event;
 
-  constructor(
+  private _onGradleOutput: vscode.EventEmitter<
+    ServerOutputMessage
+  > = new vscode.EventEmitter<ServerOutputMessage>();
+  public readonly onGradleOutput: vscode.Event<ServerOutputMessage> = this
+    ._onGradleOutput.event;
+
+  private _onGradleError: vscode.EventEmitter<
+    ServerMessage
+  > = new vscode.EventEmitter<ServerMessage>();
+  public readonly onGradleError: vscode.Event<ServerMessage> = this
+    ._onGradleError.event;
+
+  private _onActionCancelled: vscode.EventEmitter<
+    ServerCancelledMessage
+  > = new vscode.EventEmitter<ServerCancelledMessage>();
+  public readonly onActionCancelled: vscode.Event<ServerCancelledMessage> = this
+    ._onActionCancelled.event;
+
+  private _onMessage: vscode.EventEmitter<
+    ServerMessage
+  > = new vscode.EventEmitter<ServerMessage>();
+  public readonly onMessage: vscode.Event<ServerMessage> = this._onMessage
+    .event;
+
+  public constructor(
     private readonly server: GradleTasksServer,
     private readonly outputChannel: vscode.OutputChannel,
     private readonly statusBarItem: vscode.StatusBarItem
   ) {
-    this.addProgressListener(this.handleProgressMessage);
-    this.addOutputListener(this.handleOutputMessage);
+    this.onGradleProgress(this.handleProgressMessage);
+    this.onGradleOutput(this.handleOutputMessage);
     this.server.onStart(() => this.connect());
   }
 
-  connect(): void {
+  public connect(): void {
     if (this.wsClient) {
       this.wsClient.dispose();
     }
@@ -201,29 +216,21 @@ export class GradleTasksClient implements vscode.Disposable {
     const port = this.server.getPort();
 
     this.wsClient = new WebSocketClient(`ws://${opts.host}:${port}`);
-    this.wsClient.onMessage(this.onMessage);
+    this.wsClient.onMessage(this.handleMessage);
     this.wsClient.onOpen(() => this._onConnect.fire());
-    this.wsClient.onError(this.onError);
+    this.wsClient.onError(this.handleError);
     this.wsClient.onLog((data: string) => this.outputChannel.appendLine(data));
     this.wsClient.open();
   }
 
-  dispose(): void {
+  public dispose(): void {
     this.wsClient?.dispose();
-  }
-
-  private onError = (e: Error): void => {
-    this.outputChannel.appendLine(
-      `Error connecting to gradle server: ${e.message}`
-    );
-    this.server.showRestartMessage();
-  };
-
-  private handleConnectionError(): void {
-    const READY_STATE_CLOSED = 3;
-    if (this.wsClient!.getInstance()!.readyState === READY_STATE_CLOSED) {
-      this.server.showRestartMessage();
-    }
+    this._onMessage.dispose();
+    this._onConnect.dispose();
+    this._onActionCancelled.dispose();
+    this._onGradleError.dispose();
+    this._onGradleOutput.dispose();
+    this._onGradleProgress.dispose();
   }
 
   public async getTasks(sourceDir: string): Promise<GradleTask[] | undefined> {
@@ -236,11 +243,9 @@ export class GradleTasksClient implements vscode.Disposable {
           sourceDir
         };
         await this.sendMessage(new Message(clientMessage));
-        const serverMessage: GradleTasksServerMessage = (await getMessage(
-          this.wsClient.getInstance()!,
+        const serverMessage: GradleTasksServerMessage = (await this.waitForServerMessage(
           'GRADLE_TASKS'
         )) as GradleTasksServerMessage;
-        this._onAction.fire('getTasks');
         return serverMessage.tasks;
       } catch (e) {
         this.outputChannel.appendLine(
@@ -259,7 +264,7 @@ export class GradleTasksClient implements vscode.Disposable {
     outputListener: (message: ServerMessage) => void
   ): Promise<void> {
     if (this.wsClient) {
-      this.addOutputListener(outputListener);
+      const outputEvent = this.onGradleOutput(outputListener);
       this.statusBarItem.show();
       const clientMessage: RunTaskMessage = {
         type: 'runTask',
@@ -269,13 +274,12 @@ export class GradleTasksClient implements vscode.Disposable {
       };
       try {
         await this.sendMessage(new Message(clientMessage));
-        await getMessage(this.wsClient.getInstance()!, 'GRADLE_RUN_TASK');
-        this._onAction.fire('runTask');
+        await this.waitForServerMessage('GRADLE_RUN_TASK');
       } catch (e) {
         this.outputChannel.appendLine(`Error running task: ${e.message}`);
       } finally {
         this.statusBarItem.hide();
-        this.removeOutputListener(outputListener);
+        outputEvent.dispose();
       }
     }
   }
@@ -289,7 +293,6 @@ export class GradleTasksClient implements vscode.Disposable {
       };
       try {
         await this.sendMessage(new Message(clientMessage));
-        this._onAction.fire('stopTask');
       } catch (e) {
         this.outputChannel.appendLine(`Error stopping task: ${e.message}`);
       } finally {
@@ -306,7 +309,6 @@ export class GradleTasksClient implements vscode.Disposable {
       };
       try {
         await this.sendMessage(new Message(clientMessage));
-        this._onAction.fire('stopGetTasks');
       } finally {
         this.statusBarItem.hide();
       }
@@ -330,28 +332,29 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  private addProgressListener(
-    progressListener: (message: ServerMessage) => void
-  ): void {
-    this.progressListeners.add(progressListener);
+  private handleError = (e: Error): void => {
+    this.outputChannel.appendLine(
+      `Error connecting to gradle server: ${e.message}`
+    );
+    this.server.showRestartMessage();
+  };
+
+  private handleConnectionError(): void {
+    const READY_STATE_CLOSED = 3;
+    if (this.wsClient!.getInstance()!.readyState === READY_STATE_CLOSED) {
+      this.server.showRestartMessage();
+    }
   }
 
-  private addOutputListener(
-    outputListener: (message: ServerMessage) => void
-  ): void {
-    this.outputListeners.add(outputListener);
-  }
-
-  public addCancelledListener(
-    cancelledListener: (message: ServerCancelledMessage) => void
-  ): void {
-    this.cancelledListeners.add(cancelledListener);
-  }
-
-  private removeOutputListener(
-    outputListener: (message: ServerMessage) => void
-  ): void {
-    this.outputListeners.delete(outputListener);
+  private waitForServerMessage(type: string): Promise<ServerMessage> {
+    return new Promise(resolve => {
+      const event = this.onMessage((message: ServerMessage) => {
+        if (message.type === type) {
+          resolve(message);
+          event.dispose();
+        }
+      });
+    });
   }
 
   private handleProgressMessage = (message: ServerMessage): void => {
@@ -361,21 +364,11 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   };
 
-  private handleOutputMessage = (message: ServerMessage): void => {
+  private handleOutputMessage = (message: ServerOutputMessage): void => {
     this.outputChannel.appendLine(stripAnsi(message.message!));
   };
 
-  private callListeners(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    listeners: Set<(data: any) => void>,
-    message: ServerMessage
-  ): void {
-    Array.from(listeners).forEach(listener => {
-      listener(message);
-    });
-  }
-
-  private onMessage = (data: WebSocket.Data): void => {
+  private handleMessage = (data: WebSocket.Data): void => {
     let serverMessage: ServerMessage;
     try {
       serverMessage = JSON.parse(data.toString());
@@ -388,16 +381,19 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       return;
     }
+    this._onMessage.fire(serverMessage);
     switch (serverMessage.type) {
       case 'GRADLE_PROGRESS':
-        this.callListeners(this.progressListeners, serverMessage);
+        this._onGradleProgress.fire(serverMessage);
         break;
       case 'GRADLE_OUTPUT':
+        this._onGradleOutput.fire(serverMessage as ServerOutputMessage);
+        break;
       case 'ERROR':
-        this.callListeners(this.outputListeners, serverMessage);
+        this._onGradleError.fire(serverMessage);
         break;
       case 'ACTION_CANCELLED':
-        this.callListeners(this.cancelledListeners, serverMessage);
+        this._onActionCancelled.fire(serverMessage as ServerCancelledMessage);
         break;
       case 'GENERIC_MESSAGE':
         const message = serverMessage.message?.trim();
@@ -406,7 +402,6 @@ export class GradleTasksClient implements vscode.Disposable {
         }
         break;
       default:
-        // Unhandled message type
         break;
     }
   };
