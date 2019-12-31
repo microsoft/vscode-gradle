@@ -114,6 +114,7 @@ export interface ExtensionApi {
   treeDataProvider: GradleTasksTreeDataProvider | undefined;
   context: vscode.ExtensionContext;
   outputChannel: vscode.OutputChannel;
+  client: GradleTasksClient | undefined;
 }
 
 export async function activate(
@@ -132,13 +133,15 @@ export async function activate(
     statusBarItem
   );
 
+  let client;
+
   if (await hasGradleProject()) {
     const server = registerServer(
       { host: 'localhost' },
       outputChannel,
       context
     );
-    const client = registerClient(server, outputChannel, statusBarItem);
+    client = registerClient(server, outputChannel, statusBarItem);
     context.subscriptions.push(server, client);
     server.tryStartServer();
     client.onConnect(() => {
@@ -164,7 +167,7 @@ export async function activate(
       taskProvider
     );
   }
-  return { treeDataProvider, context, outputChannel };
+  return { treeDataProvider, context, outputChannel, client };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

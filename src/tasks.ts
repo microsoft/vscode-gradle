@@ -144,9 +144,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       cachedTasks = allTasks;
     } catch (e) {
       cachedTasks = emptyTasks;
-      const message = `Error providing gradle tasks: ${e.message}`;
-      console.error(message);
-      this.outputChannel.appendLine(message);
     }
   }
 
