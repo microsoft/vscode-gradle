@@ -154,7 +154,7 @@ export async function activate(
       false
     );
     registerExplorer(context, explorerCollapsed, client);
-    client.addCancelledListener((message: ServerCancelledMessage): void => {
+    client.onActionCancelled((message: ServerCancelledMessage): void => {
       setStoppedTaskAsComplete(message.task, message.sourceDir);
       treeDataProvider?.render();
       outputChannel.appendLine(`Task cancelled: ${message.message}`);
