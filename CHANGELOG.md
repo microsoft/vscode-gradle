@@ -1,5 +1,10 @@
 # Change Log
 
+## 2.4.2
+
+- Fix restarting and reconnecting to server (#117)
+- Fix task cancellation state in explorer (#118)
+
 ## 2.4.1
 
 - Handle stopping tasks better by showing cancel state in explorer
