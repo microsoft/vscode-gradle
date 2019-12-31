@@ -144,9 +144,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       cachedTasks = allTasks;
     } catch (e) {
       cachedTasks = emptyTasks;
-      const message = `Error providing gradle tasks: ${e.message}`;
-      console.error(message);
-      this.outputChannel.appendLine(message);
     }
   }
 
@@ -232,7 +229,7 @@ export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
 }
 
-export function getGradleTasksCommand(): string {
+export function getGradleTasksServerCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
     return '.\\gradle-tasks.bat';
@@ -324,7 +321,9 @@ export function createTaskFromDefinition(
   task.presentationOptions = {
     clear: true,
     showReuseMessage: false,
-    focus: true
+    focus: true,
+    panel: vscode.TaskPanelKind.Shared,
+    reveal: vscode.TaskRevealKind.Always
   };
   if (isTaskOfType(definition, 'build')) {
     task.group = vscode.TaskGroup.Build;
@@ -365,4 +364,30 @@ export async function hasGradleProject(): Promise<boolean> {
     }
   }
   return false;
+}
+
+export function buildGradleServerTask(
+  taskName: string,
+  cwd: string,
+  args: string[] = []
+): vscode.Task {
+  const cmd = getGradleTasksServerCommand();
+  const definition = {
+    type: 'gradle'
+  };
+  const task = new vscode.Task(
+    definition,
+    vscode.TaskScope.Workspace,
+    taskName,
+    'gradle',
+    new vscode.ProcessExecution(cmd, args, { cwd })
+  );
+  task.isBackground = true;
+  task.presentationOptions = {
+    reveal: vscode.TaskRevealKind.Never,
+    focus: false,
+    echo: false,
+    panel: vscode.TaskPanelKind.Shared
+  };
+  return task;
 }

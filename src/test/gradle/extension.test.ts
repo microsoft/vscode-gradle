@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
+import { waitForExplorerRefresh } from '../testUtil';
 import { GradleTaskTreeItem } from '../../gradleView';
 
 const extensionName = 'richardwillis.vscode-gradle';
@@ -26,14 +27,12 @@ describe(fixtureName, () => {
     }
   });
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   describe('tasks', () => {
     it('should load gradle tasks', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const tasks:
-        | vscode.Task[]
-        | undefined = await vscode.commands.executeCommand(refreshCommand);
+      await waitForExplorerRefresh(extension);
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
       const helloTask = tasks!.find(({ name }) => name === 'hello');

@@ -54,6 +54,93 @@ interface StopGetTasksMessage extends ClientMessage {
   sourceDir: string;
 }
 
+class WebSocketClient implements vscode.Disposable {
+  private autoReconnectInterval = 5 * 1000; // ms
+  private instance: WebSocket | undefined;
+  private reconnectTimeout: NodeJS.Timeout | undefined;
+
+  private _onOpen: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  public readonly onOpen: vscode.Event<null> = this._onOpen.event;
+
+  private _onError: vscode.EventEmitter<Error> = new vscode.EventEmitter<
+    Error
+  >();
+  public readonly onError: vscode.Event<Error> = this._onError.event;
+
+  private _onClose: vscode.EventEmitter<number> = new vscode.EventEmitter<
+    number
+  >();
+  public readonly onClose: vscode.Event<number> = this._onClose.event;
+
+  private _onMessage: vscode.EventEmitter<
+    WebSocket.Data
+  > = new vscode.EventEmitter<WebSocket.Data>();
+  public readonly onMessage: vscode.Event<WebSocket.Data> = this._onMessage
+    .event;
+
+  private _onLog: vscode.EventEmitter<string> = new vscode.EventEmitter<
+    string
+  >();
+  public readonly onLog: vscode.Event<string> = this._onLog.event;
+
+  constructor(private readonly url: string) {}
+
+  open(): void {
+    this.instance = new WebSocket(this.url);
+    this.instance.on('open', () => {
+      this._onOpen.fire();
+    });
+    this.instance.on('message', (data: WebSocket.Data) => {
+      this._onMessage.fire(data);
+    });
+    this.instance.on('close', code => {
+      // CLOSE_NORMAL
+      if (code !== 1000) {
+        this.reconnect();
+      }
+      this._onClose.fire(code);
+    });
+    this.instance.on('error', (err: any) => {
+      if (err.code === 'ECONNREFUSED') {
+        this.reconnect();
+      } else {
+        this._onError.fire(err);
+      }
+    });
+  }
+
+  send(data: string, callback: (err?: Error) => void): void {
+    try {
+      this.instance!.send(data, callback);
+    } catch (err) {
+      this.instance!.emit('error', err);
+    }
+  }
+
+  reconnect(): void {
+    this._onLog.fire(
+      `WebSocketClient: retry in ${this.autoReconnectInterval}ms`
+    );
+    this.instance!.removeAllListeners();
+    this.reconnectTimeout = setTimeout(() => {
+      this._onLog.fire('WebSocketClient: reconnecting...');
+      this.open();
+    }, this.autoReconnectInterval);
+  }
+
+  dispose(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+    }
+    this.instance?.removeAllListeners();
+    this.instance?.close();
+  }
+
+  getInstance(): WebSocket | undefined {
+    return this.instance;
+  }
+}
+
 class Message {
   constructor(private readonly message: ClientMessage) {}
   toString(): string {
@@ -77,11 +164,22 @@ function getMessage(ws: WebSocket, type: string): Promise<ServerMessage> {
 }
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectTries = 0;
-  private connection: WebSocket | undefined = undefined;
-  private outputListeners: Set<(message: any) => void> = new Set();
-  private cancelledListeners: Set<(message: any) => void> = new Set();
-  private progressListeners: Set<(message: any) => void> = new Set();
+  private outputListeners: Set<(message: ServerMessage) => void> = new Set();
+  private cancelledListeners: Set<
+    (message: ServerCancelledMessage) => void
+  > = new Set();
+  private progressListeners: Set<(message: ServerMessage) => void> = new Set();
+  private wsClient: WebSocketClient | undefined;
+
+  private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
+    null
+  >();
+  public readonly onConnect: vscode.Event<null> = this._onConnect.event;
+
+  private _onAction: vscode.EventEmitter<string> = new vscode.EventEmitter<
+    string
+  >();
+  public readonly onAction: vscode.Event<string> = this._onAction.event;
 
   constructor(
     private readonly server: GradleTasksServer,
@@ -90,53 +188,64 @@ export class GradleTasksClient implements vscode.Disposable {
   ) {
     this.addProgressListener(this.handleProgressMessage);
     this.addOutputListener(this.handleOutputMessage);
+    this.server.onStart(() => this.connect());
   }
 
-  connect(retries = 5, retryDelay = 400): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const opts: ServerOptions = this.server.getOpts();
-      const ws = new WebSocket(`ws://${opts.host}:${opts.port}`);
+  connect(): void {
+    if (this.wsClient) {
+      this.wsClient.dispose();
+    }
 
-      ws.on('message', this.onMessage);
+    this.outputChannel.appendLine('Gradle client connecting to server...');
+    const opts: ServerOptions = this.server.getOpts();
+    const port = this.server.getPort();
 
-      ws.on('open', () => {
-        this.connection = ws;
-        resolve();
-      });
-
-      ws.on('error', async err => {
-        if (this.connectTries < retries) {
-          setTimeout(async () => {
-            this.connectTries += 1;
-            try {
-              resolve(await this.connect());
-            } catch (e) {
-              reject(e);
-            }
-          }, retryDelay);
-        } else {
-          reject(err);
-        }
-      });
-    });
+    this.wsClient = new WebSocketClient(`ws://${opts.host}:${port}`);
+    this.wsClient.onMessage(this.onMessage);
+    this.wsClient.onOpen(() => this._onConnect.fire());
+    this.wsClient.onError(this.onError);
+    this.wsClient.onLog((data: string) => this.outputChannel.appendLine(data));
+    this.wsClient.open();
   }
 
   dispose(): void {
-    this.connection?.close();
+    this.wsClient?.dispose();
+  }
+
+  private onError = (e: Error): void => {
+    this.outputChannel.appendLine(
+      `Error connecting to gradle server: ${e.message}`
+    );
+    this.server.showRestartMessage();
+  };
+
+  private handleConnectionError(): void {
+    const READY_STATE_CLOSED = 3;
+    if (this.wsClient!.getInstance()!.readyState === READY_STATE_CLOSED) {
+      this.server.showRestartMessage();
+    }
   }
 
   public async getTasks(sourceDir: string): Promise<GradleTask[] | undefined> {
-    if (this.connection) {
+    if (this.wsClient) {
       this.statusBarItem.text = '$(sync~spin) Gradle: Refreshing Tasks';
       this.statusBarItem.show();
-      const clientMessage: GetTasksMessage = { type: 'getTasks', sourceDir };
-      this.connection.send(new Message(clientMessage).toString());
       try {
+        const clientMessage: GetTasksMessage = {
+          type: 'getTasks',
+          sourceDir
+        };
+        await this.sendMessage(new Message(clientMessage));
         const serverMessage: GradleTasksServerMessage = (await getMessage(
-          this.connection,
+          this.wsClient.getInstance()!,
           'GRADLE_TASKS'
         )) as GradleTasksServerMessage;
+        this._onAction.fire('getTasks');
         return serverMessage.tasks;
+      } catch (e) {
+        this.outputChannel.appendLine(
+          `Error providing gradle tasks: ${e.message}`
+        );
       } finally {
         this.statusBarItem.hide();
       }
@@ -149,7 +258,7 @@ export class GradleTasksClient implements vscode.Disposable {
     args: string[],
     outputListener: (message: ServerMessage) => void
   ): Promise<void> {
-    if (this.connection) {
+    if (this.wsClient) {
       this.addOutputListener(outputListener);
       this.statusBarItem.show();
       const clientMessage: RunTaskMessage = {
@@ -158,9 +267,12 @@ export class GradleTasksClient implements vscode.Disposable {
         task,
         args
       };
-      this.connection.send(new Message(clientMessage).toString());
       try {
-        await getMessage(this.connection, 'GRADLE_RUN_TASK');
+        await this.sendMessage(new Message(clientMessage));
+        await getMessage(this.wsClient.getInstance()!, 'GRADLE_RUN_TASK');
+        this._onAction.fire('runTask');
+      } catch (e) {
+        this.outputChannel.appendLine(`Error running task: ${e.message}`);
       } finally {
         this.statusBarItem.hide();
         this.removeOutputListener(outputListener);
@@ -168,24 +280,53 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public stopTask(sourceDir: string, task: string): void {
-    if (this.connection) {
+  public async stopTask(sourceDir: string, task: string): Promise<void> {
+    if (this.wsClient) {
       const clientMessage: StopTaskMessage = {
         type: 'stopTask',
         sourceDir,
         task
       };
-      this.connection.send(new Message(clientMessage).toString());
+      try {
+        await this.sendMessage(new Message(clientMessage));
+        this._onAction.fire('stopTask');
+      } catch (e) {
+        this.outputChannel.appendLine(`Error stopping task: ${e.message}`);
+      } finally {
+        this.statusBarItem.hide();
+      }
     }
   }
 
-  public stopGetTasks(sourceDir = ''): void {
-    if (this.connection) {
+  public async stopGetTasks(sourceDir = ''): Promise<void> {
+    if (this.wsClient) {
       const clientMessage: StopGetTasksMessage = {
         type: 'stopGetTasks',
         sourceDir
       };
-      this.connection.send(new Message(clientMessage).toString());
+      try {
+        await this.sendMessage(new Message(clientMessage));
+        this._onAction.fire('stopGetTasks');
+      } finally {
+        this.statusBarItem.hide();
+      }
+    }
+  }
+
+  private async sendMessage(message: Message): Promise<void> {
+    try {
+      return await new Promise((resolve, reject) => {
+        this.wsClient!.send(message.toString(), (err?: Error) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    } catch (e) {
+      this.handleConnectionError();
+      throw e;
     }
   }
 
@@ -225,7 +366,8 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private callListeners(
-    listeners: Set<(data: ServerMessage | ServerCancelledMessage) => void>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    listeners: Set<(data: any) => void>,
     message: ServerMessage
   ): void {
     Array.from(listeners).forEach(listener => {
@@ -270,16 +412,10 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 }
 
-export async function registerClient(
+export function registerClient(
   server: GradleTasksServer,
   outputChannel: vscode.OutputChannel,
   statusBarItem: vscode.StatusBarItem
-): Promise<GradleTasksClient> {
-  const gradleTasksClient = new GradleTasksClient(
-    server,
-    outputChannel,
-    statusBarItem
-  );
-  await gradleTasksClient.connect();
-  return gradleTasksClient;
+): GradleTasksClient {
+  return new GradleTasksClient(server, outputChannel, statusBarItem);
 }

@@ -35,13 +35,18 @@ export const registerRunTaskWithArgsCommand = (
   );
 
 export const registerStopTaskCommand = (
-  statusBarItem: vscode.StatusBarItem
+  statusBarItem: vscode.StatusBarItem,
+  outputChannel: vscode.OutputChannel
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.stopTask', task => {
-    if (task && isTaskRunning(task)) {
-      stopTask(task);
+    try {
+      if (task && isTaskRunning(task)) {
+        stopTask(task);
+      }
+      statusBarItem.hide();
+    } catch (e) {
+      outputChannel.appendLine(`Unable to stop task: ${e.message}`);
     }
-    statusBarItem.hide();
   });
 
 export const registerStopTreeItemTaskCommand = (): vscode.Disposable =>
@@ -90,12 +95,17 @@ export const registerExplorerFlatCommand = (
 
 export const registerKillGradleProcessCommand = (
   client: GradleTasksClient,
-  statusBarItem: vscode.StatusBarItem
+  statusBarItem: vscode.StatusBarItem,
+  outputChannel: vscode.OutputChannel
 ): vscode.Disposable =>
   vscode.commands.registerCommand('gradle.killGradleProcess', () => {
-    client.stopGetTasks();
-    stopRunningGradleTasks();
-    statusBarItem.hide();
+    try {
+      client.stopGetTasks();
+      stopRunningGradleTasks();
+      statusBarItem.hide();
+    } catch (e) {
+      outputChannel.appendLine(`Unable to stop tasks: ${e.message}`);
+    }
   });
 
 export const registerShowGradleProcessInformationMessageCommand = (

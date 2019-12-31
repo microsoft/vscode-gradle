@@ -3,6 +3,8 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
+import { waitForExplorerRefresh } from '../testUtil';
+
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
@@ -21,9 +23,10 @@ describe(fixtureName, () => {
 
   describe('tasks', () => {
     it('should load gradle tasks', async () => {
-      const tasks:
-        | vscode.Task[]
-        | undefined = await vscode.commands.executeCommand('gradle.refresh');
+      const extension = vscode.extensions.getExtension(extensionName);
+      assert.ok(extension);
+      await waitForExplorerRefresh(extension);
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
 
