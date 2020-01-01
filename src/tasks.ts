@@ -2,7 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import { getIsAutoDetectionEnabled } from './config';
-import { GradleTasksClient, GradleTask, ServerMessage } from './client';
+import {
+  GradleTasksClient,
+  GradleTask,
+  ServerMessage,
+  ServerCancelledMessage
+} from './client';
+import { logger } from './logger';
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -99,18 +105,9 @@ async function getGradleProjectFolders(
 }
 
 export class GradleTaskProvider implements vscode.TaskProvider {
-  private client: GradleTasksClient | undefined = undefined;
   private refreshPromise: Promise<void> | undefined = undefined;
 
-  constructor(
-    readonly statusBarItem: vscode.StatusBarItem,
-    readonly outputChannel: vscode.OutputChannel,
-    readonly context: vscode.ExtensionContext
-  ) {}
-
-  public setClient(client: GradleTasksClient): void {
-    this.client = client;
-  }
+  constructor(private readonly client: GradleTasksClient) {}
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return cachedTasks;
@@ -391,4 +388,34 @@ export function buildGradleServerTask(
     panel: vscode.TaskPanelKind.Shared
   };
   return task;
+}
+
+export function handleCancelledTaskMessage(
+  message: ServerCancelledMessage
+): void {
+  setStoppedTaskAsComplete(message.task, message.sourceDir);
+  logger.info(`Task cancelled: ${message.message}`);
+  vscode.commands.executeCommand('gradle.explorerRender');
+}
+
+export function registerTaskProvider(
+  context: vscode.ExtensionContext,
+  client: GradleTasksClient
+): GradleTaskProvider {
+  function refreshTasks(): void {
+    vscode.commands.executeCommand('gradle.refresh', false);
+  }
+  const buildFileGlob = `**/*.{gradle,gradle.kts}`;
+  const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
+  context.subscriptions.push(watcher);
+  watcher.onDidChange(refreshTasks);
+  watcher.onDidDelete(refreshTasks);
+  watcher.onDidCreate(refreshTasks);
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(refreshTasks)
+  );
+  const provider = new GradleTaskProvider(client);
+  const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
+  context.subscriptions.push(taskProvider);
+  return provider;
 }
