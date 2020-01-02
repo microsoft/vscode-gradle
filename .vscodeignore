@@ -6,10 +6,13 @@ src/**
 .gitignore
 **/tsconfig.json
 **/.eslintignore
-**/.eslintrc.js
-**/.prettierrc.js
+**/.eslintrc.json
+**/.prettierrc.json
+**/.prettierignore
 **/*.map
 **/*.ts
 test-fixtures/**
 images/**
 java-gradle-tasks/**
+sonar-project.properties
+
