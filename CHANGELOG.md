@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.4.3
+
+- Reveal the gradle server tasks command to help with debugging issues starting the gradle server
+
 ## 2.4.2
 
 - Fix restarting and reconnecting to server (#117)
