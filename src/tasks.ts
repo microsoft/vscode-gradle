@@ -386,7 +386,7 @@ export function buildGradleServerTask(
   task.presentationOptions = {
     reveal: vscode.TaskRevealKind.Silent,
     focus: false,
-    echo: false,
+    echo: true,
     clear: false,
     panel: vscode.TaskPanelKind.Shared
   };
