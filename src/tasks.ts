@@ -384,9 +384,10 @@ export function buildGradleServerTask(
   );
   task.isBackground = true;
   task.presentationOptions = {
-    reveal: vscode.TaskRevealKind.Never,
+    reveal: vscode.TaskRevealKind.Silent,
     focus: false,
-    echo: false,
+    echo: true,
+    clear: false,
     panel: vscode.TaskPanelKind.Shared
   };
   return task;
