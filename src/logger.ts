@@ -9,7 +9,7 @@ export class Logger {
     if (!this.channel) {
       throw new Error('No extension output channel defined.');
     }
-    this.channel.appendLine(message);
+    this.channel.appendLine(`[${type}] ${message}`);
   }
 
   public info(message: string): void {

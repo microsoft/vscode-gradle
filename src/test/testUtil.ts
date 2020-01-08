@@ -3,8 +3,8 @@ import vscode from 'vscode';
 import Mocha from 'mocha';
 import glob from 'glob';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function waitForExplorerRefresh(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extension: any
 ): Promise<vscode.Task[]> {
   return await new Promise(async resolve => {

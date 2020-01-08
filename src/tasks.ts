@@ -9,7 +9,6 @@ import {
   ServerCancelledMessage
 } from './client';
 import { logger } from './logger';
-import { GradleTasksServer } from './server';
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -211,7 +210,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       definition,
       workspaceFolder,
       projectFolder,
-      this.client!
+      this.client
     );
   }
 
