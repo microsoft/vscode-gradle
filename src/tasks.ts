@@ -9,6 +9,7 @@ import {
   ServerCancelledMessage
 } from './client';
 import { logger } from './logger';
+import { GradleTasksServer } from './server';
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -144,15 +145,19 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
   }
 
+  private reset(): void {
+    this.refreshPromise = undefined;
+  }
+
   public async refresh(): Promise<vscode.Task[]> {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
       cachedTasks = emptyTasks;
     } else {
       if (!this.refreshPromise) {
-        this.refreshPromise = this.refreshTasks(folders).then(() => {
-          this.refreshPromise = undefined;
-        });
+        this.refreshPromise = this.refreshTasks(folders).finally(() =>
+          this.reset()
+        );
       }
       await this.refreshPromise;
     }
@@ -269,17 +274,20 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   private async doBuild(): Promise<void> {
     const args = this.task.definition.args.split(' ').filter(Boolean);
-    await this.client.runTask(
-      this.sourceDir,
-      this.task.definition.script,
-      args,
-      (message: ServerMessage) => {
-        this.writeEmitter.fire(message.message?.toString() + '\r\n');
-      }
-    );
-    setTimeout(() => {
-      this.closeEmitter.fire();
-    }, 100); // give the UI some time to render the terminal
+    try {
+      await this.client.runTask(
+        this.sourceDir,
+        this.task.definition.script,
+        args,
+        (message: ServerMessage) => {
+          this.writeEmitter.fire(message.message?.toString() + '\r\n');
+        }
+      );
+    } finally {
+      setTimeout(() => {
+        this.closeEmitter.fire();
+      }, 100); // give the UI some time to render the terminal
+    }
   }
 
   handleInput(data: string): void {
@@ -346,42 +354,27 @@ export async function cloneTask(
   );
 }
 
-export async function hasGradleProject(): Promise<boolean> {
-  const folders = vscode.workspace.workspaceFolders;
-  if (!folders) {
-    return false;
-  }
-  for (const folder of folders) {
-    if (folder.uri.scheme !== 'file') {
-      continue;
-    }
-    const projectFolders = await getGradleProjectFolders(folder);
-    if (projectFolders.length) {
-      return true;
-    }
-  }
-  return false;
-}
-
 export function buildGradleServerTask(
   taskName: string,
   cwd: string,
   args: string[] = []
 ): vscode.Task {
   const cmd = `"${getGradleTasksServerCommand()}"`;
+  const taskType = 'gradle';
   const definition = {
-    type: 'gradle'
+    type: taskType
   };
   const task = new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     taskName,
-    'gradle',
+    taskType,
     new vscode.ShellExecution(cmd, args, { cwd })
   );
   task.isBackground = true;
+  task.source = taskType;
   task.presentationOptions = {
-    reveal: vscode.TaskRevealKind.Silent,
+    reveal: vscode.TaskRevealKind.Never,
     focus: false,
     echo: true,
     clear: false,

@@ -21,7 +21,9 @@ export class GradleTasksServer implements vscode.Disposable {
   private taskExecution: vscode.TaskExecution | undefined;
 
   private _onStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   public readonly onStart: vscode.Event<null> = this._onStart.event;
+  public readonly onStop: vscode.Event<null> = this._onStop.event;
 
   private port: number | undefined;
   private taskName = 'Gradle Server';
@@ -35,10 +37,7 @@ export class GradleTasksServer implements vscode.Disposable {
         if (event.execution.task.name === this.taskName && event.processId) {
           if (isProcessRunning(event.processId)) {
             logger.info('Gradle server started');
-            // The server process is running, but it can take a little while for the
-            // server to start. So let's wait some arbitrary time to increase the chances
-            // of a successful first connect from the client.
-            setTimeout(() => this._onStart.fire(), 400);
+            this._onStart.fire();
           } else {
             logger.error('Error starting gradle server');
           }
@@ -47,6 +46,7 @@ export class GradleTasksServer implements vscode.Disposable {
       vscode.tasks.onDidEndTaskProcess(event => {
         if (event.execution.task.name === this.taskName) {
           logger.info(`Gradle server stopped`);
+          this._onStop.fire();
           this.showRestartMessage();
         }
       })
@@ -90,6 +90,7 @@ export function registerServer(
   context: vscode.ExtensionContext
 ): GradleTasksServer {
   const server = new GradleTasksServer(opts, context);
+  context.subscriptions.push(server);
   server.start();
   return server;
 }
