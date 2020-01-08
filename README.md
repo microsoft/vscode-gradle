@@ -14,7 +14,10 @@ Run Gradle tasks in VS Code.
 - List & run Gradle tasks in the Explorer
 - [More Features »](./FEATURES.md)
 
-> **Note:** Local Gradle wrapper executables must exist at the root of the workspace folders (either `./gradlew` or `.\gradlew.bat`, depending on your environment).
+## Requirements
+
+* [Java >= 8](https://adoptopenjdk.net/) must be installed
+* Local Gradle wrapper executables must exist at the root of the workspace folders (either `gradlew` or `gradlew.bat`, depending on your environment)
 
 ## Extension Settings
 
