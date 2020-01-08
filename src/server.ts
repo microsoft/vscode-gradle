@@ -7,6 +7,14 @@ export interface ServerOptions {
   host: string;
 }
 
+function isProcessRunning(pid: number) {
+  try {
+    return process.kill(pid, 0);
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
 export class GradleTasksServer implements vscode.Disposable {
   private taskExecution: vscode.TaskExecution | undefined;
 
@@ -23,11 +31,16 @@ export class GradleTasksServer implements vscode.Disposable {
   ) {
     context.subscriptions.push(
       vscode.tasks.onDidStartTaskProcess(event => {
-        if (event.execution.task.name === this.taskName) {
-          if (event.processId) {
+        if (event.execution.task.name === this.taskName && event.processId) {
+          if (isProcessRunning(event.processId)) {
             this.outputChannel.appendLine('Gradle server started');
+            // The server process is running, but it can take a little while for the
+            // server to start. So let's wait some arbitrary time to increase the chances
+            // of a successful first connect from the client.
+            setTimeout(() => this._onStart.fire(), 400);
+          } else {
+            this.outputChannel.appendLine('Error starting gradle server');
           }
-          this._onStart.fire();
         }
       }),
       vscode.tasks.onDidEndTaskProcess(event => {

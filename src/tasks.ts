@@ -371,7 +371,7 @@ export function buildGradleServerTask(
   cwd: string,
   args: string[] = []
 ): vscode.Task {
-  const cmd = getGradleTasksServerCommand();
+  const cmd = `"${getGradleTasksServerCommand()}"`;
   const definition = {
     type: 'gradle'
   };
@@ -380,7 +380,7 @@ export function buildGradleServerTask(
     vscode.TaskScope.Workspace,
     taskName,
     'gradle',
-    new vscode.ProcessExecution(cmd, args, { cwd })
+    new vscode.ShellExecution(cmd, args, { cwd })
   );
   task.isBackground = true;
   task.presentationOptions = {
