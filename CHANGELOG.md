@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.4.4
+
+- Use ShellExecution for starting server and improve server start logging (#145)
+
 ## 2.4.3
 
 - Reveal the gradle server tasks command to help with debugging issues starting the gradle server (#139)
