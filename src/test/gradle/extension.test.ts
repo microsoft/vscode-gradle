@@ -3,8 +3,9 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { waitForExplorerRefresh } from '../testUtil';
+import { waitForTasksToLoad } from '../testUtil';
 import { GradleTaskTreeItem } from '../../gradleView';
+import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -28,10 +29,11 @@ describe(fixtureName, () => {
   });
 
   describe('tasks', () => {
+    beforeEach(async () => {
+      await waitForTasksToLoad(extensionName);
+    });
+
     it('should load gradle tasks', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
-      assert.ok(extension);
-      await waitForExplorerRefresh(extension);
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
@@ -58,8 +60,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const outputChannel = extension!.exports.outputChannel;
-      sinon.stub(outputChannel, 'appendLine');
+      const stub = sinon.stub(logger, 'info');
       await new Promise(resolve => {
         vscode.tasks.onDidEndTaskProcess(e => {
           if (e.execution.task === task) {
@@ -68,9 +69,7 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(
-        outputChannel.appendLine.calledWith(sinon.match('Hello, World!'))
-      );
+      assert.ok(stub.calledWith(sinon.match('Hello, World!')));
     });
 
     it('should run a gradle task with custom args', async () => {
@@ -86,8 +85,7 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
 
-      const outputChannel = extension!.exports.outputChannel;
-      sinon.stub(outputChannel, 'appendLine');
+      const stub = sinon.stub(logger, 'info');
       await new Promise(resolve => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         vscode.tasks.onDidEndTaskProcess(e => {
@@ -104,11 +102,7 @@ describe(fixtureName, () => {
         );
         vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
       });
-      assert.ok(
-        outputChannel.appendLine.calledWith(
-          sinon.match('Hello, Project Property!foo')
-        )
-      );
+      assert.ok(stub.calledWith(sinon.match('Hello, Project Property!foo')));
     });
   });
 
@@ -116,12 +110,9 @@ describe(fixtureName, () => {
     it('should show command statements in the outputchannel', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const outputChannel = extension!.exports.outputChannel;
-      sinon.stub(outputChannel, 'appendLine');
+      const stub = sinon.stub(logger, 'info');
       await vscode.commands.executeCommand('gradle.refresh');
-      assert.ok(
-        outputChannel.appendLine.calledWith(sinon.match('CONFIGURE SUCCESSFUL'))
-      );
+      assert.ok(stub.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });
   });
 });

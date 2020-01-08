@@ -4,6 +4,7 @@ import * as sinon from 'sinon';
 import * as path from 'path';
 
 import { waitForExplorerRefresh } from '../testUtil';
+import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
@@ -93,8 +94,7 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
 
-      const outputChannel = extension!.exports.outputChannel;
-      sinon.stub(outputChannel, 'appendLine');
+      const stub = sinon.stub(logger, 'info');
       await new Promise(resolve => {
         vscode.tasks.onDidEndTaskProcess(e => {
           if (e.execution.task === task) {
@@ -103,11 +103,7 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(
-        outputChannel.appendLine.calledWith(
-          sinon.match('Hello, World! SubSubProject')
-        )
-      );
+      assert.ok(stub.calledWith(sinon.match('Hello, World! SubSubProject')));
     });
   });
 });
