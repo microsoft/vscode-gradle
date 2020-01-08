@@ -5,17 +5,12 @@ import * as path from 'path';
 
 import { waitForTasksToLoad } from '../testUtil';
 import { GradleTaskTreeItem } from '../../gradleView';
-import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
-  afterEach(() => {
-    sinon.restore();
-  });
-
   it('should be present', () => {
     assert.ok(vscode.extensions.getExtension(extensionName));
   });
@@ -29,6 +24,9 @@ describe(fixtureName, () => {
   });
 
   describe('tasks', () => {
+    afterEach(() => {
+      sinon.restore();
+    });
     beforeEach(async () => {
       await waitForTasksToLoad(extensionName);
     });
@@ -55,12 +53,11 @@ describe(fixtureName, () => {
 
     it('should run a gradle task', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
-      assert.ok(extension);
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const stub = sinon.stub(logger, 'info');
+      const stub = sinon.stub(extension!.exports.logger, 'info');
       await new Promise(resolve => {
         vscode.tasks.onDidEndTaskProcess(e => {
           if (e.execution.task === task) {
@@ -84,8 +81,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-
-      const stub = sinon.stub(logger, 'info');
+      const stub = sinon.stub(extension!.exports.logger, 'info');
       await new Promise(resolve => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         vscode.tasks.onDidEndTaskProcess(e => {
@@ -110,7 +106,7 @@ describe(fixtureName, () => {
     it('should show command statements in the outputchannel', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const stub = sinon.stub(logger, 'info');
+      const stub = sinon.stub(extension!.exports.logger, 'info');
       await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(stub.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });

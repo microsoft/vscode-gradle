@@ -385,7 +385,10 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private handleOutputMessage = (message: ServerOutputMessage): void => {
-    logger.info(stripAnsi(message.message!));
+    const logMessage = stripAnsi(message.message!).trim();
+    if (logMessage) {
+      logger.info(logMessage);
+    }
   };
 
   private handleMessage = (data: WebSocket.Data): void => {

@@ -5,12 +5,13 @@ import { registerTaskProvider } from './tasks';
 import { registerServer } from './server';
 import { registerClient, GradleTasksClient } from './client';
 import { registerCommands } from './commands';
-import { logger } from './logger';
+import { Logger, logger } from './logger';
 
 export interface ExtensionApi {
   treeDataProvider: GradleTasksTreeDataProvider;
   context: vscode.ExtensionContext;
   client: GradleTasksClient;
+  logger: Logger;
 }
 
 export async function activate(
@@ -32,7 +33,7 @@ export async function activate(
     treeDataProvider,
     taskProvider
   );
-  return { treeDataProvider, context, client };
+  return { treeDataProvider, context, client, logger };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

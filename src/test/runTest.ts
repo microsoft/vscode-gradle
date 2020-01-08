@@ -90,7 +90,6 @@ async function main(): Promise<void> {
     await runTestsWithNestedProjects();
     await runTestsWithoutGradle();
   } catch (err) {
-    console.error('Failed to run tests');
     process.exit(1);
   }
 }
