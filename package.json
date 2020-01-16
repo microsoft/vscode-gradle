@@ -357,7 +357,7 @@
     "compile:java": "cd java-gradle-tasks && ./gradlew generateLib"
   },
   "dependencies": {
-    "get-port": "^5.1.0",
+    "get-port": "^5.1.1",
     "strip-ansi": "^6.0.0",
     "ws": "^7.2.1"
   },
