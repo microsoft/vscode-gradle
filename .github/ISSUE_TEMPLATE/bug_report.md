@@ -5,10 +5,11 @@ title: ''
 labels: bug
 assignees: badsyntax
 ---
+
 Extension Name: vscode-gradle
-Extension Version: 
-OS Version: 
-VSCode version: 
+Extension Version:
+OS Version:
+VSCode version:
 
 **Describe the bug**
 A clear and concise description of what the bug is.
