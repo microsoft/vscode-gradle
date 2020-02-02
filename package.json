@@ -43,6 +43,19 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "languages": [
+      {
+        "id": "kotlinscript",
+        "extensions": [
+          ".kt",
+          ".kts"
+        ],
+        "aliases": [
+          "Kotlin",
+          "kotlin"
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "groovy",
@@ -339,8 +352,8 @@
     "lint": "npm run lint:prettier && npm run lint:eslint",
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:eslint": "eslint . --ext .js,.ts",
-    "format": "npm run format:prettier && npm run lint:eslint -- --fix",
-    "format:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
+    "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
+    "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:java": "cd java-gradle-tasks && ./gradlew generateLib"
   },
   "dependencies": {
@@ -354,7 +367,7 @@
     "@types/node": "^13.1.4",
     "@types/sinon": "^7.5.1",
     "@types/vscode": "^1.39.0",
-    "@types/ws": "^6.0.4",
+    "@types/ws": "^7.2.1",
     "@typescript-eslint/eslint-plugin": "^2.18.0",
     "@typescript-eslint/parser": "^2.15.0",
     "eslint": "^6.8.0",
