@@ -43,6 +43,19 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "languages": [
+      {
+        "id": "kotlinscript",
+        "extensions": [
+          ".kt",
+          ".kts"
+        ],
+        "aliases": [
+          "Kotlin",
+          "kotlin"
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "groovy",
