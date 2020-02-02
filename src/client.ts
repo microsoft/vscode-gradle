@@ -396,7 +396,7 @@ export class GradleTasksClient implements vscode.Disposable {
     try {
       serverMessage = JSON.parse(data.toString());
       if (getIsDebugEnabled()) {
-        logger.info(data.toString());
+        logger.debug(data.toString());
       }
     } catch (e) {
       logger.error(`Unable to parse message from server: ${e.message}`);

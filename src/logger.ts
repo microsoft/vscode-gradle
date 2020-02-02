@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-type logType = 'info' | 'warning' | 'error';
+type logType = 'info' | 'warning' | 'error' | 'debug';
 
 export class Logger {
   private channel: vscode.OutputChannel | undefined;
@@ -22,6 +22,10 @@ export class Logger {
 
   public error(message: string): void {
     this.log(message, 'error');
+  }
+
+  public debug(message: string): void {
+    this.log(message, 'debug');
   }
 
   public getChannel(): vscode.OutputChannel | undefined {

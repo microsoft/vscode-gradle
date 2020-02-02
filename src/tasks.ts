@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
-import { getIsAutoDetectionEnabled } from './config';
+import { getIsAutoDetectionEnabled, getIsDebugEnabled } from './config';
 import {
   GradleTasksClient,
   GradleTask,
@@ -363,6 +363,10 @@ export function buildGradleServerTask(
   const definition = {
     type: taskType
   };
+  if (getIsDebugEnabled()) {
+    logger.debug(`Gradle Server Tasks dir: ${cwd}`);
+    logger.debug(`Gradle Server Tasks cmd: ${cmd} ${args}`);
+  }
   const task = new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
