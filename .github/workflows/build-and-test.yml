@@ -1,8 +1,6 @@
 name: Build
 on:
   push:
-  release:
-    types: [published]
 
 jobs:
   build-jar-artifacts:
@@ -98,29 +96,3 @@ jobs:
         env:
           DISPLAY: ':99.0'
           CI: 'true'
-
-  publish-extension:
-    needs: [build-jar-artifacts, analyse, test-extension]
-    name: Publish extension
-    if: github.event_name == 'release' && github.event.action == 'published'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Use Node 12.x
-        uses: actions/setup-node@v1
-        with:
-          node-version: 12.x
-      - name: Download lib
-        uses: actions/download-artifact@v1
-        with:
-          name: lib
-      - name: Publish extension
-        env:
-          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
-        run: |
-          chmod +x lib/gradle-tasks
-          tag=${GITHUB_REF#refs/tags/}
-          echo "Setting package version $tag"
-          npm --no-git-tag-version version "$tag"
-          npm ci
-          npx vsce publish -p "$AZURE_TOKEN"
