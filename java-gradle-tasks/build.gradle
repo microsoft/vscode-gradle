@@ -20,7 +20,7 @@ sourceSets {
 }
 
 dependencies {
-    compile 'org.gradle:gradle-tooling-api:6.0.1'
+    compile 'org.gradle:gradle-tooling-api:6.1.1'
     compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     compile "org.java-websocket:Java-WebSocket:1.4.0"
     compile "com.google.dagger:dagger:2.26"
