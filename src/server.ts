@@ -1,15 +1,17 @@
 import * as vscode from 'vscode';
 import getPort from 'get-port';
 
+import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
 
 export interface ServerOptions {
   host: string;
 }
 
-function isProcessRunning(pid: number) {
+function isProcessRunning(pid: number): boolean {
   try {
-    return process.kill(pid, 0);
+    process.kill(pid, 0);
+    return true;
   } catch (error) {
     return error.code === 'EPERM';
   }
@@ -19,40 +21,39 @@ export class GradleTasksServer implements vscode.Disposable {
   private taskExecution: vscode.TaskExecution | undefined;
 
   private _onStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   public readonly onStart: vscode.Event<null> = this._onStart.event;
+  public readonly onStop: vscode.Event<null> = this._onStop.event;
 
   private port: number | undefined;
   private taskName = 'Gradle Server';
 
   constructor(
     private readonly opts: ServerOptions,
-    private readonly outputChannel: vscode.OutputChannel,
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
       vscode.tasks.onDidStartTaskProcess(event => {
         if (event.execution.task.name === this.taskName && event.processId) {
           if (isProcessRunning(event.processId)) {
-            this.outputChannel.appendLine('Gradle server started');
-            // The server process is running, but it can take a little while for the
-            // server to start. So let's wait some arbitrary time to increase the chances
-            // of a successful first connect from the client.
-            setTimeout(() => this._onStart.fire(), 400);
+            logger.info('Gradle server started');
+            this._onStart.fire();
           } else {
-            this.outputChannel.appendLine('Error starting gradle server');
+            logger.error('Error starting gradle server');
           }
         }
       }),
       vscode.tasks.onDidEndTaskProcess(event => {
         if (event.execution.task.name === this.taskName) {
-          this.outputChannel.appendLine(`Gradle server stopped`);
+          logger.info(`Gradle server stopped`);
+          this._onStop.fire();
           this.showRestartMessage();
         }
       })
     );
   }
 
-  public async tryStartServer(): Promise<void> {
+  public async start(): Promise<void> {
     this.port = await getPort();
     const cwd = this.context.asAbsolutePath('lib');
     const task = buildGradleServerTask(this.taskName, cwd, [String(this.port)]);
@@ -66,7 +67,7 @@ export class GradleTasksServer implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.tryStartServer();
+      this.start();
     }
   }
 
@@ -86,8 +87,10 @@ export class GradleTasksServer implements vscode.Disposable {
 
 export function registerServer(
   opts: ServerOptions,
-  outputChannel: vscode.OutputChannel,
   context: vscode.ExtensionContext
 ): GradleTasksServer {
-  return new GradleTasksServer(opts, outputChannel, context);
+  const server = new GradleTasksServer(opts, context);
+  context.subscriptions.push(server);
+  server.start();
+  return server;
 }

@@ -5,6 +5,28 @@ on:
     types: [published]
 
 jobs:
+  build-jar-artifacts:
+    name: Build Jar Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Java 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+          architecture: x64
+      - name: Build Java lib
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: generateLib
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
+      - name: Upload Java lib
+        uses: actions/upload-artifact@v1
+        with:
+          name: lib
+          path: lib
+
   analyse:
     name: Analyse
     runs-on: ubuntu-latest
@@ -19,16 +41,16 @@ jobs:
         with:
           java-version: '8'
           architecture: x64
-      - name: Install Node Packages
-        run: npm ci
-      - name: Lint Files
-        run: npm run lint
-      - name: Build Java
+      - name: Compile Java
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build
+          arguments: compileJava
           build-root-directory: java-gradle-tasks
           wrapper-directory: java-gradle-tasks
+      - name: Lint Files
+        run: |
+          npm ci
+          npm run lint
       - name: SonarQube Analyse
         uses: sonarsource/sonarcloud-github-action@master
         env:
@@ -36,40 +58,15 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ''
 
-  build-jar-artifacts:
-    needs: [analyse]
-    name: Build Jar Artifacts
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - name: Use Java 8
-        uses: actions/setup-java@v1
-        with:
-          java-version: '8'
-          architecture: x64
-      - name: Build lib
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: generateLib
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
-      - name: Upload lib
-        uses: actions/upload-artifact@v1
-        with:
-          name: lib
-          path: lib
-
   test-extension:
     needs: [build-jar-artifacts]
     name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
         node-version: [12.x]
         java-version: ['8', '12.0.2']
         os: [ubuntu-latest, windows-latest, macOS-latest]
-
     steps:
       - uses: actions/checkout@v1
       - name: Use Node ${{ matrix.node-version }}
@@ -89,7 +86,7 @@ jobs:
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
         if: matrix.os == 'ubuntu-latest'
-      - name: Set perms
+      - name: Set permissions
         run: |
           chmod +x lib/gradle-tasks
           unset npm_config_prefix
@@ -103,7 +100,7 @@ jobs:
           CI: 'true'
 
   publish-extension:
-    needs: [test-extension]
+    needs: [build-jar-artifacts, analyse, test-extension]
     name: Publish extension
     if: github.event_name == 'release' && github.event.action == 'published'
     runs-on: ubuntu-latest
@@ -117,16 +114,13 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: lib
-      - name: Package extension
+      - name: Publish extension
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
           chmod +x lib/gradle-tasks
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
           npm ci
-          npx vsce package
-      - name: Publish extension to marketplace
-        env:
-          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
-        run: |
           npx vsce publish -p "$AZURE_TOKEN"

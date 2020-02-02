@@ -372,3 +372,22 @@ export class GradleTasksTreeDataProvider
     return [...workspaceTreeItems.values()];
   }
 }
+
+export function registerExplorer(
+  context: vscode.ExtensionContext,
+  client: GradleTasksClient
+): GradleTasksTreeDataProvider {
+  const collapsed = context.workspaceState.get('explorerCollapsed', false);
+  const treeDataProvider = new GradleTasksTreeDataProvider(
+    context,
+    collapsed,
+    client
+  );
+  context.subscriptions.push(
+    vscode.window.createTreeView('gradleTreeView', {
+      treeDataProvider: treeDataProvider,
+      showCollapseAll: true
+    })
+  );
+  return treeDataProvider;
+}

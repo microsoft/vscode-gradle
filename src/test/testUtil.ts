@@ -3,16 +3,30 @@ import vscode from 'vscode';
 import Mocha from 'mocha';
 import glob from 'glob';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function waitForExplorerRefresh(extension: any): Promise<void> {
-  await new Promise(async resolve => {
+export async function waitForExplorerRefresh(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extension: any
+): Promise<vscode.Task[]> {
+  return await new Promise(async resolve => {
     extension.exports.treeDataProvider.onDidChangeTreeData(async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       if (tasks.length) {
-        resolve();
+        resolve(tasks);
       }
     });
   });
+}
+
+export async function waitForTasksToLoad(
+  extensionName: string
+): Promise<vscode.Task[]> {
+  const extension = vscode.extensions.getExtension(extensionName);
+  const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+  if (!tasks || !tasks.length) {
+    return await waitForExplorerRefresh(extension);
+  } else {
+    return tasks;
+  }
 }
 
 export function createTestRunner(pattern: string) {

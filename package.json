@@ -128,6 +128,10 @@
         }
       },
       {
+        "command": "gradle.explorerRender",
+        "title": "Render explorer"
+      },
+      {
         "command": "gradle.explorerTree",
         "title": "Show Tree",
         "icon": {
@@ -140,7 +144,7 @@
         "title": "Gradle: Kill Gradle process"
       },
       {
-        "command": "gradle.showGradleProcessInformationMessage",
+        "command": "gradle.showProcessMessage",
         "title": "Show Gradle process information message box"
       },
       {
@@ -199,7 +203,11 @@
           "when": "false"
         },
         {
-          "command": "gradle.showGradleProcessInformationMessage",
+          "command": "gradle.explorerRender",
+          "when": "false"
+        },
+        {
+          "command": "gradle.showProcessMessage",
           "when": "false"
         },
         {
