@@ -1,0 +1,8 @@
+{
+  "extension.command.refresh.title": "Refresh Gradle Tasks",
+  "extension.command.openSettings.title": "Open Settings",
+  "extension.command.stoppingTreeItemTaskShow.title": "Stopping Task",
+  "extension.config.autoDetect.description": "Controls whether Gradle tasks should be automatically detected",
+  "extension.config.enableTasksExplorer.description": "Enable an explorer view for Gradle tasks",
+  "extension.config.debug.description": "Show extra debug information in the output panel"
+}

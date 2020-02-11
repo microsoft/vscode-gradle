@@ -49,4 +49,5 @@ jobs:
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
           npm ci
+          npm run build
           npx vsce publish -p "$AZURE_TOKEN"

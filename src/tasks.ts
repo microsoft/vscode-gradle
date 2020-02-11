@@ -364,8 +364,8 @@ export function buildGradleServerTask(
     type: taskType
   };
   if (getIsDebugEnabled()) {
-    logger.debug(`Gradle Server Tasks dir: ${cwd}`);
-    logger.debug(`Gradle Server Tasks cmd: ${cmd} ${args}`);
+    logger.debug(`Gradle Tasks Server dir: ${cwd}`);
+    logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
   }
   const task = new vscode.Task(
     definition,

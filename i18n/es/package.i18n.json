@@ -1,0 +1,8 @@
+{
+  "extension.command.refresh.title": "Actualizar Gradle Tareas",
+  "extension.command.openSettings.title": "Configuración abierta",
+  "extension.command.stoppingTreeItemTaskShow.title": "Tarea de detención",
+  "extension.config.autoDetect.description": "Controla si las tareas de Gradle deben detectarse automáticamente",
+  "extension.config.enableTasksExplorer.description": "Habilitar una vista de explorador para tareas de Gradle",
+  "extension.config.debug.description": "Mostrar información adicional de depuración en el panel de salida"
+}

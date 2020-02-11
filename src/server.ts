@@ -26,7 +26,7 @@ export class GradleTasksServer implements vscode.Disposable {
   public readonly onStop: vscode.Event<null> = this._onStop.event;
 
   private port: number | undefined;
-  private taskName = 'Gradle Server';
+  private taskName = 'Gradle Tasks Server';
 
   constructor(
     private readonly opts: ServerOptions,
