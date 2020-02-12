@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 
 import {
   isWorkspaceFolder,
@@ -8,6 +9,8 @@ import {
   isTaskRunning
 } from './tasks';
 import { GradleTasksClient } from './client';
+
+const localize = nls.loadMessageBundle();
 
 function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -118,7 +121,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
-      title: 'Run Task',
+      title: localize('gradleView.runTask', 'Run Task'),
       command: 'gradle.openBuildFile',
       arguments: [this]
     };
@@ -151,7 +154,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 
 class NoTasksTreeItem extends vscode.TreeItem {
   constructor() {
-    super('No tasks found', vscode.TreeItemCollapsibleState.None);
+    super(
+      localize('gradleView.runTask', 'No tasks found'),
+      vscode.TreeItemCollapsibleState.None
+    );
     this.contextValue = 'notasks';
   }
 }
@@ -204,7 +210,11 @@ export class GradleTasksTreeDataProvider
   async runTaskWithArgs(taskItem: GradleTaskTreeItem): Promise<void> {
     if (taskItem && taskItem.task) {
       const args = await vscode.window.showInputBox({
-        placeHolder: 'For example: --all',
+        placeHolder: localize(
+          'gradleView.runTaskWithArgsExample',
+          'For example: {0}',
+          '--all'
+        ),
         ignoreFocusOut: true
       });
       if (args !== undefined) {
@@ -217,8 +227,6 @@ export class GradleTasksTreeDataProvider
   }
 
   async refresh(): Promise<void> {
-    // enableTaskDetection();
-    // invalidateTasksCache();
     this.taskItems = await vscode.tasks.fetchTasks({ type: 'gradle' });
     this.render();
   }

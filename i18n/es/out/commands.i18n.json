@@ -1,0 +1,8 @@
+{
+  "commands.errorStoppingTask": "No se puede detener la tarea: {0}",
+  "commands.errorStoppingTasks": "No se pueden detener las tareas: {0}",
+  "commands.process.viewLogs": "Ver los registros",
+  "commands.process.cancelProcess": "Cancelar proceso",
+  "commands.process.gradleTasksProcess": "Proceso de tareas de Gradle",
+  "commands.gradleTaskShuttingDown": "La tarea de Gradle se está cerrando"
+}

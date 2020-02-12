@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
+import * as nls from 'vscode-nls';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
+
+const localize = nls.loadMessageBundle();
 
 export interface ServerOptions {
   host: string;
@@ -36,16 +39,25 @@ export class GradleTasksServer implements vscode.Disposable {
       vscode.tasks.onDidStartTaskProcess(event => {
         if (event.execution.task.name === this.taskName && event.processId) {
           if (isProcessRunning(event.processId)) {
-            logger.info('Gradle server started');
+            logger.info(
+              localize('server.gradleServerStarted', 'Gradle server started')
+            );
             this._onStart.fire();
           } else {
-            logger.error('Error starting gradle server');
+            logger.error(
+              localize(
+                'server.gradleServerErrorStarting',
+                'Error star§ting gradle server'
+              )
+            );
           }
         }
       }),
       vscode.tasks.onDidEndTaskProcess(event => {
         if (event.execution.task.name === this.taskName) {
-          logger.info(`Gradle server stopped`);
+          logger.info(
+            localize('server.gradleServerStopped', 'Gradle server stopped')
+          );
           this._onStop.fire();
           this.showRestartMessage();
         }
@@ -61,9 +73,12 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   public async showRestartMessage(): Promise<void> {
-    const OPT_RESTART = 'Restart Server';
+    const OPT_RESTART = localize('server.restartServer', 'Restart Server');
     const input = await vscode.window.showErrorMessage(
-      'No connection to gradle server. Try restarting the server.',
+      localize(
+        'server.restartMessage',
+        'No connection to gradle server. Try restarting the server.'
+      ),
       OPT_RESTART
     );
     if (input === OPT_RESTART) {

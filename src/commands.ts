@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as nls from 'vscode-nls';
+
 import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
   stopTask,
@@ -12,6 +14,8 @@ import {
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
 import { logger } from './logger';
+
+const localize = nls.loadMessageBundle();
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
@@ -46,7 +50,13 @@ function registerStopTaskCommand(
         stopTask(task);
       }
     } catch (e) {
-      logger.error(`Unable to stop task: ${e.message}`);
+      logger.error(
+        localize(
+          'commands.errorStoppingTask',
+          'Unable to stop task: {0}',
+          e.message
+        )
+      );
     } finally {
       statusBarItem.hide();
     }
@@ -122,7 +132,11 @@ function registerKillGradleProcessCommand(
       stopRunningGradleTasks();
       statusBarItem.hide();
     } catch (e) {
-      logger.error(`Unable to stop tasks: ${e.message}`);
+      localize(
+        'commands.errorStoppingTasks',
+        'Unable to stop tasks: {0}',
+        e.message
+      );
     }
   });
 }
@@ -131,10 +145,13 @@ function registerShowProcessMessageCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.showProcessMessage',
     async () => {
-      const OPT_LOGS = 'View Logs';
-      const OPT_CANCEL = 'Cancel Process';
+      const OPT_LOGS = localize('commands.process.viewLogs', 'View Logs');
+      const OPT_CANCEL = localize(
+        'commands.process.cancelProcess',
+        'Cancel Process'
+      );
       const input = await vscode.window.showInformationMessage(
-        'Gradle Tasks Process',
+        localize('commands.process.gradleTasksProcess', 'Gradle Tasks Process'),
         OPT_LOGS,
         OPT_CANCEL
       );
@@ -170,7 +187,12 @@ function registerOpenBuildFileCommand(): vscode.Disposable {
 
 function registerStoppingTreeItemTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('gradle.stoppingTreeItemTask', () => {
-    vscode.window.showInformationMessage(`Gradle task is shutting down`);
+    vscode.window.showInformationMessage(
+      localize(
+        'commands.gradleTaskShuttingDown',
+        'Gradle task is shutting down'
+      )
+    );
   });
 }
 
