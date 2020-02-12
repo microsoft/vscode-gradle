@@ -1,12 +1,24 @@
-import WebSocket from 'ws';
+import * as WebSocket from 'ws';
 import * as vscode from 'vscode';
-import stripAnsi from 'strip-ansi';
+import * as nls from 'vscode-nls';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const stripAnsi = require('strip-ansi');
 
 import { getIsDebugEnabled } from './config';
 
 import { GradleTasksServer, ServerOptions } from './server';
 import { logger } from './logger';
 import { handleCancelledTaskMessage } from './tasks';
+
+const localize = nls.loadMessageBundle();
+
+enum ServerMessageType {
+  GRADLE_PROGRESS = 'GRADLE_PROGRESS',
+  GRADLE_OUTPUT = 'GRADLE_OUTPUT',
+  ERROR = 'ERROR',
+  ACTION_CANCELLED = 'ACTION_CANCELLED',
+  GENERIC_MESSAGE = 'GENERIC_MESSAGE'
+}
 
 export type GradleTask = {
   path: string;
@@ -23,8 +35,7 @@ export interface ServerMessage {
   message?: string;
 }
 
-interface GradleTasksServerMessage {
-  type: string;
+export interface GradleTasksServerMessage extends ServerMessage {
   tasks: GradleTask[];
 }
 
@@ -109,7 +120,7 @@ class WebSocketClient implements vscode.Disposable {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.instance.on('error', (err: any) => {
-      if (err.code === 'ECONNREFUSED') {
+      if (err?.code === 'ECONNREFUSED') {
         this.reconnect();
       } else {
         this._onError.fire(err);
@@ -221,7 +232,9 @@ export class GradleTasksClient implements vscode.Disposable {
       this.wsClient.dispose();
     }
 
-    logger.info('Gradle client connecting to server...');
+    logger.info(
+      localize('client.connecting', 'Gradle client connecting to server...')
+    );
     const opts: ServerOptions = this.server.getOpts();
     const port = this.server.getPort();
 
@@ -245,7 +258,11 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async getTasks(sourceDir: string): Promise<GradleTask[] | undefined> {
     if (this.wsClient) {
-      this.statusBarItem.text = '$(sync~spin) Gradle: Refreshing Tasks';
+      this.statusBarItem.text = localize(
+        'client.refreshingTasks',
+        '{0} Gradle: Refreshing Tasks',
+        '$(sync~spin)'
+      );
       this.statusBarItem.show();
       try {
         const clientMessage: GetTasksMessage = {
@@ -253,12 +270,18 @@ export class GradleTasksClient implements vscode.Disposable {
           sourceDir
         };
         await this.sendMessage(new Message(clientMessage));
-        const serverMessage: GradleTasksServerMessage = (await this.waitForServerMessage(
+        const serverMessage = (await this.waitForServerMessage(
           'GRADLE_TASKS'
         )) as GradleTasksServerMessage;
         return serverMessage.tasks;
       } catch (e) {
-        logger.error(`Error providing gradle tasks: ${e.message}`);
+        logger.error(
+          localize(
+            'client.errorRefreshingTasks',
+            'Error providing gradle tasks: {0}',
+            e.message
+          )
+        );
         throw e;
       } finally {
         this.statusBarItem.hide();
@@ -285,7 +308,13 @@ export class GradleTasksClient implements vscode.Disposable {
         await this.sendMessage(new Message(clientMessage));
         await this.waitForServerMessage('GRADLE_RUN_TASK');
       } catch (e) {
-        logger.error(`Error running task: ${e.message}`);
+        logger.error(
+          localize(
+            'client.errorRunningTask',
+            'Error running task: {0}',
+            e.message
+          )
+        );
         throw e;
       } finally {
         this.statusBarItem.hide();
@@ -304,7 +333,13 @@ export class GradleTasksClient implements vscode.Disposable {
       try {
         await this.sendMessage(new Message(clientMessage));
       } catch (e) {
-        logger.error(`Error stopping task: ${e.message}`);
+        logger.error(
+          localize(
+            'client.errorStoppingTask',
+            'Error stopping task: {0}',
+            e.message
+          )
+        );
       } finally {
         this.statusBarItem.hide();
       }
@@ -343,7 +378,13 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   private handleError = (e: Error): void => {
-    logger.error(`Error connecting to gradle server: ${e.message}`);
+    logger.error(
+      localize(
+        'client.errorConnectingToServer',
+        'Error connecting to gradle server: {0}',
+        e.message
+      )
+    );
     this.server.showRestartMessage();
   };
 
@@ -361,7 +402,12 @@ export class GradleTasksClient implements vscode.Disposable {
       new Promise((_, reject) => {
         const event = this.server.onStop(() => {
           reject(
-            new Error('Error waiting for server message: The server stopped')
+            new Error(
+              localize(
+                'client.errorWaitingForServerMessage',
+                'Error waiting for server message: The server stopped'
+              )
+            )
           );
           event.dispose();
         });
@@ -399,24 +445,30 @@ export class GradleTasksClient implements vscode.Disposable {
         logger.debug(data.toString());
       }
     } catch (e) {
-      logger.error(`Unable to parse message from server: ${e.message}`);
+      logger.error(
+        localize(
+          'client.errorParsingMessageFromServer',
+          'Unable to parse message from server: {0}',
+          e.message
+        )
+      );
       return;
     }
     this._onMessage.fire(serverMessage);
     switch (serverMessage.type) {
-      case 'GRADLE_PROGRESS':
+      case ServerMessageType.GRADLE_PROGRESS:
         this._onGradleProgress.fire(serverMessage);
         break;
-      case 'GRADLE_OUTPUT':
+      case ServerMessageType.GRADLE_OUTPUT:
         this._onGradleOutput.fire(serverMessage as ServerOutputMessage);
         break;
-      case 'ERROR':
+      case ServerMessageType.ERROR:
         this._onGradleError.fire(serverMessage);
         break;
-      case 'ACTION_CANCELLED':
+      case ServerMessageType.ACTION_CANCELLED:
         this._onActionCancelled.fire(serverMessage as ServerCancelledMessage);
         break;
-      case 'GENERIC_MESSAGE':
+      case ServerMessageType.GENERIC_MESSAGE:
         const message = serverMessage.message?.trim();
         if (message) {
           logger.info(message);

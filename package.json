@@ -93,7 +93,7 @@
     "commands": [
       {
         "command": "gradle.runTask",
-        "title": "Run Task",
+        "title": "%extension.command.runTask.title%",
         "icon": {
           "light": "resources/light/run.svg",
           "dark": "resources/dark/run.svg"
@@ -101,19 +101,19 @@
       },
       {
         "command": "gradle.runTaskWithArgs",
-        "title": "Run Task With Args"
+        "title": "%extension.command.runTaskWithArgs.title%"
       },
       {
         "command": "gradle.openBuildFile",
-        "title": "Open Task Build File"
+        "title": "%extension.command.openBuildFile.title%"
       },
       {
         "command": "gradle.stopTask",
-        "title": "Stop Task"
+        "title": "%extension.command.stopTask.title%"
       },
       {
         "command": "gradle.stopTreeItemTask",
-        "title": "Stop Task",
+        "title": "%extension.command.stopTreeItemTask.title%",
         "icon": {
           "light": "resources/light/stop.svg",
           "dark": "resources/dark/stop.svg"
@@ -121,7 +121,7 @@
       },
       {
         "command": "gradle.explorerFlat",
-        "title": "Show Flat List",
+        "title": "%extension.command.explorerFlat.title%",
         "icon": {
           "light": "resources/light/list-flat.svg",
           "dark": "resources/dark/list-flat.svg"
@@ -129,11 +129,11 @@
       },
       {
         "command": "gradle.explorerRender",
-        "title": "Render explorer"
+        "title": "%extension.command.explorerRender.title%"
       },
       {
         "command": "gradle.explorerTree",
-        "title": "Show Tree",
+        "title": "%extension.command.explorerTree.title%",
         "icon": {
           "light": "resources/light/list-tree.svg",
           "dark": "resources/dark/list-tree.svg"
@@ -141,15 +141,15 @@
       },
       {
         "command": "gradle.killGradleProcess",
-        "title": "Gradle: Kill Gradle process"
+        "title": "%extension.command.killGradleProcess.title%"
       },
       {
         "command": "gradle.showProcessMessage",
-        "title": "Show Gradle process information message box"
+        "title": "%extension.command.showProcessMessage.title%"
       },
       {
         "command": "gradle.refresh",
-        "title": "Gradle: Refresh Tasks",
+        "title": "%extension.command.refresh.title%",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -157,7 +157,7 @@
       },
       {
         "command": "gradle.openSettings",
-        "title": "Open Settings",
+        "title": "%extension.command.openSettings.title%",
         "icon": {
           "light": "resources/light/gear.svg",
           "dark": "resources/dark/gear.svg"
@@ -165,7 +165,7 @@
       },
       {
         "command": "gradle.stoppingTreeItemTask",
-        "title": "Show Stopping Task Message",
+        "title": "%extension.command.stoppingTreeItemTaskShow.title%",
         "icon": {
           "light": "resources/light/loading.svg",
           "dark": "resources/dark/loading.svg"
@@ -280,17 +280,17 @@
           ],
           "default": "on",
           "scope": "resource",
-          "description": "Controls whether gradle tasks should be automatically detected"
+          "description": "%extension.config.autoDetect.description%"
         },
         "gradle.enableTasksExplorer": {
           "type": "boolean",
           "default": true,
-          "description": "Enable an explorer view for gradle tasks"
+          "description": "%extension.config.enableTasksExplorer.description%"
         },
         "gradle.debug": {
           "type": "boolean",
           "default": false,
-          "description": "Shows extra debug info in the output panel"
+          "description": "%extension.config.debug.description%"
         }
       }
     },
@@ -352,7 +352,6 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "node ./out/test/runTest.js",
@@ -362,11 +361,15 @@
     "lint:eslint": "eslint . --ext .js,.ts",
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
-    "compile:java": "cd java-gradle-tasks && ./gradlew generateLib"
+    "compile:java": "cd java-gradle-tasks && ./gradlew generateLib",
+    "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
+    "preinstall:ext": "gulp package",
+    "build": "gulp build"
   },
   "dependencies": {
     "get-port": "^5.1.1",
     "strip-ansi": "^6.0.0",
+    "vscode-nls": "^4.1.1",
     "ws": "^7.2.1"
   },
   "devDependencies": {
@@ -378,15 +381,23 @@
     "@types/ws": "^7.2.1",
     "@typescript-eslint/eslint-plugin": "^2.18.0",
     "@typescript-eslint/parser": "^2.18.0",
+    "del": "^5.1.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-sonarjs": "^0.5.0",
+    "event-stream": "^4.0.1",
     "glob": "^7.1.6",
+    "gulp": "^4.0.2",
+    "gulp-cli": "^2.2.0",
+    "gulp-sourcemaps": "^2.6.5",
+    "gulp-typescript": "^6.0.0-alpha.1",
     "mocha": "^7.0.1",
     "prettier": "^1.19.1",
     "sinon": "^8.1.1",
     "typescript": "^3.7.5",
+    "vsce": "^1.73.0",
+    "vscode-nls-dev": "^3.3.1",
     "vscode-test": "^1.3.0"
   }
 }

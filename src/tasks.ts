@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as nls from 'vscode-nls';
 
 import { getIsAutoDetectionEnabled, getIsDebugEnabled } from './config';
 import {
@@ -9,6 +10,8 @@ import {
   ServerCancelledMessage
 } from './client';
 import { logger } from './logger';
+
+const localize = nls.loadMessageBundle();
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -364,8 +367,8 @@ export function buildGradleServerTask(
     type: taskType
   };
   if (getIsDebugEnabled()) {
-    logger.debug(`Gradle Server Tasks dir: ${cwd}`);
-    logger.debug(`Gradle Server Tasks cmd: ${cmd} ${args}`);
+    logger.debug(`Gradle Tasks Server dir: ${cwd}`);
+    logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
   }
   const task = new vscode.Task(
     definition,
@@ -390,7 +393,9 @@ export function handleCancelledTaskMessage(
   message: ServerCancelledMessage
 ): void {
   setStoppedTaskAsComplete(message.task, message.sourceDir);
-  logger.info(`Task cancelled: ${message.message}`);
+  logger.info(
+    localize('tasks.taskCancelled', 'Task cancelled: {0}', message.message)
+  );
   vscode.commands.executeCommand('gradle.explorerRender');
 }
 

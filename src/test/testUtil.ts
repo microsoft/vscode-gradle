@@ -1,7 +1,7 @@
-import path from 'path';
-import vscode from 'vscode';
-import Mocha from 'mocha';
-import glob from 'glob';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import * as Mocha from 'mocha';
+import * as glob from 'glob';
 
 export async function waitForExplorerRefresh(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

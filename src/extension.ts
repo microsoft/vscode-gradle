@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
+
+nls.config({ messageFormat: nls.MessageFormat.file })();
 
 import { GradleTasksTreeDataProvider, registerExplorer } from './gradleView';
 import { registerTaskProvider } from './tasks';

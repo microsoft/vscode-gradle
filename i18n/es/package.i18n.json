@@ -1,0 +1,18 @@
+{
+  "extension.command.runTask.title": "Ejecutar tarea",
+  "extension.command.runTaskWithArgs.title": "Ejecutar tarea con Args",
+  "extension.command.openBuildFile.title": "Abrir archivo de compilación de tareas",
+  "extension.command.stopTask.title": "Detener tarea",
+  "extension.command.stopTreeItemTask.title": "Detener tarea",
+  "extension.command.explorerFlat.title": "Mostrar lista plana",
+  "extension.command.explorerRender.title": "Render Explorer",
+  "extension.command.explorerTree.title": "Mostrar árbol",
+  "extension.command.killGradleProcess.title": "Kill Gradle proceso de tarea",
+  "extension.command.showProcessMessage.title": "Mostrar cuadro de mensaje de información de proceso de Gradle",
+  "extension.command.refresh.title": "Actualizar tareas de Gradle",
+  "extension.command.openSettings.title": "Configuración abierta",
+  "extension.command.stoppingTreeItemTaskShow.title": "Tarea de detención",
+  "extension.config.autoDetect.description": "Controla si las tareas de Gradle deben detectarse automáticamente",
+  "extension.config.enableTasksExplorer.description": "Habilitar una vista de explorador para tareas de Gradle",
+  "extension.config.debug.description": "Mostrar información adicional de depuración en el panel de salida"
+}
