@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import getPort from 'get-port';
+import * as getPort from 'get-port';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';

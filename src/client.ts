@@ -1,6 +1,7 @@
-import WebSocket from 'ws';
+import * as WebSocket from 'ws';
 import * as vscode from 'vscode';
-import stripAnsi from 'strip-ansi';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const stripAnsi = require('strip-ansi');
 
 import { getIsDebugEnabled } from './config';
 

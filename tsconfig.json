@@ -5,9 +5,8 @@
     "outDir": "out",
     "lib": ["es6", "es2018.promise"],
     "sourceMap": true,
-    "rootDir": "src",
     "strict": true,
-    "esModuleInterop": true,
+    "rootDir": "src",
     "noUnusedLocals": true
   },
   "exclude": ["node_modules", ".vscode-test"]

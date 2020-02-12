@@ -1,4 +1,7 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
+
+const localize = nls.config({ messageFormat: nls.MessageFormat.file })();
 
 import { GradleTasksTreeDataProvider, registerExplorer } from './gradleView';
 import { registerTaskProvider } from './tasks';
@@ -26,6 +29,8 @@ export async function activate(
   const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
   const treeDataProvider = registerExplorer(context, client);
+  const message = localize('sayHello.text', 'Hello');
+  vscode.window.showInformationMessage(message);
   registerCommands(
     context,
     statusBarItem,
