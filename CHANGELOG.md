@@ -1,5 +1,24 @@
 # Change Log
 
+## 2.4.8
+
+- Add localisation support with initial Spanish translations (#184)
+
+## 2.4.7
+
+- Add command debug logging (#178)
+
+## 2.4.6
+
+- Use seperate publish workflow (#177
+
+## 2.4.5
+
+- Add versions to draft release (#176)
+- Add release drafter (#175)
+- Add logger and simpler activation (#136)
+- Fix Kotlinscript language issue (#174)
+
 ## 2.4.4
 
 - Use ShellExecution for starting server and improve server start logging (#145)
