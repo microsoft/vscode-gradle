@@ -86,7 +86,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
       - name: Set permissions
         run: |
-          chmod +x lib/gradle-tasks
+          chmod +x lib/gradle-tasks-server
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Build & test extension on ${{ matrix.os }}

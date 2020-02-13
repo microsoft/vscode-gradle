@@ -236,9 +236,9 @@ export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
 export function getGradleTasksServerCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
-    return '.\\gradle-tasks.bat';
+    return '.\\gradle-tasks-server.bat';
   } else if (platform === 'linux' || platform === 'darwin') {
-    return './gradle-tasks';
+    return './gradle-tasks-server';
   } else {
     throw new Error('Unsupported platform');
   }
