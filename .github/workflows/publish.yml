@@ -44,7 +44,7 @@ jobs:
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
-          chmod +x lib/gradle-tasks
+          chmod +x lib/gradle-tasks-server
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"

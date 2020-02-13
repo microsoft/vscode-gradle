@@ -47,7 +47,7 @@ export class GradleTasksServer implements vscode.Disposable {
             logger.error(
               localize(
                 'server.gradleServerErrorStarting',
-                'Error star§ting gradle server'
+                'Error starting gradle server'
               )
             );
           }

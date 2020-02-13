@@ -37,12 +37,20 @@ shadowJar {
     minimize()
 }
 
+task createStartScripts(type: CreateStartScripts) {
+    dependsOn shadowJar
+    outputDir = file('build/customScripts')
+    mainClassName = application.mainClassName
+    applicationName = project.name
+    classpath = files(shadowJar.outputs.files)
+}
+
 task generateLib(type: Copy) {
-    dependsOn build
+    dependsOn build, createStartScripts
 
     from file("$buildDir/lib/${project.name}-all.jar")
     into file("$buildDir/../../lib/${project.name}-all.jar")
 
-    from "$buildDir/scriptsShadow/${project.name}", "$buildDir/scriptsShadow/${project.name}.bat"
+    from "$buildDir/customScripts/${project.name}", "$buildDir/customScripts/${project.name}.bat"
     into "$buildDir/../../lib"
 }
