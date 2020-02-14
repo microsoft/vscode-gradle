@@ -38,9 +38,9 @@ public class Server extends WebSocketServer {
     public void onOpen(WebSocket connection, ClientHandshake handshake) {
         String localHostAddress = connection.getLocalSocketAddress().getAddress().getHostAddress();
         int localPort = connection.getLocalSocketAddress().getPort();
-        connection.send(
-                new GenericMessage(String.format("Connected to %s:%d. Welcome client!",
-                        localHostAddress, localPort)).toString());
+        connection.send(new GenericMessage(
+                String.format("Connected to %s:%d. Welcome client!", localHostAddress, localPort))
+                        .toString());
     }
 
     @Override

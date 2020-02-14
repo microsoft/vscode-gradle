@@ -5,7 +5,7 @@ import com.eclipsesource.json.JsonObject;
 
 public class ClientMessage {
 
-    JsonObject messageObject;
+    private JsonObject messageObject;
 
     public ClientMessage(String message) {
         this.messageObject = Json.parse(message).asObject();

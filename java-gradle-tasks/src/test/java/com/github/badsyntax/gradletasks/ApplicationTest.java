@@ -13,7 +13,7 @@ public class ApplicationTest {
         try {
             Application.main(noArgs);
             fail("Should throw exception");
-        } catch (ApplicationException | IOException e) {
+        } catch (ApplicationException e) {
             assertEquals(exceptionMessage, e.getMessage());
         }
 
@@ -21,7 +21,7 @@ public class ApplicationTest {
         try {
             Application.main(oneArg);
             fail("Should throw exception");
-        } catch (ApplicationException | IOException e) {
+        } catch (ApplicationException e) {
             assertEquals(exceptionMessage, e.getMessage());
         }
     }
