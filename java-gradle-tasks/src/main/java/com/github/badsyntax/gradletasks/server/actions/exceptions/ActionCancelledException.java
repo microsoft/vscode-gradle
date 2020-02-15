@@ -1,4 +1,4 @@
-package com.github.badsyntax.gradletasks.server.actions;
+package com.github.badsyntax.gradletasks.server.actions.exceptions;
 
 public class ActionCancelledException extends Exception {
     public ActionCancelledException(String message) {

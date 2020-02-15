@@ -8,6 +8,7 @@ public class Application {
     @Inject
     Server server;
 
+    @Inject
     public Application(int port) {
         ApplicationFactory applicationFactory =
                 DaggerApplicationFactory.builder().withPort(port).build();

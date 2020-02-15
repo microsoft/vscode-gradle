@@ -1,9 +1,12 @@
 package com.github.badsyntax.gradletasks;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
+import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.logging.BasicWriteFormatter;
 import com.github.badsyntax.gradletasks.server.GradleTaskPool;
 import dagger.Module;
@@ -14,6 +17,7 @@ public class ApplicationModule {
   private ApplicationModule() {
   }
 
+  @Singleton
   @Provides
   static Logger provideLogger() {
     StreamHandler logHandler = new ConsoleHandler();
@@ -30,5 +34,10 @@ public class ApplicationModule {
   @Provides
   static GradleTaskPool provideTaskPool() {
     return new GradleTaskPool();
+  }
+
+  @Provides
+  static ExecutorService provideExecutorService() {
+    return Executors.newCachedThreadPool();
   }
 }

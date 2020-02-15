@@ -4,24 +4,28 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
-import com.eclipsesource.json.JsonObject;
+import javax.inject.Inject;
+import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
+import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.GradleTaskPool;
-import com.github.badsyntax.gradletasks.server.messages.GenericMessage;
+import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionException;
 import org.gradle.tooling.CancellationTokenSource;
 import org.java_websocket.WebSocket;
 
 public class StopGetTasksAction extends Action {
 
-    public static final String KEY = "stopGetTasks";
-
-    public StopGetTasksAction(WebSocket connection, JsonObject message,
-            ExecutorService taskExecutor, Logger logger, GradleTaskPool taskPool) {
-        super(connection, message, taskExecutor, logger, taskPool);
+    @Inject
+    public StopGetTasksAction(Logger logger, ExecutorService taskExecutor,
+            GradleTaskPool taskPool) {
+        super(logger, taskExecutor, taskPool);
+        // TODO Auto-generated constructor stub
     }
 
-    public void run() {
+    public static final String KEY = "ACTION_STOP_GET_TASKS";
+
+    public void run(WebSocket connection, ClientMessage.StopGetTasks message) {
         try {
-            File sourceDir = new File(message.get(MESSAGE_SOURCE_DIR_KEY).asString());
+            File sourceDir = new File(message.getSourceDir().trim());
             if (!sourceDir.getPath().equals("")) {
                 if (sourceDir.getAbsolutePath() != null && !sourceDir.exists()) {
                     throw new ActionException("Source directory does not exist");
@@ -43,11 +47,13 @@ public class StopGetTasksAction extends Action {
                 });
             }
         } catch (ActionException e) {
-            logError(e.getMessage());
+            logError(connection, e.getMessage());
         } finally {
             if (connection.isOpen()) {
-                connection.send(
-                        new GenericMessage(String.format("Completed %s action", KEY)).toString());
+                connection.send(ServerMessage.Message.newBuilder()
+                        .setInfo(ServerMessage.Info.newBuilder()
+                                .setMessage(String.format("Completed %s action", KEY)))
+                        .build().toByteArray());
             }
         }
     }

@@ -362,18 +362,21 @@
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:java": "cd java-gradle-tasks && ./gradlew generateLib",
+    "compile:jsprotos": "./compile-protos.sh",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "gulp package",
     "build": "gulp build"
   },
   "dependencies": {
     "get-port": "^5.1.1",
+    "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",
     "vscode-nls": "^4.1.1",
     "ws": "^7.2.1"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
+    "@types/google-protobuf": "^3.7.2",
     "@types/mocha": "^7.0.1",
     "@types/node": "^13.7.1",
     "@types/sinon": "^7.5.1",
@@ -395,6 +398,7 @@
     "mocha": "^7.0.1",
     "prettier": "^1.19.1",
     "sinon": "^8.1.1",
+    "ts-protoc-gen": "^0.12.0",
     "typescript": "^3.7.5",
     "vsce": "^1.73.0",
     "vscode-nls-dev": "^3.3.1",

@@ -9,7 +9,7 @@
       "name": "CodeLens (Launch) - Application",
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.Application",
-      "projectName": "gradle-tasks"
+      "projectName": "gradle-tasks-server"
     }
   ]
 }

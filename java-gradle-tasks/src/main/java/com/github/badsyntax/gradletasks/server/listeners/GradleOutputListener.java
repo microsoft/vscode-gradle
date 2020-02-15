@@ -4,29 +4,28 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.inject.Inject;
-import com.github.badsyntax.gradletasks.server.messages.OutputChangedMessage;
+import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import org.java_websocket.WebSocket;
 
 public class GradleOutputListener extends OutputStream {
-    public enum TYPES {
-        STDERR, STDOUT,
-    }
-
     private WebSocket connection;
     private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    private String typeString;
+    private ServerMessage.OutputChanged.OutputType outputType;
 
     @Inject
-    public GradleOutputListener(WebSocket connection, TYPES type) {
+    public GradleOutputListener(WebSocket connection, ServerMessage.OutputChanged.OutputType outputType) {
         this.connection = connection;
-        this.typeString = type.toString();
+        this.outputType = outputType;
     }
 
     @Override
     public final void write(int b) throws IOException {
         char c = (char) b;
         if (c == System.lineSeparator().charAt(0)) {
-            connection.send(new OutputChangedMessage(baos.toString(), typeString).toString());
+            connection.send(ServerMessage.Message.newBuilder()
+                    .setOutputChanged(ServerMessage.OutputChanged.newBuilder()
+                            .setMessage(baos.toString()).setOutputType(outputType))
+                    .build().toByteArray());
             baos.reset();
         } else {
             baos.write(b);
