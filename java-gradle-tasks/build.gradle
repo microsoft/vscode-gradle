@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'application'
     id 'jacoco'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
     id "com.google.protobuf" version "0.8.11"
@@ -45,10 +44,6 @@ dependencies {
     testImplementation 'junit:junit:4.13'
 }
 
-application {
-    mainClassName = 'com.github.badsyntax.gradletasks.Application'
-}
-
 shadowJar {
     minimize()
 }
@@ -56,7 +51,7 @@ shadowJar {
 task createStartScripts(type: CreateStartScripts) {
     dependsOn shadowJar
     outputDir = file('build/customScripts')
-    mainClassName = application.mainClassName
+    mainClassName = 'com.github.badsyntax.gradletasks.Application'
     applicationName = project.name
     classpath = files(shadowJar.outputs.files)
 }

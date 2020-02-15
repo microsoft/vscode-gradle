@@ -22,8 +22,7 @@ import org.java_websocket.WebSocket;
 public class GetTasksAction extends Action {
 
     @Inject
-    public GetTasksAction(Logger logger, ExecutorService taskExecutor,
-            GradleTaskPool taskPool) {
+    public GetTasksAction(Logger logger, ExecutorService taskExecutor, GradleTaskPool taskPool) {
         super(logger, taskExecutor, taskPool);
     }
 
@@ -48,7 +47,7 @@ public class GetTasksAction extends Action {
                 if (connection.isOpen()) {
                     connection.send(ServerMessage.Message.newBuilder()
                             .setGetTasks(ServerMessage.Tasks.newBuilder()
-                                    .setMessage(String.format("Completed %s action", KEY))
+                                    .setMessage(String.format("Completed %s", KEY))
                                     .addAllTasks(tasks))
                             .build().toByteArray());
                 }
@@ -65,13 +64,13 @@ public class GetTasksAction extends Action {
         try {
             ModelBuilder<GradleProject> rootProjectBuilder =
                     projectConnection.model(GradleProject.class);
-            rootProjectBuilder.withCancellationToken(cancellationTokenSource.token());
-            rootProjectBuilder.addProgressListener(new GradleProgressListener(connection));
-            rootProjectBuilder.setStandardOutput(new GradleOutputListener(connection,
-                    ServerMessage.OutputChanged.OutputType.STDOUT));
-            rootProjectBuilder.setStandardError(new GradleOutputListener(connection,
-                    ServerMessage.OutputChanged.OutputType.STDERR));
-            rootProjectBuilder.setColorOutput(false);
+            rootProjectBuilder.withCancellationToken(cancellationTokenSource.token())
+                    .addProgressListener(new GradleProgressListener(connection))
+                    .setStandardOutput(new GradleOutputListener(connection,
+                            ServerMessage.OutputChanged.OutputType.STDOUT))
+                    .setStandardError(new GradleOutputListener(connection,
+                            ServerMessage.OutputChanged.OutputType.STDERR))
+                    .setColorOutput(false);
             GradleProject rootProject = rootProjectBuilder.get();
             tasks.clear();
             buildTasksListFromProjectTree(rootProject);
@@ -86,8 +85,7 @@ public class GetTasksAction extends Action {
         buildTasksListFromProjectTree(project, project);
     }
 
-    private void buildTasksListFromProjectTree(GradleProject project,
-            GradleProject rootProject) {
+    private void buildTasksListFromProjectTree(GradleProject project, GradleProject rootProject) {
         project.getTasks().stream().forEach(task -> {
             ServerMessage.GradleTask.Builder gradleTask = ServerMessage.GradleTask.newBuilder()
                     .setProject(task.getProject().getName()).setName(task.getName())

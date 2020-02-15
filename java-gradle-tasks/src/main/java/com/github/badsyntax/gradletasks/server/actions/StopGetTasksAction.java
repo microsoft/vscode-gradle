@@ -18,7 +18,6 @@ public class StopGetTasksAction extends Action {
     public StopGetTasksAction(Logger logger, ExecutorService taskExecutor,
             GradleTaskPool taskPool) {
         super(logger, taskExecutor, taskPool);
-        // TODO Auto-generated constructor stub
     }
 
     public static final String KEY = "ACTION_STOP_GET_TASKS";
@@ -52,7 +51,7 @@ public class StopGetTasksAction extends Action {
             if (connection.isOpen()) {
                 connection.send(ServerMessage.Message.newBuilder()
                         .setInfo(ServerMessage.Info.newBuilder()
-                                .setMessage(String.format("Completed %s action", KEY)))
+                                .setMessage(String.format("Completed %s", KEY)))
                         .build().toByteArray());
             }
         }

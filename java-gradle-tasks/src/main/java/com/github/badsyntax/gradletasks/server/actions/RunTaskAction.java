@@ -27,7 +27,6 @@ public class RunTaskAction extends Action {
     @Inject
     public RunTaskAction(Logger logger, ExecutorService taskExecutor, GradleTaskPool taskPool) {
         super(logger, taskExecutor, taskPool);
-        // TODO Auto-generated constructor stub
     }
 
     public static final String KEY = "ACTION_RUN_TASK";
@@ -53,7 +52,7 @@ public class RunTaskAction extends Action {
                 if (connection.isOpen()) {
                     connection.send(ServerMessage.Message.newBuilder()
                             .setRunTask(ServerMessage.RunTask.newBuilder()
-                                    .setMessage(String.format("Completed %s action", KEY))
+                                    .setMessage(String.format("Completed %s", KEY))
                                     .setTask(message.getTask()))
                             .build().toByteArray());
                 }
@@ -70,16 +69,14 @@ public class RunTaskAction extends Action {
         try {
             taskPool.put(getTaskKey(sourceDir, task), cancellationTokenSource,
                     GradleTaskPool.TYPE.RUN);
-            BuildLauncher build = projectConnection.newBuild();
-            build.withCancellationToken(cancellationTokenSource.token());
-            build.addProgressListener(new GradleProgressListener(connection));
-            build.setStandardOutput(new GradleOutputListener(connection,
-                    ServerMessage.OutputChanged.OutputType.STDOUT));
-            build.setStandardError(new GradleOutputListener(connection,
-                    ServerMessage.OutputChanged.OutputType.STDERR));
-            build.setColorOutput(true);
-            build.withArguments(args);
-            build.forTasks(task);
+            BuildLauncher build = projectConnection.newBuild()
+                    .withCancellationToken(cancellationTokenSource.token())
+                    .addProgressListener(new GradleProgressListener(connection))
+                    .setStandardOutput(new GradleOutputListener(connection,
+                            ServerMessage.OutputChanged.OutputType.STDOUT))
+                    .setStandardError(new GradleOutputListener(connection,
+                            ServerMessage.OutputChanged.OutputType.STDERR))
+                    .setColorOutput(true).withArguments(args).forTasks(task);
             build.run();
         } catch (BuildCancelledException err) {
             throw new ActionCancelledException(err.getMessage());
