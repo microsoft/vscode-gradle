@@ -53,6 +53,16 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 </details>
 
+<details><summary>"No connection to the gradle server. Try restarting the server"</summary>
+
+<img src="./images/no-connection.png" width="400" />
+
+This error means the gradle server task has stopped. Try clicking on "Restart Server".
+
+If you continue to get this error, you can view the task error messages by selecting "Gradle Tasks Server" in the Terminal panel.
+
+</details>
+
 ## Contributing
 
 Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the project.
