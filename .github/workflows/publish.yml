@@ -36,7 +36,7 @@ jobs:
           path: lib
 
   publish-extension:
-    needs: [build-jar-artifacts]
+    needs: [build-lib]
     name: Publish extension
     runs-on: ubuntu-latest
     steps:

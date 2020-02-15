@@ -66,7 +66,7 @@ jobs:
           JAVA_HOME: ''
 
   test-extension:
-    needs: [build-jar-artifacts]
+    needs: [build-lib]
     name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     strategy:
