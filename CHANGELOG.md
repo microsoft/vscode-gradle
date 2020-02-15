@@ -1,5 +1,14 @@
 # Change Log
 
+## 2.4.10
+
+- Use Protocol Buffers for websocket messages (#187)
+
+## 2.4.9
+
+- Use custom CreateStartScripts task to generate start scripts. Refs #137 (#186)
+
+
 ## 2.4.8
 
 - Add localisation support with initial Spanish translations (#184)
