@@ -11,4 +11,4 @@
 - Show flat or nested tasks in the explorer
 - Gracefully stop (cancel) a running Gradle Task
 
-Watch an short demo of the features: https://www.youtube.com/watch?v=n8hmndccxHI
+Watch a short demo of the features: https://www.youtube.com/watch?v=n8hmndccxHI
