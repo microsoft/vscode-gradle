@@ -1,6 +1,6 @@
 package com.github.badsyntax.gradletasks.server.listeners;
 
-import com.github.badsyntax.gradletasks.server.messages.ProgressMessage;
+import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProgressListener;
 import org.java_websocket.WebSocket;
@@ -14,6 +14,8 @@ public class GradleProgressListener implements ProgressListener {
 
     @Override
     public void statusChanged(ProgressEvent progressEvent) {
-        connection.send(new ProgressMessage(progressEvent.getDescription()).toString());
+        connection.send(ServerMessage.Message.newBuilder().setProgress(
+                ServerMessage.Progress.newBuilder().setMessage(progressEvent.getDescription()))
+                .build().toByteArray());
     }
 }

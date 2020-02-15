@@ -10,66 +10,10 @@ import { GradleTasksServer, ServerOptions } from './server';
 import { logger } from './logger';
 import { handleCancelledTaskMessage } from './tasks';
 
+import * as ClientMessage from '../generated/proto/com/github/badsyntax/gradletasks/ClientMessage_pb';
+import * as ServerMessage from '../generated/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
+
 const localize = nls.loadMessageBundle();
-
-enum ServerMessageType {
-  GRADLE_PROGRESS = 'GRADLE_PROGRESS',
-  GRADLE_OUTPUT = 'GRADLE_OUTPUT',
-  ERROR = 'ERROR',
-  ACTION_CANCELLED = 'ACTION_CANCELLED',
-  GENERIC_MESSAGE = 'GENERIC_MESSAGE'
-}
-
-export type GradleTask = {
-  path: string;
-  description: string;
-  name: string;
-  group: string;
-  project: string;
-  rootProject: string;
-  buildFile: string;
-};
-
-export interface ServerMessage {
-  type: string;
-  message?: string;
-}
-
-export interface GradleTasksServerMessage extends ServerMessage {
-  tasks: GradleTask[];
-}
-
-export interface ServerCancelledMessage extends ServerMessage {
-  task: string;
-  sourceDir: string;
-}
-
-export interface ServerOutputMessage extends ServerMessage {
-  outputType: 'STDOUT' | 'STDERR';
-}
-
-interface ClientMessage {
-  type: 'runTask' | 'getTasks' | 'stopTask' | 'stopGetTasks';
-}
-
-interface GetTasksMessage extends ClientMessage {
-  sourceDir: string;
-}
-
-interface RunTaskMessage extends ClientMessage {
-  sourceDir: string;
-  task: string;
-  args: string[];
-}
-
-interface StopTaskMessage extends ClientMessage {
-  sourceDir: string;
-  task: string;
-}
-
-interface StopGetTasksMessage extends ClientMessage {
-  sourceDir: string;
-}
 
 class WebSocketClient implements vscode.Disposable {
   private autoReconnectInterval = 1 * 1000; // ms
@@ -128,7 +72,7 @@ class WebSocketClient implements vscode.Disposable {
     });
   }
 
-  send(data: string, callback: (err?: Error) => void): void {
+  send(data: Uint8Array, callback: (err?: Error) => void): void {
     try {
       this.instance!.send(data, callback);
     } catch (err) {
@@ -168,13 +112,6 @@ class WebSocketClient implements vscode.Disposable {
   }
 }
 
-class Message {
-  constructor(private readonly message: ClientMessage) {}
-  toString(): string {
-    return JSON.stringify(this.message);
-  }
-}
-
 export class GradleTasksClient implements vscode.Disposable {
   private wsClient: WebSocketClient | undefined;
 
@@ -184,34 +121,36 @@ export class GradleTasksClient implements vscode.Disposable {
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
 
   private _onGradleProgress: vscode.EventEmitter<
-    ServerMessage
-  > = new vscode.EventEmitter<ServerMessage>();
-  public readonly onGradleProgress: vscode.Event<ServerMessage> = this
+    ServerMessage.Progress
+  > = new vscode.EventEmitter<ServerMessage.Progress>();
+  public readonly onGradleProgress: vscode.Event<ServerMessage.Progress> = this
     ._onGradleProgress.event;
 
   private _onGradleOutput: vscode.EventEmitter<
-    ServerOutputMessage
-  > = new vscode.EventEmitter<ServerOutputMessage>();
-  public readonly onGradleOutput: vscode.Event<ServerOutputMessage> = this
-    ._onGradleOutput.event;
+    ServerMessage.OutputChanged
+  > = new vscode.EventEmitter<ServerMessage.OutputChanged>();
+  public readonly onGradleOutput: vscode.Event<
+    ServerMessage.OutputChanged
+  > = this._onGradleOutput.event;
 
   private _onGradleError: vscode.EventEmitter<
-    ServerMessage
-  > = new vscode.EventEmitter<ServerMessage>();
-  public readonly onGradleError: vscode.Event<ServerMessage> = this
+    ServerMessage.Error
+  > = new vscode.EventEmitter<ServerMessage.Error>();
+  public readonly onGradleError: vscode.Event<ServerMessage.Error> = this
     ._onGradleError.event;
 
   private _onActionCancelled: vscode.EventEmitter<
-    ServerCancelledMessage
-  > = new vscode.EventEmitter<ServerCancelledMessage>();
-  public readonly onActionCancelled: vscode.Event<ServerCancelledMessage> = this
-    ._onActionCancelled.event;
+    ServerMessage.ActionCancelled
+  > = new vscode.EventEmitter<ServerMessage.ActionCancelled>();
+  public readonly onActionCancelled: vscode.Event<
+    ServerMessage.ActionCancelled
+  > = this._onActionCancelled.event;
 
   private _onMessage: vscode.EventEmitter<
-    ServerMessage
-  > = new vscode.EventEmitter<ServerMessage>();
-  public readonly onMessage: vscode.Event<ServerMessage> = this._onMessage
-    .event;
+    ServerMessage.Message
+  > = new vscode.EventEmitter<ServerMessage.Message>();
+  public readonly onMessage: vscode.Event<ServerMessage.Message> = this
+    ._onMessage.event;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -256,7 +195,9 @@ export class GradleTasksClient implements vscode.Disposable {
     this._onGradleProgress.dispose();
   }
 
-  public async getTasks(sourceDir: string): Promise<GradleTask[] | undefined> {
+  public async getTasks(
+    sourceDir: string
+  ): Promise<ServerMessage.GradleTask[] | void> {
     if (this.wsClient) {
       this.statusBarItem.text = localize(
         'client.refreshingTasks',
@@ -265,15 +206,16 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       this.statusBarItem.show();
       try {
-        const clientMessage: GetTasksMessage = {
-          type: 'getTasks',
-          sourceDir
-        };
-        await this.sendMessage(new Message(clientMessage));
-        const serverMessage = (await this.waitForServerMessage(
-          'GRADLE_TASKS'
-        )) as GradleTasksServerMessage;
-        return serverMessage.tasks;
+        const getTasks = new ClientMessage.GetTasks();
+        getTasks.setSourceDir(sourceDir);
+
+        const message = new ClientMessage.Message();
+        message.setGetTasks(getTasks);
+        await this.sendMessage(message);
+        const serverMessage: ServerMessage.Message = (await this.waitForServerMessage(
+          ServerMessage.Message.KindCase.GET_TASKS
+        )) as ServerMessage.Message;
+        return serverMessage.getGetTasks()?.getTasksList();
       } catch (e) {
         logger.error(
           localize(
@@ -293,20 +235,24 @@ export class GradleTasksClient implements vscode.Disposable {
     sourceDir: string,
     task: string,
     args: string[],
-    outputListener: (message: ServerMessage) => void
+    outputListener: (message: ServerMessage.OutputChanged) => void
   ): Promise<void> {
     if (this.wsClient) {
       const outputEvent = this.onGradleOutput(outputListener);
       this.statusBarItem.show();
-      const clientMessage: RunTaskMessage = {
-        type: 'runTask',
-        sourceDir,
-        task,
-        args
-      };
       try {
-        await this.sendMessage(new Message(clientMessage));
-        await this.waitForServerMessage('GRADLE_RUN_TASK');
+        const runTask = new ClientMessage.RunTask();
+        runTask.setSourceDir(sourceDir);
+        runTask.setTask(task);
+        runTask.setArgsList(args);
+
+        const message = new ClientMessage.Message();
+        message.setRunTask(runTask);
+
+        await this.sendMessage(message);
+        await this.waitForServerMessage(
+          ServerMessage.Message.KindCase.RUN_TASK
+        );
       } catch (e) {
         logger.error(
           localize(
@@ -325,13 +271,14 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async stopTask(sourceDir: string, task: string): Promise<void> {
     if (this.wsClient) {
-      const clientMessage: StopTaskMessage = {
-        type: 'stopTask',
-        sourceDir,
-        task
-      };
       try {
-        await this.sendMessage(new Message(clientMessage));
+        const stopTask = new ClientMessage.StopTask();
+        stopTask.setSourceDir(sourceDir);
+        stopTask.setTask(task);
+
+        const message = new ClientMessage.Message();
+        message.setStopTask(stopTask);
+        await this.sendMessage(message);
       } catch (e) {
         logger.error(
           localize(
@@ -348,22 +295,22 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async stopGetTasks(sourceDir = ''): Promise<void> {
     if (this.wsClient) {
-      const clientMessage: StopGetTasksMessage = {
-        type: 'stopGetTasks',
-        sourceDir
-      };
       try {
-        await this.sendMessage(new Message(clientMessage));
+        const stopGetTasks = new ClientMessage.StopGetTasks();
+        stopGetTasks.setSourceDir(sourceDir);
+        const message = new ClientMessage.Message();
+        message.setStopGetTasks(stopGetTasks);
+        await this.sendMessage(message);
       } finally {
         this.statusBarItem.hide();
       }
     }
   }
 
-  private async sendMessage(message: Message): Promise<void> {
+  private async sendMessage(message: ClientMessage.Message): Promise<void> {
     try {
       return await new Promise((resolve, reject) => {
-        this.wsClient!.send(message.toString(), (err?: Error) => {
+        this.wsClient!.send(message.serializeBinary(), (err?: Error) => {
           if (err) {
             reject(err);
           } else {
@@ -396,9 +343,9 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   private waitForServerMessage(
-    type: string
-  ): Promise<ServerMessage | Error | unknown> {
-    return Promise.race<ServerMessage | Error | unknown>([
+    type: ServerMessage.Message.KindCase
+  ): Promise<ServerMessage.Message | Error | unknown> {
+    return Promise.race<ServerMessage.Tasks | Error | unknown>([
       new Promise((_, reject) => {
         const event = this.server.onStop(() => {
           reject(
@@ -413,8 +360,8 @@ export class GradleTasksClient implements vscode.Disposable {
         });
       }),
       new Promise(resolve => {
-        const event = this.onMessage((message: ServerMessage) => {
-          if (message.type === type) {
+        const event = this.onMessage((message: ServerMessage.Message) => {
+          if (message.getKindCase() === type) {
             resolve(message);
             event.dispose();
           }
@@ -423,59 +370,73 @@ export class GradleTasksClient implements vscode.Disposable {
     ]);
   }
 
-  private handleProgressMessage = (message: ServerMessage): void => {
-    const messageStr = message.message?.trim();
+  private handleProgressMessage = (message: ServerMessage.Progress): void => {
+    const messageStr = message.getMessage().trim();
     if (messageStr) {
       this.statusBarItem.text = `$(sync~spin) Gradle: ${messageStr}`;
     }
   };
 
-  private handleOutputMessage = (message: ServerOutputMessage): void => {
-    const logMessage = stripAnsi(message.message!).trim();
+  private handleOutputMessage = (
+    message: ServerMessage.OutputChanged
+  ): void => {
+    const logMessage = stripAnsi(message.getMessage()).trim();
     if (logMessage) {
       logger.info(logMessage);
     }
   };
 
   private handleMessage = (data: WebSocket.Data): void => {
-    let serverMessage: ServerMessage;
-    try {
-      serverMessage = JSON.parse(data.toString());
-      if (getIsDebugEnabled()) {
-        logger.debug(data.toString());
-      }
-    } catch (e) {
-      logger.error(
-        localize(
-          'client.errorParsingMessageFromServer',
-          'Unable to parse message from server: {0}',
-          e.message
-        )
-      );
-      return;
-    }
-    this._onMessage.fire(serverMessage);
-    switch (serverMessage.type) {
-      case ServerMessageType.GRADLE_PROGRESS:
-        this._onGradleProgress.fire(serverMessage);
-        break;
-      case ServerMessageType.GRADLE_OUTPUT:
-        this._onGradleOutput.fire(serverMessage as ServerOutputMessage);
-        break;
-      case ServerMessageType.ERROR:
-        this._onGradleError.fire(serverMessage);
-        break;
-      case ServerMessageType.ACTION_CANCELLED:
-        this._onActionCancelled.fire(serverMessage as ServerCancelledMessage);
-        break;
-      case ServerMessageType.GENERIC_MESSAGE:
-        const message = serverMessage.message?.trim();
-        if (message) {
-          logger.info(message);
+    if (data instanceof Buffer) {
+      let serverMessage: ServerMessage.Message;
+      try {
+        serverMessage = ServerMessage.Message.deserializeBinary(data as Buffer);
+        if (getIsDebugEnabled()) {
+          logger.debug(JSON.stringify(serverMessage.toObject()));
         }
-        break;
-      default:
-        break;
+      } catch (e) {
+        logger.error(
+          localize(
+            'client.errorParsingMessageFromServer',
+            'Unable to parse message from server: {0}',
+            e.message
+          )
+        );
+        return;
+      }
+      this._onMessage.fire(serverMessage);
+      const {
+        PROGRESS,
+        OUTPUT_CHANGED,
+        ERROR,
+        ACTION_CANCELLED,
+        INFO
+      } = ServerMessage.Message.KindCase;
+      switch (serverMessage.getKindCase()) {
+        case PROGRESS:
+          this._onGradleProgress.fire(serverMessage.getProgress());
+          break;
+        case OUTPUT_CHANGED:
+          this._onGradleOutput.fire(serverMessage.getOutputChanged());
+          break;
+        case ERROR:
+          this._onGradleError.fire(serverMessage.getError());
+          break;
+        case ACTION_CANCELLED:
+          this._onActionCancelled.fire(serverMessage.getActionCancelled());
+          break;
+        case INFO:
+          const message = serverMessage
+            .getInfo()
+            ?.getMessage()
+            .trim();
+          if (message) {
+            logger.info(message);
+          }
+          break;
+        default:
+          break;
+      }
     }
   };
 }
@@ -490,7 +451,7 @@ export function registerClient(
   client.onConnect(() => {
     vscode.commands.executeCommand('gradle.refresh', false);
   });
-  client.onActionCancelled((message: ServerCancelledMessage): void => {
+  client.onActionCancelled((message: ServerMessage.ActionCancelled): void => {
     handleCancelledTaskMessage(message);
   });
   return client;

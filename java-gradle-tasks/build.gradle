@@ -3,6 +3,7 @@ plugins {
     id 'application'
     id 'jacoco'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id "com.google.protobuf" version "0.8.11"
 }
 
 repositories {
@@ -14,19 +15,44 @@ repositories {
 
 sourceSets {
     libsDirName = 'lib'
+    main {
+        proto {
+            srcDir '../proto'
+        }
+    }
     generated {
-        java.srcDir "${buildDir}/generated/sources/annotationProcessor/java/main"
+        java.srcDirs = [
+            "${buildDir}/generated/sources/annotationProcessor/java/main", // dagger
+            "${buildDir}/generated/source/proto/main/java"                 // protobuf
+        ]
+    }
+}
+
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.11.3'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    option "lite"
+                }
+            }
+        }
     }
 }
 
 dependencies {
+    compile 'com.google.protobuf:protobuf-javalite:3.11.3'
     compile 'org.gradle:gradle-tooling-api:6.1.1'
-    compile 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
     compile "org.java-websocket:Java-WebSocket:1.4.0"
     compile "com.google.dagger:dagger:2.26"
     annotationProcessor "com.google.dagger:dagger-compiler:2.26"
     runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
     testImplementation 'junit:junit:4.13'
+    implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.11'
 }
 
 application {

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package com.github.badsyntax.gradletasks.messages.client;
+option java_package = "com.github.badsyntax.gradletasks.messages.client";
+option java_multiple_files = false;
+option java_outer_classname = "ClientMessage";
+
+message GetTasks {
+  string source_dir = 2;
+}
+
+message RunTask {
+  string source_dir = 1;
+  string task = 2;
+  repeated string args = 3;
+}
+
+message StopTask {
+  string source_dir = 1;
+  string task = 2;
+}
+
+message StopGetTasks {
+  string source_dir = 2;
+}
+
+message Message {
+  oneof kind {
+    GetTasks get_tasks = 1;
+    RunTask run_task = 2;
+    StopTask stop_task = 3;
+    StopGetTasks stop_get_tasks = 4;
+  }
+}

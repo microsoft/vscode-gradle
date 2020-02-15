@@ -1,41 +1,44 @@
 package com.github.badsyntax.gradletasks.server.actions;
 
-import java.util.concurrent.ExecutorService;
-import java.util.logging.Logger;
-import com.eclipsesource.json.JsonObject;
-import com.github.badsyntax.gradletasks.server.GradleTaskPool;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
+import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionRunnerException;
 import org.java_websocket.WebSocket;
 
 public class ActionRunner {
 
-    protected WebSocket connection;
-    protected JsonObject message;
-    protected ExecutorService taskExecutor;
-    protected GradleTaskPool taskPool;
-    protected Logger logger;
+    @Singleton
+    private RunTaskAction runTaskAction;
 
-    public ActionRunner(WebSocket connection, JsonObject message, ExecutorService taskExecutor,
-            Logger logger, GradleTaskPool taskPool) {
-        this.connection = connection;
-        this.message = message;
-        this.taskExecutor = taskExecutor;
-        this.logger = logger;
-        this.taskPool = taskPool;
+    @Singleton
+    private GetTasksAction getTasksAction;
+
+    @Singleton
+    private StopTaskAction stopTaskAction;
+
+    @Singleton
+    private StopGetTasksAction stopGetTasksAction;
+
+    @Inject
+    public ActionRunner(RunTaskAction runTaskAction, GetTasksAction getTasksAction, StopTaskAction stopTaskAction, StopGetTasksAction stopGetTasksAction) {
+        this.runTaskAction = runTaskAction;
+        this.getTasksAction = getTasksAction;
+        this.stopTaskAction = stopTaskAction;
+        this.stopGetTasksAction = stopGetTasksAction;
     }
 
-    public void runTask() {
-        new RunTaskAction(connection, message, taskExecutor, logger, taskPool).run();
-    }
-
-    public void getTasks() {
-        new GetTasksAction(connection, message, taskExecutor, logger, taskPool).run();
-    }
-
-    public void stopTask() {
-        new StopTaskAction(connection, message, taskExecutor, logger, taskPool).run();
-    }
-
-    public void stopGetTasks() {
-        new StopGetTasksAction(connection, message, taskExecutor, logger, taskPool).run();
+    public void run(WebSocket connection, ClientMessage.Message message) throws ActionRunnerException {
+        if (message.hasGetTasks()){
+            getTasksAction.run(connection, message.getGetTasks());
+        } else if (message.hasRunTask()) {
+            runTaskAction.run(connection, message.getRunTask());
+        } else if (message.hasStopTask()) {
+            stopTaskAction.run(connection, message.getStopTask());
+        } else if (message.hasStopGetTasks()) {
+            stopGetTasksAction.run(connection, message.getStopGetTasks());
+        } else {
+            throw new ActionRunnerException("Unknown client message");
+        }
     }
 }

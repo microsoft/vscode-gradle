@@ -2,19 +2,14 @@ package com.github.badsyntax.gradletasks.server;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 import javax.inject.Inject;
-import com.eclipsesource.json.JsonObject;
+import javax.inject.Singleton;
+import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
+import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.actions.ActionRunner;
-import com.github.badsyntax.gradletasks.server.actions.GetTasksAction;
-import com.github.badsyntax.gradletasks.server.actions.RunTaskAction;
-import com.github.badsyntax.gradletasks.server.actions.StopGetTasksAction;
-import com.github.badsyntax.gradletasks.server.actions.StopTaskAction;
-import com.github.badsyntax.gradletasks.server.messages.ClientMessage;
-import com.github.badsyntax.gradletasks.server.messages.GenericErrorMessage;
-import com.github.badsyntax.gradletasks.server.messages.GenericMessage;
+import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionRunnerException;
+import com.google.protobuf.InvalidProtocolBufferException;
 import org.gradle.tooling.CancellationTokenSource;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -22,25 +17,31 @@ import org.java_websocket.server.WebSocketServer;
 
 public class Server extends WebSocketServer {
 
-    private final ExecutorService taskExecutor = Executors.newCachedThreadPool();
+    @Singleton
     private Logger logger;
+
+    @Singleton
     private GradleTaskPool taskPool;
-    private static final String MESSAGE_TYPE_KEY = "type";
+
+    @Singleton
+    protected ActionRunner actionRunner;
 
     @Inject
-    public Server(Logger logger, GradleTaskPool taskPool, int port) {
+    public Server(Logger logger, GradleTaskPool taskPool, int port, ActionRunner actionRunner) {
         super(new InetSocketAddress(port));
         this.logger = logger;
         this.taskPool = taskPool;
+        this.actionRunner = actionRunner;
     }
 
     @Override
     public void onOpen(WebSocket connection, ClientHandshake handshake) {
         String localHostAddress = connection.getLocalSocketAddress().getAddress().getHostAddress();
         int localPort = connection.getLocalSocketAddress().getPort();
-        connection.send(new GenericMessage(
-                String.format("Connected to %s:%d. Welcome client!", localHostAddress, localPort))
-                        .toString());
+        connection.send(ServerMessage.Message.newBuilder()
+                .setInfo(ServerMessage.Info.newBuilder().setMessage(String.format(
+                        "Connected to %s:%d. Welcome client!", localHostAddress, localPort)))
+                .build().toByteArray());
     }
 
     @Override
@@ -54,46 +55,32 @@ public class Server extends WebSocketServer {
     }
 
     @Override
-    public void onMessage(WebSocket connection, String message) {
-        handleMessageAction(connection, new ClientMessage(message));
-    }
-
-    @Override
     public void onMessage(WebSocket connection, ByteBuffer message) {
-        handleMessageAction(connection, new ClientMessage(new String(message.array())));
+        try {
+            handleMessageAction(connection, ClientMessage.Message.parseFrom(message));
+        } catch (InvalidProtocolBufferException e) {
+            logError(connection, e.getMessage());
+        }
     }
 
-    private void handleMessageAction(WebSocket connection, ClientMessage clientMessage) {
-        JsonObject message = clientMessage.getMessage();
-        String messageType = message.get(MESSAGE_TYPE_KEY).asString();
-        ActionRunner actionRunner =
-                new ActionRunner(connection, message, taskExecutor, logger, taskPool);
-        switch (messageType) {
-            case RunTaskAction.KEY:
-                actionRunner.runTask();
-                break;
-            case GetTasksAction.KEY:
-                actionRunner.getTasks();
-                break;
-            case StopTaskAction.KEY:
-                actionRunner.stopTask();
-                break;
-            case StopGetTasksAction.KEY:
-                actionRunner.stopGetTasks();
-                break;
-            default:
-                logError(connection, String.format("Unknown action: %s", messageType));
+    private void handleMessageAction(WebSocket connection, ClientMessage.Message clientMessage) {
+        try {
+            actionRunner.run(connection, clientMessage);
+        } catch (ActionRunnerException e) {
+            logError(connection, e.getMessage());
         }
     }
 
     private void logError(WebSocket connection, String errorMessage) {
-        connection.send(new GenericErrorMessage(errorMessage).toString());
+        connection.send(ServerMessage.Message.newBuilder()
+                .setError(ServerMessage.Error.newBuilder().setMessage(errorMessage)).build()
+                .toByteArray());
         logger.warning(errorMessage);
     }
 
     @Override
     public void onError(WebSocket connection, Exception e) {
-        if (connection != null) {
+        if (connection != null && e.getMessage() != null) {
             logError(connection, e.getMessage());
         }
     }
@@ -103,5 +90,10 @@ public class Server extends WebSocketServer {
         logger.info("Server started, waiting for clients");
         setConnectionLostTimeout(0);
         setConnectionLostTimeout(100);
+    }
+
+    @Override
+    public void onMessage(WebSocket conn, String message) {
+        // TODO Auto-generated method stub
     }
 }

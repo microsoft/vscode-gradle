@@ -8,6 +8,7 @@ public class Application {
     @Inject
     Server server;
 
+    @Inject
     public Application(int port) {
         ApplicationFactory applicationFactory =
                 DaggerApplicationFactory.builder().withPort(port).build();
@@ -15,7 +16,7 @@ public class Application {
     }
 
     public static void main(String[] args) throws ApplicationException {
-        int port = 8887;
+        int port = 2222;
         if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);
