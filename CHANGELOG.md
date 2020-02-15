@@ -8,7 +8,6 @@
 
 - Use custom CreateStartScripts task to generate start scripts. Refs #137 (#186)
 
-
 ## 2.4.8
 
 - Add localisation support with initial Spanish translations (#184)
