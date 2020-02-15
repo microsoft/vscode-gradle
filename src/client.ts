@@ -390,7 +390,7 @@ export class GradleTasksClient implements vscode.Disposable {
     if (data instanceof Buffer) {
       let serverMessage: ServerMessage.Message;
       try {
-        serverMessage = ServerMessage.Message.deserializeBinary(data as Buffer);
+        serverMessage = ServerMessage.Message.deserializeBinary(data);
         if (getIsDebugEnabled()) {
           logger.debug(JSON.stringify(serverMessage.toObject()));
         }

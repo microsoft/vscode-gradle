@@ -22,27 +22,27 @@ import org.java_websocket.WebSocket;
 public class GetTasksAction extends Action {
 
     @Inject
-    public GetTasksAction(final Logger logger, final ExecutorService taskExecutor,
-            final GradleTaskPool taskPool) {
+    public GetTasksAction(Logger logger, ExecutorService taskExecutor,
+            GradleTaskPool taskPool) {
         super(logger, taskExecutor, taskPool);
     }
 
-    private final List<ServerMessage.GradleTask> tasks = new ArrayList<ServerMessage.GradleTask>();
-    public static final String KEY = "ACTION_GET_TASKS";
+    private List<ServerMessage.GradleTask> tasks = new ArrayList<>();
+    public static String KEY = "ACTION_GET_TASKS";
 
-    public static String getTaskKey(final File sourceDir) {
+    public static String getTaskKey(File sourceDir) {
         return KEY + sourceDir.getAbsolutePath();
     }
 
-    public void run(final WebSocket connection, final ClientMessage.GetTasks message) {
+    public void run(WebSocket connection, ClientMessage.GetTasks message) {
         taskExecutor.submit(() -> {
             try {
-                final File sourceDir = new File(message.getSourceDir().trim());
+                File sourceDir = new File(message.getSourceDir().trim());
                 if (!sourceDir.exists()) {
                     throw new ActionException("Source directory does not exist");
                 }
                 getTasks(connection, sourceDir);
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 logError(connection, e.getMessage());
             } finally {
                 if (connection.isOpen()) {
@@ -56,14 +56,14 @@ public class GetTasksAction extends Action {
         });
     }
 
-    private void getTasks(final WebSocket connection, final File sourceDir) throws ActionException {
-        final ProjectConnection projectConnection =
+    private void getTasks(WebSocket connection, File sourceDir) throws ActionException {
+        ProjectConnection projectConnection =
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
-        final CancellationTokenSource cancellationTokenSource =
+        CancellationTokenSource cancellationTokenSource =
                 GradleConnector.newCancellationTokenSource();
         taskPool.put(getTaskKey(sourceDir), cancellationTokenSource, GradleTaskPool.TYPE.GET);
         try {
-            final ModelBuilder<GradleProject> rootProjectBuilder =
+            ModelBuilder<GradleProject> rootProjectBuilder =
                     projectConnection.model(GradleProject.class);
             rootProjectBuilder.withCancellationToken(cancellationTokenSource.token());
             rootProjectBuilder.addProgressListener(new GradleProgressListener(connection));
@@ -72,22 +72,22 @@ public class GetTasksAction extends Action {
             rootProjectBuilder.setStandardError(new GradleOutputListener(connection,
                     ServerMessage.OutputChanged.OutputType.STDERR));
             rootProjectBuilder.setColorOutput(false);
-            final GradleProject rootProject = rootProjectBuilder.get();
+            GradleProject rootProject = rootProjectBuilder.get();
             tasks.clear();
             buildTasksListFromProjectTree(rootProject);
-        } catch (final Exception err) {
+        } catch (Exception err) {
             throw new ActionException(err.getMessage());
         } finally {
             projectConnection.close();
         }
     }
 
-    private void buildTasksListFromProjectTree(final GradleProject project) {
+    private void buildTasksListFromProjectTree(GradleProject project) {
         buildTasksListFromProjectTree(project, project);
     }
 
-    private void buildTasksListFromProjectTree(final GradleProject project,
-            final GradleProject rootProject) {
+    private void buildTasksListFromProjectTree(GradleProject project,
+            GradleProject rootProject) {
         project.getTasks().stream().forEach(task -> {
             ServerMessage.GradleTask.Builder gradleTask = ServerMessage.GradleTask.newBuilder()
                     .setProject(task.getProject().getName()).setName(task.getName())

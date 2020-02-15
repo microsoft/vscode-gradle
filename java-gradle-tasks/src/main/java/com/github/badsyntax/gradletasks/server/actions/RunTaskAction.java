@@ -4,7 +4,9 @@ import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
+
 import javax.inject.Inject;
+
 import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
 import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.GradleTaskPool;
@@ -12,7 +14,7 @@ import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionCancelle
 import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionException;
 import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
 import com.github.badsyntax.gradletasks.server.listeners.GradleProgressListener;
-import com.google.protobuf.ProtocolStringList;
+
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.CancellationTokenSource;
