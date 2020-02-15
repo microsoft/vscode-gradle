@@ -31,28 +31,27 @@ sourceSets {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.11.3'
+        artifact = 'com.google.protobuf:protoc:3.11.4'
     }
-    generateProtoTasks {
-        all().each { task ->
-            task.builtins {
-                java {
-                    option "lite"
-                }
-            }
-        }
-    }
+    // generateProtoTasks {
+    //     all().each { task ->
+    //         task.builtins {
+    //             java {
+    //                 option "lite"
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 dependencies {
-    compile 'com.google.protobuf:protobuf-javalite:3.11.3'
+    compile 'com.google.protobuf:protobuf-java:3.11.4'
     compile 'org.gradle:gradle-tooling-api:6.1.1'
     compile "org.java-websocket:Java-WebSocket:1.4.0"
     compile "com.google.dagger:dagger:2.26"
     annotationProcessor "com.google.dagger:dagger-compiler:2.26"
     runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
     testImplementation 'junit:junit:4.13'
-    implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.11'
 }
 
 application {

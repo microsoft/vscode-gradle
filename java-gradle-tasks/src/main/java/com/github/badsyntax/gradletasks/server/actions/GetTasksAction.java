@@ -94,7 +94,10 @@ public class GetTasksAction extends Action {
                     .setPath(task.getPath())
                     .setBuildFile(
                             task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
-                    .setRootProject(rootProject.getName()).setDescription(task.getDescription());
+                    .setRootProject(rootProject.getName());
+            if (task.getDescription() != null) {
+                gradleTask.setDescription(task.getDescription());
+            }
             if (task.getGroup() != null) {
                 gradleTask.setGroup(task.getGroup());
             }
