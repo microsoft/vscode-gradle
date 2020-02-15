@@ -28,7 +28,7 @@ public class GetTasksAction extends Action {
     }
 
     private List<ServerMessage.GradleTask> tasks = new ArrayList<>();
-    public static String KEY = "ACTION_GET_TASKS";
+    public static final String KEY = "ACTION_GET_TASKS";
 
     public static String getTaskKey(File sourceDir) {
         return KEY + sourceDir.getAbsolutePath();
