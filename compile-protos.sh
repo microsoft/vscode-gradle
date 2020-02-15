@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PROTOC_GEN_TS_PATH="./node_modules/.bin/protoc-gen-ts"
-OUT_DIR="./generated"
+OUT_DIR="./lib"
 
 mkdir -p "$OUT_DIR"
 

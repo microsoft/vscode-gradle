@@ -16,7 +16,7 @@ public class Application {
     }
 
     public static void main(String[] args) throws ApplicationException {
-        int port = 2222;
+        int port = 8887;
         if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);

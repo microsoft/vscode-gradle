@@ -11,5 +11,3 @@ lib/**
 .scannerwork
 # These files will be generated from the i18n folder
 *nls.*.json
-# Generated JS from protos
-/generated

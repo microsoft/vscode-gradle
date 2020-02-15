@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
-import * as ServerMessage from '../generated/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
+import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
 import { getIsAutoDetectionEnabled, getIsDebugEnabled } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
