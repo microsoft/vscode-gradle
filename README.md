@@ -61,6 +61,29 @@ This error means the gradle server task has stopped. Try clicking on "Restart Se
 
 If you continue to get this error, you can view the task error messages by selecting "Gradle Tasks Server" in the Terminal panel.
 
+The following error suggests an issue with your `$PATH`:
+
+```shell
+env: sh: No such file or directory
+The terminal process terminated with exit code: 127
+```
+
+Use the following task to debug your shell environment within vscode:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Print task shell info",
+      "type": "shell",
+      "command": "echo \"Path: $PATH \nShell: $SHELL\"",
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
 </details>
 
 ## Contributing
