@@ -3,7 +3,7 @@ on:
   push:
 
 jobs:
-  build-jar-artifacts:
+  build-lib:
     name: Build Jar & proto libs
     runs-on: ubuntu-latest
     steps:
