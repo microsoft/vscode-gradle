@@ -80,20 +80,19 @@ function registerRefreshCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.refresh',
-    async (forceDetection = true): Promise<vscode.Task[] | undefined> => {
+    async (forceDetection = true, refreshTasks = true): Promise<void> => {
       if (forceDetection) {
         enableTaskDetection();
       }
-      const tasks = await taskProvider.refresh();
-      await treeDataProvider?.refresh();
-      if (getIsTasksExplorerEnabled()) {
-        vscode.commands.executeCommand(
-          'setContext',
-          'gradle:showTasksExplorer',
-          true
-        );
+      if (refreshTasks) {
+        await taskProvider.refresh();
       }
-      return tasks;
+      await treeDataProvider?.refresh();
+      vscode.commands.executeCommand(
+        'setContext',
+        'gradle:showTasksExplorer',
+        getIsTasksExplorerEnabled()
+      );
     }
   );
 }

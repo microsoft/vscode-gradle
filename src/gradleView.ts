@@ -395,7 +395,14 @@ export function registerExplorer(
     vscode.window.createTreeView('gradleTreeView', {
       treeDataProvider: treeDataProvider,
       showCollapseAll: true
-    })
+    }),
+    vscode.workspace.onDidChangeConfiguration(
+      (event: vscode.ConfigurationChangeEvent) => {
+        if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
+          vscode.commands.executeCommand('gradle.refresh', false, false);
+        }
+      }
+    )
   );
   return treeDataProvider;
 }
