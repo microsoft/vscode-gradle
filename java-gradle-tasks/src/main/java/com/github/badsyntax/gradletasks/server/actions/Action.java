@@ -28,8 +28,9 @@ class Action {
     protected void logError(WebSocket connection, String error) {
         logger.warning(error);
         if (connection.isOpen()) {
-            connection
-                    .send(ServerMessage.Error.newBuilder().setMessage(error).build().toByteArray());
+            connection.send(ServerMessage.Message.newBuilder()
+                    .setError(ServerMessage.Error.newBuilder().setMessage(error)).build()
+                    .toByteArray());
         }
     }
 }

@@ -87,13 +87,13 @@ public class Server extends WebSocketServer {
 
     @Override
     public void onStart() {
-        logger.info("Server started, waiting for clients");
+        logger.info("Gradle tasks server started");
         setConnectionLostTimeout(0);
         setConnectionLostTimeout(100);
     }
 
     @Override
     public void onMessage(WebSocket conn, String message) {
-        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException();
     }
 }

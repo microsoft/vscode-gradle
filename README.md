@@ -104,11 +104,21 @@ Check your dotfiles (eg `~/.bashrc`, `~/.bash_profile`, `~/.zshrc`) and fix any 
 
 You might see an error like:
 
-```
+```shell
 ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 ```
 
 The start script [should find](https://gist.github.com/badsyntax/d71d38b1700325f31c19912ac3428042#file-gradle-tasks-server-sh-L85-L105) the path to Java in the usual locations. If you get this error it suggests an issues with your `$PATH` or you simply haven't installed Java. Run the gradle wrapper script (eg `./gradlew tasks`) to debug further.
+
+</details>
+
+<details><summary>Incompatibility with other extensions</summary>
+
+This extension is incompatible with the following extensions:
+
+- [spmeesseman.vscode-taskexplorer](https://marketplace.visualstudio.com/items?itemName=spmeesseman.vscode-taskexplorer)
+
+The reason for the incompatibility is due to the extensions providing the same tasks types (`gradle`) with different task definitions.
 
 </details>
 

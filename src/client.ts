@@ -158,6 +158,7 @@ export class GradleTasksClient implements vscode.Disposable {
   ) {
     this.onGradleProgress(this.handleProgressMessage);
     this.onGradleOutput(this.handleOutputMessage);
+    this.onGradleError(this.handleGradleError);
     this.server.onStart(this.connect);
     this.server.onStop(this.handleServerStopped);
   }
@@ -383,6 +384,13 @@ export class GradleTasksClient implements vscode.Disposable {
     const logMessage = stripAnsi(message.getMessage()).trim();
     if (logMessage) {
       logger.info(logMessage);
+    }
+  };
+
+  private handleGradleError = (message: ServerMessage.Error): void => {
+    const logMessage = message.getMessage().trim();
+    if (logMessage) {
+      logger.error(logMessage);
     }
   };
 
