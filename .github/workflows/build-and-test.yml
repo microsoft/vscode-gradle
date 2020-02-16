@@ -1,6 +1,5 @@
 name: Build
-on:
-  push:
+on: [push, pull_request]
 
 jobs:
   build-lib:
@@ -27,7 +26,7 @@ jobs:
         run: |
           sudo apt-get install protobuf-compiler -y
           npm ci
-          ./compile-protos.sh
+          npm run compile:proto
       - name: Upload lib
         uses: actions/upload-artifact@v1
         with:
@@ -37,6 +36,7 @@ jobs:
   analyse:
     name: Analyse
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v1
       - name: Use Node 12.x
@@ -65,10 +65,32 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ''
 
+  comment-artifact-size:
+    needs: [build-lib]
+    name: Comment artifact size
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v1
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
+      - name: Comment PR
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          sudo apt-get install -y jq
+          cd bin
+          ./comment-pr.sh
+
   test-extension:
     needs: [build-lib]
     name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - OS ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
+    if: github.event_name == 'push'
     strategy:
       matrix:
         node-version: [12.x]

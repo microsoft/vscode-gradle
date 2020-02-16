@@ -10,8 +10,8 @@ import { GradleTasksServer, ServerOptions } from './server';
 import { logger } from './logger';
 import { handleCancelledTaskMessage } from './tasks';
 
-import * as ClientMessage from '../lib/proto/com/github/badsyntax/gradletasks/ClientMessage_pb';
-import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
+import * as ClientMessage from '../lib/com/github/badsyntax/gradletasks/ClientMessage_pb';
+import * as ServerMessage from '../lib/com/github/badsyntax/gradletasks/ServerMessage_pb';
 
 const localize = nls.loadMessageBundle();
 
