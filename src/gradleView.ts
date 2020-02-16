@@ -297,7 +297,7 @@ export class GradleTasksTreeDataProvider
     let workspaceTreeItem = null;
 
     tasks.forEach(task => {
-      if (isWorkspaceFolder(task.scope)) {
+      if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
         workspaceTreeItem = workspaceTreeItems.get(task.scope.name);
         if (!workspaceTreeItem) {
           workspaceTreeItem = new WorkspaceTreeItem(
