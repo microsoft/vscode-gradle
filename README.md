@@ -57,7 +57,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 <details><summary>"No connection to the gradle server. Try restarting the server"</summary>
 
-<img src="./images/no-connection.png" width="400" />
+<img src="./images/no-connection.png" width="500" />
 
 This error means the gradle task server has stopped, or there was an error starting it. Click on "Restart Server" to restart it.
 
@@ -102,14 +102,13 @@ Check your dotfiles (eg `~/.bashrc`, `~/.bash_profile`, `~/.zshrc`) and fix any 
 
 ### Java path problems
 
-You might see an error like: 
+You might see an error like:
 
 ```
 ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
 ```
 
 The start script [should find](https://gist.github.com/badsyntax/d71d38b1700325f31c19912ac3428042#file-gradle-tasks-server-sh-L85-L105) the path to java in the usual locations. If you get this error it suggests an issues with your `$PATH` or you simply haven't installed Java. Run the gradle wrapper script (eg `./gradlew tasks`) to debug further.
-
 
 </details>
 
