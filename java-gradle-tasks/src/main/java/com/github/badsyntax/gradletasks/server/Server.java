@@ -18,7 +18,7 @@ public class Server extends WebSocketServer {
     protected Logger logger;
 
     @Inject
-    protected GradleTaskPool taskPool;
+    protected TaskCancellationPool taskPool;
 
     @Inject
     protected MessageRouter messageRouter;
@@ -45,7 +45,7 @@ public class Server extends WebSocketServer {
     public void onMessage(WebSocket connection, ByteBuffer message) {
         try {
             Message clientMessage = ClientMessage.Message.parseFrom(message);
-            messageRouter.routeToMessageHandler(connection, clientMessage);
+            messageRouter.routeMessageToHandler(connection, clientMessage);
         } catch (InvalidProtocolBufferException | MessageRouterException e) {
             logError(connection, e.getMessage());
         }

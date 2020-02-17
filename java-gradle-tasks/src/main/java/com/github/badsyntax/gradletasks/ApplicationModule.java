@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
 import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.logging.BasicWriteFormatter;
-import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
+import com.github.badsyntax.gradletasks.messages.client.ClientMessage.Message.KindCase;
 import com.github.badsyntax.gradletasks.server.MessageRouter;
 import com.github.badsyntax.gradletasks.server.handlers.GetTasksHandler;
 import com.github.badsyntax.gradletasks.server.handlers.RunTaskHandler;
@@ -47,10 +47,10 @@ public class ApplicationModule {
   static MessageRouter provideMessageRouter(RunTaskHandler runTask, GetTasksHandler getTasks,
       StopTaskHandler stopTask, StopGetTasksHandler stopGetTasks) {
     MessageRouter messageRouter = new MessageRouter();
-    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.RUN_TASK, runTask);
-    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.GET_TASKS, getTasks);
-    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.STOP_TASK, stopTask);
-    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.STOP_GET_TASKS, stopGetTasks);
+    messageRouter.registerHandler(KindCase.RUN_TASK, runTask);
+    messageRouter.registerHandler(KindCase.GET_TASKS, getTasks);
+    messageRouter.registerHandler(KindCase.STOP_TASK, stopTask);
+    messageRouter.registerHandler(KindCase.STOP_GET_TASKS, stopGetTasks);
     return messageRouter;
   }
 }

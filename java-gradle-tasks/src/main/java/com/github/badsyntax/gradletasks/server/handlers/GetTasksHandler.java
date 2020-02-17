@@ -6,10 +6,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
 import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.ConnectionUtil;
-import com.github.badsyntax.gradletasks.server.GradleTaskPool;
+import com.github.badsyntax.gradletasks.server.TaskCancellationPool;
 import com.github.badsyntax.gradletasks.server.handlers.exceptions.MessageHandlerException;
 import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
 import com.github.badsyntax.gradletasks.server.listeners.GradleProgressListener;
@@ -20,6 +21,7 @@ import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.java_websocket.WebSocket;
 
+@Singleton
 public class GetTasksHandler implements MessageHandler {
 
     @Inject
@@ -29,11 +31,10 @@ public class GetTasksHandler implements MessageHandler {
     protected ExecutorService taskExecutor;
 
     @Inject
-    protected GradleTaskPool taskPool;
+    protected TaskCancellationPool taskPool;
 
     @Inject
     public GetTasksHandler() {
-
     }
 
     private List<ServerMessage.GradleTask> tasks = new ArrayList<>();
@@ -73,7 +74,8 @@ public class GetTasksHandler implements MessageHandler {
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
         CancellationTokenSource cancellationTokenSource =
                 GradleConnector.newCancellationTokenSource();
-        taskPool.put(getKey(sourceDir), cancellationTokenSource, GradleTaskPool.TYPE.GET);
+        String key = getKey(sourceDir);
+        taskPool.put(key, cancellationTokenSource, TaskCancellationPool.TYPE.GET);
         try {
             ModelBuilder<GradleProject> rootProjectBuilder =
                     projectConnection.model(GradleProject.class);
@@ -87,10 +89,9 @@ public class GetTasksHandler implements MessageHandler {
             GradleProject rootProject = rootProjectBuilder.get();
             tasks.clear();
             buildTasksListFromProjectTree(rootProject);
-        } catch (Exception err) {
-            throw new MessageHandlerException(err.getMessage());
         } finally {
             projectConnection.close();
+            taskPool.remove(key, TaskCancellationPool.TYPE.GET);
         }
     }
 

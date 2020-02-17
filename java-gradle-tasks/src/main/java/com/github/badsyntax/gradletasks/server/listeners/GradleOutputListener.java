@@ -13,7 +13,8 @@ public class GradleOutputListener extends OutputStream {
     private ServerMessage.OutputChanged.OutputType outputType;
 
     @Inject
-    public GradleOutputListener(WebSocket connection, ServerMessage.OutputChanged.OutputType outputType) {
+    public GradleOutputListener(WebSocket connection,
+            ServerMessage.OutputChanged.OutputType outputType) {
         this.connection = connection;
         this.outputType = outputType;
     }

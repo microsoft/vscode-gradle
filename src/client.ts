@@ -319,6 +319,9 @@ export class GradleTasksClient implements vscode.Disposable {
   private async sendMessage(message: ClientMessage.Message): Promise<void> {
     try {
       return await new Promise((resolve, reject) => {
+        if (getIsDebugEnabled()) {
+          logger.debug(`CLIENT MESSAGE: ${JSON.stringify(message.toObject())}`);
+        }
         this.wsClient!.send(message.serializeBinary(), (err?: Error) => {
           if (err) {
             reject(err);
@@ -415,7 +418,9 @@ export class GradleTasksClient implements vscode.Disposable {
       try {
         serverMessage = ServerMessage.Message.deserializeBinary(data);
         if (getIsDebugEnabled()) {
-          logger.debug(JSON.stringify(serverMessage.toObject()));
+          logger.debug(
+            `SERVER MESSAGE: ${JSON.stringify(serverMessage.toObject())}`
+          );
         }
       } catch (e) {
         logger.error(

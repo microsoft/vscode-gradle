@@ -4,9 +4,11 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.gradle.tooling.CancellationTokenSource;
 
-public class GradleTaskPool {
+@Singleton
+public class TaskCancellationPool {
 
     public enum TYPE {
         RUN, GET
@@ -17,7 +19,7 @@ public class GradleTaskPool {
 
 
     @Inject
-    public GradleTaskPool() {
+    public TaskCancellationPool() {
         pool.put(TYPE.RUN, new ConcurrentHashMap<>());
         pool.put(TYPE.GET, new ConcurrentHashMap<>());
     }
@@ -43,11 +45,7 @@ public class GradleTaskPool {
     }
 
     public void cancelAll() {
-        pool.keySet().stream()
-                .forEach(typeKey -> pool.get(typeKey).keySet().stream().forEach(poolKey -> {
-                    CancellationTokenSource cancellationTokenSource =
-                            pool.get(typeKey).get(poolKey);
-                    cancellationTokenSource.cancel();
-                }));
+        pool.keySet().stream().forEach(typeKey -> pool.get(typeKey).keySet().stream()
+                .forEach(poolKey -> pool.get(typeKey).get(poolKey).cancel()));
     }
 }
