@@ -48,6 +48,8 @@ shadowJar {
     minimize()
 }
 
+// Use CreateStartScripts to generate a start script of the shadowjar
+// This is done to match the gradle wrapper start script
 task createStartScripts(type: CreateStartScripts) {
     dependsOn shadowJar
     outputDir = file('build/customScripts')

@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
 import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.ConnectionUtil;
-import com.github.badsyntax.gradletasks.server.GradleTaskPool;
+import com.github.badsyntax.gradletasks.server.TaskCancellationPool;
 import com.github.badsyntax.gradletasks.server.handlers.exceptions.MessageHandlerException;
 import com.github.badsyntax.gradletasks.server.handlers.exceptions.TaskCancelledException;
 import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
@@ -20,6 +21,7 @@ import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
 import org.java_websocket.WebSocket;
 
+@Singleton
 public class RunTaskHandler implements MessageHandler {
 
     @Inject
@@ -29,11 +31,10 @@ public class RunTaskHandler implements MessageHandler {
     protected ExecutorService taskExecutor;
 
     @Inject
-    protected GradleTaskPool taskPool;
+    protected TaskCancellationPool taskPool;
 
     @Inject
     public RunTaskHandler() {
-
     }
 
     private static final String KEY = "ACTION_RUN_TASK";
@@ -59,7 +60,7 @@ public class RunTaskHandler implements MessageHandler {
                                 .setMessage(e.getMessage()).setTask(message.getTask())
                                 .setSourceDir(message.getSourceDir().trim()))
                         .build().toByteArray());
-            } catch (MessageHandlerException e) {
+            } catch (Exception e) {
                 logger.warning(e.getMessage());
                 ConnectionUtil.sendErrorMessage(connection, e.getMessage());
             } finally {
@@ -80,9 +81,9 @@ public class RunTaskHandler implements MessageHandler {
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
         CancellationTokenSource cancellationTokenSource =
                 GradleConnector.newCancellationTokenSource();
+        String taskKey = getTaskKey(sourceDir, task);
+        taskPool.put(taskKey, cancellationTokenSource, TaskCancellationPool.TYPE.RUN);
         try {
-            taskPool.put(getTaskKey(sourceDir, task), cancellationTokenSource,
-                    GradleTaskPool.TYPE.RUN);
             BuildLauncher build = projectConnection.newBuild()
                     .withCancellationToken(cancellationTokenSource.token())
                     .addProgressListener(new GradleProgressListener(connection))
@@ -94,10 +95,9 @@ public class RunTaskHandler implements MessageHandler {
             build.run();
         } catch (BuildCancelledException err) {
             throw new TaskCancelledException(err.getMessage());
-        } catch (Exception err) {
-            throw new MessageHandlerException(err.getMessage());
         } finally {
             projectConnection.close();
+            taskPool.remove(taskKey, TaskCancellationPool.TYPE.RUN);
         }
     }
 }
