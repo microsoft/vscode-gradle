@@ -1,35 +1,48 @@
-package com.github.badsyntax.gradletasks.server.actions;
+package com.github.badsyntax.gradletasks.server.handlers;
 
 import java.io.File;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
 import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
+import com.github.badsyntax.gradletasks.server.ConnectionUtil;
 import com.github.badsyntax.gradletasks.server.GradleTaskPool;
-import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionException;
+import com.github.badsyntax.gradletasks.server.handlers.exceptions.MessageHandlerException;
 import org.gradle.tooling.CancellationTokenSource;
 import org.java_websocket.WebSocket;
 
-public class StopGetTasksAction extends Action {
+@Singleton
+public class StopGetTasksHandler implements MessageHandler {
 
     @Inject
-    public StopGetTasksAction(Logger logger, ExecutorService taskExecutor,
-            GradleTaskPool taskPool) {
-        super(logger, taskExecutor, taskPool);
+    protected Logger logger;
+
+    @Inject
+    protected GradleTaskPool taskPool;
+
+    @Inject
+    public StopGetTasksHandler() {
+
     }
 
-    public static final String KEY = "ACTION_STOP_GET_TASKS";
+    private static final String KEY = "ACTION_STOP_GET_TASKS";
 
-    public void run(WebSocket connection, ClientMessage.StopGetTasks message) {
+    public String getKey(File sourceDir) {
+        return KEY + sourceDir.getAbsolutePath();
+    }
+
+    @Override
+    public void handle(WebSocket connection, ClientMessage.Message clientMessage) {
         try {
+            ClientMessage.StopGetTasks message = clientMessage.getStopGetTasks();
             File sourceDir = new File(message.getSourceDir().trim());
             if (!sourceDir.getPath().equals("")) {
                 if (sourceDir.getAbsolutePath() != null && !sourceDir.exists()) {
-                    throw new ActionException("Source directory does not exist");
+                    throw new MessageHandlerException("Source directory does not exist");
                 }
-                String key = GetTasksAction.getTaskKey(sourceDir);
+                String key = GetTasksHandler.getKey(sourceDir);
                 CancellationTokenSource cancellationTokenSource =
                         taskPool.get(key, GradleTaskPool.TYPE.GET);
                 if (cancellationTokenSource != null) {
@@ -45,8 +58,9 @@ public class StopGetTasksAction extends Action {
                     getPool.remove(key);
                 });
             }
-        } catch (ActionException e) {
-            logError(connection, e.getMessage());
+        } catch (MessageHandlerException e) {
+            logger.warning(e.getMessage());
+            ConnectionUtil.sendErrorMessage(connection, e.getMessage());
         } finally {
             if (connection.isOpen()) {
                 connection.send(ServerMessage.Message.newBuilder()

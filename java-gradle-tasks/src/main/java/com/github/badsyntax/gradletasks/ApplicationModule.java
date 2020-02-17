@@ -8,7 +8,12 @@ import java.util.logging.Logger;
 import java.util.logging.StreamHandler;
 import javax.inject.Singleton;
 import com.github.badsyntax.gradletasks.logging.BasicWriteFormatter;
-import com.github.badsyntax.gradletasks.server.GradleTaskPool;
+import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
+import com.github.badsyntax.gradletasks.server.MessageRouter;
+import com.github.badsyntax.gradletasks.server.handlers.GetTasksHandler;
+import com.github.badsyntax.gradletasks.server.handlers.RunTaskHandler;
+import com.github.badsyntax.gradletasks.server.handlers.StopGetTasksHandler;
+import com.github.badsyntax.gradletasks.server.handlers.StopTaskHandler;
 import dagger.Module;
 import dagger.Provides;
 
@@ -17,8 +22,8 @@ public class ApplicationModule {
   private ApplicationModule() {
   }
 
-  @Singleton
   @Provides
+  @Singleton
   static Logger provideLogger() {
     StreamHandler logHandler = new ConsoleHandler();
     logHandler.setFormatter(new BasicWriteFormatter());
@@ -32,12 +37,20 @@ public class ApplicationModule {
   }
 
   @Provides
-  static GradleTaskPool provideTaskPool() {
-    return new GradleTaskPool();
+  @Singleton
+  static ExecutorService provideExecutorService() {
+    return Executors.newCachedThreadPool();
   }
 
   @Provides
-  static ExecutorService provideExecutorService() {
-    return Executors.newCachedThreadPool();
+  @Singleton
+  static MessageRouter provideMessageRouter(RunTaskHandler runTask, GetTasksHandler getTasks,
+      StopTaskHandler stopTask, StopGetTasksHandler stopGetTasks) {
+    MessageRouter messageRouter = new MessageRouter();
+    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.RUN_TASK, runTask);
+    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.GET_TASKS, getTasks);
+    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.STOP_TASK, stopTask);
+    messageRouter.registerMessageHandler(ClientMessage.Message.KindCase.STOP_GET_TASKS, stopGetTasks);
+    return messageRouter;
   }
 }

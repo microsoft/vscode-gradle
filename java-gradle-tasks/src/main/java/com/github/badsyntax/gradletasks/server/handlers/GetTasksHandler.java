@@ -1,4 +1,4 @@
-package com.github.badsyntax.gradletasks.server.actions;
+package com.github.badsyntax.gradletasks.server.handlers;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,8 +8,9 @@ import java.util.logging.Logger;
 import javax.inject.Inject;
 import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
 import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
+import com.github.badsyntax.gradletasks.server.ConnectionUtil;
 import com.github.badsyntax.gradletasks.server.GradleTaskPool;
-import com.github.badsyntax.gradletasks.server.actions.exceptions.ActionException;
+import com.github.badsyntax.gradletasks.server.handlers.exceptions.MessageHandlerException;
 import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
 import com.github.badsyntax.gradletasks.server.listeners.GradleProgressListener;
 import org.gradle.tooling.CancellationTokenSource;
@@ -19,30 +20,42 @@ import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.java_websocket.WebSocket;
 
-public class GetTasksAction extends Action {
+public class GetTasksHandler implements MessageHandler {
 
     @Inject
-    public GetTasksAction(Logger logger, ExecutorService taskExecutor, GradleTaskPool taskPool) {
-        super(logger, taskExecutor, taskPool);
+    protected Logger logger;
+
+    @Inject
+    protected ExecutorService taskExecutor;
+
+    @Inject
+    protected GradleTaskPool taskPool;
+
+    @Inject
+    public GetTasksHandler() {
+
     }
 
     private List<ServerMessage.GradleTask> tasks = new ArrayList<>();
-    public static final String KEY = "ACTION_GET_TASKS";
 
-    public static String getTaskKey(File sourceDir) {
+    private static final String KEY = "ACTION_GET_TASKS";
+
+    public static String getKey(File sourceDir) {
         return KEY + sourceDir.getAbsolutePath();
     }
 
-    public void run(WebSocket connection, ClientMessage.GetTasks message) {
+    @Override
+    public void handle(WebSocket connection, ClientMessage.Message message) {
         taskExecutor.submit(() -> {
             try {
-                File sourceDir = new File(message.getSourceDir().trim());
+                File sourceDir = new File(message.getGetTasks().getSourceDir().trim());
                 if (!sourceDir.exists()) {
-                    throw new ActionException("Source directory does not exist");
+                    throw new MessageHandlerException("Source directory does not exist");
                 }
                 getTasks(connection, sourceDir);
             } catch (Exception e) {
-                logError(connection, e.getMessage());
+                logger.warning(e.getMessage());
+                ConnectionUtil.sendErrorMessage(connection, e.getMessage());
             } finally {
                 if (connection.isOpen()) {
                     connection.send(ServerMessage.Message.newBuilder()
@@ -55,12 +68,12 @@ public class GetTasksAction extends Action {
         });
     }
 
-    private void getTasks(WebSocket connection, File sourceDir) throws ActionException {
+    private void getTasks(WebSocket connection, File sourceDir) throws MessageHandlerException {
         ProjectConnection projectConnection =
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
         CancellationTokenSource cancellationTokenSource =
                 GradleConnector.newCancellationTokenSource();
-        taskPool.put(getTaskKey(sourceDir), cancellationTokenSource, GradleTaskPool.TYPE.GET);
+        taskPool.put(getKey(sourceDir), cancellationTokenSource, GradleTaskPool.TYPE.GET);
         try {
             ModelBuilder<GradleProject> rootProjectBuilder =
                     projectConnection.model(GradleProject.class);
@@ -75,7 +88,7 @@ public class GetTasksAction extends Action {
             tasks.clear();
             buildTasksListFromProjectTree(rootProject);
         } catch (Exception err) {
-            throw new ActionException(err.getMessage());
+            throw new MessageHandlerException(err.getMessage());
         } finally {
             projectConnection.close();
         }
