@@ -28,7 +28,7 @@ jobs:
         run: |
           sudo apt-get install protobuf-compiler -y
           npm ci
-          ./compile-protos.sh
+          npm run compile:proto
       - name: Upload lib
         uses: actions/upload-artifact@v1
         with:

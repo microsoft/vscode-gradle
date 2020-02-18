@@ -2,13 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 
-import {
-  isWorkspaceFolder,
-  cloneTask,
-  isTaskStopping,
-  isTaskRunning
-} from './tasks';
-import { GradleTasksClient } from './client';
+import { isWorkspaceFolder, isTaskStopping, isTaskRunning } from './tasks';
 
 const localize = nls.loadMessageBundle();
 
@@ -164,26 +158,15 @@ class NoTasksTreeItem extends vscode.TreeItem {
 
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
+  private collapsed = true;
   private taskItems: vscode.Task[] = [];
-  private taskTree: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
+  private treeItems: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
 
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(
-    private readonly extensionContext: vscode.ExtensionContext,
-    private collapsed: boolean = true,
-    private readonly client: GradleTasksClient
-  ) {
-    extensionContext.subscriptions.push(
-      vscode.tasks.onDidStartTask(this.onTaskStatusChange, this)
-    );
-    extensionContext.subscriptions.push(
-      vscode.tasks.onDidEndTask(this.onTaskStatusChange, this)
-    );
-    this.setCollapsed(collapsed);
-  }
+  constructor(private readonly extensionContext: vscode.ExtensionContext) {}
 
   setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
@@ -196,43 +179,17 @@ export class GradleTasksTreeDataProvider
     this.render();
   }
 
-  onTaskStatusChange(event: vscode.TaskStartEvent): void {
-    this.taskTree = null;
-    this._onDidChangeTreeData.fire(event.execution.task.definition.treeItem);
-  }
-
-  runTask(taskItem: GradleTaskTreeItem): void {
-    if (taskItem && taskItem.task) {
-      vscode.tasks.executeTask(taskItem.task);
-    }
-  }
-
-  async runTaskWithArgs(taskItem: GradleTaskTreeItem): Promise<void> {
-    if (taskItem && taskItem.task) {
-      const args = await vscode.window.showInputBox({
-        placeHolder: localize(
-          'gradleView.runTaskWithArgsExample',
-          'For example: {0}',
-          '--all'
-        ),
-        ignoreFocusOut: true
-      });
-      if (args !== undefined) {
-        const task = await cloneTask(taskItem.task, args, this.client);
-        if (task) {
-          vscode.tasks.executeTask(task);
-        }
-      }
-    }
-  }
-
   async refresh(): Promise<void> {
     this.taskItems = await vscode.tasks.fetchTasks({ type: 'gradle' });
     this.render();
   }
 
   render(): void {
-    this.taskTree = null;
+    if (this.taskItems.length === 0) {
+      this.treeItems = [new NoTasksTreeItem()];
+    } else {
+      this.treeItems = this.buildItemsTreeFromTasks(this.taskItems);
+    }
     this._onDidChangeTreeData.fire();
   }
 
@@ -241,32 +198,29 @@ export class GradleTasksTreeDataProvider
   }
 
   getParent(element: vscode.TreeItem): vscode.TreeItem | null {
-    if (element instanceof WorkspaceTreeItem) {
+    if (
+      element instanceof WorkspaceTreeItem ||
+      element instanceof ProjectTreeItem ||
+      element instanceof TreeItemWithTasksOrGroups ||
+      element instanceof GradleTaskTreeItem
+    ) {
       return element.parentTreeItem;
-    }
-    if (element instanceof ProjectTreeItem) {
-      return element.parentTreeItem;
-    }
-    if (element instanceof TreeItemWithTasksOrGroups) {
-      return element.parentTreeItem;
-    }
-    if (element instanceof GradleTaskTreeItem) {
-      return element.parentTreeItem;
-    }
-    if (element instanceof NoTasksTreeItem) {
-      return null;
     }
     return null;
   }
 
-  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-    if (!this.taskTree) {
-      if (this.taskItems.length === 0) {
-        this.taskTree = [new NoTasksTreeItem()];
-      } else {
-        this.taskTree = this.buildTaskTree(this.taskItems);
-      }
-    }
+  getFlattenedTree(treeItems: vscode.TreeItem[]): GradleTaskTreeItem[] {
+    return treeItems
+      .map((element: vscode.TreeItem) => {
+        if (element instanceof GradleTaskTreeItem) {
+          return element;
+        }
+        return this.getFlattenedTree(this.getChildren(element));
+      })
+      .flat() as GradleTaskTreeItem[];
+  }
+
+  getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
     if (element instanceof WorkspaceTreeItem) {
       return [...element.projectFolders, ...element.projects];
     }
@@ -276,20 +230,33 @@ export class GradleTasksTreeDataProvider
     if (element instanceof GroupTreeItem) {
       return element.tasks;
     }
-    if (element instanceof GradleTaskTreeItem) {
+    if (
+      element instanceof GradleTaskTreeItem ||
+      element instanceof NoTasksTreeItem
+    ) {
       return [];
     }
-    if (element instanceof NoTasksTreeItem) {
-      return [];
-    }
-    if (!element && this.taskTree) {
-      return this.taskTree;
+    if (!element && this.treeItems) {
+      return this.treeItems;
     }
     return [];
   }
 
+  findTreeItem(task: vscode.Task): GradleTaskTreeItem | void {
+    if (this.treeItems) {
+      const tree = this.getFlattenedTree(this.treeItems);
+      return tree.find(
+        treeItem =>
+          JSON.stringify(treeItem.task.definition) ===
+          JSON.stringify(task.definition)
+      );
+    }
+  }
+
   // eslint-disable-next-line sonarjs/cognitive-complexity
-  buildTaskTree(tasks: vscode.Task[]): WorkspaceTreeItem[] | NoTasksTreeItem[] {
+  buildItemsTreeFromTasks(
+    tasks: vscode.Task[]
+  ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
     const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const nestedWorkspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
@@ -382,27 +349,40 @@ export class GradleTasksTreeDataProvider
 }
 
 export function registerExplorer(
-  context: vscode.ExtensionContext,
-  client: GradleTasksClient
+  context: vscode.ExtensionContext
 ): GradleTasksTreeDataProvider {
   const collapsed = context.workspaceState.get('explorerCollapsed', false);
-  const treeDataProvider = new GradleTasksTreeDataProvider(
-    context,
-    collapsed,
-    client
-  );
+  const treeDataProvider = new GradleTasksTreeDataProvider(context);
+  treeDataProvider.setCollapsed(collapsed);
+  const treeView = vscode.window.createTreeView('gradleTreeView', {
+    treeDataProvider: treeDataProvider,
+    showCollapseAll: true
+  });
   context.subscriptions.push(
-    vscode.window.createTreeView('gradleTreeView', {
-      treeDataProvider: treeDataProvider,
-      showCollapseAll: true
-    }),
+    treeView,
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
         if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
           vscode.commands.executeCommand('gradle.refresh', false, false);
         }
       }
-    )
+    ),
+    vscode.tasks.onDidStartTask((event: vscode.TaskStartEvent) => {
+      const { type } = event.execution.task.definition;
+      if (type === 'gradle') {
+        const treeItem = treeDataProvider.findTreeItem(event.execution.task);
+        if (treeItem) {
+          treeView.reveal(treeItem, {
+            focus: true,
+            expand: true
+          });
+        }
+      }
+      treeDataProvider.render();
+    }),
+    vscode.tasks.onDidEndTask(() => {
+      treeDataProvider.render();
+    })
   );
   return treeDataProvider;
 }

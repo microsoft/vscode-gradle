@@ -9,7 +9,9 @@ import {
   GradleTaskProvider,
   enableTaskDetection,
   stopRunningGradleTasks,
-  isTaskRunning
+  isTaskRunning,
+  runTask,
+  runTaskWithArgs
 } from './tasks';
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
@@ -21,23 +23,27 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
 );
 
-function registerRunTaskCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
-): vscode.Disposable {
+function registerRunTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.runTask',
-    treeDataProvider.runTask,
-    treeDataProvider
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        runTask(treeItem.task);
+      }
+    }
   );
 }
 
 function registerRunTaskWithArgsCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
+  client: GradleTasksClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.runTaskWithArgs',
-    treeDataProvider.runTaskWithArgs,
-    treeDataProvider
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        runTaskWithArgs(treeItem.task, client);
+      }
+    }
   );
 }
 
@@ -203,8 +209,8 @@ export function registerCommands(
   taskProvider: GradleTaskProvider
 ): void {
   context.subscriptions.push(
-    registerRunTaskCommand(treeDataProvider),
-    registerRunTaskWithArgsCommand(treeDataProvider),
+    registerRunTaskCommand(),
+    registerRunTaskWithArgsCommand(client),
     registerStopTaskCommand(statusBarItem),
     registerStopTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, treeDataProvider),
