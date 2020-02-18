@@ -36,7 +36,7 @@ protobuf {
 
 dependencies {
     compile 'com.google.protobuf:protobuf-java:3.11.4'
-    compile 'org.gradle:gradle-tooling-api:6.1.1'
+    compile 'org.gradle:gradle-tooling-api:6.2'
     compile "org.java-websocket:Java-WebSocket:1.4.0"
     compile "com.google.dagger:dagger:2.26"
     annotationProcessor "com.google.dagger:dagger-compiler:2.26"
