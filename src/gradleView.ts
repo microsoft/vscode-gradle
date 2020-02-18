@@ -2,13 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 
-import {
-  isWorkspaceFolder,
-  cloneTask,
-  isTaskStopping,
-  isTaskRunning
-} from './tasks';
-import { GradleTasksClient } from './client';
+import { isWorkspaceFolder, isTaskStopping, isTaskRunning } from './tasks';
 
 const localize = nls.loadMessageBundle();
 
@@ -172,10 +166,7 @@ export class GradleTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(
-    private readonly extensionContext: vscode.ExtensionContext,
-    private readonly client: GradleTasksClient
-  ) {}
+  constructor(private readonly extensionContext: vscode.ExtensionContext) {}
 
   setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
@@ -186,25 +177,6 @@ export class GradleTasksTreeDataProvider
       collapsed
     );
     this.render();
-  }
-
-  async runTaskWithArgs(taskItem: GradleTaskTreeItem): Promise<void> {
-    if (taskItem && taskItem.task) {
-      const args = await vscode.window.showInputBox({
-        placeHolder: localize(
-          'gradleView.runTaskWithArgsExample',
-          'For example: {0}',
-          '--all'
-        ),
-        ignoreFocusOut: true
-      });
-      if (args !== undefined) {
-        const task = await cloneTask(taskItem.task, args, this.client);
-        if (task) {
-          vscode.tasks.executeTask(task);
-        }
-      }
-    }
   }
 
   async refresh(): Promise<void> {
@@ -377,11 +349,10 @@ export class GradleTasksTreeDataProvider
 }
 
 export function registerExplorer(
-  context: vscode.ExtensionContext,
-  client: GradleTasksClient
+  context: vscode.ExtensionContext
 ): GradleTasksTreeDataProvider {
   const collapsed = context.workspaceState.get('explorerCollapsed', false);
-  const treeDataProvider = new GradleTasksTreeDataProvider(context, client);
+  const treeDataProvider = new GradleTasksTreeDataProvider(context);
   treeDataProvider.setCollapsed(collapsed);
   const treeView = vscode.window.createTreeView('gradleTreeView', {
     treeDataProvider: treeDataProvider,
