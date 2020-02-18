@@ -5,6 +5,7 @@ import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/Se
 import { getIsAutoDetectionEnabled, getIsDebugEnabled } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
+import { GradleTaskTreeItem } from './gradleView';
 
 const localize = nls.loadMessageBundle();
 
@@ -392,6 +393,12 @@ export function handleCancelledTaskMessage(
     localize('tasks.taskCancelled', 'Task cancelled: {0}', message.getMessage())
   );
   vscode.commands.executeCommand('gradle.explorerRender');
+}
+
+export function runTask(taskItem: GradleTaskTreeItem): void {
+  if (taskItem && taskItem.task) {
+    vscode.tasks.executeTask(taskItem.task);
+  }
 }
 
 export function registerTaskProvider(
