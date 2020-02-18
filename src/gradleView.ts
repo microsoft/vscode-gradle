@@ -6,8 +6,7 @@ import {
   isWorkspaceFolder,
   cloneTask,
   isTaskStopping,
-  isTaskRunning,
-  GradleTaskDefinition
+  isTaskRunning
 } from './tasks';
 import { GradleTasksClient } from './client';
 

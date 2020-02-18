@@ -33,7 +33,9 @@ export function enableTaskDetection(): void {
 export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
-  return vscode.tasks.taskExecutions.find(e => e.task === task);
+  return vscode.tasks.taskExecutions.find(
+    e => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
+  );
 }
 
 export function getGradleTaskExecutions(): vscode.TaskExecution[] {
