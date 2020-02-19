@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 
 import { isWorkspaceFolder, isTaskStopping, isTaskRunning } from './tasks';
+import { getFocusTaskInExplorer } from './config';
 
 const localize = nls.loadMessageBundle();
 
@@ -365,13 +366,16 @@ export function registerExplorer(
         if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
           vscode.commands.executeCommand('gradle.refresh', false, false);
         }
+        if (event.affectsConfiguration('gradle.taskPresentationOptions')) {
+          vscode.commands.executeCommand('gradle.refresh', false, true);
+        }
       }
     ),
     vscode.tasks.onDidStartTask((event: vscode.TaskStartEvent) => {
       const { type } = event.execution.task.definition;
       if (type === 'gradle') {
         const treeItem = treeDataProvider.findTreeItem(event.execution.task);
-        const shouldFocus = treeView.visible;
+        const shouldFocus = treeView.visible && getFocusTaskInExplorer();
         if (treeItem && shouldFocus) {
           treeView.reveal(treeItem, {
             focus: true,

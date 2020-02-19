@@ -2,7 +2,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
 import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
-import { getIsAutoDetectionEnabled, getIsDebugEnabled } from './config';
+import {
+  getIsAutoDetectionEnabled,
+  getIsDebugEnabled,
+  getTaskPresentationOptions,
+  ConfigTaskPresentationOptions,
+  ConfigTaskPresentationOptionsRevealKind,
+  ConfigTaskPresentationOptionsPanelKind
+} from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
 
@@ -140,6 +147,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       }
       cachedTasks = allTasks;
     } catch (e) {
+      logger.error(`Unable to refresh tasks: ${e.message}`);
       cachedTasks = emptyTasks;
     }
   }
@@ -296,6 +304,22 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 }
 
+function getTaskPanelKind(
+  panel: ConfigTaskPresentationOptionsPanelKind
+): vscode.TaskPanelKind {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+  // @ts-ignore
+  return vscode.TaskPanelKind[panel[0].toUpperCase() + panel.substring(1)];
+}
+
+function getTaskRevealKind(
+  reveal: ConfigTaskPresentationOptionsRevealKind
+): vscode.TaskRevealKind {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+  // @ts-ignore
+  return vscode.TaskRevealKind[reveal[0].toUpperCase() + reveal.substring(1)];
+}
+
 export function createTaskFromDefinition(
   definition: GradleTaskDefinition,
   workspaceFolder: vscode.WorkspaceFolder,
@@ -322,12 +346,13 @@ export function createTaskFromDefinition(
     ),
     ['$gradle']
   );
+  const configTaskPresentationOptions: ConfigTaskPresentationOptions = getTaskPresentationOptions();
   task.presentationOptions = {
-    clear: true,
-    showReuseMessage: false,
-    focus: true,
-    panel: vscode.TaskPanelKind.Shared,
-    reveal: vscode.TaskRevealKind.Always
+    ...configTaskPresentationOptions,
+    ...{
+      panel: getTaskPanelKind(configTaskPresentationOptions.panel),
+      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal)
+    }
   };
   if (isTaskOfType(definition, 'build')) {
     task.group = vscode.TaskGroup.Build;
