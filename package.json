@@ -292,13 +292,22 @@
           "default": false,
           "description": "%extension.config.debug.description%"
         },
+        "gradle.focusTaskInExplorer": {
+          "type": "boolean",
+          "default": true,
+          "description": "%extension.config.focusTaskInExplorer.description%"
+        },
         "gradle.taskPresentationOptions": {
           "type": "object",
           "description": "%extension.config.taskPresentationOptions.description%",
           "properties": {
             "reveal": {
               "type": "string",
-              "enum": ["always", "never", "silent"],
+              "enum": [
+                "always",
+                "never",
+                "silent"
+              ],
               "default": "always",
               "description": "%extension.config.taskPresentationOptions.reveal.description%"
             },
@@ -319,7 +328,11 @@
             },
             "panel": {
               "type": "string",
-              "enum": ["shared", "dedicated", "new"],
+              "enum": [
+                "shared",
+                "dedicated",
+                "new"
+              ],
               "default": "shared",
               "description": "%extension.config.taskPresentationOptions.panel.description%"
             },
@@ -328,6 +341,14 @@
               "default": true,
               "description": "%extension.config.taskPresentationOptions.clear.description%"
             }
+          },
+          "default": {
+            "reveal": "always",
+            "focus": true,
+            "echo": true,
+            "showReuseMessage": false,
+            "panel": "shared",
+            "clear": true
           }
         }
       }

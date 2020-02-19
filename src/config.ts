@@ -24,6 +24,12 @@ export function getIsDebugEnabled(): boolean {
     .get<boolean>('debug', false);
 }
 
+export function getFocusTaskInExplorer(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('focusTaskInExplorer', true);
+}
+
 export type ConfigTaskPresentationOptionsRevealKind =
   | 'always'
   | 'never'
@@ -36,8 +42,8 @@ export type ConfigTaskPresentationOptionsPanelKind =
 
 export interface ConfigTaskPresentationOptions
   extends Omit<vscode.TaskPresentationOptions, 'reveal' | 'panel'> {
-  reveal: 'always' | 'never' | 'silent';
-  panel: 'shared' | 'dedicated' | 'new';
+  reveal: ConfigTaskPresentationOptionsRevealKind;
+  panel: ConfigTaskPresentationOptionsPanelKind;
 }
 
 export function getTaskPresentationOptions(): ConfigTaskPresentationOptions {

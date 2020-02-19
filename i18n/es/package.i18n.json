@@ -15,6 +15,7 @@
   "extension.config.autoDetect.description": "Controla si las tareas de Gradle deben detectarse automáticamente",
   "extension.config.enableTasksExplorer.description": "Habilitar una vista de explorador para tareas de Gradle",
   "extension.config.debug.description": "Mostrar información adicional de depuración en el panel de salida",
+  "extension.config.focusTaskInExplorer.description": "Enfoca la tarea en el explorador cuando ejecutas una tarea",
   "extension.config.taskPresentationOptions.description": "Opciones de terminal para ejecutar una tarea",
   "extension.config.taskPresentationOptions.reveal.description": "Controla si el panel Terminal integrado se lleva al frente",
   "extension.config.taskPresentationOptions.focus.description": "Controla si el terminal está tomando el foco de entrada o no",

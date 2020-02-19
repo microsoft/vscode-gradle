@@ -147,6 +147,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       }
       cachedTasks = allTasks;
     } catch (e) {
+      logger.error(`Unable to refresh tasks: ${e.message}`);
       cachedTasks = emptyTasks;
     }
   }
