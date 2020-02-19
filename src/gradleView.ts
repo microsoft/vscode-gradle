@@ -365,6 +365,9 @@ export function registerExplorer(
         if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
           vscode.commands.executeCommand('gradle.refresh', false, false);
         }
+        if (event.affectsConfiguration('gradle.taskPresentationOptions')) {
+          vscode.commands.executeCommand('gradle.refresh', false, true);
+        }
       }
     ),
     vscode.tasks.onDidStartTask((event: vscode.TaskStartEvent) => {

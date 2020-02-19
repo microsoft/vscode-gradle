@@ -14,5 +14,12 @@
   "extension.command.stoppingTreeItemTaskShow.title": "Stopping Task",
   "extension.config.autoDetect.description": "Controls whether Gradle tasks should be automatically detected",
   "extension.config.enableTasksExplorer.description": "Enable an explorer view for Gradle tasks",
-  "extension.config.debug.description": "Show extra debug information in the output panel"
+  "extension.config.debug.description": "Show extra debug information in the output panel",
+  "extension.config.taskPresentationOptions.description": "Terminal options for running a task",
+  "extension.config.taskPresentationOptions.reveal.description": "Controls whether the Integrated Terminal panel is brought to front",
+  "extension.config.taskPresentationOptions.focus.description": "Controls whether the terminal is taking input focus or not",
+  "extension.config.taskPresentationOptions.echo.description": "Controls whether the executed command is echoed in the terminal",
+  "extension.config.taskPresentationOptions.showReuseMessage.description": "Controls whether to show the \"Terminal will be reused by tasks, press any key to close it\" message",
+  "extension.config.taskPresentationOptions.panel.description": "Controls whether the terminal instance is shared between task runs",
+  "extension.config.taskPresentationOptions.clear.description": "Controls whether the terminal is cleared before this task is run"
 }

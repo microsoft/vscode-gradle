@@ -27,6 +27,7 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
+- `gradle.taskPresentationOptions`: Task presentation options. See [tasks output behaviour](https://code.visualstudio.com/docs/editor/tasks#_output-behavior).
 - `gradle.debug`: Show extra debug info in the output panel
 
 ## Snippets
