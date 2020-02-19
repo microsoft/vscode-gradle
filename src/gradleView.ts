@@ -371,7 +371,8 @@ export function registerExplorer(
       const { type } = event.execution.task.definition;
       if (type === 'gradle') {
         const treeItem = treeDataProvider.findTreeItem(event.execution.task);
-        if (treeItem) {
+        const shouldFocus = treeView.visible;
+        if (treeItem && shouldFocus) {
           treeView.reveal(treeItem, {
             focus: true,
             expand: true
