@@ -1,0 +1,30 @@
+
+# Output directories
+build/
+out/
+target/
+bin/
+
+# Mac OS X files
+.DS_Store
+
+# Eclipse files
+.settings
+.classpath
+.project
+
+# vim files
+.*.sw[a-z]
+*.un~
+
+# Java class files
+*.class
+
+# Gradle
+.gradle
+
+# direnv
+.envrc
+
+# Ignore Gradle build output directory
+build

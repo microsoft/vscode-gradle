@@ -22,8 +22,8 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: generateLib
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
+          build-root-directory: java-gradle-tasks-grpc
+          wrapper-directory: java-gradle-tasks-grpc
       - name: Build proto lib
         run: |
           sudo apt-get install protobuf-compiler -y

@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.badsyntax.gradletasks";
+option java_outer_classname = "GradleTasksProto";
+
+package gradletasks;
+
+service GradleTasks {
+  rpc GetTasks (GetTasksRequest) returns (stream GetTasksReply) {}
+  rpc RunTask (RunTaskRequest) returns (stream RunTaskReply) {}
+}
+
+message GetTasksRequest {
+  string source_dir = 1;
+}
+
+message GetTasksReply {
+  oneof kind {
+    GetTasksResult get_tasks_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+  }
+}
+
+message GetTasksResult {
+  string message = 1;
+  repeated GradleTask tasks = 2;
+}
+
+message RunTaskRequest {
+  string source_dir = 1;
+  string task = 2;
+  repeated string args = 3;
+}
+
+message RunTaskReply {
+  oneof kind {
+    RunTaskResult run_task_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+  }
+}
+
+message GradleTask {
+  string name = 1;
+  string group = 2;
+  string path = 3;
+  string project = 4;
+  string buildFile = 5;
+  string rootProject = 6;
+  string description = 7;
+}
+
+// message ActionCancelled {
+//   string message = 1;
+//   string source_dir = 2;
+//   string task = 3;
+// }
+
+message Progress {
+  string message = 1;
+}
+
+message RunTaskResult {
+  string message = 1;
+  string task = 2;
+}
+
+message Output {
+  enum OutputType {
+    STDERR = 0;
+    STDOUT = 1;
+  }
+
+  string message = 1;
+  OutputType output_type = 3;
+}
+
+// message Error {
+//   string message = 1;
+// }
+
+// message Info {
+//   string message = 1;
+// }
+
+
+// message Message {
+//   oneof kind {
+//     ActionCancelled action_cancelled = 1;
+//     Progress progress = 2;
+//     RunTask run_task = 3;
+//     Output output = 4;
+//     Error error = 5;
+//     Info info = 6;
+//     Tasks get_tasks = 7;
+//   }
+// }

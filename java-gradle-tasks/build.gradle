@@ -12,45 +12,62 @@ repositories {
     }
 }
 
+// sourceCompatibility = 1.8
+// targetCompatibility = 1.8
+
+def grpcVersion = '1.27.1'
+def protobufVersion = '3.11.4'
+def protocVersion = protobufVersion
+
+dependencies {
+    annotationProcessor "com.google.dagger:dagger-compiler:2.26"
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    compile 'org.gradle:gradle-tooling-api:6.1.1'
+    compile "org.java-websocket:Java-WebSocket:1.4.0"
+    compile "com.google.dagger:dagger:2.26"
+    compileOnly "javax.annotation:javax.annotation-api:1.2"
+    runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
+    runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    testImplementation "io.grpc:grpc-testing:${grpcVersion}"
+    testImplementation 'junit:junit:4.13'
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${protocVersion}" }
+    plugins {
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
+    }
+    generateProtoTasks {
+        all()*.plugins { grpc {} }
+    }
+}
+
+shadowJar {
+    // minimize()
+}
+
 sourceSets {
     libsDirName = 'lib'
     main {
-        proto {
-            srcDir '../proto'
+        // proto {
+        //     srcDir '../proto'
+        // }
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
         }
     }
     generated {
         java.srcDirs = [
-            "${buildDir}/generated/sources/annotationProcessor/java/main", // dagger
-            "${buildDir}/generated/source/proto/main/java"                 // protobuf
+            "${buildDir}/generated/sources/annotationProcessor/java/main"
         ]
     }
 }
 
-
-protobuf {
-    protoc {
-        artifact = 'com.google.protobuf:protoc:3.11.4'
-    }
-}
-
-dependencies {
-    compile 'com.google.protobuf:protobuf-java:3.11.4'
-    compile 'org.gradle:gradle-tooling-api:6.3'
-    compile "org.java-websocket:Java-WebSocket:1.4.1"
-    compile "com.google.dagger:dagger:2.27"
-    annotationProcessor "com.google.dagger:dagger-compiler:2.27"
-    runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
-    testImplementation 'junit:junit:4.13'
-}
-
-shadowJar {
-    minimize()
-}
-
-// Use CreateStartScripts to generate a start script of the shadowjar
-// This is done to match the gradle wrapper start script
-task createStartScripts(type: CreateStartScripts) {
+// Use CreateStartScripts to generate a start script of the shadowjar file.
+// This is done to match the gradle wrapper start script.
+task customStartScripts(type: CreateStartScripts) {
     dependsOn shadowJar
     outputDir = file('build/customScripts')
     mainClassName = 'com.github.badsyntax.gradletasks.Application'
@@ -60,8 +77,9 @@ task createStartScripts(type: CreateStartScripts) {
     windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
+// Move shadowjar and start scripts input parent dist dir
 task generateLib(type: Copy) {
-    dependsOn createStartScripts
+    dependsOn build, customStartScripts
 
     from file("$buildDir/lib/${project.name}-all.jar")
     into file("$buildDir/../../lib/${project.name}-all.jar")

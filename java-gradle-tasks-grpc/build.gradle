@@ -1,0 +1,100 @@
+plugins {
+    id 'application'
+    id 'com.google.protobuf' version '0.8.8'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+repositories {
+    maven {
+        url "https://maven-central.storage-download.googleapis.com/repos/central/data/"
+    }
+    maven {
+        url 'https://repo.gradle.org/gradle/libs-releases'
+    }
+    mavenCentral()
+    mavenLocal()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+def grpcVersion = '1.28.1'
+def protobufVersion = '3.11.0'
+def protocVersion = protobufVersion
+
+dependencies {
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    compile "org.gradle:gradle-tooling-api:6.3"
+
+    compileOnly "javax.annotation:javax.annotation-api:1.2"
+
+    runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+
+    testImplementation "io.grpc:grpc-testing:${grpcVersion}"
+    testImplementation "junit:junit:4.12"
+    testImplementation "org.mockito:mockito-core:2.28.2"
+}
+
+protobuf {
+    protoc { artifact = "com.google.protobuf:protoc:${protocVersion}" }
+    plugins {
+        grpc { artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}" }
+    }
+    generateProtoTasks {
+        all()*.plugins { grpc {} }
+    }
+}
+
+shadowJar {
+    // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
+    // minimize()
+}
+
+sourceSets {
+    libsDirName = 'lib'
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
+
+application {
+    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+}
+
+startScripts.enabled = false
+
+task gradleTasksServer(type: CreateStartScripts) {
+    dependsOn shadowJar
+    outputDir = file('build/customScripts')
+    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+    applicationName = project.name
+    classpath = files(shadowJar.outputs.files)
+}
+
+applicationDistribution.into('bin') {
+    from(gradleTasksServer)
+    fileMode = 0755
+}
+
+distributions {
+    main {
+        contents {
+            from(gradleTasksServer)
+        }
+    }
+}
+
+// Move shadowjar and start scripts input parent lib dir
+task generateLib(type: Copy) {
+    dependsOn gradleTasksServer
+
+    from file("$buildDir/$libsDirName/${project.name}-all.jar")
+    into file("$buildDir/../../$libsDirName/${project.name}-all.jar")
+
+    from "$buildDir/customScripts/${project.name}", "$buildDir/customScripts/${project.name}.bat"
+    into "$buildDir/../../$libsDirName"
+}

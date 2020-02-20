@@ -7,28 +7,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import com.github.badsyntax.gradletasks.messages.client.ClientMessage;
-import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
+// import com.github.badsyntax.gradletasks.messages.server.ServerMessage;
 import com.github.badsyntax.gradletasks.server.ConnectionUtil;
+import com.github.badsyntax.gradletasks.server.GetTasksReply;
+import com.github.badsyntax.gradletasks.server.GetTasksRequest;
+import com.github.badsyntax.gradletasks.server.GradleTask;
 import com.github.badsyntax.gradletasks.server.TaskCancellationPool;
 import com.github.badsyntax.gradletasks.server.handlers.exceptions.MessageHandlerException;
-import com.github.badsyntax.gradletasks.server.listeners.GradleOutputListener;
-import com.github.badsyntax.gradletasks.server.listeners.GradleProgressListener;
 import org.gradle.tooling.CancellationTokenSource;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.model.GradleProject;
 import org.java_websocket.WebSocket;
+import io.grpc.stub.StreamObserver;
 
 @Singleton
-public class GetTasksHandler implements MessageHandler {
+public class GetTasksHandler {
 
     @Inject
     protected Logger logger;
-
-    @Inject
-    protected ExecutorService taskExecutor;
 
     @Inject
     protected TaskCancellationPool taskPool;
@@ -37,7 +35,7 @@ public class GetTasksHandler implements MessageHandler {
     public GetTasksHandler() {
     }
 
-    private List<ServerMessage.GradleTask> tasks = new ArrayList<>();
+    private List<GradleTask> tasks = new ArrayList<>();
 
     private static final String KEY = "ACTION_GET_TASKS";
 
@@ -45,31 +43,32 @@ public class GetTasksHandler implements MessageHandler {
         return KEY + sourceDir.getAbsolutePath();
     }
 
-    @Override
-    public void handle(WebSocket connection, ClientMessage.Message message) {
-        taskExecutor.submit(() -> {
-            try {
-                File sourceDir = new File(message.getGetTasks().getSourceDir().trim());
-                if (!sourceDir.exists()) {
-                    throw new MessageHandlerException("Source directory does not exist");
-                }
-                getTasks(connection, sourceDir);
-            } catch (Exception e) {
-                logger.warning(e.getMessage());
-                ConnectionUtil.sendErrorMessage(connection, e.getMessage());
-            } finally {
-                if (connection.isOpen()) {
-                    connection.send(ServerMessage.Message.newBuilder()
-                            .setGetTasks(ServerMessage.Tasks.newBuilder()
-                                    .setMessage(String.format("Completed %s", KEY))
-                                    .addAllTasks(tasks))
-                            .build().toByteArray());
-                }
+    public void handle(GetTasksRequest req, StreamObserver<GetTasksReply> responseObserver) {
+        try {
+            File sourceDir = new File(req.getSourceDir().trim());
+            if (!sourceDir.exists()) {
+                throw new MessageHandlerException("Source directory does not exist");
             }
-        });
+            getTasks(sourceDir);
+        } catch (Exception e) {
+            logger.warning(e.getMessage());
+            // ConnectionUtil.sendErrorMessage(connection, e.getMessage());
+        } finally {
+            GetTasksReply reply =
+                    GetTasksReply.newBuilder().setMessage("Got Tasks").addAllTasks(tasks).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+            // if (connection.isOpen()) {
+            // connection.send(ServerMessage.Message.newBuilder()
+            // .setGetTasks(ServerMessage.Tasks.newBuilder()
+            // .setMessage(String.format("Completed %s", KEY))
+            // .addAllTasks(tasks))
+            // .build().toByteArray());
+            // }
+        }
     }
 
-    private void getTasks(WebSocket connection, File sourceDir) throws MessageHandlerException {
+    private void getTasks(File sourceDir) throws MessageHandlerException {
         ProjectConnection projectConnection =
                 GradleConnector.newConnector().forProjectDirectory(sourceDir).connect();
         CancellationTokenSource cancellationTokenSource =
@@ -80,11 +79,11 @@ public class GetTasksHandler implements MessageHandler {
             ModelBuilder<GradleProject> rootProjectBuilder =
                     projectConnection.model(GradleProject.class);
             rootProjectBuilder.withCancellationToken(cancellationTokenSource.token())
-                    .addProgressListener(new GradleProgressListener(connection))
-                    .setStandardOutput(new GradleOutputListener(connection,
-                            ServerMessage.OutputChanged.OutputType.STDOUT))
-                    .setStandardError(new GradleOutputListener(connection,
-                            ServerMessage.OutputChanged.OutputType.STDERR))
+                    // .addProgressListener(new GradleProgressListener(connection))
+                    // .setStandardOutput(new GradleOutputListener(connection,
+                    // ServerMessage.OutputChanged.OutputType.STDOUT))
+                    // .setStandardError(new GradleOutputListener(connection,
+                    // ServerMessage.OutputChanged.OutputType.STDERR))
                     .setColorOutput(false);
             GradleProject rootProject = rootProjectBuilder.get();
             tasks.clear();
@@ -101,7 +100,7 @@ public class GetTasksHandler implements MessageHandler {
 
     private void buildTasksListFromProjectTree(GradleProject project, GradleProject rootProject) {
         project.getTasks().stream().forEach(task -> {
-            ServerMessage.GradleTask.Builder gradleTask = ServerMessage.GradleTask.newBuilder()
+            GradleTask.Builder gradleTask = GradleTask.newBuilder()
                     .setProject(task.getProject().getName()).setName(task.getName())
                     .setPath(task.getPath())
                     .setBuildFile(

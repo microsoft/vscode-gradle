@@ -13,8 +13,8 @@ import {
   runTask,
   runTaskWithArgs,
 } from './tasks';
-import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
+import { GradleTasksClient } from './client';
 import { logger } from './logger';
 
 const localize = nls.loadMessageBundle();

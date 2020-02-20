@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
-import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
 import {
   getIsAutoDetectionEnabled,
   getIsDebugEnabled,
@@ -9,10 +8,15 @@ import {
   getJavaHome,
   ConfigTaskPresentationOptions,
   ConfigTaskPresentationOptionsRevealKind,
-  ConfigTaskPresentationOptionsPanelKind,
+  ConfigTaskPresentationOptionsPanelKind
 } from './config';
-import { GradleTasksClient } from './client';
 import { logger } from './logger';
+import {
+  GradleTask,
+  Output,
+  Progress
+} from './java-gradle-tasks-grpc/src/main/proto/gradle_tasks_pb';
+import { GradleTasksClient } from './client';
 
 const localize = nls.loadMessageBundle();
 
@@ -41,17 +45,17 @@ export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
   return vscode.tasks.taskExecutions.find(
-    (e) => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
+    e => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
   );
 }
 
 export function getGradleTaskExecutions(): vscode.TaskExecution[] {
-  return vscode.tasks.taskExecutions.filter((e) => e.task.source === 'gradle');
+  return vscode.tasks.taskExecutions.filter(e => e.task.source === 'gradle');
 }
 
 export function stopRunningGradleTasks(): void {
   const taskExecutions = getGradleTaskExecutions();
-  taskExecutions.forEach((execution) => {
+  taskExecutions.forEach(execution => {
     vscode.commands.executeCommand('gradle.stopTask', execution.task);
   });
 }
@@ -101,8 +105,8 @@ async function getGradleProjectFolders(
     new vscode.RelativePattern(rootWorkspaceFolder, '**/*{gradlew,gradlew.bat}')
   );
   const gradleWrapperFolders = Array.from(
-    new Set(gradleWrapperFiles.map((file) => path.dirname(file.fsPath)))
-  ).map((folder) => vscode.Uri.file(folder));
+    new Set(gradleWrapperFiles.map(file => path.dirname(file.fsPath)))
+  ).map(folder => vscode.Uri.file(folder));
   const gradleProjectFolders: vscode.Uri[] = [];
   for (const gradleWrapperFolder of gradleWrapperFolders) {
     if (await hasGradleBuildFile(gradleWrapperFolder)) {
@@ -114,17 +118,14 @@ async function getGradleProjectFolders(
 
 export class GradleTaskProvider implements vscode.TaskProvider {
   private refreshPromise: Promise<void> | undefined = undefined;
-
   constructor(private readonly client: GradleTasksClient) {}
-
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return cachedTasks;
   }
-
   // TODO
   public async resolveTask(/*
-    _task: vscode.Task
-  */): Promise<
+      _task: vscode.Task
+    */): Promise<
     vscode.Task | undefined
   > {
     return undefined;
@@ -160,11 +161,9 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     cachedTasks = allTasks;
   }
-
   private reset(): void {
     this.refreshPromise = undefined;
   }
-
   public async refresh(): Promise<vscode.Task[]> {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
@@ -172,7 +171,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     } else {
       if (!this.refreshPromise) {
         this.refreshPromise = this.refreshTasks(folders)
-          .catch((err) => {
+          .catch(err => {
             localize(
               'tasks.refreshError',
               'Unable to refresh tasks: {0}',
@@ -186,29 +185,18 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     return cachedTasks;
   }
-
   private async provideGradleTasksForFolder(
     workspaceFolder: vscode.WorkspaceFolder,
     projectFolder: vscode.Uri
   ): Promise<vscode.Task[]> {
-    let gradleTasks: ServerMessage.GradleTask[] | void;
-    try {
-      gradleTasks = await this.getGradleTasks(projectFolder);
-    } catch (err) {
-      logger.error(
-        localize(
-          'tasks.getTasksError',
-          'Unable to get gradle tasks: {0}',
-          err.message
-        )
-      );
-      return emptyTasks;
-    }
+    const gradleTasks: GradleTask[] | void = await this.getGradleTasks(
+      projectFolder
+    );
     if (!gradleTasks || !gradleTasks.length) {
       return emptyTasks;
     }
     try {
-      return gradleTasks.map((gradleTask) =>
+      return gradleTasks.map(gradleTask =>
         this.createVSCodeTaskFromGradleTask(
           gradleTask,
           workspaceFolder,
@@ -228,9 +216,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       return emptyTasks;
     }
   }
-
   private createVSCodeTaskFromGradleTask(
-    gradleTask: ServerMessage.GradleTask,
+    gradleTask: GradleTask,
     workspaceFolder: vscode.WorkspaceFolder,
     rootProject: string,
     buildFile: vscode.Uri,
@@ -248,9 +235,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       rootProject,
       projectFolder: projectFolder.fsPath,
       workspaceFolder: workspaceFolder.uri.fsPath,
-      args,
+      args
     };
-
     return createTaskFromDefinition(
       definition,
       workspaceFolder,
@@ -258,11 +244,20 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       this.client
     );
   }
-
   private async getGradleTasks(
     projectFolder: vscode.Uri
-  ): Promise<ServerMessage.GradleTask[] | void> {
-    return this.client?.getTasks(projectFolder.fsPath);
+  ): Promise<GradleTask[] | void> {
+    try {
+      return await this.client?.getTasks(projectFolder.fsPath);
+    } catch (err) {
+      logger.error(
+        localize(
+          'tasks.errorRefreshingTasks',
+          'Error providing gradle tasks: {0}',
+          err.details || err.message
+        )
+      );
+    }
   }
 }
 
@@ -289,7 +284,10 @@ export function getGradleTasksServerCommand(): string {
 function isTaskOfType(definition: GradleTaskDefinition, type: string): boolean {
   return (
     definition.group.toLowerCase() === type ||
-    definition.script.split(' ')[0].split(':').pop() === type
+    definition.script
+      .split(' ')[0]
+      .split(':')
+      .pop() === type
   );
 }
 
@@ -313,6 +311,13 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     this.client.stopTask(this.sourceDir, this.task.definition.script);
   }
 
+  private handleLogMessage(message: string): void {
+    const logMessage = message.trim();
+    if (logMessage) {
+      this.writeEmitter.fire(message + '\r\n');
+    }
+  }
+
   private async doBuild(): Promise<void> {
     const args = this.task.definition.args.split(' ').filter(Boolean);
     try {
@@ -320,8 +325,8 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         this.sourceDir,
         this.task.definition as GradleTaskDefinition,
         args,
-        (message: ServerMessage.OutputChanged) => {
-          this.writeEmitter.fire(message.getMessage() + '\r\n');
+        (output: Output): void => {
+          this.handleLogMessage(output.getMessage());
         }
       );
     } finally {
@@ -385,8 +390,8 @@ export function createTaskFromDefinition(
     ...configTaskPresentationOptions,
     ...{
       panel: getTaskPanelKind(configTaskPresentationOptions.panel),
-      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal),
-    },
+      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal)
+    }
   };
   if (isTaskOfType(definition, 'build')) {
     task.group = vscode.TaskGroup.Build;
@@ -424,13 +429,13 @@ export function buildGradleServerTask(
   }
   const taskType = 'gradle';
   const definition = {
-    type: taskType,
+    type: taskType
   };
   const javaHome = getJavaHome();
   const env = {};
   if (javaHome) {
     Object.assign(env, {
-      VSCODE_JAVA_HOME: javaHome,
+      VSCODE_JAVA_HOME: javaHome
     });
   }
   const task = new vscode.Task(
@@ -447,20 +452,20 @@ export function buildGradleServerTask(
     focus: false,
     echo: true,
     clear: false,
-    panel: vscode.TaskPanelKind.Shared,
+    panel: vscode.TaskPanelKind.Shared
   };
   return task;
 }
 
-export function handleCancelledTaskMessage(
-  message: ServerMessage.ActionCancelled
-): void {
-  setStoppedTaskAsComplete(message.getTask(), message.getSourceDir());
-  logger.info(
-    localize('tasks.taskCancelled', 'Task cancelled: {0}', message.getMessage())
-  );
-  vscode.commands.executeCommand('gradle.explorerRender');
-}
+// export function handleCancelledTaskMessage(
+//   message: ServerMessage.ActionCancelled
+// ): void {
+//   setStoppedTaskAsComplete(message.getTask(), message.getSourceDir());
+//   logger.info(
+//     localize('tasks.taskCancelled', 'Task cancelled: {0}', message.getMessage())
+//   );
+//   vscode.commands.executeCommand('gradle.explorerRender');
+// }
 
 export function runTask(task: vscode.Task): void {
   vscode.tasks.executeTask(task);
@@ -476,7 +481,7 @@ export async function runTaskWithArgs(
       'For example: {0}',
       '--all'
     ),
-    ignoreFocusOut: true,
+    ignoreFocusOut: true
   });
   if (args !== undefined) {
     const taskWithArgs = await cloneTask(task, args, client);

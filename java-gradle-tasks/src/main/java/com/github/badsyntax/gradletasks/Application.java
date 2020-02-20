@@ -1,12 +1,13 @@
 package com.github.badsyntax.gradletasks;
 
+import java.io.IOException;
 import javax.inject.Inject;
-import com.github.badsyntax.gradletasks.server.Server;
+import com.github.badsyntax.gradletasks.server.GradleTasksServer;
 
 public class Application {
 
     @Inject
-    Server server;
+    GradleTasksServer server;
 
     @Inject
     public Application(int port) {
@@ -28,7 +29,11 @@ public class Application {
         application.run();
     }
 
-    public void run() {
-        server.start();
+    public void run() throws ApplicationException {
+        try {
+            server.start();
+        } catch (IOException | InterruptedException e) {
+            throw new ApplicationException("Unable to start server: " + e.getMessage());
+        }
     }
 }

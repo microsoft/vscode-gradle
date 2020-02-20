@@ -23,9 +23,9 @@ function isProcessRunning(pid: number): boolean {
 export class GradleTasksServer implements vscode.Disposable {
   private taskExecution: vscode.TaskExecution | undefined;
 
-  private _onStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  public readonly onStart: vscode.Event<null> = this._onStart.event;
+  public readonly onReady: vscode.Event<null> = this._onReady.event;
   public readonly onStop: vscode.Event<null> = this._onStop.event;
 
   private isRestarting = false;
@@ -43,7 +43,7 @@ export class GradleTasksServer implements vscode.Disposable {
             logger.info(
               localize('server.gradleServerStarted', 'Gradle server started')
             );
-            this._onStart.fire();
+            this._onReady.fire();
           } else {
             logger.error(
               localize(
@@ -111,7 +111,7 @@ export class GradleTasksServer implements vscode.Disposable {
 
   public dispose(): void {
     this.taskExecution?.terminate();
-    this._onStart.dispose();
+    this._onReady.dispose();
   }
 
   public getPort(): number | undefined {
