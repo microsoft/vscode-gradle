@@ -1,3 +1,7 @@
 {
-  "tasks.taskCancelled": "Tarea cancelada: {0}"
+  "tasks.taskCancelled": "Tarea cancelada: {0}",
+  "tasks.getGradleProjectsError": "No se pueden obtener las carpetas de proyectos de gradle: {0}",
+  "tasks.refreshError": "No se pueden actualizar las tareas: {0}",
+  "tasks.getTasksError": "No se pueden obtener las carpetas de proyectos de gradle: {0}",
+  "tasks.vsCodeTaskGenerateError": "No se pueden generar tareas de vscode a partir de tareas de gradle: {0}"
 }
