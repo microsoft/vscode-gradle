@@ -233,7 +233,7 @@ export class GradleTasksClient implements vscode.Disposable {
             e.message
           )
         );
-        throw e;
+        return [];
       } finally {
         this.statusBarItem.hide();
       }
