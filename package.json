@@ -437,7 +437,7 @@
     "@types/glob": "^7.1.1",
     "@types/google-protobuf": "^3.7.2",
     "@types/mocha": "^7.0.1",
-    "@types/node": "^13.7.1",
+    "@types/node": "^13.7.6",
     "@types/sinon": "^7.5.1",
     "@types/vscode": "^1.39.0",
     "@types/ws": "^7.2.1",
