@@ -1,5 +1,26 @@
 # Change Log
 
+## 2.4.14
+
+- Security & deps update
+
+## 2.4.13
+
+- Improve error logging (#205)
+- Task presentation options & focus settings (#199)
+- Focus on task in explorer when running task (#197)
+
+## 2.4.12
+
+- Fix task cancelling & minor reorg (#192)
+- Rename actions to handlers (#191)
+- Show or hide task explorer when changing config (#189)
+
+## 2.4.11
+
+- Better gradle and extension conflict error handling. Refs #99 (#188)
+- README improvements
+
 ## 2.4.10
 
 - Use Protocol Buffers for websocket messages (#187)
