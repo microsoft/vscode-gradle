@@ -454,7 +454,7 @@
     "gulp-cli": "^2.2.0",
     "gulp-sourcemaps": "^2.6.5",
     "gulp-typescript": "^6.0.0-alpha.1",
-    "mocha": "^7.0.1",
+    "mocha": "^7.1.1",
     "prettier": "^1.19.1",
     "sinon": "^9.0.1",
     "ts-protoc-gen": "^0.12.0",
