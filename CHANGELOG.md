@@ -1,5 +1,7 @@
 # Change Log
 
+> Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
+
 ## 2.4.14
 
 - Security & deps update
