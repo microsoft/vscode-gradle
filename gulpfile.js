@@ -19,19 +19,19 @@ const outDest = 'out';
 // If all VS Code langaues are support you can use nls.coreLanguages
 const languages = [{ folderName: 'es', id: 'es' }];
 
-const cleanTask = function() {
+const cleanTask = function () {
   return del(['out/**', 'package.nls.*.json', 'i18n-sample*.vsix']);
 };
 
-const internalCompileTask = function() {
+const internalCompileTask = function () {
   return doCompile(false);
 };
 
-const internalNlsCompileTask = function() {
+const internalNlsCompileTask = function () {
   return doCompile(true);
 };
 
-const addI18nTask = function() {
+const addI18nTask = function () {
   return gulp
     .src(['package.nls.json'])
     .pipe(nls.createAdditionalLanguageFiles(languages, 'i18n'))
@@ -40,7 +40,7 @@ const addI18nTask = function() {
 
 const buildTask = gulp.series(cleanTask, internalNlsCompileTask, addI18nTask);
 
-const doCompile = function(buildNls) {
+const doCompile = function (buildNls) {
   let r = tsProject
     .src()
     .pipe(sourcemaps.init())
@@ -60,7 +60,7 @@ const doCompile = function(buildNls) {
         // no inlined source
         includeContent: inlineSource,
         // Return relative source map root directories per file.
-        sourceRoot: '../src'
+        sourceRoot: '../src',
       })
     );
   }
@@ -68,11 +68,11 @@ const doCompile = function(buildNls) {
   return r.pipe(gulp.dest(outDest));
 };
 
-const vscePublishTask = function() {
+const vscePublishTask = function () {
   return vsce.publish();
 };
 
-const vscePackageTask = function() {
+const vscePackageTask = function () {
   return vsce.createVSIX();
 };
 

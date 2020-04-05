@@ -7,7 +7,7 @@ export async function waitForExplorerRefresh(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extension: any
 ): Promise<vscode.Task[]> {
-  return await new Promise(async resolve => {
+  return await new Promise(async (resolve) => {
     extension.exports.treeDataProvider.onDidChangeTreeData(async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       if (tasks.length) {
@@ -38,7 +38,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'bdd',
-      timeout: 90000
+      timeout: 90000,
     });
     mocha.useColors(true);
 
@@ -48,11 +48,11 @@ export function createTestRunner(pattern: string) {
       }
 
       // Add files to the test suite
-      files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+      files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
 
       try {
         // Run the mocha test
-        mocha.run(failures => {
+        mocha.run((failures) => {
           cb(null, failures);
         });
       } catch (e) {

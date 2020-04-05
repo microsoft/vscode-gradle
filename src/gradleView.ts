@@ -118,7 +118,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     this.command = {
       title: localize('gradleView.runTask', 'Run Task'),
       command: 'gradle.openBuildFile',
-      arguments: [this]
+      arguments: [this],
     };
     this.tooltip = description || label;
     this.parentTreeItem = parentTreeItem;
@@ -132,7 +132,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
         ),
         dark: context.asAbsolutePath(
           path.join('resources', 'dark', 'loading.svg')
-        )
+        ),
       };
     } else {
       this.iconPath = {
@@ -141,7 +141,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
         ),
         dark: context.asAbsolutePath(
           path.join('resources', 'dark', 'script.svg')
-        )
+        ),
       };
     }
   }
@@ -247,7 +247,7 @@ export class GradleTasksTreeDataProvider
     if (this.treeItems) {
       const tree = this.getFlattenedTree(this.treeItems);
       return tree.find(
-        treeItem =>
+        (treeItem) =>
           JSON.stringify(treeItem.task.definition) ===
           JSON.stringify(task.definition)
       );
@@ -264,7 +264,7 @@ export class GradleTasksTreeDataProvider
     const groupTreeItems: Map<string, GroupTreeItem> = new Map();
     let workspaceTreeItem = null;
 
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
         workspaceTreeItem = workspaceTreeItems.get(task.scope.name);
         if (!workspaceTreeItem) {
@@ -342,7 +342,7 @@ export class GradleTasksTreeDataProvider
     if (workspaceTreeItems.size === 1) {
       return [
         ...workspaceTreeItems.values().next().value.projectFolders,
-        ...workspaceTreeItems.values().next().value.projects
+        ...workspaceTreeItems.values().next().value.projects,
       ];
     }
     return [...workspaceTreeItems.values()];
@@ -357,7 +357,7 @@ export function registerExplorer(
   treeDataProvider.setCollapsed(collapsed);
   const treeView = vscode.window.createTreeView('gradleTreeView', {
     treeDataProvider: treeDataProvider,
-    showCollapseAll: true
+    showCollapseAll: true,
   });
   context.subscriptions.push(
     treeView,
@@ -379,7 +379,7 @@ export function registerExplorer(
         if (treeItem && shouldFocus) {
           treeView.reveal(treeItem, {
             focus: true,
-            expand: true
+            expand: true,
           });
         }
       }

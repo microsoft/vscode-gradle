@@ -22,4 +22,4 @@ Now open the root of the project in VS Code, click on the Debug panel, and selec
 Prettier is used to lint & format the code. The builds will not pass if there are linting issues.
 
 - Lint: `npm run lint`
-- Format: `npm run format`
+- Fix linting issues: `npm run lint:fix`

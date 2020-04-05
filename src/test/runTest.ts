@@ -9,7 +9,7 @@ async function runTestsWithGradle(): Promise<void> {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
-    'gradle-groovy-custom-build-file'
+    'gradle-groovy-custom-build-file',
   ];
   for (const fixture of fixtures) {
     await runTests({
@@ -17,11 +17,11 @@ async function runTestsWithGradle(): Promise<void> {
       extensionTestsPath: path.resolve(__dirname, 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
-        '--disable-extensions'
+        '--disable-extensions',
       ],
       extensionTestsEnv: {
-        FIXTURE_NAME: fixture
-      }
+        FIXTURE_NAME: fixture,
+      },
     });
   }
 }
@@ -32,8 +32,8 @@ async function runTestsWithoutGradle(): Promise<void> {
     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
-      '--disable-extensions'
-    ]
+      '--disable-extensions',
+    ],
   });
 }
 
@@ -46,11 +46,11 @@ async function runTestsWithMultiRoot(): Promise<void> {
         __dirname,
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
-      '--disable-extensions'
+      '--disable-extensions',
     ],
     extensionTestsEnv: {
-      FIXTURE_NAME: 'multi-root'
-    }
+      FIXTURE_NAME: 'multi-root',
+    },
   });
 }
 
@@ -60,11 +60,11 @@ async function runTestsWithMultiProject(): Promise<void> {
     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
-      '--disable-extensions'
+      '--disable-extensions',
     ],
     extensionTestsEnv: {
-      FIXTURE_NAME: 'multi-project'
-    }
+      FIXTURE_NAME: 'multi-project',
+    },
   });
 }
 
@@ -74,11 +74,11 @@ async function runTestsWithNestedProjects(): Promise<void> {
     extensionTestsPath: path.resolve(__dirname, 'nested-projects'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures'),
-      '--disable-extensions'
+      '--disable-extensions',
     ],
     extensionTestsEnv: {
-      FIXTURE_NAME: 'nested-projects'
-    }
+      FIXTURE_NAME: 'nested-projects',
+    },
   });
 }
 

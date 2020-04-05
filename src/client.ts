@@ -55,7 +55,7 @@ class WebSocketClient implements vscode.Disposable {
     this.instance.on('message', (data: WebSocket.Data) => {
       this._onMessage.fire(data);
     });
-    this.instance.on('close', code => {
+    this.instance.on('close', (code) => {
       // CLOSE_NORMAL
       if (code !== 1000) {
         this.reconnect();
@@ -360,14 +360,14 @@ export class GradleTasksClient implements vscode.Disposable {
           event.dispose();
         });
       }),
-      new Promise(resolve => {
+      new Promise((resolve) => {
         const event = this.onMessage((message: ServerMessage.Message) => {
           if (message.getKindCase() === type) {
             resolve(message);
             event.dispose();
           }
         });
-      })
+      }),
     ]);
   }
 
@@ -438,7 +438,7 @@ export class GradleTasksClient implements vscode.Disposable {
         OUTPUT_CHANGED,
         ERROR,
         ACTION_CANCELLED,
-        INFO
+        INFO,
       } = ServerMessage.Message.KindCase;
       switch (serverMessage.getKindCase()) {
         case PROGRESS:

@@ -36,7 +36,7 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTaskProcess(event => {
+      vscode.tasks.onDidStartTaskProcess((event) => {
         if (event.execution.task.name === this.taskName && event.processId) {
           if (isProcessRunning(event.processId)) {
             logger.info(
@@ -53,7 +53,7 @@ export class GradleTasksServer implements vscode.Disposable {
           }
         }
       }),
-      vscode.tasks.onDidEndTaskProcess(event => {
+      vscode.tasks.onDidEndTaskProcess((event) => {
         if (event.execution.task.name === this.taskName) {
           logger.info(
             localize('server.gradleServerStopped', 'Gradle server stopped')
