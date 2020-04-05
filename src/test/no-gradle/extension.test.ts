@@ -13,7 +13,7 @@ describe('without any build file or local gradle wrapper', () => {
     assert.ok(extension);
     assert.equal(extension!.isActive, false);
     const tasks = await vscode.tasks.fetchTasks({
-      type: 'gradle'
+      type: 'gradle',
     });
     assert.equal(tasks.length === 0, true);
   });

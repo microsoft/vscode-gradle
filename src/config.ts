@@ -55,6 +55,6 @@ export function getTaskPresentationOptions(): ConfigTaskPresentationOptions {
       echo: true,
       showReuseMessage: false,
       panel: 'shared',
-      clear: true
+      clear: true,
     });
 }

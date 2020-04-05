@@ -11,7 +11,7 @@ import {
   stopRunningGradleTasks,
   isTaskRunning,
   runTask,
-  runTaskWithArgs
+  runTaskWithArgs,
 } from './tasks';
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
@@ -50,7 +50,7 @@ function registerRunTaskWithArgsCommand(
 function registerStopTaskCommand(
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.stopTask', task => {
+  return vscode.commands.registerCommand('gradle.stopTask', (task) => {
     try {
       if (task && isTaskRunning(task)) {
         stopTask(task);
@@ -72,7 +72,7 @@ function registerStopTaskCommand(
 function registerStopTreeItemTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.stopTreeItemTask',
-    treeItem => {
+    (treeItem) => {
       if (treeItem && treeItem.task) {
         vscode.commands.executeCommand('gradle.stopTask', treeItem.task);
       }

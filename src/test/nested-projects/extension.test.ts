@@ -94,8 +94,8 @@ describe(fixtureName, () => {
       assert.ok(task);
 
       const stub = sinon.stub(extension!.exports.logger, 'info');
-      await new Promise(resolve => {
-        vscode.tasks.onDidEndTaskProcess(e => {
+      await new Promise((resolve) => {
+        vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
             resolve();
           }
