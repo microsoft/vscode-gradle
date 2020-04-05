@@ -27,7 +27,8 @@ jobs:
       - name: Build proto lib
         run: |
           sudo apt-get install protobuf-compiler -y
-          npm ci
+          #npm ci
+          npm i
           npm run compile:proto
       - name: Upload lib
         uses: actions/upload-artifact@v1
@@ -57,6 +58,7 @@ jobs:
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
-          npm ci
+          #npm ci
+          npm i
           npm run build
           npx vsce publish -p "$AZURE_TOKEN"
