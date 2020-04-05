@@ -129,7 +129,9 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     return undefined;
   }
 
-  private async refreshTasks(folders: vscode.WorkspaceFolder[]): Promise<void> {
+  private async refreshTasks(
+    folders: readonly vscode.WorkspaceFolder[]
+  ): Promise<void> {
     const allTasks: vscode.Task[] = [];
     for (const workspaceFolder of folders) {
       if (autoDetectOverride || getIsAutoDetectionEnabled(workspaceFolder)) {
