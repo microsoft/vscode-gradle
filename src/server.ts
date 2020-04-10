@@ -82,8 +82,14 @@ export class GradleTasksServer implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.start();
+      this.restart();
     }
+  }
+
+  public restart(): void {
+    logger.info('Restarting gradle server...');
+    this.taskExecution?.terminate();
+    this.start();
   }
 
   public dispose(): void {
@@ -107,5 +113,16 @@ export function registerServer(
   const server = new GradleTasksServer(opts, context);
   context.subscriptions.push(server);
   server.start();
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(
+      (event: vscode.ConfigurationChangeEvent) => {
+        if (event.affectsConfiguration('java.home')) {
+          server.restart();
+        }
+      }
+    )
+  );
+
   return server;
 }

@@ -6,6 +6,7 @@ import {
   getIsAutoDetectionEnabled,
   getIsDebugEnabled,
   getTaskPresentationOptions,
+  getJavaHome,
   ConfigTaskPresentationOptions,
   ConfigTaskPresentationOptionsRevealKind,
   ConfigTaskPresentationOptionsPanelKind,
@@ -417,20 +418,27 @@ export function buildGradleServerTask(
   args: string[] = []
 ): vscode.Task {
   const cmd = `"${getGradleTasksServerCommand()}"`;
+  if (getIsDebugEnabled()) {
+    logger.debug(`Gradle Tasks Server dir: ${cwd}`);
+    logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
+  }
   const taskType = 'gradle';
   const definition = {
     type: taskType,
   };
-  if (getIsDebugEnabled()) {
-    logger.debug(`Gradle Tasks Server dir: ${cwd}`);
-    logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
+  const javaHome = getJavaHome();
+  const env = {};
+  if (javaHome) {
+    Object.assign(env, {
+      VSCODE_JAVA_HOME: javaHome,
+    });
   }
   const task = new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     taskName,
     taskType,
-    new vscode.ShellExecution(cmd, args, { cwd })
+    new vscode.ShellExecution(cmd, args, { cwd, env })
   );
   // task.isBackground = true; // this hides errors on task start
   task.source = taskType;
