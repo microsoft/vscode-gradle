@@ -135,6 +135,10 @@ Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the
 - 👉 [Submit a bug report](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=bug&template=bug_report.md&title=)
 - 👉 [Submit a feature request](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=enhancement&template=feature_request.md&title=)
 
+## Support
+
+For general support queries, use the [#gradle-tasks](https://vscode-dev-community.slack.com/archives/C011NUFTHLM) channel in the slack development community workspace. Sign up here: https://aka.ms/vscode-dev-community
+
 ## Credits
 
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
