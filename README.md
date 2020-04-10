@@ -137,7 +137,7 @@ Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the
 
 ## Support
 
-For general support queries, use the [#gradle-tasks](https://vscode-dev-community.slack.com/archives/C011NUFTHLM) channel in the slack development community workspace. Sign up here: https://aka.ms/vscode-dev-community
+For general support queries, use the [#gradle-tasks](https://vscode-dev-community.slack.com/archives/C011NUFTHLM) channel in the [slack development community workspace](https://aka.ms/vscode-dev-community).
 
 ## Credits
 
