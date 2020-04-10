@@ -31,6 +31,10 @@ This extension contributes the following settings:
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
 - `gradle.debug`: Show extra debug info in the output panel
 
+This extension supports the following settings:
+
+- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
+
 ## Snippets
 
 This extensions provides snippets for the groovy and kotlin build files:
