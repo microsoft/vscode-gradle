@@ -2,6 +2,10 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.5.0
+
+- Add support for custom java home setting (`java.home`). Refs #249 (#255)
+
 ## 2.4.14
 
 - Security & deps update
