@@ -56,10 +56,12 @@ task createStartScripts(type: CreateStartScripts) {
     mainClassName = 'com.github.badsyntax.gradletasks.Application'
     applicationName = project.name
     classpath = files(shadowJar.outputs.files)
+    unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
+    windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
 task generateLib(type: Copy) {
-    dependsOn build, createStartScripts
+    dependsOn createStartScripts
 
     from file("$buildDir/lib/${project.name}-all.jar")
     into file("$buildDir/../../lib/${project.name}-all.jar")

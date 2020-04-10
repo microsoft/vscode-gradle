@@ -18,6 +18,12 @@ export function getIsTasksExplorerEnabled(): boolean {
     .get<boolean>('enableTasksExplorer', true);
 }
 
+export function getJavaHome(): string | null {
+  return vscode.workspace
+    .getConfiguration('java')
+    .get<string | null>('home', null);
+}
+
 export function getIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
