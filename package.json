@@ -439,7 +439,7 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.11.0",
     "@types/sinon": "^9.0.0",
-    "@types/vscode": "^1.43.0",
+    "@types/vscode": "^1.44.0",
     "@types/ws": "^7.2.3",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
     "@typescript-eslint/parser": "^2.26.0",
