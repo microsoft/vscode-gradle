@@ -2,6 +2,7 @@
 
 - Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
 - List & run Gradle tasks in the Explorer
+- Updates project configuration after running tasks, via the [Java language server](https://github.com/redhat-developer/vscode-java) (if installed)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
 - Uses a long running websocket server which provides good performance
 - Supports Kotlin & Groovy build files
