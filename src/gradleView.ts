@@ -383,9 +383,14 @@ export function registerExplorer(
               focus: true,
               expand: true,
             });
-          } catch (e) {
-            // TODO: localise
-            logger.error(`Unable to focus task in explorer: ${e.message}`);
+          } catch (err) {
+            logger.error(
+              localize(
+                'gradleView.focusTaskError',
+                'Unable to focus task in explorer: {0}',
+                err.message
+              )
+            );
           }
         }
       }

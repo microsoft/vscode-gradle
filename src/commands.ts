@@ -12,7 +12,6 @@ import {
   isTaskRunning,
   runTask,
   runTaskWithArgs,
-  GradleTaskDefinition,
 } from './tasks';
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
@@ -217,17 +216,20 @@ function getJavaExtension(): vscode.Extension<unknown> | undefined {
 function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.updateJavaProjectConfiguration',
-    async (taskDefinition: GradleTaskDefinition) => {
+    async (buildFile: vscode.Uri) => {
       if (isJavaExtActivated()) {
         try {
           await vscode.commands.executeCommand(
             JAVA_CONFIGURATION_UPDATE_COMMAND,
-            vscode.Uri.file(taskDefinition.buildFile)
+            buildFile
           );
         } catch (err) {
-          // TODO: localise
           logger.error(
-            `Unable to update project configuration: ${err.message}`
+            localize(
+              'client.updateProjectConfigurationError',
+              'Unable to update project configuration: {0}',
+              err.message
+            )
           );
         }
       }

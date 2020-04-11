@@ -262,11 +262,16 @@ export class GradleTasksClient implements vscode.Disposable {
         await this.waitForServerMessage(
           ServerMessage.Message.KindCase.RUN_TASK
         );
-        // TODO: localise
-        logger.info(`Completed ${taskDefinition.script}`);
+        logger.info(
+          localize(
+            'client.completedTask',
+            'Completed {0}',
+            taskDefinition.script
+          )
+        );
         vscode.commands.executeCommand(
           'gradle.updateJavaProjectConfiguration',
-          taskDefinition
+          vscode.Uri.file(taskDefinition.buildFile)
         );
       } catch (e) {
         logger.error(
