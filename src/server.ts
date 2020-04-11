@@ -28,6 +28,7 @@ export class GradleTasksServer implements vscode.Disposable {
   public readonly onStart: vscode.Event<null> = this._onStart.event;
   public readonly onStop: vscode.Event<null> = this._onStop.event;
 
+  private isRestarting = false;
   private port: number | undefined;
   private taskName = 'Gradle Tasks Server';
 
@@ -55,11 +56,14 @@ export class GradleTasksServer implements vscode.Disposable {
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {
         if (event.execution.task.name === this.taskName) {
-          logger.info(
-            localize('server.gradleServerStopped', 'Gradle server stopped')
-          );
           this._onStop.fire();
-          this.showRestartMessage();
+          if (!this.isRestarting) {
+            logger.info(
+              localize('server.gradleServerStopped', 'Gradle server stopped')
+            );
+            this.taskExecution = undefined;
+            this.showRestartMessage();
+          }
         }
       })
     );
@@ -82,14 +86,27 @@ export class GradleTasksServer implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.restart();
+      this.start();
     }
   }
 
   public restart(): void {
     logger.info('Restarting gradle server...');
-    this.taskExecution?.terminate();
-    this.start();
+    if (!this.isRestarting) {
+      if (this.taskExecution) {
+        this.isRestarting = true;
+        const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
+          if (event.execution.task.name === this.taskName) {
+            this.isRestarting = false;
+            disposable.dispose();
+            this.start();
+          }
+        });
+        this.taskExecution.terminate();
+      } else {
+        this.start();
+      }
+    }
   }
 
   public dispose(): void {
