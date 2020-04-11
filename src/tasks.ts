@@ -318,7 +318,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       await this.client.runTask(
         this.sourceDir,
-        this.task.definition.script,
+        this.task.definition as GradleTaskDefinition,
         args,
         (message: ServerMessage.OutputChanged) => {
           this.writeEmitter.fire(message.getMessage() + '\r\n');

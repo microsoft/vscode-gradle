@@ -12,6 +12,7 @@ import {
   isTaskRunning,
   runTask,
   runTaskWithArgs,
+  GradleTaskDefinition,
 } from './tasks';
 import { GradleTasksClient } from './client';
 import { getIsTasksExplorerEnabled } from './config';
@@ -201,6 +202,39 @@ function registerStoppingTreeItemTaskCommand(): vscode.Disposable {
   });
 }
 
+const JAVA_EXTENSION_ID = 'redhat.java';
+const JAVA_CONFIGURATION_UPDATE_COMMAND = 'java.projectConfiguration.update';
+
+function isJavaExtActivated(): boolean {
+  const javaExt: vscode.Extension<unknown> | undefined = getJavaExtension();
+  return !!javaExt && javaExt.isActive;
+}
+
+function getJavaExtension(): vscode.Extension<unknown> | undefined {
+  return vscode.extensions.getExtension(JAVA_EXTENSION_ID);
+}
+
+function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.updateJavaProjectConfiguration',
+    async (taskDefinition: GradleTaskDefinition) => {
+      if (isJavaExtActivated()) {
+        try {
+          await vscode.commands.executeCommand(
+            JAVA_CONFIGURATION_UPDATE_COMMAND,
+            vscode.Uri.file(taskDefinition.buildFile)
+          );
+        } catch (err) {
+          // TODO: localise
+          logger.error(
+            `Unable to update project configuration: ${err.message}`
+          );
+        }
+      }
+    }
+  );
+}
+
 export function registerCommands(
   context: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem,
@@ -221,6 +255,7 @@ export function registerCommands(
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerStoppingTreeItemTaskCommand(),
-    registerExplorerRenderCommand(treeDataProvider)
+    registerExplorerRenderCommand(treeDataProvider),
+    registerUpdateJavaProjectConfigurationCommand()
   );
 }
