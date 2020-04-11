@@ -4,6 +4,7 @@ import * as nls from 'vscode-nls';
 
 import { isWorkspaceFolder, isTaskStopping, isTaskRunning } from './tasks';
 import { getFocusTaskInExplorer } from './config';
+import { logger } from './logger';
 
 const localize = nls.loadMessageBundle();
 
@@ -371,16 +372,26 @@ export function registerExplorer(
         }
       }
     ),
-    vscode.tasks.onDidStartTask((event: vscode.TaskStartEvent) => {
+    vscode.tasks.onDidStartTask(async (event: vscode.TaskStartEvent) => {
       const { type } = event.execution.task.definition;
       if (type === 'gradle') {
         const treeItem = treeDataProvider.findTreeItem(event.execution.task);
         const shouldFocus = treeView.visible && getFocusTaskInExplorer();
         if (treeItem && shouldFocus) {
-          treeView.reveal(treeItem, {
-            focus: true,
-            expand: true,
-          });
+          try {
+            await treeView.reveal(treeItem, {
+              focus: true,
+              expand: true,
+            });
+          } catch (err) {
+            logger.error(
+              localize(
+                'gradleView.focusTaskError',
+                'Unable to focus task in explorer: {0}',
+                err.message
+              )
+            );
+          }
         }
       }
       treeDataProvider.render();

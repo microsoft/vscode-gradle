@@ -8,7 +8,7 @@ import { getIsDebugEnabled } from './config';
 
 import { GradleTasksServer, ServerOptions } from './server';
 import { logger } from './logger';
-import { handleCancelledTaskMessage } from './tasks';
+import { handleCancelledTaskMessage, GradleTaskDefinition } from './tasks';
 
 import * as ClientMessage from '../lib/proto/com/github/badsyntax/gradletasks/ClientMessage_pb';
 import * as ServerMessage from '../lib/proto/com/github/badsyntax/gradletasks/ServerMessage_pb';
@@ -242,7 +242,7 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async runTask(
     sourceDir: string,
-    task: string,
+    taskDefinition: GradleTaskDefinition,
     args: string[],
     outputListener: (message: ServerMessage.OutputChanged) => void
   ): Promise<void> {
@@ -252,7 +252,7 @@ export class GradleTasksClient implements vscode.Disposable {
       try {
         const runTask = new ClientMessage.RunTask();
         runTask.setSourceDir(sourceDir);
-        runTask.setTask(task);
+        runTask.setTask(taskDefinition.script);
         runTask.setArgsList(args);
 
         const message = new ClientMessage.Message();
@@ -261,6 +261,17 @@ export class GradleTasksClient implements vscode.Disposable {
         await this.sendMessage(message);
         await this.waitForServerMessage(
           ServerMessage.Message.KindCase.RUN_TASK
+        );
+        logger.info(
+          localize(
+            'client.completedTask',
+            'Completed {0}',
+            taskDefinition.script
+          )
+        );
+        vscode.commands.executeCommand(
+          'gradle.updateJavaProjectConfiguration',
+          vscode.Uri.file(taskDefinition.buildFile)
         );
       } catch (e) {
         logger.error(

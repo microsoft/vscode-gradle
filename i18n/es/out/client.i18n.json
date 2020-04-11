@@ -6,5 +6,7 @@
   "client.errorStoppingTask": "Error al detener la tarea: {0}",
   "client.errorConnectingToServer": "Error al conectarse al servidor gradle: {0}",
   "client.errorWaitingForServerMessage": "Error al esperar el mensaje del servidor: el servidor se detuvo",
-  "client.errorParsingMessageFromServer": "No se puede analizar el mensaje del servidor: {0}"
+  "client.errorParsingMessageFromServer": "No se puede analizar el mensaje del servidor: {0}",
+  "client.completedTask": "{0} completada",
+  "client.updateProjectConfigurationError": "No se puede actualizar la configuración del proyecto: {0}"
 }
