@@ -428,7 +428,7 @@
     "build": "gulp build"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^0.8.0",
+    "@grpc/grpc-js": "^0.7.9",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",

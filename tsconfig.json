@@ -8,10 +8,6 @@
     "strict": true,
     "allowJs": false,
     "rootDir": "src",
-    "noUnusedLocals": true,
-    "baseUrl": ".",
-    "paths": {
-      "grpc": ["node_modules/@grpc/grpc-js"]
-    }
+    "noUnusedLocals": true
   }
 }
