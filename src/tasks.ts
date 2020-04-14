@@ -163,9 +163,11 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     cachedTasks = allTasks;
   }
+
   private reset(): void {
     this.refreshPromise = undefined;
   }
+
   public async refresh(): Promise<vscode.Task[]> {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
