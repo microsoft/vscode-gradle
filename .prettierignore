@@ -4,6 +4,5 @@ node_modules
 /test-fixtures
 package-lock.json
 /java-gradle-tasks
-/java-gradle-tasks-grpc
 /lib
 *nls.*.json

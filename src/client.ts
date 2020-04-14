@@ -8,9 +8,9 @@ import {
   Progress,
   RunTaskRequest,
   RunTaskReply,
-  Output
-} from './java-gradle-tasks-grpc/src/main/proto/gradle_tasks_pb';
-import { GradleTasksClient as GrpcClient } from './java-gradle-tasks-grpc/src/main/proto/gradle_tasks_grpc_pb';
+  Output,
+} from './java-gradle-tasks/src/main/proto/gradle_tasks_pb';
+import { GradleTasksClient as GrpcClient } from './java-gradle-tasks/src/main/proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
 

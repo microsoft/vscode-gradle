@@ -6,9 +6,15 @@
   "configurations": [
     {
       "type": "java",
-      "name": "CodeLens (Launch) - Application",
+      "name": "Debug (Launch) - Current File",
       "request": "launch",
-      "mainClass": "com.github.badsyntax.gradletasks.Application",
+      "mainClass": "${file}"
+    },
+    {
+      "type": "java",
+      "name": "Debug (Launch)-GradleTasksServer<gradle-tasks-server>",
+      "request": "launch",
+      "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
       "projectName": "gradle-tasks-server"
     }
   ]

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>gradle-tasks-server</name>
-	<comment>Project java-gradle-tasks created by Buildship.</comment>
+	<comment>Project java-gradle-tasks-grpc created by Buildship.</comment>
 	<projects>
 	</projects>
 	<buildSpec>

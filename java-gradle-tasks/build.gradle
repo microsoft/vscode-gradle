@@ -1,36 +1,39 @@
 plugins {
-    id 'java'
-    id 'jacoco'
+    id 'application'
+    id 'com.google.protobuf' version '0.8.8'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
-    id "com.google.protobuf" version "0.8.12"
 }
 
 repositories {
-    mavenCentral()
+    maven {
+        url "https://maven-central.storage-download.googleapis.com/repos/central/data/"
+    }
     maven {
         url 'https://repo.gradle.org/gradle/libs-releases'
     }
+    mavenCentral()
+    mavenLocal()
 }
 
-// sourceCompatibility = 1.8
-// targetCompatibility = 1.8
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
-def grpcVersion = '1.27.1'
-def protobufVersion = '3.11.4'
+def grpcVersion = '1.28.1'
+def protobufVersion = '3.11.0'
 def protocVersion = protobufVersion
 
 dependencies {
-    annotationProcessor "com.google.dagger:dagger-compiler:2.26"
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
-    compile 'org.gradle:gradle-tooling-api:6.1.1'
-    compile "org.java-websocket:Java-WebSocket:1.4.0"
-    compile "com.google.dagger:dagger:2.26"
+    compile "org.gradle:gradle-tooling-api:6.3"
+
     compileOnly "javax.annotation:javax.annotation-api:1.2"
-    runtimeOnly 'org.slf4j:slf4j-simple:1.7.30'
+
     runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
-    testImplementation 'junit:junit:4.13'
+    testImplementation "junit:junit:4.12"
+    testImplementation "org.mockito:mockito-core:2.28.2"
 }
 
 protobuf {
@@ -44,46 +47,54 @@ protobuf {
 }
 
 shadowJar {
+    // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
     // minimize()
 }
 
 sourceSets {
     libsDirName = 'lib'
     main {
-        // proto {
-        //     srcDir '../proto'
-        // }
         java {
             srcDirs 'build/generated/source/proto/main/grpc'
             srcDirs 'build/generated/source/proto/main/java'
         }
     }
-    generated {
-        java.srcDirs = [
-            "${buildDir}/generated/sources/annotationProcessor/java/main"
-        ]
+}
+
+application {
+    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+}
+
+startScripts.enabled = false
+
+task gradleTasksServer(type: CreateStartScripts) {
+    dependsOn shadowJar
+    outputDir = file('build/customScripts')
+    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+    applicationName = project.name
+    classpath = files(shadowJar.outputs.files)
+}
+
+applicationDistribution.into('bin') {
+    from(gradleTasksServer)
+    fileMode = 0755
+}
+
+distributions {
+    main {
+        contents {
+            from(gradleTasksServer)
+        }
     }
 }
 
-// Use CreateStartScripts to generate a start script of the shadowjar file.
-// This is done to match the gradle wrapper start script.
-task customStartScripts(type: CreateStartScripts) {
-    dependsOn shadowJar
-    outputDir = file('build/customScripts')
-    mainClassName = 'com.github.badsyntax.gradletasks.Application'
-    applicationName = project.name
-    classpath = files(shadowJar.outputs.files)
-    unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
-    windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
-}
-
-// Move shadowjar and start scripts input parent dist dir
+// Move shadowjar and start scripts input parent lib dir
 task generateLib(type: Copy) {
-    dependsOn build, customStartScripts
+    dependsOn gradleTasksServer
 
-    from file("$buildDir/lib/${project.name}-all.jar")
-    into file("$buildDir/../../lib/${project.name}-all.jar")
+    from file("$buildDir/$libsDirName/${project.name}-all.jar")
+    into file("$buildDir/../../$libsDirName/${project.name}-all.jar")
 
     from "$buildDir/customScripts/${project.name}", "$buildDir/customScripts/${project.name}.bat"
-    into "$buildDir/../../lib"
+    into "$buildDir/../../$libsDirName"
 }

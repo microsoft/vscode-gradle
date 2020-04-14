@@ -8,14 +8,14 @@ import {
   getJavaHome,
   ConfigTaskPresentationOptions,
   ConfigTaskPresentationOptionsRevealKind,
-  ConfigTaskPresentationOptionsPanelKind
+  ConfigTaskPresentationOptionsPanelKind,
 } from './config';
 import { logger } from './logger';
 import {
   GradleTask,
   Output,
-  Progress
-} from './java-gradle-tasks-grpc/src/main/proto/gradle_tasks_pb';
+  Progress,
+} from './java-gradle-tasks/src/main/proto/gradle_tasks_pb';
 import { GradleTasksClient } from './client';
 
 const localize = nls.loadMessageBundle();
@@ -45,17 +45,17 @@ export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
   return vscode.tasks.taskExecutions.find(
-    e => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
+    (e) => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
   );
 }
 
 export function getGradleTaskExecutions(): vscode.TaskExecution[] {
-  return vscode.tasks.taskExecutions.filter(e => e.task.source === 'gradle');
+  return vscode.tasks.taskExecutions.filter((e) => e.task.source === 'gradle');
 }
 
 export function stopRunningGradleTasks(): void {
   const taskExecutions = getGradleTaskExecutions();
-  taskExecutions.forEach(execution => {
+  taskExecutions.forEach((execution) => {
     vscode.commands.executeCommand('gradle.stopTask', execution.task);
   });
 }
@@ -105,8 +105,8 @@ async function getGradleProjectFolders(
     new vscode.RelativePattern(rootWorkspaceFolder, '**/*{gradlew,gradlew.bat}')
   );
   const gradleWrapperFolders = Array.from(
-    new Set(gradleWrapperFiles.map(file => path.dirname(file.fsPath)))
-  ).map(folder => vscode.Uri.file(folder));
+    new Set(gradleWrapperFiles.map((file) => path.dirname(file.fsPath)))
+  ).map((folder) => vscode.Uri.file(folder));
   const gradleProjectFolders: vscode.Uri[] = [];
   for (const gradleWrapperFolder of gradleWrapperFolders) {
     if (await hasGradleBuildFile(gradleWrapperFolder)) {
@@ -171,7 +171,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     } else {
       if (!this.refreshPromise) {
         this.refreshPromise = this.refreshTasks(folders)
-          .catch(err => {
+          .catch((err) => {
             localize(
               'tasks.refreshError',
               'Unable to refresh tasks: {0}',
@@ -196,7 +196,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       return emptyTasks;
     }
     try {
-      return gradleTasks.map(gradleTask =>
+      return gradleTasks.map((gradleTask) =>
         this.createVSCodeTaskFromGradleTask(
           gradleTask,
           workspaceFolder,
@@ -235,7 +235,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       rootProject,
       projectFolder: projectFolder.fsPath,
       workspaceFolder: workspaceFolder.uri.fsPath,
-      args
+      args,
     };
     return createTaskFromDefinition(
       definition,
@@ -284,10 +284,7 @@ export function getGradleTasksServerCommand(): string {
 function isTaskOfType(definition: GradleTaskDefinition, type: string): boolean {
   return (
     definition.group.toLowerCase() === type ||
-    definition.script
-      .split(' ')[0]
-      .split(':')
-      .pop() === type
+    definition.script.split(' ')[0].split(':').pop() === type
   );
 }
 
@@ -390,8 +387,8 @@ export function createTaskFromDefinition(
     ...configTaskPresentationOptions,
     ...{
       panel: getTaskPanelKind(configTaskPresentationOptions.panel),
-      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal)
-    }
+      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal),
+    },
   };
   if (isTaskOfType(definition, 'build')) {
     task.group = vscode.TaskGroup.Build;
@@ -429,13 +426,13 @@ export function buildGradleServerTask(
   }
   const taskType = 'gradle';
   const definition = {
-    type: taskType
+    type: taskType,
   };
   const javaHome = getJavaHome();
   const env = {};
   if (javaHome) {
     Object.assign(env, {
-      VSCODE_JAVA_HOME: javaHome
+      VSCODE_JAVA_HOME: javaHome,
     });
   }
   const task = new vscode.Task(
@@ -452,7 +449,7 @@ export function buildGradleServerTask(
     focus: false,
     echo: true,
     clear: false,
-    panel: vscode.TaskPanelKind.Shared
+    panel: vscode.TaskPanelKind.Shared,
   };
   return task;
 }
@@ -481,7 +478,7 @@ export async function runTaskWithArgs(
       'For example: {0}',
       '--all'
     ),
-    ignoreFocusOut: true
+    ignoreFocusOut: true,
   });
   if (args !== undefined) {
     const taskWithArgs = await cloneTask(task, args, client);

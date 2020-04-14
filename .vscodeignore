@@ -14,7 +14,6 @@ src/**
 test-fixtures/**
 images/**
 java-gradle-tasks/**
-java-gradle-tasks-grpc/**
 sonar-project.properties
 proto/**
 i18n/**

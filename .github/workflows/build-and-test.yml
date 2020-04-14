@@ -21,8 +21,8 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: generateLib
-          build-root-directory: java-gradle-tasks-grpc
-          wrapper-directory: java-gradle-tasks-grpc
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Build proto lib
         run: |
           sudo apt-get install protobuf-compiler -y
@@ -53,8 +53,8 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: compileJava
-          build-root-directory: java-gradle-tasks-grpc
-          wrapper-directory: java-gradle-tasks-grpc
+          build-root-directory: java-gradle-tasks
+          wrapper-directory: java-gradle-tasks
       - name: Lint Files
         run: |
           # npm ci

@@ -421,7 +421,7 @@
     "lint:eslint": "eslint . --ext .js,.ts",
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
-    "compile:java": "cd java-gradle-tasks-grpc && ./gradlew generateLib",
+    "compile:java": "cd java-gradle-tasks && ./gradlew generateLib",
     "compile:proto": "./compile-protos.sh",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "gulp package",

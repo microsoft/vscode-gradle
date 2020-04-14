@@ -2,7 +2,7 @@
 
 OUT_DIR="./out"
 TS_OUT_DIR="./src"
-IN_DIR="java-gradle-tasks-grpc/src/main/proto"
+IN_DIR="java-gradle-tasks/src/main/proto"
 PROTOC="$(npm bin)/grpc_tools_node_protoc"
 PROTOC_GEN_TS="$(npm bin)/protoc-gen-ts"
 
