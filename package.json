@@ -440,7 +440,7 @@
     "@types/node": "^13.11.1",
     "@types/sinon": "^9.0.0",
     "@types/vscode": "^1.44.0",
-    "@types/ws": "^7.2.3",
+    "@types/ws": "^7.2.4",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
     "@typescript-eslint/parser": "^2.27.0",
     "del": "^5.1.0",
