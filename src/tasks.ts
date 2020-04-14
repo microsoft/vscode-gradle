@@ -14,7 +14,6 @@ import { logger } from './logger';
 import {
   GradleTask,
   Output,
-  Progress,
 } from './java-gradle-tasks/src/main/proto/gradle_tasks_pb';
 import { GradleTasksClient } from './client';
 
@@ -118,10 +117,13 @@ async function getGradleProjectFolders(
 
 export class GradleTaskProvider implements vscode.TaskProvider {
   private refreshPromise: Promise<void> | undefined = undefined;
+
   constructor(private readonly client: GradleTasksClient) {}
+
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return cachedTasks;
   }
+
   // TODO
   public async resolveTask(/*
       _task: vscode.Task
@@ -185,6 +187,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
     return cachedTasks;
   }
+
   private async provideGradleTasksForFolder(
     workspaceFolder: vscode.WorkspaceFolder,
     projectFolder: vscode.Uri
@@ -216,6 +219,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       return emptyTasks;
     }
   }
+
   private createVSCodeTaskFromGradleTask(
     gradleTask: GradleTask,
     workspaceFolder: vscode.WorkspaceFolder,
@@ -244,6 +248,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       this.client
     );
   }
+
   private async getGradleTasks(
     projectFolder: vscode.Uri
   ): Promise<GradleTask[] | void> {

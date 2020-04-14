@@ -13,6 +13,7 @@ import {
 import { GradleTasksClient as GrpcClient } from './java-gradle-tasks/src/main/proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
+import { GradleTaskDefinition } from './tasks';
 
 const localize = nls.loadMessageBundle();
 
@@ -114,11 +115,11 @@ export class GradleTasksClient implements vscode.Disposable {
     this.statusBarItem.show();
     const request = new RunTaskRequest();
     request.setSourceDir(sourceDir);
-    request.setTask(task);
+    request.setTask(taskDefinition.script);
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
-      return await new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         runTaskStream
           .on('error', reject)
           .on('data', (runTaskReply: RunTaskReply) => {
@@ -135,6 +136,13 @@ export class GradleTasksClient implements vscode.Disposable {
             }
           });
       });
+      logger.info(
+        localize('client.completedTask', 'Completed {0}', taskDefinition.script)
+      );
+      vscode.commands.executeCommand(
+        'gradle.updateJavaProjectConfiguration',
+        vscode.Uri.file(taskDefinition.buildFile)
+      );
     } catch (e) {
       logger.error(
         localize(

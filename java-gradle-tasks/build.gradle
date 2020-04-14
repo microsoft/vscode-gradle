@@ -73,6 +73,8 @@ task gradleTasksServer(type: CreateStartScripts) {
     mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
     applicationName = project.name
     classpath = files(shadowJar.outputs.files)
+    unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
+    windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
 applicationDistribution.into('bin') {

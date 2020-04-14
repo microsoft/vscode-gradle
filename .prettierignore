@@ -4,5 +4,7 @@ node_modules
 /test-fixtures
 package-lock.json
 /java-gradle-tasks
+# TODO: remove these protos
+/src/java-gradle-tasks
 /lib
 *nls.*.json
