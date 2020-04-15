@@ -6,3 +6,4 @@ lib/**
 .classpath
 .settings
 *nls.*.json
+src/proto/

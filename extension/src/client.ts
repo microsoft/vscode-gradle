@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as grpc from '@grpc/grpc-js';
+
 import {
   GetTasksRequest,
   GradleTask,
@@ -9,8 +10,9 @@ import {
   RunTaskRequest,
   RunTaskReply,
   Output,
-} from './gradle-tasks-server/src/main/proto/gradle_tasks_pb';
-import { GradleTasksClient as GrpcClient } from './gradle-tasks-server/src/main/proto/gradle_tasks_grpc_pb';
+} from './proto/gradle_tasks_pb';
+
+import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { GradleTaskDefinition } from './tasks';

@@ -411,8 +411,6 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "precompile": "npm run compile:proto",
     "watch": "tsc -watch -p ./",
     "test": "node ./out/test/runTest.js",
     "pretest": "npm run compile",
@@ -421,6 +419,7 @@
     "lint:eslint": "eslint . --ext .js,.ts",
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
+    "compile:ts": "tsc -p ./",
     "compile:java": "cd ../gradle-tasks-server && ./gradlew generateLib",
     "compile:proto": "./compile-protos.sh",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
@@ -428,7 +427,7 @@
     "build": "gulp build"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^0.7.9",
+    "@grpc/grpc-js": "^0.8.1",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",

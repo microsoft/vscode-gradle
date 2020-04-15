@@ -1,38 +1,57 @@
+
 plugins {
+    id 'java'
     id 'application'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
+description = 'vscode-gradle :: tasks-server'
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-def grpcVersion = '1.28.1'
-def protobufVersion = '3.11.0'
-def protocVersion = protobufVersion
-
 dependencies {
+    compile "org.gradle:gradle-tooling-api:6.3"
+    compileOnly "javax.annotation:javax.annotation-api:1.2"
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
-    compile "org.gradle:gradle-tooling-api:6.3"
-
-    compileOnly "javax.annotation:javax.annotation-api:1.2"
-
     runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
-
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
     testImplementation "junit:junit:4.12"
     testImplementation "org.mockito:mockito-core:2.28.2"
+}
 
-    compile project(':proto')
+sourceSets {
+    libsDirName = 'lib'
+    main {
+        proto {
+            srcDir file('../proto')
+        }
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
+
+protobuf {
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
 }
 
 shadowJar {
     // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
     // minimize()
-}
-
-sourceSets {
-    libsDirName = 'lib'
 }
 
 application {

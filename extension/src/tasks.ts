@@ -11,11 +11,8 @@ import {
   ConfigTaskPresentationOptionsPanelKind,
 } from './config';
 import { logger } from './logger';
-import {
-  GradleTask,
-  Output,
-} from './gradle-tasks-server/src/main/proto/gradle_tasks_pb';
 import { GradleTasksClient } from './client';
+import { GradleTask, Output } from './proto/gradle_tasks_pb';
 
 const localize = nls.loadMessageBundle();
 

@@ -1,10 +1,19 @@
+plugins {
+    id 'java'
+    id 'com.google.protobuf' version '0.8.12'
+}
+
 allprojects {
     group = 'vscode-gradle'
-    version = '1.0-SNAPSHOT'
 }
+
+project.ext.set('grpcVersion', '1.28.1')
+project.ext.set('protobufVersion', '3.11.0')
+project.ext.set('protocVersion', project.protobufVersion)
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'com.google.protobuf'
 
     repositories {
         maven {
@@ -15,6 +24,16 @@ subprojects {
         }
         mavenCentral()
         mavenLocal()
+    }
+
+    protobuf {
+        protoc {
+            artifact = "com.google.protobuf:protoc:${protocVersion}"
+        }
+    }
+
+    clean {
+        delete protobuf.generatedFilesBaseDir
     }
 
     tasks.withType(JavaCompile) {
