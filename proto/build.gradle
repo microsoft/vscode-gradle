@@ -1,0 +1,48 @@
+plugins {
+    id 'com.google.protobuf' version '0.8.12'
+}
+
+description = 'vscode-gradle :: proto'
+
+def grpcVersion = '1.28.1'
+def protobufVersion = '3.11.0'
+def protocVersion = protobufVersion
+
+dependencies {
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir 'proto'
+        }
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protocVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc { }
+            }
+            task.builtins {
+                js {}
+            }
+        }
+    }
+}
+

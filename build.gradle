@@ -1,0 +1,23 @@
+allprojects {
+    group = 'vscode-gradle'
+    version = '1.0-SNAPSHOT'
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    repositories {
+        maven {
+            url "https://maven-central.storage-download.googleapis.com/repos/central/data/"
+        }
+        maven {
+            url 'https://repo.gradle.org/gradle/libs-releases'
+        }
+        mavenCentral()
+        mavenLocal()
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}

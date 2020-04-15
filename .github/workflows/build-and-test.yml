@@ -21,8 +21,8 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: generateLib
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
+          build-root-directory: vscode-gradle.tasks-server
+          wrapper-directory: vscode-gradle.tasks-server
       - name: Build proto lib
         run: |
           sudo apt-get install protobuf-compiler -y
@@ -53,8 +53,8 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: compileJava
-          build-root-directory: java-gradle-tasks
-          wrapper-directory: java-gradle-tasks
+          build-root-directory: vscode-gradle.tasks-server
+          wrapper-directory: vscode-gradle.tasks-server
       - name: Lint Files
         run: |
           # npm ci
@@ -97,7 +97,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
       - name: Set permissions
         run: |
-          chmod +x lib/gradle-tasks-server
+          chmod +x lib/vscode-gradle.tasks-server
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Build & test extension on ${{ matrix.os }}

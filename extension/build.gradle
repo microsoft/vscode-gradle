@@ -1,0 +1,17 @@
+description = 'vscode-gradle :: extension'
+
+
+dependencies {
+    compile project(':proto')
+}
+
+task typescript(type: Exec) {
+  buildDir = 'out'
+
+  inputs.file("package-lock.json")
+  inputs.file("tsconfig.json")
+  outputs.dir("$buildDir")
+
+  // commandLine "\$(npm bin)", "/tsc",  "-p",  "./"
+  commandLine "echo", "done"
+}

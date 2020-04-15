@@ -1,6 +1,0 @@
-{
-  "gradleView.runTask": "Ejecutar tarea",
-  "gradleView.noTasksFound": "No se encontraron tareas",
-  "gradleView.runTaskWithArgsExample": "Por ejemplo: {0}",
-  "gradleView.focusTaskError": "No se puede enfocar la tarea en el explorador: {0}"
-}
