@@ -20,7 +20,9 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
-    "vscode": "^1.44.0"
+    "vscode": "^1.44.0",
+    "node": "^12.10.0",
+    "npm": "^6.10.3"
   },
   "categories": [
     "Other",
@@ -420,8 +422,7 @@
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:ts": "tsc -p ./",
-    "compile:java": "cd ../gradle-tasks-server && ./gradlew generateLib",
-    "compile:proto": "./compile-protos.sh",
+    "preinstall": "npm_config_registry=https://registry.npmjs.org/ npx ensure-node-env npx ensure-node-env",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "gulp package",
     "build": "gulp build"

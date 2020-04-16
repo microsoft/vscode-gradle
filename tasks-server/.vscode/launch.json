@@ -12,10 +12,10 @@
     },
     {
       "type": "java",
-      "name": "Debug (Launch)-GradleTasksServer<gradle-tasks-server>",
+      "name": "Debug (Launch)-GradleTasksServer<tasks-server>",
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
-      "projectName": "gradle-tasks-server"
+      "projectName": "tasks-server"
     }
   ]
 }

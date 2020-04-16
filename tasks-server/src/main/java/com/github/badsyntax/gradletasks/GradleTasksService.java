@@ -14,16 +14,36 @@ import io.grpc.stub.StreamObserver;
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = Logger.getLogger(GradleTasksService.class.getName());
 
+  // @Override
+  // public void getTasks(GetTasksRequest req, StreamObserver<GetTasksReply> responseObserver) {
+  //   try {
+  //     File sourceDir = new File(req.getSourceDir().trim());
+  //     if (!sourceDir.exists()) {
+  //       throw new GradleTasksException(String.format("Source directory does not exist: %s", req.getSourceDir()));
+  //     }
+  //     List<GradleTask> gradleTasks = GradleTasksUtil.getTasks(sourceDir, responseObserver);
+  //     GetTasksResult result = GetTasksResult.newBuilder().addAllTasks(gradleTasks).build();
+  //     GetTasksReply reply = GetTasksReply.newBuilder().setGetTasksResult(result).build();
+  //     responseObserver.onNext(reply);
+  //     responseObserver.onCompleted();
+  //   } catch (GradleTasksException e) {
+  //     logger.warning(e.getMessage());
+  //     StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
+  //         Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
+  //     responseObserver.onError(exception);
+  //   }
+  // }
+
   @Override
-  public void getTasks(GetTasksRequest req, StreamObserver<GetTasksReply> responseObserver) {
+  public void getProject(GetProjectRequest req, StreamObserver<GetProjectReply> responseObserver) {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
         throw new GradleTasksException(String.format("Source directory does not exist: %s", req.getSourceDir()));
       }
-      List<GradleTask> gradleTasks = GradleTasksUtil.getTasks(sourceDir, responseObserver);
-      GetTasksResult result = GetTasksResult.newBuilder().addAllTasks(gradleTasks).build();
-      GetTasksReply reply = GetTasksReply.newBuilder().setGetTasksResult(result).build();
+      GradleProject gradleProject = GradleTasksUtil.getProject(sourceDir, responseObserver);
+      GetProjectResult result = GetProjectResult.newBuilder().setProject(gradleProject).build();
+      GetProjectReply reply = GetProjectReply.newBuilder().setGetProjectResult(result).build();
       responseObserver.onNext(reply);
       responseObserver.onCompleted();
     } catch (GradleTasksException e) {

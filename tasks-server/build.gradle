@@ -22,7 +22,7 @@ dependencies {
 }
 
 sourceSets {
-    libsDirName = 'lib'
+    libsDirName = file('../extension/lib')
     main {
         proto {
             srcDir file('../proto')
@@ -59,10 +59,11 @@ application {
 }
 
 startScripts.enabled = false
+jar.enabled = false
 
 task gradleTasksServer(type: CreateStartScripts) {
     dependsOn shadowJar
-    outputDir = file('build/customScripts')
+    outputDir = file('../extension/lib')
     mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
     applicationName = project.name
     classpath = files(shadowJar.outputs.files)

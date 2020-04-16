@@ -10,6 +10,9 @@ import {
   RunTaskRequest,
   RunTaskReply,
   Output,
+  GetProjectRequest,
+  GetProjectReply,
+  GradleProject,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
@@ -74,30 +77,63 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async getTasks(sourceDir: string): Promise<GradleTask[] | void> {
+  // public async getTasks(sourceDir: string): Promise<GradleTask[] | void> {
+  //   this.statusBarItem.text = localize(
+  //     'client.refreshingTasks',
+  //     '{0} Gradle: Refreshing Tasks',
+  //     '$(sync~spin)'
+  //   );
+  //   this.statusBarItem.show();
+  //   const request = new GetTasksRequest();
+  //   request.setSourceDir(sourceDir);
+  //   const getTasksSteam = this.grpcClient!.getTasks(request);
+  //   try {
+  //     return await new Promise((resolve, reject) => {
+  //       getTasksSteam
+  //         .on('error', reject)
+  //         .on('data', (getTasksReply: GetTasksReply) => {
+  //           switch (getTasksReply.getKindCase()) {
+  //             case GetTasksReply.KindCase.PROGRESS:
+  //               this.handleProgress(getTasksReply.getProgress()!);
+  //               break;
+  //             case GetTasksReply.KindCase.OUTPUT:
+  //               this.handleOutput(getTasksReply.getOutput()!);
+  //               break;
+  //             case GetTasksReply.KindCase.GET_TASKS_RESULT:
+  //               resolve(getTasksReply.getGetTasksResult()!.getTasksList());
+  //               break;
+  //           }
+  //         });
+  //     });
+  //   } finally {
+  //     this.statusBarItem.hide();
+  //   }
+  // }
+
+  public async getProject(sourceDir: string): Promise<GradleProject | void> {
     this.statusBarItem.text = localize(
       'client.refreshingTasks',
       '{0} Gradle: Refreshing Tasks',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
-    const request = new GetTasksRequest();
+    const request = new GetProjectRequest();
     request.setSourceDir(sourceDir);
-    const getTasksSteam = this.grpcClient!.getTasks(request);
+    const getProjectStream = this.grpcClient!.getProject(request);
     try {
       return await new Promise((resolve, reject) => {
-        getTasksSteam
+        getProjectStream
           .on('error', reject)
-          .on('data', (getTasksReply: GetTasksReply) => {
-            switch (getTasksReply.getKindCase()) {
-              case GetTasksReply.KindCase.PROGRESS:
-                this.handleProgress(getTasksReply.getProgress()!);
+          .on('data', (getProjectReply: GetProjectReply) => {
+            switch (getProjectReply.getKindCase()) {
+              case GetProjectReply.KindCase.PROGRESS:
+                this.handleProgress(getProjectReply.getProgress()!);
                 break;
-              case GetTasksReply.KindCase.OUTPUT:
-                this.handleOutput(getTasksReply.getOutput()!);
+              case GetProjectReply.KindCase.OUTPUT:
+                this.handleOutput(getProjectReply.getOutput()!);
                 break;
-              case GetTasksReply.KindCase.GET_TASKS_RESULT:
-                resolve(getTasksReply.getGetTasksResult()!.getTasksList());
+              case GetProjectReply.KindCase.GET_PROJECT_RESULT:
+                resolve(getProjectReply.getGetProjectResult()!.getProject());
                 break;
             }
           });

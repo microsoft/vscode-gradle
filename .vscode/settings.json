@@ -1,0 +1,12 @@
+{
+  "files.exclude": {
+    "out": false
+  },
+  "search.exclude": {
+    "out": true
+  },
+  "typescript.tsc.autoDetect": "off",
+  "eslint.validate": ["javascript", "typescript"],
+  "eslint.workingDirectories": ["extension"],
+  "java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml"
+}

@@ -8,10 +8,15 @@ package gradletasks;
 
 service GradleTasks {
   rpc GetTasks (GetTasksRequest) returns (stream GetTasksReply) {}
+  rpc GetProject (GetProjectRequest) returns (stream GetProjectReply) {}
   rpc RunTask (RunTaskRequest) returns (stream RunTaskReply) {}
 }
 
 message GetTasksRequest {
+  string source_dir = 1;
+}
+
+message GetProjectRequest {
   string source_dir = 1;
 }
 
@@ -23,9 +28,22 @@ message GetTasksReply {
   }
 }
 
+message GetProjectReply {
+  oneof kind {
+    GetProjectResult get_project_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+  }
+}
+
 message GetTasksResult {
   string message = 1;
   repeated GradleTask tasks = 2;
+}
+
+message GetProjectResult {
+  string message = 1;
+  GradleProject project = 2;
 }
 
 message RunTaskRequest {
@@ -40,6 +58,13 @@ message RunTaskReply {
     Progress progress = 2;
     Output output = 3;
   }
+}
+
+message GradleProject {
+  string name = 1;
+  bool is_root = 2;
+  repeated GradleTask tasks = 3;
+  repeated GradleProject sub_projects = 4;
 }
 
 message GradleTask {
