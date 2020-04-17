@@ -1,4 +1,3 @@
-
 plugins {
     id 'java'
     id 'application'
@@ -11,7 +10,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile "org.gradle:gradle-tooling-api:6.3"
+    compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
     compileOnly "javax.annotation:javax.annotation-api:1.2"
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
@@ -63,7 +62,7 @@ jar.enabled = false
 
 task gradleTasksServer(type: CreateStartScripts) {
     dependsOn shadowJar
-    outputDir = file('../extension/lib')
+    outputDir = file(libsDirName)
     mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
     applicationName = project.name
     classpath = files(shadowJar.outputs.files)
@@ -71,26 +70,4 @@ task gradleTasksServer(type: CreateStartScripts) {
     windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
-applicationDistribution.into('bin') {
-    from(gradleTasksServer)
-    fileMode = 0755
-}
-
-distributions {
-    main {
-        contents {
-            from(gradleTasksServer)
-        }
-    }
-}
-
-// Move shadowjar and start scripts input parent lib dir
-task generateLib(type: Copy) {
-    dependsOn gradleTasksServer
-
-    from file("$buildDir/$libsDirName/${project.name}-all.jar")
-    into file("$buildDir/../../$libsDirName/${project.name}-all.jar")
-
-    from "$buildDir/customScripts/${project.name}", "$buildDir/customScripts/${project.name}.bat"
-    into "$buildDir/../../$libsDirName"
-}
+build.finalizedBy gradleTasksServer

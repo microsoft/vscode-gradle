@@ -10,6 +10,7 @@ allprojects {
 project.ext.set('grpcVersion', '1.28.1')
 project.ext.set('protobufVersion', '3.11.0')
 project.ext.set('protocVersion', project.protobufVersion)
+project.ext.set('gradlingToolingApi', '6.3')
 
 subprojects {
     apply plugin: 'java'

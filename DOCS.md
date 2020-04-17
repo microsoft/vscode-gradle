@@ -1,4 +1,12 @@
-# How Does it Work?
+# Gradle Tasks Documentation
+
+## Context
+
+This extension provides a UI layer over the Gradle Task modelling. It shows Gradle projects and associated tasks and allows you to run those tasks within the context of the Editor.
+
+The extension has been built to support *Gradle*, not just *Java projects using Gradle*. It can work alongside other extensions like the Java language support extension.
+
+## Architecture Overview
 
 The extension uses client/server architecture using gRPC as the interface between the client and the server, and is a similar architecture to the language-server protocol.
 
@@ -30,6 +38,22 @@ The tasks use the gRPC client to call the `runTask` gRPC server endpoint. Simila
 
 ## The Build System
 
-Gradle is used as the build system for the extension. Gradle will compile the Java & Protobuff files and run the relevant tasks to correctly build all the dependencies of the project.
+Gradle is used as the build system for the extension, for both the client and the server. Gradle compilse the Java & Protobuff files and runs the relevant tasks to download & build all the dependencies of the project.
 
 Getting started on this extension is as simple as `./gradlew build`.
+
+## Supported Tooling Versions
+
+### Gradle
+
+#### Provider side
+
+The current version of Tooling API supports running builds using Gradle versions 2.6 and later.
+
+#### Consumer side
+
+The current version of Gradle supports running builds via Tooling API versions 3.0 and later.
+
+### Java
+
+The Tooling API requires Java 8 or later. The Gradle version used by builds may have additional Java version requirements.

@@ -18,12 +18,12 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Build Java lib
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: generateLib
-          build-root-directory: vscode-gradle.tasks-server
-          wrapper-directory: vscode-gradle.tasks-server
+      # - name: Build Java lib
+      #   uses: eskatos/gradle-command-action@v1
+      #   with:
+      #     arguments: generateLib
+      #     build-root-directory: vscode-gradle.tasks-server
+      #     wrapper-directory: vscode-gradle.tasks-server
       - name: Build proto lib
         run: |
           sudo apt-get install protobuf-compiler -y

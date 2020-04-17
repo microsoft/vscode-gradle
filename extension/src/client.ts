@@ -3,9 +3,9 @@ import * as nls from 'vscode-nls';
 import * as grpc from '@grpc/grpc-js';
 
 import {
-  GetTasksRequest,
-  GradleTask,
-  GetTasksReply,
+  // GetTasksRequest,
+  // GradleTask,
+  // GetTasksReply,
   Progress,
   RunTaskRequest,
   RunTaskReply,
@@ -23,7 +23,7 @@ import { GradleTaskDefinition } from './tasks';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 5; // seconds
+  private connectDeadline = 10; // seconds
   private grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null

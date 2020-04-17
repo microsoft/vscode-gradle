@@ -12,7 +12,11 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { GradleTask, Output, GradleProject } from './proto/gradle_tasks_pb';
+import {
+  /*GradleTask, */ Output,
+  GradleProject,
+  GradleTask,
+} from './proto/gradle_tasks_pb';
 
 const localize = nls.loadMessageBundle();
 
@@ -21,6 +25,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   description: string;
   group: string;
   project: string;
+  parentProject: string;
   rootProject: string;
   buildFile: string;
   projectFolder: string;
@@ -30,7 +35,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 
 const stoppingTasks: Set<vscode.Task> = new Set();
 let autoDetectOverride = false;
-let cachedProjects: vscode.Task[] = [];
+let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
 
 export function enableTaskDetection(): void {
@@ -118,7 +123,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   constructor(private readonly client: GradleTasksClient) {}
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
-    return cachedProjects;
+    return cachedTasks;
   }
 
   // TODO
@@ -132,7 +137,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
 
   private async refreshTasks(
     folders: readonly vscode.WorkspaceFolder[]
-  ): Promise<void> {
+  ): Promise<vscode.Task[]> {
     const allTasks: vscode.Task[] = [];
     for (const workspaceFolder of folders) {
       if (autoDetectOverride || getIsAutoDetectionEnabled(workspaceFolder)) {
@@ -149,10 +154,19 @@ export class GradleTaskProvider implements vscode.TaskProvider {
           );
         }
         for (const projectFolder of projectFolders) {
-          const gradleProject = await this.getGradleProjectForFolder(
+          const gradleProject = await this.getGradleProjectFromRootProjectFolder(
             projectFolder
           );
-          console.log('gradleProject', gradleProject);
+          if (gradleProject) {
+            allTasks.push(
+              ...this.getVSCodeTasksFromGradleProject(
+                workspaceFolder,
+                projectFolder,
+                gradleProject
+              )
+            );
+            console.log('gradleProject', gradleProject);
+          }
           // allTasks.push(
           //   ...(await this.provideGradleTasksForFolder(
           //     workspaceFolder,
@@ -162,36 +176,40 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         }
       }
     }
-    cachedProjects = allTasks;
-  }
-
-  private reset(): void {
-    this.refreshPromise = undefined;
+    return allTasks;
   }
 
   public async refresh(): Promise<vscode.Task[]> {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
-      cachedProjects = emptyTasks;
+      cachedTasks = emptyTasks;
     } else {
       if (!this.refreshPromise) {
+        // TODO: can't we just await here
         this.refreshPromise = this.refreshTasks(folders)
-          .catch((err) => {
-            localize(
-              'tasks.refreshError',
-              'Unable to refresh tasks: {0}',
-              err.message
-            );
-            cachedProjects = emptyTasks;
-          })
-          .finally(() => this.reset());
+          .then(
+            (tasks) => {
+              cachedTasks = tasks;
+            },
+            (err) => {
+              localize(
+                'tasks.refreshError',
+                'Unable to refresh tasks: {0}',
+                err.message
+              );
+              cachedTasks = emptyTasks;
+            }
+          )
+          .finally(() => {
+            this.refreshPromise = undefined;
+          });
       }
       await this.refreshPromise;
     }
-    return cachedProjects;
+    return cachedTasks;
   }
 
-  private async getGradleProjectForFolder(
+  private async getGradleProjectFromRootProjectFolder(
     projectFolder: vscode.Uri
   ): Promise<GradleProject | void> {
     try {
@@ -207,37 +225,45 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     }
   }
 
-  // private async provideGradleTasksForFolder(
-  //   workspaceFolder: vscode.WorkspaceFolder,
-  //   projectFolder: vscode.Uri
-  // ): Promise<vscode.Task[]> {
-  //   const gradleTasks: GradleTask[] | void = await this.getGradleTasks(
-  //     projectFolder
-  //   );
-  //   if (!gradleTasks || !gradleTasks.length) {
-  //     return emptyTasks;
-  //   }
-  //   try {
-  //     return gradleTasks.map((gradleTask) =>
-  //       this.createVSCodeTaskFromGradleTask(
-  //         gradleTask,
-  //         workspaceFolder,
-  //         gradleTask.getRootproject(),
-  //         vscode.Uri.file(gradleTask.getBuildfile()),
-  //         projectFolder
-  //       )
-  //     );
-  //   } catch (err) {
-  //     logger.error(
-  //       localize(
-  //         'tasks.vsCodeTaskGenerateError',
-  //         'Unable to generate vscode tasks from gradle tasks: {0}',
-  //         err.message
-  //       )
-  //     );
-  //     return emptyTasks;
-  //   }
-  // }
+  private getVSCodeTasksFromGradleProject(
+    workspaceFolder: vscode.WorkspaceFolder,
+    projectFolder: vscode.Uri,
+    gradleProject: GradleProject
+  ): vscode.Task[] {
+    const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
+    const vsCodeTasks = [];
+    try {
+      vsCodeTasks.push(
+        ...gradleTasks.map((gradleTask) =>
+          this.createVSCodeTaskFromGradleTask(
+            gradleTask,
+            workspaceFolder,
+            gradleTask.getRootproject(),
+            vscode.Uri.file(gradleTask.getBuildfile()),
+            projectFolder
+          )
+        )
+      );
+    } catch (err) {
+      logger.error(
+        localize(
+          'tasks.vsCodeTaskGenerateError',
+          'Unable to generate vscode tasks from gradle tasks: {0}',
+          err.message
+        )
+      );
+    }
+    gradleProject.getSubProjectsList().forEach((subProject) => {
+      vsCodeTasks.push(
+        ...this.getVSCodeTasksFromGradleProject(
+          workspaceFolder,
+          projectFolder,
+          subProject
+        )
+      );
+    });
+    return vsCodeTasks;
+  }
 
   private createVSCodeTaskFromGradleTask(
     gradleTask: GradleTask,
@@ -257,6 +283,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       buildFile: buildFile.fsPath,
       rootProject,
       projectFolder: projectFolder.fsPath,
+      parentProject: 'nothing for now',
       workspaceFolder: workspaceFolder.uri.fsPath,
       args,
     };
@@ -286,7 +313,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
 }
 
 export function invalidateTasksCache(): void {
-  cachedProjects = emptyTasks;
+  cachedTasks = emptyTasks;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
