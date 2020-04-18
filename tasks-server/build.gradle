@@ -40,15 +40,25 @@ protobuf {
         }
     }
     generateProtoTasks {
+        // compileJava.enabled = false;
         all().each { task ->
             task.plugins {
                 grpc {}
+            }
+            task.builtins {
+                remove distribution
             }
         }
     }
 }
 
+clean {
+    delete protobuf.generatedFilesBaseDir
+    delete libsDirName
+}
+
 shadowJar {
+    classifier = null
     // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
     // minimize()
 }
@@ -58,16 +68,20 @@ application {
 }
 
 startScripts.enabled = false
+// scriptsShadow.enabled = false;
 jar.enabled = false
+distZip.enabled = false
+distTar.enabled = false
+assemble.enabled = false;
 
-task gradleTasksServer(type: CreateStartScripts) {
+task gradleTasksServerLib(type: CreateStartScripts) {
     dependsOn shadowJar
     outputDir = file(libsDirName)
     mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
     applicationName = project.name
-    classpath = files(shadowJar.outputs.files)
+    classpath = shadowJar.outputs.files
     unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
     windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
-build.finalizedBy gradleTasksServer
+build.dependsOn gradleTasksServerLib

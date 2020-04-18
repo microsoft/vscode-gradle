@@ -7,18 +7,21 @@ option java_outer_classname = "GradleTasksProto";
 package gradletasks;
 
 service GradleTasks {
-  rpc GetTasks (GetTasksRequest) returns (stream GetTasksReply) {}
-  rpc GetProject (GetProjectRequest) returns (stream GetProjectReply) {}
-  rpc RunTask (RunTaskRequest) returns (stream RunTaskReply) {}
+  // rpc GetTasks (stream GetTasksRequest) returns (stream GetTasksReply) {}
+  rpc GetProject(GetProjectRequest) returns (stream GetProjectReply) {}
+  rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
+  rpc CancelGetProjects(CancelGetProjectsRequest)
+      returns (stream CancelGetProjectsReply) {}
+  rpc CancelRunTask(CancelRunTaskRequest) returns (stream CancelRunTaskReply) {}
 }
 
-message GetTasksRequest {
-  string source_dir = 1;
-}
+message CancelGetProjectsRequest {}
 
-message GetProjectRequest {
-  string source_dir = 1;
-}
+message CancelGetProjectsReply {}
+
+message GetTasksRequest { string source_dir = 1; }
+
+message GetProjectRequest { string source_dir = 1; }
 
 message GetTasksReply {
   oneof kind {
@@ -52,6 +55,16 @@ message RunTaskRequest {
   repeated string args = 3;
 }
 
+message CancelRunTaskRequest {
+  string source_dir = 1;
+  string task = 2;
+}
+
+message CancelRunTaskReply {
+  string message = 1;
+  string task = 2;
+}
+
 message RunTaskReply {
   oneof kind {
     RunTaskResult run_task_result = 1;
@@ -83,9 +96,7 @@ message GradleTask {
 //   string task = 3;
 // }
 
-message Progress {
-  string message = 1;
-}
+message Progress { string message = 1; }
 
 message RunTaskResult {
   string message = 1;
@@ -109,7 +120,6 @@ message Output {
 // message Info {
 //   string message = 1;
 // }
-
 
 // message Message {
 //   oneof kind {

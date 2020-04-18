@@ -33,10 +33,6 @@ subprojects {
         }
     }
 
-    clean {
-        delete protobuf.generatedFilesBaseDir
-    }
-
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }

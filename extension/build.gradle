@@ -8,10 +8,6 @@ sourceSets {
   }
 }
 
-dependencies {
-  compile project(':tasks-server')
-}
-
 protobuf {
     plugins {
         grpc {
@@ -22,10 +18,11 @@ protobuf {
         }
     }
     generateProtoTasks {
-        generateTestProto.enabled = false;
-        extractTestProto.enabled = false;
+        generateTestProto.enabled = false
+        extractProto.enabled = false;
         extractIncludeProto.enabled = false;
         extractIncludeTestProto.enabled = false;
+        generateProto.finalizedBy copyProtoJs, copyProtoTs
         all().each { task ->
             task.plugins {
                 grpc {
@@ -42,22 +39,27 @@ protobuf {
                 }
             }
             task.dependsOn npmInstall
-            copyProtoJs.dependsOn task
-            copyProtoTs.dependsOn task
         }
     }
 }
 
+test.enabled = false;
+jar.enabled = false;
 compileJava.enabled = false
 compileTestJava.enabled = false
 
 clean {
-  delete file("node_modules")
+  dependsOn ':tasks-server:clean'
+  delete protobuf.generatedFilesBaseDir
+  delete file('node_modules')
+  delete file('src/proto')
+  delete file('out')
 }
 
 task copyProtoJs(type: Copy) {
-  dependsOn build
+  dependsOn ':extension:generateProto'
   group 'copy'
+  description 'Copies proto JavaScript definitions into src dir'
   from "$protobuf.generatedFilesBaseDir/main/js"
   into 'out/proto/'
   filter { line ->
@@ -66,8 +68,9 @@ task copyProtoJs(type: Copy) {
 }
 
 task copyProtoTs(type: Copy) {
-  dependsOn build
+  dependsOn ':extension:generateProto'
   group 'copy'
+  description 'Copies proto TypeScript definitions into src dir'
   from "$protobuf.generatedFilesBaseDir/main/ts"
   into 'src/proto/'
   filter { line ->
@@ -75,36 +78,38 @@ task copyProtoTs(type: Copy) {
   }
 }
 
-def npmBinDir = "./node_modules/.bin"
-
 task npmInstall(type: Exec) {
+  description 'Installs node dependencies'
   inputs.file("package-lock.json")
   outputs.dir("node_modules")
   commandLine "npm", "install"
 }
 
 task lint(type: Exec) {
+  description 'Lints source files'
   commandLine "npm", "run", "lint"
 }
 
 task format(type: Exec) {
+  description 'Formats source files'
   commandLine "npm", "run", "lint:fix"
 }
 
 task buildTypeScript(type: Exec) {
-  dependsOn build
-  mustRunAfter lint
+  dependsOn build, copyProtoJs, copyProtoTs
   group 'build'
+  description 'Builds TypeScript source files'
   buildDir = 'out'
   outputs.dir("$buildDir")
   commandLine "npm", "run", "compile:ts"
 }
 
 task watchTypeScript(type: Exec) {
-  dependsOn build
+  dependsOn build, copyProtoJs, copyProtoTs
   group 'build'
-  commandLine "npm", "run", "watch"
+  description 'Watches and builds TypeScript source files'
+  commandLine "npm", "run", "watch:ts"
 }
 
 build.finalizedBy buildTypeScript
-build.dependsOn npmInstall
+build.dependsOn ':tasks-server:build', npmInstall

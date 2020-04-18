@@ -420,7 +420,8 @@
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:ts": "tsc -p ./",
-    "preinstall": "npm_config_registry=https://registry.npmjs.org/ npx ensure-node-env npx ensure-node-env",
+    "watch:ts": "tsc -watch -p ./",
+    "preinstall": "npm_config_registry=https://registry.npmjs.org/ npx ensure-node-env",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "gulp package",
     "build": "gulp build"
