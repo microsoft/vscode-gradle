@@ -11,7 +11,7 @@
       "windows": {
         "command": ".\\gradlew.cmd"
       },
-      "args": ["watchTypeScript"],
+      "args": [":extension:watchTypeScript", "-x", "test", "-x", "lint"],
       "isBackground": true,
       "presentation": {
         "reveal": "never"

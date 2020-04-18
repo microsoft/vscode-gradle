@@ -3,20 +3,43 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Run Server",
+      "name": "Debug Server",
       "request": "launch",
       "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
       "projectName": "tasks-server",
-      "cwd": "${workspaceFolder}/tasks-server"
+      "cwd": "${workspaceFolder}/tasks-server",
+      "presentation": {
+        "group": "debug",
+        "order": 1
+      }
     },
     {
-      "name": "Run Extension",
+      "name": "Debug Extension",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "debug",
+        "order": 2
+      }
+    },
+    {
+      "name": "Debug Extension with Debug Server",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "env": {
+        "VSCODE_DEBUGGING_SERVER": "true"
+      },
+      "presentation": {
+        "hidden": true
+      }
     },
     {
       "name": "Test: Groovy Default",
@@ -33,7 +56,10 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Kotlin Default",
@@ -50,7 +76,10 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-kotlin-default-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Groovy Custom",
@@ -67,7 +96,10 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-custom-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: No-Gradle",
@@ -81,7 +113,10 @@
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Multi-root",
@@ -98,7 +133,10 @@
         "${workspaceFolder}/extension/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Multi-Project",
@@ -112,7 +150,10 @@
         "${workspaceFolder}/extension/test-fixtures/multi-project"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Nested Projects",
@@ -126,7 +167,20 @@
         "${workspaceFolder}/extension/test-fixtures"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Watch TypeScript"
+      "preLaunchTask": "Gradle: Watch TypeScript",
+      "presentation": {
+        "group": "test"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Server & Extension",
+      "configurations": ["Debug Server", "Debug Extension with Debug Server"],
+      "presentation": {
+        "group": "debug",
+        "order": 3
+      }
     }
   ]
 }

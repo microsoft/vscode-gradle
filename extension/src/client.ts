@@ -31,11 +31,24 @@ export class GradleTasksClient implements vscode.Disposable {
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
 
   public constructor(
+    private readonly context: vscode.ExtensionContext,
     private readonly server: GradleTasksServer,
     private readonly statusBarItem: vscode.StatusBarItem
   ) {
     this.server.onReady(this.handleServerReady);
     this.server.onStop(this.handleServerStop);
+
+    this.context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration(
+        (event: vscode.ConfigurationChangeEvent) => {
+          if (event.affectsConfiguration('java.home')) {
+            this.server.restart();
+          }
+        }
+      )
+    );
+
+    this.server.start();
   }
 
   private handleServerStop = (): void => {
@@ -275,7 +288,7 @@ export function registerClient(
   statusBarItem: vscode.StatusBarItem,
   server: GradleTasksServer
 ): GradleTasksClient {
-  const client = new GradleTasksClient(server, statusBarItem);
+  const client = new GradleTasksClient(context, server, statusBarItem);
   context.subscriptions.push(client);
   client.onConnect(() => {
     vscode.commands.executeCommand('gradle.refresh', false);

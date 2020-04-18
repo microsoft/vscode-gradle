@@ -6,6 +6,8 @@ import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
 
 const localize = nls.loadMessageBundle();
+const isDebuggingServer = (): boolean =>
+  process.env.VSCODE_DEBUGGING_SERVER?.toLowerCase() === 'true';
 
 export interface ServerOptions {
   host: string;
@@ -40,10 +42,7 @@ export class GradleTasksServer implements vscode.Disposable {
       vscode.tasks.onDidStartTaskProcess((event) => {
         if (event.execution.task.name === this.taskName && event.processId) {
           if (isProcessRunning(event.processId)) {
-            logger.info(
-              localize('server.gradleServerStarted', 'Gradle server started')
-            );
-            this._onReady.fire();
+            this.fireOnReady();
           } else {
             logger.error(
               localize(
@@ -70,10 +69,17 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   public async start(): Promise<void> {
-    this.port = await getPort();
-    const cwd = this.context.asAbsolutePath('lib');
-    const task = buildGradleServerTask(this.taskName, cwd, [String(this.port)]);
-    this.taskExecution = await vscode.tasks.executeTask(task);
+    if (isDebuggingServer()) {
+      this.port = 8887;
+      this.fireOnReady();
+    } else {
+      this.port = await getPort();
+      const cwd = this.context.asAbsolutePath('lib');
+      const task = buildGradleServerTask(this.taskName, cwd, [
+        String(this.port),
+      ]);
+      this.taskExecution = await vscode.tasks.executeTask(task);
+    }
   }
 
   public async showRestartMessage(): Promise<void> {
@@ -109,6 +115,13 @@ export class GradleTasksServer implements vscode.Disposable {
     }
   }
 
+  private fireOnReady(): void {
+    logger.info(
+      localize('server.gradleServerStarted', 'Gradle server started')
+    );
+    this._onReady.fire();
+  }
+
   public dispose(): void {
     this.taskExecution?.terminate();
     this._onReady.dispose();
@@ -129,17 +142,6 @@ export function registerServer(
 ): GradleTasksServer {
   const server = new GradleTasksServer(opts, context);
   context.subscriptions.push(server);
-  server.start();
-
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeConfiguration(
-      (event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('java.home')) {
-          server.restart();
-        }
-      }
-    )
-  );
 
   return server;
 }
