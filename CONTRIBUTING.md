@@ -1,25 +1,30 @@
 # Contributing
 
-## How to contribute
+## How to Contribute
 
-Start by opening an issue using one of the issue templates, or propose a change by submitting a pull request. Please include a detailed pull request description.
+Start by opening an issue using one of the issue templates, or propose a change by submitting a pull request (including a detailed pull request description).
 
-## Running the project
+## Running the Project
 
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install protobuf compiler: `brew install protobuf`
-3. Install [Java version >= 8](https://adoptopenjdk.net/)
-4. Change directory to the root of the project
-5. Select Node version: `nvm use`
-6. Install Node packages: `npm install`
-7. Build Java lib: `npm run compile:java`
-8. Build proto lib: `npm run compile:proto`
+2. Install [Java version >= 8](https://adoptopenjdk.net/)
+3. Change directory to the root of the project
+4. Select Node version: `nvm use`
+5. Build project files: `./gradlew build`
 
-Now open the root of the project in VS Code, click on the Debug panel, and select either "Run Extension" or any of the test launch configurations.
+Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 
-### Code style
+## Development Workflow
 
-Prettier is used to lint & format the code. The builds will not pass if there are linting issues.
+Open the root of the project in VS Code.
 
-- Lint: `npm run lint`
-- Fix linting issues: `npm run lint:fix`
+> You _should not_ open the `extension` or `tasks-server` directories in separate windows.
+
+Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations.
+
+### Code Style
+
+Prettier is used to lint & format most files.
+
+- Lint: `./gradlew lint`
+- Fix linting issues: `./gradlew format`
