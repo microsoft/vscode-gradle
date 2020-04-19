@@ -13,8 +13,8 @@ public class CancellationTokenPool {
         RUN, GET
     }
 
-    private final ConcurrentMap<String, CancellationTokenSource> runTaskTokens = new ConcurrentHashMap<String, CancellationTokenSource>();
-    private final ConcurrentMap<String, CancellationTokenSource> getTasksTokens = new ConcurrentHashMap<String, CancellationTokenSource>();
+    private final ConcurrentMap<String, CancellationTokenSource> runTaskTokens = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, CancellationTokenSource> getTasksTokens = new ConcurrentHashMap<>();
     private final EnumMap<TYPE, Map<String, CancellationTokenSource>> pool = new EnumMap<>(TYPE.class);
 
     public CancellationTokenPool() {

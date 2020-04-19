@@ -1,18 +1,16 @@
 package com.github.badsyntax.gradletasks;
 
 import java.io.File;
-import java.util.List;
-import java.util.logging.Logger;
-
 import com.google.rpc.Code;
 import com.google.rpc.Status;
-import org.gradle.tooling.BuildCancelledException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.StatusProto;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
-  private static final Logger logger = Logger.getLogger(GradleTasksService.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
   private static final String SOURCE_DIR_ERROR = "Source directory does not exist: %s";
 
   @Override
@@ -24,7 +22,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       }
       GradleTasksUtil.getProject(sourceDir, responseObserver);
     } catch (GradleTasksException e) {
-      logger.warning(e.getMessage());
+      logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
@@ -42,7 +40,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       }
       GradleTasksUtil.runTask(sourceDir, req.getTask(), req.getArgsList(), responseObserver);
     } catch (GradleTasksException e) {
-      logger.warning(e.getMessage());
+      logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
@@ -68,7 +66,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       }
       GradleTasksUtil.cancelRunTask(sourceDir, req.getTask(), responseObserver);
     } catch (GradleTasksException e) {
-      logger.warning(e.getMessage());
+      logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);

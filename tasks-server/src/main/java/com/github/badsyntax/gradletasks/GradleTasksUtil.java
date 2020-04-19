@@ -19,8 +19,8 @@ public class GradleTasksUtil {
   private GradleTasksUtil() {
   }
 
-  public static void getProject(File sourceDir,
-      StreamObserver<GetProjectReply> responseObserver) throws GradleTasksException {
+  public static void getProject(File sourceDir, StreamObserver<GetProjectReply> responseObserver)
+      throws GradleTasksException {
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     GradleConnector gradleConnector = GradleConnector.newConnector().forProjectDirectory(sourceDir);
     String cancellationKey = sourceDir.getAbsolutePath();
@@ -69,7 +69,7 @@ public class GradleTasksUtil {
   }
 
   public static void runTask(File sourceDir, String task, List<String> args,
-      StreamObserver<RunTaskReply> responseObserver) throws GradleTasksException {
+      StreamObserver<RunTaskReply> responseObserver) {
     GradleConnector gradleConnector = GradleConnector.newConnector().forProjectDirectory(sourceDir);
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     String cancellationKey = sourceDir.getAbsolutePath() + task;

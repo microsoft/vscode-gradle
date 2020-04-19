@@ -2,18 +2,18 @@ package com.github.badsyntax.gradletasks;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 
 public class GradleTasksServer {
-  private static final Logger logger = Logger.getLogger(GradleTasksServer.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(GradleTasksServer.class.getName());
 
   private final int port;
   private final Server server;
 
-  public GradleTasksServer(int port) throws IOException {
+  public GradleTasksServer(int port) {
     this(ServerBuilder.forPort(port), port);
   }
 
@@ -22,19 +22,21 @@ public class GradleTasksServer {
     server = serverBuilder.addService(new GradleTasksService()).build();
   }
 
+  @SuppressWarnings("java:S106")
   public void start() throws IOException {
     server.start();
-    logger.info(String.format("Server started, listening on %d", port));
+    logger.info("Server started, listening on {}", port);
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {
-        System.err.println("*** shutting down gRPC server since JVM is shutting down");
+        logger.error("*** shutting down gRPC server since JVM is shutting down");
         try {
           GradleTasksServer.this.stop();
         } catch (InterruptedException e) {
           e.printStackTrace(System.err);
+          Thread.currentThread().interrupt();
         }
-        System.err.println("*** server shut down");
+        logger.error("*** server shut down");
       }
     });
   }
