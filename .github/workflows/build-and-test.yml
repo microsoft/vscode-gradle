@@ -80,6 +80,7 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: lib
+          path: extension/lib
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
