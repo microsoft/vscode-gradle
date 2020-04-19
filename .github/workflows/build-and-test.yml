@@ -17,23 +17,15 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      # - name: Build Java lib
-      #   uses: eskatos/gradle-command-action@v1
-      #   with:
-      #     arguments: generateLib
-      #     build-root-directory: vscode-gradle.tasks-server
-      #     wrapper-directory: vscode-gradle.tasks-server
-      - name: Build proto lib
-        run: |
-          sudo apt-get install protobuf-compiler -y
-          # npm ci
-          npm i
-          npm run compile:proto
+      - name: Build Java lib
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: assemble
       - name: Upload lib
         uses: actions/upload-artifact@v1
         with:
           name: lib
-          path: lib
+          path: extension/lib
 
   analyse:
     name: Analyse
@@ -53,13 +45,10 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: compileJava
-          build-root-directory: vscode-gradle.tasks-server
-          wrapper-directory: vscode-gradle.tasks-server
-      - name: Lint Files
-        run: |
-          # npm ci
-          npm i
-          npm run lint
+      - name: Lint
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: lint
       - name: SonarQube Analyse
         uses: sonarsource/sonarcloud-github-action@master
         env:
@@ -97,14 +86,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
       - name: Set permissions
         run: |
-          chmod +x lib/vscode-gradle.tasks-server
+          chmod +x extension/lib/tasks-server
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Build & test extension on ${{ matrix.os }}
-        run: |
-          # npm ci
-          npm i
-          npm test
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: test
         env:
           DISPLAY: ':99.0'
           CI: 'true'

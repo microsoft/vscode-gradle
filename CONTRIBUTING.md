@@ -10,7 +10,7 @@ Start by opening an issue using one of the issue templates, or propose a change 
 2. Install [Java version >= 8](https://adoptopenjdk.net/)
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
-5. Build project files: `./gradlew build`
+5. Build project files: `./gradlew assemble`
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 
@@ -20,7 +20,7 @@ Open the root of the project in VS Code.
 
 > You _should not_ open the `extension` or `tasks-server` directories in separate windows.
 
-Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations.
+Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations. You can also run `./gradlew test` to run all tests.
 
 ### Code Style
 
