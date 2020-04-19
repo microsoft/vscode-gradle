@@ -20,7 +20,7 @@ Open the root of the project in VS Code.
 
 > You _should not_ open the `extension` or `tasks-server` directories in separate windows.
 
-Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations. You can also run `./gradlew test` to run all tests.
+Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations. You can also run `./gradlew test testVsCode` to run all tests.
 
 ### Code Style
 

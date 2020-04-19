@@ -98,39 +98,6 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  // public async getTasks(sourceDir: string): Promise<GradleTask[] | void> {
-  //   this.statusBarItem.text = localize(
-  //     'client.refreshingTasks',
-  //     '{0} Gradle: Refreshing Tasks',
-  //     '$(sync~spin)'
-  //   );
-  //   this.statusBarItem.show();
-  //   const request = new GetTasksRequest();
-  //   request.setSourceDir(sourceDir);
-  //   const getTasksSteam = this.grpcClient!.getTasks(request);
-  //   try {
-  //     return await new Promise((resolve, reject) => {
-  //       getTasksSteam
-  //         .on('error', reject)
-  //         .on('data', (getTasksReply: GetTasksReply) => {
-  //           switch (getTasksReply.getKindCase()) {
-  //             case GetTasksReply.KindCase.PROGRESS:
-  //               this.handleProgress(getTasksReply.getProgress()!);
-  //               break;
-  //             case GetTasksReply.KindCase.OUTPUT:
-  //               this.handleOutput(getTasksReply.getOutput()!);
-  //               break;
-  //             case GetTasksReply.KindCase.GET_TASKS_RESULT:
-  //               resolve(getTasksReply.getGetTasksResult()!.getTasksList());
-  //               break;
-  //           }
-  //         });
-  //     });
-  //   } finally {
-  //     this.statusBarItem.hide();
-  //   }
-  // }
-
   public async getProject(sourceDir: string): Promise<GradleProject | void> {
     this.statusBarItem.text = localize(
       'client.refreshingTasks',

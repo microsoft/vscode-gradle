@@ -100,12 +100,6 @@ message Cancelled {
   string task = 3;
 }
 
-// message ActionCancelled {
-//   string message = 1;
-//   string source_dir = 2;
-//   string task = 3;
-// }
-
 message Progress { string message = 1; }
 
 message RunTaskResult {
@@ -122,23 +116,3 @@ message Output {
   string message = 1;
   OutputType output_type = 2;
 }
-
-// message Error {
-//   string message = 1;
-// }
-
-// message Info {
-//   string message = 1;
-// }
-
-// message Message {
-//   oneof kind {
-//     ActionCancelled action_cancelled = 1;
-//     Progress progress = 2;
-//     RunTask run_task = 3;
-//     Output output = 4;
-//     Error error = 5;
-//     Info info = 6;
-//     Tasks get_tasks = 7;
-//   }
-// }

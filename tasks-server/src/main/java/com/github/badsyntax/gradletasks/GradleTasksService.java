@@ -15,27 +15,6 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = Logger.getLogger(GradleTasksService.class.getName());
   private static final String SOURCE_DIR_ERROR = "Source directory does not exist: %s";
 
-  // @Override
-  // public void getTasks(GetTasksRequest req, StreamObserver<GetTasksReply> responseObserver) {
-  // try {
-  // File sourceDir = new File(req.getSourceDir().trim());
-  // if (!sourceDir.exists()) {
-  // throw new GradleTasksException(String.format("Source directory does not exist: %s",
-  // req.getSourceDir()));
-  // }
-  // List<GradleTask> gradleTasks = GradleTasksUtil.getTasks(sourceDir, responseObserver);
-  // GetTasksResult result = GetTasksResult.newBuilder().addAllTasks(gradleTasks).build();
-  // GetTasksReply reply = GetTasksReply.newBuilder().setGetTasksResult(result).build();
-  // responseObserver.onNext(reply);
-  // responseObserver.onCompleted();
-  // } catch (GradleTasksException e) {
-  // logger.warning(e.getMessage());
-  // StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
-  // Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
-  // responseObserver.onError(exception);
-  // }
-  // }
-
   @Override
   public void getProject(GetProjectRequest req, StreamObserver<GetProjectReply> responseObserver) {
     try {

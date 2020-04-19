@@ -11,77 +11,75 @@ targetCompatibility = 1.8
 
 dependencies {
     compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
-    compileOnly "javax.annotation:javax.annotation-api:1.2"
+    compileOnly 'javax.annotation:javax.annotation-api:1.2'
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
     runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
-    testImplementation "junit:junit:4.12"
-    testImplementation "org.mockito:mockito-core:2.28.2"
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.mockito:mockito-core:2.28.2'
 }
 
 sourceSets {
-    libsDirName = file('../extension/lib')
-    main {
-        proto {
-            srcDir file('../proto')
-        }
-        java {
-            srcDirs 'build/generated/source/proto/main/grpc'
-            srcDirs 'build/generated/source/proto/main/java'
-        }
+  libsDirName = file('../extension/lib')
+  main {
+    proto {
+      srcDir file('../proto')
     }
+    java {
+      srcDirs 'build/generated/source/proto/main/grpc'
+      srcDirs 'build/generated/source/proto/main/java'
+    }
+  }
 }
 
 protobuf {
-    plugins {
-        grpc {
-            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
-        }
+  plugins {
+    grpc {
+      artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
     }
-    generateProtoTasks {
-        // compileJava.enabled = false;
-        all().each { task ->
-            task.plugins {
-                grpc {}
-            }
-            task.builtins {
-                remove distribution
-            }
-        }
+  }
+  generateProtoTasks {
+    all().each { task ->
+      task.plugins {
+        grpc {}
+      }
+      task.builtins {
+        remove distribution
+      }
     }
+  }
 }
 
 clean {
-    delete protobuf.generatedFilesBaseDir
-    delete libsDirName
+  delete protobuf.generatedFilesBaseDir
+  delete libsDirName
 }
 
 shadowJar {
-    classifier = null
-    // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
-    // minimize()
+  classifier = null
+  // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
+  // minimize()
 }
 
 application {
-    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+  mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
 }
 
 startScripts.enabled = false
-// scriptsShadow.enabled = false;
 jar.enabled = false
 distZip.enabled = false
 distTar.enabled = false
 assemble.enabled = false;
 
 task gradleTasksServerLib(type: CreateStartScripts) {
-    dependsOn shadowJar
-    outputDir = file(libsDirName)
-    mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
-    applicationName = project.name
-    classpath = shadowJar.outputs.files
-    unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
-    windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
+  dependsOn shadowJar
+  outputDir = file(libsDirName)
+  mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
+  applicationName = project.name
+  classpath = shadowJar.outputs.files
+  unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
+  windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
 }
 
-build.dependsOn gradleTasksServerLib
+assemble.dependsOn gradleTasksServerLib
