@@ -78,24 +78,24 @@ task copyProtoTs(type: Copy) {
   }
 }
 
-task npmInstall(type: Exec) {
+task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
   commandLine 'npm', 'install'
 }
 
-task lint(type: Exec) {
+task lint(type: CrossPlatformExec) {
   description 'Lints source files'
   commandLine 'npm', 'run', 'lint'
 }
 
-task format(type: Exec) {
+task format(type: CrossPlatformExec) {
   description 'Formats source files'
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildTypeScript(type: Exec) {
+task buildTypeScript(type: CrossPlatformExec) {
   dependsOn assemble, copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript source files'
@@ -105,14 +105,14 @@ task buildTypeScript(type: Exec) {
   commandLine 'npm', 'run', 'compile:ts'
 }
 
-task watchTypeScript(type: Exec) {
+task watchTypeScript(type: CrossPlatformExec) {
   dependsOn assemble, copyProtoJs, copyProtoTs
   group 'build'
   description 'Watches and builds TypeScript source files'
   commandLine 'npm', 'run', 'watch:ts'
 }
 
-task testVsCode(type: Exec) {
+task testVsCode(type: CrossPlatformExec) {
   dependsOn assemble, copyProtoJs, copyProtoTs
   group 'verification'
   description 'Tests the extension'
