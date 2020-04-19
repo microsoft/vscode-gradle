@@ -7,7 +7,7 @@ import { buildGradleServerTask } from './tasks';
 
 const localize = nls.loadMessageBundle();
 const isDebuggingServer = (): boolean =>
-  process.env.VSCODE_DEBUGGING_SERVER?.toLowerCase() === 'true';
+  process.env.VSCODE_DEBUG_SERVER?.toLowerCase() === 'true';
 
 export interface ServerOptions {
   host: string;

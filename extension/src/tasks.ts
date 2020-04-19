@@ -12,7 +12,7 @@ import {
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
 import {
-  /*GradleTask, */ Output,
+  Output,
   GradleProject,
   GradleTask,
   Cancelled,
@@ -292,22 +292,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       this.client
     );
   }
-
-  // private async getGradleTasks(
-  //   projectFolder: vscode.Uri
-  // ): Promise<GradleTask[] | void> {
-  //   try {
-  //     return await this.client?.getTasks(projectFolder.fsPath);
-  //   } catch (err) {
-  //     logger.error(
-  //       localize(
-  //         'tasks.errorRefreshingTasks',
-  //         'Error providing gradle tasks: {0}',
-  //         err.details || err.message
-  //       )
-  //     );
-  //   }
-  // }
 }
 
 export function invalidateTasksCache(): void {

@@ -3,9 +3,6 @@ import * as nls from 'vscode-nls';
 import * as grpc from '@grpc/grpc-js';
 
 import {
-  // GetTasksRequest,
-  // GradleTask,
-  // GetTasksReply,
   Progress,
   RunTaskRequest,
   RunTaskReply,
@@ -326,9 +323,9 @@ export class GradleTasksClient implements vscode.Disposable {
 }
 
 export function registerClient(
-  context: vscode.ExtensionContext,
+  server: GradleTasksServer,
   statusBarItem: vscode.StatusBarItem,
-  server: GradleTasksServer
+  context: vscode.ExtensionContext
 ): GradleTasksClient {
   const client = new GradleTasksClient(context, server, statusBarItem);
   context.subscriptions.push(client);

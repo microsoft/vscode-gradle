@@ -127,6 +127,7 @@ function registerExplorerFlatCommand(
   });
 }
 
+// TODO: not used
 function registerKillGradleProcessCommand(
   client: GradleTasksClient,
   statusBarItem: vscode.StatusBarItem
@@ -154,7 +155,6 @@ function registerCancelGradleProcessesCommand(
     try {
       client.cancelGetProjects();
       client.cancelRunTasks();
-      // stopRunningGradleTasks();
       statusBarItem.hide();
     } catch (e) {
       localize(

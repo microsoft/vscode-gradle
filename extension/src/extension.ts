@@ -24,7 +24,7 @@ export async function activate(
   statusBarItem.command = 'gradle.showProcessMessage';
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
   const server = registerServer({ host: 'localhost' }, context);
-  const client = registerClient(context, statusBarItem, server);
+  const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
   const treeDataProvider = registerExplorer(context);
   registerCommands(
@@ -36,5 +36,6 @@ export async function activate(
   );
   return { treeDataProvider, context, client, logger };
 }
+
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 export function deactivate(): void {}
