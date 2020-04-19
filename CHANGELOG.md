@@ -4,7 +4,7 @@
 
 ## 2.5.1
 
-- Fix excessive server restart message (#266) 
+- Fix excessive server restart message (#266)
 - Update java project config after running tasks. Refs #263 (#264)
 
 ## 2.5.0
