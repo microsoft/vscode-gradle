@@ -82,6 +82,10 @@ export class GradleTasksServer implements vscode.Disposable {
     }
   }
 
+  public getTaskName(): string {
+    return this.taskName;
+  }
+
   public async showRestartMessage(): Promise<void> {
     const OPT_RESTART = localize('server.restartServer', 'Restart Server');
     const input = await vscode.window.showErrorMessage(

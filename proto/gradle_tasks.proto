@@ -7,35 +7,31 @@ option java_outer_classname = "GradleTasksProto";
 package gradletasks;
 
 service GradleTasks {
-  // rpc GetTasks (stream GetTasksRequest) returns (stream GetTasksReply) {}
   rpc GetProject(GetProjectRequest) returns (stream GetProjectReply) {}
   rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
   rpc CancelGetProjects(CancelGetProjectsRequest)
       returns (stream CancelGetProjectsReply) {}
   rpc CancelRunTask(CancelRunTaskRequest) returns (stream CancelRunTaskReply) {}
+  rpc CancelRunTasks(CancelRunTasksRequest)
+      returns (stream CancelRunTasksReply) {}
 }
 
 message CancelGetProjectsRequest {}
 
-message CancelGetProjectsReply {}
+message CancelGetProjectsReply { string message = 1; }
 
 message GetTasksRequest { string source_dir = 1; }
 
 message GetProjectRequest { string source_dir = 1; }
 
-message GetTasksReply {
-  oneof kind {
-    GetTasksResult get_tasks_result = 1;
-    Progress progress = 2;
-    Output output = 3;
-  }
-}
+
 
 message GetProjectReply {
   oneof kind {
     GetProjectResult get_project_result = 1;
     Progress progress = 2;
     Output output = 3;
+    Cancelled cancelled = 4;
   }
 }
 
@@ -65,11 +61,19 @@ message CancelRunTaskReply {
   string task = 2;
 }
 
+message CancelRunTasksRequest {
+  string source_dir = 1;
+  string task = 2;
+}
+
+message CancelRunTasksReply { string message = 1; }
+
 message RunTaskReply {
   oneof kind {
     RunTaskResult run_task_result = 1;
     Progress progress = 2;
     Output output = 3;
+    Cancelled cancelled = 4;
   }
 }
 
@@ -88,6 +92,12 @@ message GradleTask {
   string buildFile = 5;
   string rootProject = 6;
   string description = 7;
+}
+
+message Cancelled {
+  string message = 1;
+  string source_dir = 2;
+  string task = 3;
 }
 
 // message ActionCancelled {
@@ -110,7 +120,7 @@ message Output {
   }
 
   string message = 1;
-  OutputType output_type = 3;
+  OutputType output_type = 2;
 }
 
 // message Error {

@@ -111,5 +111,5 @@ task watchTypeScript(type: Exec) {
   commandLine "npm", "run", "watch:ts"
 }
 
-build.finalizedBy buildTypeScript
 build.dependsOn ':tasks-server:build', npmInstall
+build.finalizedBy buildTypeScript

@@ -133,8 +133,28 @@ function registerKillGradleProcessCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('gradle.killGradleProcess', () => {
     try {
-      client.stopGetTasks();
+      client.cancelGetProjects();
       stopRunningGradleTasks();
+      statusBarItem.hide();
+    } catch (e) {
+      localize(
+        'commands.errorStoppingTasks',
+        'Unable to stop tasks: {0}',
+        e.message
+      );
+    }
+  });
+}
+
+function registerCancelGradleProcessesCommand(
+  client: GradleTasksClient,
+  statusBarItem: vscode.StatusBarItem
+): vscode.Disposable {
+  return vscode.commands.registerCommand('gradle.cancelGradleProcesses', () => {
+    try {
+      client.cancelGetProjects();
+      client.cancelRunTasks();
+      // stopRunningGradleTasks();
       statusBarItem.hide();
     } catch (e) {
       localize(
@@ -163,7 +183,7 @@ function registerShowProcessMessageCommand(): vscode.Disposable {
       if (input === OPT_LOGS) {
         logger.getChannel()?.show();
       } else if (input === OPT_CANCEL) {
-        vscode.commands.executeCommand('gradle.killGradleProcess');
+        vscode.commands.executeCommand('gradle.cancelGradleProcesses');
       }
     }
   );
@@ -253,6 +273,7 @@ export function registerCommands(
     registerExplorerTreeCommand(treeDataProvider),
     registerExplorerFlatCommand(treeDataProvider),
     registerKillGradleProcessCommand(client, statusBarItem),
+    registerCancelGradleProcessesCommand(client, statusBarItem),
     registerShowProcessMessageCommand(),
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),

@@ -6,32 +6,34 @@ import java.util.logging.Logger;
 
 import com.google.rpc.Code;
 import com.google.rpc.Status;
-
+import org.gradle.tooling.BuildCancelledException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.protobuf.StatusProto;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = Logger.getLogger(GradleTasksService.class.getName());
+  private static final String SOURCE_DIR_ERROR = "Source directory does not exist: %s";
 
   // @Override
   // public void getTasks(GetTasksRequest req, StreamObserver<GetTasksReply> responseObserver) {
-  //   try {
-  //     File sourceDir = new File(req.getSourceDir().trim());
-  //     if (!sourceDir.exists()) {
-  //       throw new GradleTasksException(String.format("Source directory does not exist: %s", req.getSourceDir()));
-  //     }
-  //     List<GradleTask> gradleTasks = GradleTasksUtil.getTasks(sourceDir, responseObserver);
-  //     GetTasksResult result = GetTasksResult.newBuilder().addAllTasks(gradleTasks).build();
-  //     GetTasksReply reply = GetTasksReply.newBuilder().setGetTasksResult(result).build();
-  //     responseObserver.onNext(reply);
-  //     responseObserver.onCompleted();
-  //   } catch (GradleTasksException e) {
-  //     logger.warning(e.getMessage());
-  //     StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
-  //         Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
-  //     responseObserver.onError(exception);
-  //   }
+  // try {
+  // File sourceDir = new File(req.getSourceDir().trim());
+  // if (!sourceDir.exists()) {
+  // throw new GradleTasksException(String.format("Source directory does not exist: %s",
+  // req.getSourceDir()));
+  // }
+  // List<GradleTask> gradleTasks = GradleTasksUtil.getTasks(sourceDir, responseObserver);
+  // GetTasksResult result = GetTasksResult.newBuilder().addAllTasks(gradleTasks).build();
+  // GetTasksReply reply = GetTasksReply.newBuilder().setGetTasksResult(result).build();
+  // responseObserver.onNext(reply);
+  // responseObserver.onCompleted();
+  // } catch (GradleTasksException e) {
+  // logger.warning(e.getMessage());
+  // StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
+  // Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
+  // responseObserver.onError(exception);
+  // }
   // }
 
   @Override
@@ -39,18 +41,16 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
-        throw new GradleTasksException(String.format("Source directory does not exist: %s", req.getSourceDir()));
+        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
       }
-      GradleProject gradleProject = GradleTasksUtil.getProject(sourceDir, responseObserver);
-      GetProjectResult result = GetProjectResult.newBuilder().setProject(gradleProject).build();
-      GetProjectReply reply = GetProjectReply.newBuilder().setGetProjectResult(result).build();
-      responseObserver.onNext(reply);
-      responseObserver.onCompleted();
+      GradleTasksUtil.getProject(sourceDir, responseObserver);
     } catch (GradleTasksException e) {
       logger.warning(e.getMessage());
-      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
-          Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
+      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
+          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
+    } finally {
+      responseObserver.onCompleted();
     }
   }
 
@@ -59,19 +59,49 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
-        throw new GradleTasksException(String.format("Source directory does not exist: %s", req.getSourceDir()));
+        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
       }
       GradleTasksUtil.runTask(sourceDir, req.getTask(), req.getArgsList(), responseObserver);
-      RunTaskResult result = RunTaskResult.newBuilder().setMessage("Successfully run task").setTask(req.getTask())
-          .build();
-      RunTaskReply reply = RunTaskReply.newBuilder().setRunTaskResult(result).build();
-      responseObserver.onNext(reply);
-      responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.warning(e.getMessage());
-      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(
-          Status.newBuilder().setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
+      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
+          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
+    } finally {
+      responseObserver.onCompleted();
     }
+  }
+
+  @Override
+  public void cancelGetProjects(CancelGetProjectsRequest req,
+      StreamObserver<CancelGetProjectsReply> responseObserver) {
+    GradleTasksUtil.cancelGetProjects(responseObserver);
+    responseObserver.onCompleted();
+  }
+
+  @Override
+  public void cancelRunTask(CancelRunTaskRequest req,
+      StreamObserver<CancelRunTaskReply> responseObserver) {
+    try {
+      File sourceDir = new File(req.getSourceDir().trim());
+      if (!sourceDir.exists()) {
+        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
+      }
+      GradleTasksUtil.cancelRunTask(sourceDir, req.getTask(), responseObserver);
+    } catch (GradleTasksException e) {
+      logger.warning(e.getMessage());
+      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
+          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
+      responseObserver.onError(exception);
+    } finally {
+      responseObserver.onCompleted();
+    }
+  }
+
+  @Override
+  public void cancelRunTasks(CancelRunTasksRequest req,
+      StreamObserver<CancelRunTasksReply> responseObserver) {
+    GradleTasksUtil.cancelRunTasks(responseObserver);
+    responseObserver.onCompleted();
   }
 }

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getIsDebugEnabled } from './config';
 
 type logType = 'info' | 'warning' | 'error' | 'debug';
 
@@ -25,7 +26,9 @@ export class Logger {
   }
 
   public debug(message: string): void {
-    this.log(message, 'debug');
+    if (getIsDebugEnabled()) {
+      this.log(message, 'debug');
+    }
   }
 
   public getChannel(): vscode.OutputChannel | undefined {

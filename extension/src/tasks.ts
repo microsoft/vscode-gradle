@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as nls from 'vscode-nls';
 import {
   getIsAutoDetectionEnabled,
-  getIsDebugEnabled,
   getTaskPresentationOptions,
   getJavaHome,
   ConfigTaskPresentationOptions,
@@ -16,6 +15,7 @@ import {
   /*GradleTask, */ Output,
   GradleProject,
   GradleTask,
+  Cancelled,
 } from './proto/gradle_tasks_pb';
 
 const localize = nls.loadMessageBundle();
@@ -154,6 +154,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
           );
         }
         for (const projectFolder of projectFolders) {
+          // TODO
+          // Can't we do this in parallel?
           const gradleProject = await this.getGradleProjectFromRootProjectFolder(
             projectFolder
           );
@@ -356,10 +358,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   close(): void {
-    this.client.stopTask(this.sourceDir, this.task.definition.script);
+    this.client.cancelRunTask(this.sourceDir, this.task.definition.script);
   }
 
-  private handleLogMessage(message: string): void {
+  private handleOutput(message: string): void {
     const logMessage = message.trim();
     if (logMessage) {
       this.writeEmitter.fire(message + '\r\n');
@@ -371,11 +373,15 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       await this.client.runTask(
         this.sourceDir,
-        this.task.definition as GradleTaskDefinition,
+        this.task.definition.script,
         args,
         (output: Output): void => {
-          this.handleLogMessage(output.getMessage());
+          this.handleOutput(output.getMessage());
         }
+      );
+      vscode.commands.executeCommand(
+        'gradle.updateJavaProjectConfiguration',
+        vscode.Uri.file(this.task.definition.buildFile)
       );
     } finally {
       setTimeout(() => {
@@ -471,10 +477,8 @@ export function buildGradleServerTask(
   args: string[] = []
 ): vscode.Task {
   const cmd = `"${getGradleTasksServerCommand()}"`;
-  if (getIsDebugEnabled()) {
-    logger.debug(`Gradle Tasks Server dir: ${cwd}`);
-    logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
-  }
+  logger.debug(`Gradle Tasks Server dir: ${cwd}`);
+  logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
   const taskType = 'gradle';
   const definition = {
     type: taskType,
@@ -505,17 +509,13 @@ export function buildGradleServerTask(
   return task;
 }
 
-// export function handleCancelledTaskMessage(
-//   message: ServerMessage.ActionCancelled
-// ): void {
-//   setStoppedTaskAsComplete(message.getTask(), message.getSourceDir());
-//   logger.info(
-//     localize('tasks.taskCancelled', 'Task cancelled: {0}', message.getMessage())
-//   );
-//   vscode.commands.executeCommand('gradle.explorerRender');
-// }
+export function handleCancelledTask(cancelled: Cancelled): void {
+  setStoppedTaskAsComplete(cancelled.getTask(), cancelled.getSourceDir());
+  vscode.commands.executeCommand('gradle.explorerRender');
+}
 
 export function runTask(task: vscode.Task): void {
+  // TODO: check task ins't already running
   vscode.tasks.executeTask(task);
 }
 

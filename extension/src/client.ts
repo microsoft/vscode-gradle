@@ -13,12 +13,18 @@ import {
   GetProjectRequest,
   GetProjectReply,
   GradleProject,
+  CancelGetProjectsRequest,
+  CancelGetProjectsReply,
+  CancelRunTaskRequest,
+  CancelRunTaskReply,
+  CancelRunTasksReply,
+  Cancelled,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
-import { GradleTaskDefinition } from './tasks';
+import { handleCancelledTask } from './tasks';
 
 const localize = nls.loadMessageBundle();
 
@@ -56,8 +62,9 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   public handleServerReady = (): void => {
-    logger.info(
-      localize('client.connecting', 'Gradle client connecting to server...')
+    logger.debug(
+      // TODO
+      localize('client.connecting', 'Gradle client connecting to server')
     );
     this.connectToServer();
   };
@@ -68,8 +75,9 @@ export class GradleTasksClient implements vscode.Disposable {
     } else {
       logger.info(
         localize(
+          // TODO
           'client.connected',
-          'Gradle client successfully connected to server!'
+          'Gradle client connected to server'
         )
       );
       this._onConnect.fire();
@@ -145,12 +153,25 @@ export class GradleTasksClient implements vscode.Disposable {
               case GetProjectReply.KindCase.OUTPUT:
                 this.handleOutput(getProjectReply.getOutput()!);
                 break;
+              case GetProjectReply.KindCase.CANCELLED:
+                this.handleGetProjectCancelled(getProjectReply.getCancelled()!);
+                break;
               case GetProjectReply.KindCase.GET_PROJECT_RESULT:
                 resolve(getProjectReply.getGetProjectResult()!.getProject());
                 break;
             }
           });
       });
+    } catch (err) {
+      logger.error(
+        // TODO
+        localize(
+          'client.errorGettingProjectData',
+          'Error getting project data for {0}: {1}',
+          sourceDir,
+          err.message
+        )
+      );
     } finally {
       this.statusBarItem.hide();
     }
@@ -158,15 +179,14 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async runTask(
     sourceDir: string,
-    taskDefinition: GradleTaskDefinition,
+    task: string,
     args: string[],
-    onOutput: (output: Output) => void = this.handleOutput,
-    onProgress: (progress: Progress) => void = this.handleProgress
+    onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
     const request = new RunTaskRequest();
     request.setSourceDir(sourceDir);
-    request.setTask(taskDefinition.script);
+    request.setTask(task);
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
@@ -176,7 +196,7 @@ export class GradleTasksClient implements vscode.Disposable {
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
-                onProgress(runTaskReply.getProgress()!);
+                this.handleProgress(runTaskReply.getProgress()!);
                 break;
               case RunTaskReply.KindCase.OUTPUT:
                 onOutput(runTaskReply.getOutput()!);
@@ -184,16 +204,13 @@ export class GradleTasksClient implements vscode.Disposable {
               case RunTaskReply.KindCase.RUN_TASK_RESULT:
                 resolve();
                 break;
+              case RunTaskReply.KindCase.CANCELLED:
+                this.handleRunTaskCancelled(runTaskReply.getCancelled()!);
+                break;
             }
           });
       });
-      logger.info(
-        localize('client.completedTask', 'Completed {0}', taskDefinition.script)
-      );
-      vscode.commands.executeCommand(
-        'gradle.updateJavaProjectConfiguration',
-        vscode.Uri.file(taskDefinition.buildFile)
-      );
+      logger.info(localize('client.completedTask', 'Completed {0}', task));
     } catch (e) {
       logger.error(
         localize(
@@ -207,43 +224,101 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  // eslint-disable-next-line sonarjs/no-identical-functions
-  public async stopTask(sourceDir: string, task: string): Promise<void> {
-    if (this.grpcClient) {
-      // try {
-      //   const stopTask = new ClientMessage.StopTask();
-      //   stopTask.setSourceDir(sourceDir);
-      //   stopTask.setTask(task);
-      //   const message = new ClientMessage.Message();
-      //   message.setStopTask(stopTask);
-      //   await this.sendMessage(message);
-      // } catch (e) {
-      //   logger.error(
-      //     localize(
-      //       'client.errorStoppingTask',
-      //       'Error stopping task: {0}',
-      //       e.message
-      //     )
-      //   );
-      // } finally {
-      //   this.statusBarItem.hide();
-      // }
+  public async cancelRunTask(sourceDir: string, task: string): Promise<void> {
+    const request = new CancelRunTaskRequest();
+    request.setSourceDir(sourceDir);
+    request.setTask(task);
+    const cancelRunTaskStream = this.grpcClient!.cancelRunTask(request);
+    try {
+      const message: string = await new Promise((resolve, reject) => {
+        cancelRunTaskStream
+          .on('error', reject)
+          .on('data', (cancelRunTaskReply: CancelRunTaskReply) => {
+            resolve(cancelRunTaskReply.getMessage());
+          });
+      });
+      logger.info(message);
+    } catch (e) {
+      logger.error(
+        // TODO
+        localize(
+          'client.errorCancellingRunningTask',
+          'Error cancelling running task: {0}',
+          e.message
+        )
+      );
     }
   }
 
-  public async stopGetTasks(sourceDir = ''): Promise<void> {
-    // if (this.grpcClient) {
-    //   try {
-    //     const stopGetTasks = new ClientMessage.StopGetTasks();
-    //     stopGetTasks.setSourceDir(sourceDir);
-    //     const message = new ClientMessage.Message();
-    //     message.setStopGetTasks(stopGetTasks);
-    //     await this.sendMessage(message);
-    //   } finally {
-    //     this.statusBarItem.hide();
-    //   }
-    // }
+  public async cancelRunTasks(): Promise<void> {
+    const request = new CancelRunTaskRequest();
+    const cancelRunTasksStream = this.grpcClient!.cancelRunTasks(request);
+    try {
+      const message: string = await new Promise((resolve, reject) => {
+        cancelRunTasksStream
+          .on('error', reject)
+          .on('data', (cancelRunTasksReply: CancelRunTasksReply) => {
+            resolve(cancelRunTasksReply.getMessage());
+          });
+      });
+      logger.info(message);
+    } catch (e) {
+      logger.error(
+        // TODO
+        localize(
+          'client.errorCancellingRunningTasks',
+          'Error cancelling running tasks: {0}',
+          e.message
+        )
+      );
+    }
   }
+
+  public async cancelGetProjects(): Promise<void> {
+    const request = new CancelGetProjectsRequest();
+    const cancelGetProjectsStream = this.grpcClient!.cancelGetProjects(request);
+    try {
+      const message: string = await new Promise((resolve, reject) => {
+        cancelGetProjectsStream
+          .on('error', reject)
+          .on('data', (cancelGetProjectsReply: CancelGetProjectsReply) => {
+            resolve(cancelGetProjectsReply.getMessage());
+          });
+      });
+      logger.info(message);
+    } catch (e) {
+      logger.error(
+        // TODO
+        localize(
+          'client.errorCancellingGetProjects',
+          'Error cancelling get projects data process: {0}',
+          e.message
+        )
+      );
+    }
+  }
+
+  private handleRunTaskCancelled = (cancelled: Cancelled): void => {
+    logger.info(
+      localize(
+        'tasks.taskCancelled',
+        'Task cancelled: {0}',
+        cancelled.getMessage()
+      )
+    );
+    handleCancelledTask(cancelled);
+  };
+
+  private handleGetProjectCancelled = (cancelled: Cancelled): void => {
+    // TODO
+    logger.info(
+      localize(
+        'tasks.getProjectCancelled',
+        'Task cancelled: {0}',
+        cancelled.getMessage()
+      )
+    );
+  };
 
   private handleProgress = (progress: Progress): void => {
     const messageStr = progress.getMessage().trim();
