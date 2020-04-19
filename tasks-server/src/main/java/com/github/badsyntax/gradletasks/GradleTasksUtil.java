@@ -149,9 +149,8 @@ public class GradleTasksUtil {
   private static GradleProject buildProject(org.gradle.tooling.model.GradleProject gradleProject) {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
-    gradleProject.getChildren().stream().forEach(childGradleProject -> {
-      project.addSubProjects(buildProject(childGradleProject));
-    });
+    gradleProject.getChildren().stream()
+        .forEach(childGradleProject -> project.addSubProjects(buildProject(childGradleProject)));
     gradleProject.getTasks().stream().forEach(task -> {
       GradleTask.Builder gradleTask = GradleTask.newBuilder()
           .setProject(task.getProject().getName()).setName(task.getName()).setPath(task.getPath())
