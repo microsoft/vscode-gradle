@@ -21,6 +21,7 @@ async function runTestsWithGradle(): Promise<void> {
       ],
       extensionTestsEnv: {
         FIXTURE_NAME: fixture,
+        VSCODE_TEST: 'true',
       },
     });
   }
@@ -34,6 +35,9 @@ async function runTestsWithoutGradle(): Promise<void> {
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions',
     ],
+    extensionTestsEnv: {
+      VSCODE_TEST: 'true',
+    },
   });
 }
 
@@ -50,6 +54,7 @@ async function runTestsWithMultiRoot(): Promise<void> {
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root',
+      VSCODE_TEST: 'true',
     },
   });
 }
@@ -64,6 +69,7 @@ async function runTestsWithMultiProject(): Promise<void> {
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project',
+      VSCODE_TEST: 'true',
     },
   });
 }
@@ -78,6 +84,7 @@ async function runTestsWithNestedProjects(): Promise<void> {
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'nested-projects',
+      VSCODE_TEST: 'true',
     },
   });
 }

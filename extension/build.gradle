@@ -96,20 +96,30 @@ task format(type: Exec) {
 }
 
 task buildTypeScript(type: Exec) {
-  dependsOn build, copyProtoJs, copyProtoTs
+  dependsOn assemble, copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript source files'
   buildDir = 'out'
   outputs.dir("$buildDir")
+  inputs.dir('src')
   commandLine "npm", "run", "compile:ts"
 }
 
 task watchTypeScript(type: Exec) {
-  dependsOn build, copyProtoJs, copyProtoTs
+  dependsOn assemble, copyProtoJs, copyProtoTs
   group 'build'
   description 'Watches and builds TypeScript source files'
   commandLine "npm", "run", "watch:ts"
 }
 
-build.dependsOn ':tasks-server:build', npmInstall
-build.finalizedBy buildTypeScript
+task testVscode(type: Exec) {
+  dependsOn assemble, copyProtoJs, copyProtoTs
+  group 'verification'
+  description 'Tests the extension'
+  commandLine "npm", "run", "test"
+}
+
+build.dependsOn ':tasks-server:build'
+assemble.finalizedBy buildTypeScript
+assemble.dependsOn ':tasks-server:build', npmInstall
+test.dependsOn testVscode

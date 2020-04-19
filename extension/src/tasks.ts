@@ -19,6 +19,9 @@ import {
 } from './proto/gradle_tasks_pb';
 
 const localize = nls.loadMessageBundle();
+const isTest = (): boolean => {
+  return (process.env.VSCODE_TEST || '').toLowerCase() === 'true';
+};
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -167,14 +170,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
                 gradleProject
               )
             );
-            console.log('gradleProject', gradleProject);
           }
-          // allTasks.push(
-          //   ...(await this.provideGradleTasksForFolder(
-          //     workspaceFolder,
-          //     projectFolder
-          //   ))
-          // );
         }
       }
     }
@@ -343,7 +339,7 @@ function isTaskOfType(definition: GradleTaskDefinition, type: string): boolean {
 
 class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private writeEmitter = new vscode.EventEmitter<string>();
-  onDidWrite: vscode.Event<string> = this.writeEmitter.event;
+  public onDidWrite: vscode.Event<string> = this.writeEmitter.event;
   private closeEmitter = new vscode.EventEmitter<void>();
   onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 
@@ -365,6 +361,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     const logMessage = message.trim();
     if (logMessage) {
       this.writeEmitter.fire(message + '\r\n');
+    }
+    // This allows us to test process stdout via the logger
+    if (isTest()) {
+      logger.info(message);
     }
   }
 
