@@ -17,3 +17,6 @@ bin/
 
 # Java class files
 *.class
+
+# direnv
+.envrc
