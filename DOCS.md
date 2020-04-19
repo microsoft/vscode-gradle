@@ -1,59 +1,43 @@
 # Gradle Tasks Documentation
 
-## Context
+## Overview
 
-This extension provides a UI layer over the Gradle Task modelling. It shows Gradle projects and associated tasks and allows you to run those tasks within the context of the Editor.
+This extension provides a UI layer over the Gradle Task graph. It shows Gradle projects and associated tasks and allows you to run those tasks within the context of the editor.
 
-The extension has been built to support *Gradle*, not just *Java projects using Gradle*. It can work alongside other extensions like the Java language support extension.
+The extension has been built to support *Gradle*, not just *Java projects using Gradle*, but it can work alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 ## Architecture Overview
 
-The extension uses client/server architecture using gRPC as the interface between the client and the server, and is a similar architecture to the language-server protocol.
+The extension uses client/server architecture using [gRPC](https://grpc.io/) as the interface between the client and server. It uses TypeScript (Node.js) on the client and Java on the server.
 
 On extension activate, the client starts the Java gRPC server which remains running for the period the extension is activated. A long running server provides very good performance.
 
-Protobuf buffers are used to define the messages and provides consistent abstractions on the server & client, provides strict typing and is quicker than JSON to serialise and deserilase the messages. The Java & JavaScript message classes, as well as the client and server interfaces, are generated from the protobuf files via the protoc compiler using the gRPC plugin. TypeScript classes are generated from the generated JavaScript classes, so everything is nicely typed.
+[Protocol buffers](https://developers.google.com/protocol-buffers) are used to define the gRPC service & messages. The Java & JavaScript message classes, as well as the client and server interfaces, are generated from the Protobuf files via the `protoc` compiler. TypeScript type definitions are generated from the JavaScript classes.
 
-The Java server uses the Gradle Tooling Api to discover projects & tasks, and run Gradle tasks.
+The Java server uses the [Gradle Tooling Api](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover projects & tasks, and to run Gradle tasks.
 
 ## Discovering Projects & Tasks
 
 Tasks belong to projects and projects are hierarchical, meaning projects can have sub-projects, and any/all projects in the tree can have tasks.
 
-The gRPC server provides a `getProject` endpoint to provide this hierarchincal data structure, and accepts a `sourceDir` argument, which the client provides.
+The gRPC server provides a `getProject` method to provide this hierarchical data structure, and accepts a `sourceDir` argument, which the client provides.
 
 As the extension supports multi-projects _and_ nested projects, the client needs to know the difference between the two.
 
 A root project (`sourceDir`) is defined by having a gradle wrapper script at the root (`gradlew` or `gradlew.bat`). It can't simply look for `build.gradle`, as sub-projects will also have this build file.
 
-Once the client has discovered all the root projects, it will request project data for each root project (as seperate gRPC calls). Gradle progress and output (`STDERR` & `STDOUT`) are streamed to the client. Once the project is streamed to the client, it builds a single-dimensional list of vscode tasks from the Gradle project tasks. These vscode tasks have definitions that contain all the relevant task & project information.
+Once the client has discovered the root projects, it will request project data for each project via separate gRPC method calls using `getProject`. Gradle progress and output (`STDERR` & `STDOUT`) are streamed to the client. Once the tasks have been discovered and returned to the client, it builds a single-dimensional list of vscode tasks from the Gradle project tasks. These vscode tasks have definitions that contain all the relevant task & project information.
 
 The extension models the project hierarchical structure using the vscode treeView. The treeview data provider consumes the vscode tasks, and builds a tree of projects & tasks using the information provided in the task definitions.
 
 ## Running Tasks
 
-Gradle tasks can be run through either the treeview or via the command pallete.
+Gradle tasks can be run through either the [treeView](https://code.visualstudio.com/api/extension-guides/tree-view) or the Command Palette.
 
-The tasks use the gRPC client to call the `runTask` gRPC server endpoint. Similar to getting project data, Gradle progress and output (`STDERR` & `STDOUT`) is streamed to the client. Tasks are run in a custom vscode terminal.
+The tasks use the gRPC client to call the `runTask` server method. Similar to getting project data, Gradle progress and output (`STDERR` & `STDOUT`) is streamed to the client. Tasks are run in a custom vscode terminal.
 
 ## The Build System
 
-Gradle is used as the build system for the extension, for both the client and the server. Gradle compilse the Java & Protobuff files and runs the relevant tasks to download & build all the dependencies of the project.
+Gradle is used as the build system for the extension, for both the client and the server. Gradle compiles the Java & Protobuff files and runs the relevant tasks to download & build all the dependencies of the project.
 
 Getting started on this extension is as simple as `./gradlew build`.
-
-## Supported Tooling Versions
-
-### Gradle
-
-#### Provider side
-
-The current version of Tooling API supports running builds using Gradle versions 2.6 and later.
-
-#### Consumer side
-
-The current version of Gradle supports running builds via Tooling API versions 3.0 and later.
-
-### Java
-
-The Tooling API requires Java 8 or later. The Gradle version used by builds may have additional Java version requirements.
