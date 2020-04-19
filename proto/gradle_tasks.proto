@@ -24,8 +24,6 @@ message GetTasksRequest { string source_dir = 1; }
 
 message GetProjectRequest { string source_dir = 1; }
 
-
-
 message GetProjectReply {
   oneof kind {
     GetProjectResult get_project_result = 1;

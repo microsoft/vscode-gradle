@@ -35,7 +35,7 @@
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
       "preLaunchTask": "Gradle: Build TypeScript",
       "env": {
-        "VSCODE_DEBUGGING_SERVER": "true"
+        "VSCODE_DEBUG_SERVER": "true"
       },
       "presentation": {
         "hidden": true
