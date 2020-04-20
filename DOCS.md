@@ -38,6 +38,6 @@ The tasks use the gRPC client to call the `runTask` server method. Similar to ge
 
 ## The Build System
 
-Gradle is used as the build system for the extension, for both the client and the server. Gradle compiles the Java & Protobuff files and runs the relevant tasks to download & build all the dependencies of the project.
+Gradle is used as the build system for the extension, for both the client and the server. Gradle compiles the Java & Protobuf files and runs the relevant tasks to download & build all the dependencies of the project. The builds should work on Linux/MacOS & Windows.
 
 Getting started on this extension is as simple as `./gradlew build`.
