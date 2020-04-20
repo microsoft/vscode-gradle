@@ -38,7 +38,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'bdd',
-      timeout: 90000,
+      timeout: 120000,
     });
     mocha.useColors(true);
 
