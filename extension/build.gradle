@@ -1,5 +1,7 @@
 description = 'vscode-gradle :: extension'
 
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+
 sourceSets {
   main {
     proto {
@@ -11,10 +13,14 @@ sourceSets {
 protobuf {
   plugins {
     grpc {
-      path = file('./node_modules/.bin/grpc_tools_node_protoc_plugin')
+      path = file(
+        './node_modules/.bin/grpc_tools_node_protoc_plugin' + (isWindows ? '.cmd' : '')
+      )
     }
     ts {
-      path = file('./node_modules/.bin/protoc-gen-ts')
+      path = file(
+        './node_modules/.bin/protoc-gen-ts' + (isWindows ? '.cmd' : '')
+      )
     }
   }
   generateProtoTasks {
@@ -86,6 +92,7 @@ task npmInstall(type: CrossPlatformExec) {
 }
 
 task lint(type: CrossPlatformExec) {
+  dependsOn npmInstall
   description 'Lints source files'
   commandLine 'npm', 'run', 'lint'
 }
