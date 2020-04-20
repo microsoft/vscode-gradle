@@ -38,7 +38,7 @@ describe(fixtureName, () => {
       assert.ok(extension);
       const task = tasks!.find(({ name }) => name === 'hello');
       assert.ok(task);
-      const stub = sinon.stub(extension!.exports.logger, 'info');
+      const spy = sinon.spy(extension!.exports.logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -47,7 +47,7 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(stub.calledWith(sinon.match('Hello, World!')));
+      assert.ok(spy.calledWith(sinon.match('Hello, World!')));
     });
 
     it('should run a subproject gradle task', async () => {
@@ -59,7 +59,7 @@ describe(fixtureName, () => {
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);
-      const stub = sinon.stub(extension!.exports.logger, 'info');
+      const spy = sinon.spy(extension!.exports.logger, 'info');
       // eslint-disable-next-line sonarjs/no-identical-functions
       await new Promise((resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
@@ -70,7 +70,7 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(stub.calledWith(sinon.match('Hello, World! SubSubProject')));
+      assert.ok(spy.calledWith(sinon.match('Hello, World! SubSubProject')));
     });
   });
 });

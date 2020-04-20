@@ -7,7 +7,7 @@ type logType = 'info' | 'warning' | 'error' | 'debug' | 'task-stdout';
 export class Logger {
   private channel: vscode.OutputChannel | undefined;
 
-  private log(message: string, type: logType): void {
+  public log(message: string, type: logType): void {
     if (!this.channel) {
       throw new Error('No extension output channel defined.');
     }

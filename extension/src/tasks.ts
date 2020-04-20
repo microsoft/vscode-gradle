@@ -349,7 +349,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
       // This allows us to test process stdout via the logger
       if (isTest()) {
         logger.info(stripAnsi(message));
-        console.log(logger.format(stripAnsi(message), 'task-stdout'));
       }
     }
   }

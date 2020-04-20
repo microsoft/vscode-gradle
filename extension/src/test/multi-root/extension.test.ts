@@ -60,7 +60,7 @@ describe(fixtureName, () => {
         const task = tasks!.find(({ name }) => name === 'hello');
         assert.ok(task);
 
-        const stub = sinon.stub(extension!.exports.logger, 'info');
+        const spy = sinon.spy(extension!.exports.logger, 'info');
         await new Promise((resolve) => {
           vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {
@@ -69,7 +69,7 @@ describe(fixtureName, () => {
           });
           vscode.tasks.executeTask(task!);
         });
-        assert.ok(stub.calledWith(sinon.match('Hello, World!')));
+        assert.ok(spy.calledWith(sinon.match('Hello, World!')));
       });
 
       it('should refresh tasks', async () => {

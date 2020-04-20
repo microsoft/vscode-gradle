@@ -136,7 +136,7 @@ export class GradleTasksClient implements vscode.Disposable {
           'client.errorGettingProjectData',
           'Error getting project data for {0}: {1}',
           sourceDir,
-          err.message
+          err.details || err.message
         )
       );
     } finally {
@@ -176,12 +176,12 @@ export class GradleTasksClient implements vscode.Disposable {
           });
       });
       logger.info(localize('client.completedTask', 'Completed task {0}', task));
-    } catch (e) {
+    } catch (err) {
       logger.error(
         localize(
           'client.errorRunningTask',
           'Error running task: {0}',
-          e.message
+          err.details || err.message
         )
       );
     } finally {
@@ -203,13 +203,13 @@ export class GradleTasksClient implements vscode.Disposable {
           });
       });
       logger.info(message);
-    } catch (e) {
+    } catch (err) {
       logger.error(
         // TODO
         localize(
           'client.errorCancellingRunningTask',
           'Error cancelling running task: {0}',
-          e.message
+          err.details || err.message
         )
       );
     }
@@ -227,13 +227,13 @@ export class GradleTasksClient implements vscode.Disposable {
           });
       });
       logger.info(message);
-    } catch (e) {
+    } catch (err) {
       logger.error(
         // TODO
         localize(
           'client.errorCancellingRunningTasks',
           'Error cancelling running tasks: {0}',
-          e.message
+          err.details || err.message
         )
       );
     }
@@ -251,13 +251,13 @@ export class GradleTasksClient implements vscode.Disposable {
           });
       });
       logger.info(message);
-    } catch (e) {
+    } catch (err) {
       logger.error(
         // TODO
         localize(
           'client.errorCancellingGetProjects',
           'Error cancelling get projects data process: {0}',
-          e.message
+          err.details || err.message
         )
       );
     }
