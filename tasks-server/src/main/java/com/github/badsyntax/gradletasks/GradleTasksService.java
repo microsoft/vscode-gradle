@@ -21,13 +21,12 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
         throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
       }
       GradleTasksUtil.getProject(sourceDir, responseObserver);
+      responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
-    } finally {
-      responseObserver.onCompleted();
     }
   }
 
@@ -39,13 +38,12 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
         throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
       }
       GradleTasksUtil.runTask(sourceDir, req.getTask(), req.getArgsList(), responseObserver);
+      responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
-    } finally {
-      responseObserver.onCompleted();
     }
   }
 
@@ -65,13 +63,12 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
         throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
       }
       GradleTasksUtil.cancelRunTask(sourceDir, req.getTask(), responseObserver);
+      responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
       StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
           .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
       responseObserver.onError(exception);
-    } finally {
-      responseObserver.onCompleted();
     }
   }
 
