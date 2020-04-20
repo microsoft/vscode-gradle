@@ -3,8 +3,8 @@ on:
   push:
 
 jobs:
-  analyse:
-    name: Analyse
+  build-and-analyse:
+    name: Build & Analyse
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -17,14 +17,14 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Lint
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: lint
       - name: Build Project
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build
+      - name: Lint
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: lint
       - name: SonarQube Analyse
         uses: eskatos/gradle-command-action@v1
         with:
@@ -33,9 +33,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ''
+      - name: Upload lib
+        uses: actions/upload-artifact@v1
+        with:
+          name: lib
+          path: extension/lib
 
+  # Although the gradle build can run in all environments, we exclude tasks to
+  # build the Java lib to better mimic real-world situations, where the Java lib
+  # is built & published using on one environment (linux).
   test-extension:
-    needs: [analyse]
+    needs: [build-and-analyse]
     name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -57,7 +65,12 @@ jobs:
       - name: Build Project
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build
+          arguments: build -x gradleTasksServerLib -x compileJava -x shadowJar -x startShadowScripts
+      - name: Download lib
+        uses: actions/download-artifact@v1
+        with:
+          name: lib
+          path: extension/lib
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -70,7 +83,7 @@ jobs:
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: testVsCode
+          arguments: testVsCode -x gradleTasksServerLib -x compileJava -x shadowJar -x startShadowScripts
         env:
           DISPLAY: ':99.0'
           CI: 'true'
