@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { getIsDebugEnabled } from './config';
+import { isTest } from './util';
 
-type logType = 'info' | 'warning' | 'error' | 'debug';
+type logType = 'info' | 'warning' | 'error' | 'debug' | 'task-stdout';
 
 export class Logger {
   private channel: vscode.OutputChannel | undefined;
@@ -10,7 +11,17 @@ export class Logger {
     if (!this.channel) {
       throw new Error('No extension output channel defined.');
     }
-    this.channel.appendLine(`[${type}] ${message}`);
+    const logMessage = this.format(message, type);
+    this.channel.appendLine(logMessage);
+    if (isTest()) {
+      console.log(logMessage);
+    } else {
+      console.log('no test');
+    }
+  }
+
+  public format(message: string, type: logType): string {
+    return `[${type}] ${message}`;
   }
 
   public info(message: string): void {

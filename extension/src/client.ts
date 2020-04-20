@@ -91,6 +91,7 @@ export class GradleTasksClient implements vscode.Disposable {
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
       this.grpcClient.waitForReady(deadline, this.handleClientReady);
     } catch (err) {
+      // TODO
       logger.error(`Unable to construct the gRPC client: ${err.message}`);
     }
   }
@@ -107,8 +108,10 @@ export class GradleTasksClient implements vscode.Disposable {
     const getProjectStream = this.grpcClient!.getProject(request);
     try {
       return await new Promise((resolve, reject) => {
+        let project: GradleProject | void = undefined;
         getProjectStream
           .on('error', reject)
+          .on('end', () => resolve(project))
           .on('data', (getProjectReply: GetProjectReply) => {
             switch (getProjectReply.getKindCase()) {
               case GetProjectReply.KindCase.PROGRESS:
@@ -121,7 +124,7 @@ export class GradleTasksClient implements vscode.Disposable {
                 this.handleGetProjectCancelled(getProjectReply.getCancelled()!);
                 break;
               case GetProjectReply.KindCase.GET_PROJECT_RESULT:
-                resolve(getProjectReply.getGetProjectResult()!.getProject());
+                project = getProjectReply.getGetProjectResult()!.getProject();
                 break;
             }
           });
@@ -157,6 +160,7 @@ export class GradleTasksClient implements vscode.Disposable {
       await new Promise((resolve, reject) => {
         runTaskStream
           .on('error', reject)
+          .on('end', resolve)
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
@@ -164,9 +168,6 @@ export class GradleTasksClient implements vscode.Disposable {
                 break;
               case RunTaskReply.KindCase.OUTPUT:
                 onOutput(runTaskReply.getOutput()!);
-                break;
-              case RunTaskReply.KindCase.RUN_TASK_RESULT:
-                resolve();
                 break;
               case RunTaskReply.KindCase.CANCELLED:
                 this.handleRunTaskCancelled(runTaskReply.getCancelled()!);

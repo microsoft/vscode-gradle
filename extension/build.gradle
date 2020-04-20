@@ -103,7 +103,7 @@ task format(type: CrossPlatformExec) {
 }
 
 task buildTypeScript(type: CrossPlatformExec) {
-  dependsOn assemble, copyProtoJs, copyProtoTs
+  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript source files'
   buildDir = 'out'
@@ -113,7 +113,7 @@ task buildTypeScript(type: CrossPlatformExec) {
 }
 
 task watchTypeScript(type: CrossPlatformExec) {
-  dependsOn assemble, copyProtoJs, copyProtoTs
+  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
   group 'build'
   description 'Watches and builds TypeScript source files'
   commandLine 'npm', 'run', 'watch:ts'

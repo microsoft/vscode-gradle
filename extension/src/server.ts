@@ -4,10 +4,9 @@ import * as nls from 'vscode-nls';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
+import { isDebuggingServer } from './util';
 
 const localize = nls.loadMessageBundle();
-const isDebuggingServer = (): boolean =>
-  process.env.VSCODE_DEBUG_SERVER?.toLowerCase() === 'true';
 
 export interface ServerOptions {
   host: string;

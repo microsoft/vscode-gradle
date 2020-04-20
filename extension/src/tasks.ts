@@ -11,6 +11,7 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
+import { isTest } from './util';
 import {
   Output,
   GradleProject,
@@ -18,10 +19,10 @@ import {
   Cancelled,
 } from './proto/gradle_tasks_pb';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const stripAnsi = require('strip-ansi');
+
 const localize = nls.loadMessageBundle();
-const isTest = (): boolean => {
-  return (process.env.VSCODE_TEST || '').toLowerCase() === 'true';
-};
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   script: string;
@@ -345,10 +346,11 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     const logMessage = message.trim();
     if (logMessage) {
       this.writeEmitter.fire(message + '\r\n');
-    }
-    // This allows us to test process stdout via the logger
-    if (isTest()) {
-      logger.info(message);
+      // This allows us to test process stdout via the logger
+      if (isTest()) {
+        logger.info(stripAnsi(message));
+        console.log(logger.format(stripAnsi(message), 'task-stdout'));
+      }
     }
   }
 
