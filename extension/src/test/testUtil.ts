@@ -41,6 +41,7 @@ export function createTestRunner(pattern: string) {
       timeout: 120000,
     });
     mocha.useColors(true);
+    mocha.bail(true);
 
     glob(pattern, { cwd: testsRoot }, (err, files) => {
       if (err) {
