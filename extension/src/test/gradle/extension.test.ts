@@ -46,9 +46,9 @@ describe(fixtureName, () => {
     it('should refresh gradle tasks when command is executed', async () => {
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      const spy = sinon.spy(extension!.exports.treeDataProvider, 'refresh');
+      const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
       await vscode.commands.executeCommand(refreshCommand);
-      assert.ok(spy.called);
+      assert.ok(stub.called);
     });
 
     it('should run a gradle task', async () => {
