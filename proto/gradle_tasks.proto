@@ -10,10 +10,9 @@ service GradleTasks {
   rpc GetProject(GetProjectRequest) returns (stream GetProjectReply) {}
   rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
   rpc CancelGetProjects(CancelGetProjectsRequest)
-      returns (stream CancelGetProjectsReply) {}
-  rpc CancelRunTask(CancelRunTaskRequest) returns (stream CancelRunTaskReply) {}
-  rpc CancelRunTasks(CancelRunTasksRequest)
-      returns (stream CancelRunTasksReply) {}
+      returns (CancelGetProjectsReply) {}
+  rpc CancelRunTask(CancelRunTaskRequest) returns (CancelRunTaskReply) {}
+  rpc CancelRunTasks(CancelRunTasksRequest) returns (CancelRunTasksReply) {}
 }
 
 message CancelGetProjectsRequest {}

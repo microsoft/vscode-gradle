@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { getIsDebugEnabled } from './config';
 import { isTest } from './util';
 
-type logType = 'info' | 'warning' | 'error' | 'debug' | 'task-stdout';
+type logType = 'info' | 'warning' | 'error' | 'debug';
 
 export class Logger {
   private channel: vscode.OutputChannel | undefined;
@@ -13,10 +13,9 @@ export class Logger {
     }
     const logMessage = this.format(message, type);
     this.channel.appendLine(logMessage);
+    // TODO: we should use a tracing approach instead
     if (isTest()) {
       console.log(logMessage);
-    } else {
-      console.log('no test');
     }
   }
 
