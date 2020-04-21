@@ -90,7 +90,23 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
+      grpc.setLogVerbosity(grpc.logVerbosity.DEBUG);
       this.grpcClient.waitForReady(deadline, this.handleClientReady);
+      this.grpcClient
+        .getChannel()
+        .watchConnectivityState(
+          this.grpcClient.getChannel().getConnectivityState(true),
+          deadline,
+          (err) => {
+            if (err) {
+              console.error('Connection error: ' + err);
+            }
+            console.info(
+              'Connectivity state: ' +
+                this.grpcClient!.getChannel().getConnectivityState(true)
+            );
+          }
+        );
     } catch (err) {
       // TODO
       logger.error(`Unable to construct the gRPC client: ${err.message}`);
