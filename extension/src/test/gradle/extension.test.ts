@@ -32,6 +32,7 @@ describe(fixtureName, () => {
     });
 
     it('should load gradle tasks', async () => {
+      console.log('starting should load gradle tasks');
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
@@ -44,6 +45,9 @@ describe(fixtureName, () => {
     });
 
     it('should refresh gradle tasks when command is executed', async () => {
+      console.log(
+        'starting should refresh gradle tasks when command is executed'
+      );
       const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
@@ -52,6 +56,7 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
+      console.log('starting should run a gradle task');
       const extension = vscode.extensions.getExtension(extensionName);
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'hello'
@@ -71,6 +76,7 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task with custom args', async () => {
+      console.log('starting should run a gradle task with custom args');
       sinon
         .stub(vscode.window, 'showInputBox')
         .returns(Promise.resolve('-PcustomProp=foo'));
