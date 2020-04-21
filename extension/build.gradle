@@ -60,6 +60,8 @@ clean {
   delete file('node_modules')
   delete file('src/proto')
   delete file('out')
+  delete file('.vscode-test')
+  delete file('build')
 }
 
 task copyProtoJs(type: Copy) {

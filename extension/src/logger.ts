@@ -36,7 +36,7 @@ export class Logger {
   }
 
   public debug(message: string): void {
-    if (getIsDebugEnabled()) {
+    if (getIsDebugEnabled() || isTest()) {
       this.log(message, 'debug');
     }
   }

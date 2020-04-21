@@ -247,6 +247,7 @@ export class GradleTasksTreeDataProvider
   findTreeItem(task: vscode.Task): GradleTaskTreeItem | void {
     if (this.treeItems) {
       const tree = this.getFlattenedTree(this.treeItems);
+      // TODO: need better compare functions as this relies on order of keys
       return tree.find(
         (treeItem) =>
           JSON.stringify(treeItem.task.definition) ===

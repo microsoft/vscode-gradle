@@ -8,8 +8,6 @@ import {
   stopTask,
   GradleTaskProvider,
   enableTaskDetection,
-  stopRunningGradleTasks,
-  isTaskRunning,
   runTask,
   runTaskWithArgs,
 } from './tasks';
@@ -52,9 +50,7 @@ function registerStopTaskCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('gradle.stopTask', (task) => {
     try {
-      if (task && isTaskRunning(task)) {
-        stopTask(task);
-      }
+      stopTask(task);
     } catch (e) {
       logger.error(
         localize(
@@ -135,7 +131,8 @@ function registerKillGradleProcessCommand(
   return vscode.commands.registerCommand('gradle.killGradleProcess', () => {
     try {
       client.cancelGetProjects();
-      stopRunningGradleTasks();
+      // TODO
+      // stopRunningGradleTasks();
       statusBarItem.hide();
     } catch (e) {
       localize(

@@ -9,7 +9,7 @@
       "problemMatcher": "$tsc-watch",
       "command": "./gradlew",
       "windows": {
-        "command": ".\\gradlew.cmd"
+        "command": ".\\gradlew.bat"
       },
       "args": [":extension:watchTypeScript", "-x", "test"],
       "isBackground": true,
@@ -27,7 +27,7 @@
       "problemMatcher": "$tsc-watch",
       "command": "./gradlew",
       "windows": {
-        "command": ".\\gradlew.cmd"
+        "command": ".\\gradlew.bat"
       },
       "args": [":extension:buildTypeScript", "-x", "test"],
       "isBackground": true,

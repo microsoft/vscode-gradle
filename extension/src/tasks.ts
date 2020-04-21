@@ -29,7 +29,6 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   description: string;
   group: string;
   project: string;
-  parentProject: string;
   rootProject: string;
   buildFile: string;
   projectFolder: string;
@@ -49,6 +48,7 @@ export function enableTaskDetection(): void {
 export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
+  // TODO: need better compare functions as this relies on order of keys
   return vscode.tasks.taskExecutions.find(
     (e) => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
   );
@@ -68,6 +68,7 @@ export function stopRunningGradleTasks(): void {
 export function stopTask(task: vscode.Task): void {
   const execution = getTaskExecution(task);
   if (execution) {
+    console.log('attempting to stop task', task);
     execution.terminate();
     stoppingTasks.add(task);
   }
@@ -282,7 +283,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       buildFile: buildFile.fsPath,
       rootProject,
       projectFolder: projectFolder.fsPath,
-      parentProject: 'nothing for now',
       workspaceFolder: workspaceFolder.uri.fsPath,
       args,
     };
@@ -332,14 +332,31 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     private readonly client: GradleTasksClient,
     private readonly sourceDir: string,
     private readonly task: vscode.Task
-  ) {}
+  ) {
+    console.log('CustomBuildTaskTerminal constructor');
+    console.log(
+      'new temrinal client state',
+      this.client.grpcClient?.getChannel().getConnectivityState(true)
+    );
+    vscode.window.activeTextEditor?.show();
+    vscode.window.activeTerminal?.show();
+  }
 
   open(): void {
+    console.log(
+      'custom terminal opened for task: ' + this.task.definition.script
+    );
     this.doBuild();
   }
 
   close(): void {
-    this.client.cancelRunTask(this.sourceDir, this.task.definition.script);
+    // stopTask(this.task);
+    if (isTaskRunning(this.task)) {
+      this.client.cancelRunTask(this.sourceDir, this.task.definition.script);
+    } else {
+      // TODO
+      logger.debug('Prevent stop task, is not runnig');
+    }
   }
 
   private handleOutput(message: string): void {
@@ -354,6 +371,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
+    console.log('do build terminal');
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
       await this.client.runTask(
@@ -361,14 +379,17 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         this.task.definition.script,
         args,
         (output: Output): void => {
-          this.handleOutput(output.getMessage());
+          this.handleOutput(output.getMessage().trim());
         }
       );
       vscode.commands.executeCommand(
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task.definition.buildFile)
       );
+    } catch (e) {
+      logger.info('error attemptung to run task');
     } finally {
+      console.log('task finished, attempting to close');
       setTimeout(() => {
         this.closeEmitter.fire();
       }, 100); // give the UI some time to render the terminal
@@ -438,6 +459,7 @@ export function createTaskFromDefinition(
   if (isTaskOfType(definition, 'test')) {
     task.group = vscode.TaskGroup.Test;
   }
+
   return task;
 }
 

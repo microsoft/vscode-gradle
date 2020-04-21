@@ -39,8 +39,6 @@ async function runTestsWithoutGradle(): Promise<void> {
     ],
     extensionTestsEnv: {
       VSCODE_TEST: 'true',
-      GRPC_VERBOSITY: 'debug',
-      GRPC_TRACE: 'all',
     },
   });
 }
@@ -59,8 +57,6 @@ async function runTestsWithMultiRoot(): Promise<void> {
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root',
       VSCODE_TEST: 'true',
-      GRPC_VERBOSITY: 'debug',
-      GRPC_TRACE: 'all',
     },
   });
 }
@@ -76,8 +72,6 @@ async function runTestsWithMultiProject(): Promise<void> {
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project',
       VSCODE_TEST: 'true',
-      GRPC_VERBOSITY: 'debug',
-      GRPC_TRACE: 'all',
     },
   });
 }
@@ -93,8 +87,6 @@ async function runTestsWithNestedProjects(): Promise<void> {
     extensionTestsEnv: {
       FIXTURE_NAME: 'nested-projects',
       VSCODE_TEST: 'true',
-      GRPC_VERBOSITY: 'debug',
-      GRPC_TRACE: 'all',
     },
   });
 }

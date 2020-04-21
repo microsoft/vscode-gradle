@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { waitForTasksToLoad } from '../testUtil';
+import { waitForTasksToLoad, teardownSubscriptions } from '../testUtil';
 import { GradleTaskTreeItem } from '../../gradleView';
 
 const extensionName = 'richardwillis.vscode-gradle';
@@ -11,12 +11,24 @@ const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let extension: vscode.Extension<any> | undefined;
+
+  before(() => {
+    extension = vscode.extensions.getExtension(extensionName);
+  });
+
+  after(() => {
+    if (extension) {
+      teardownSubscriptions(extension.exports.context);
+    }
+  });
+
   it('should be present', () => {
-    assert.ok(vscode.extensions.getExtension(extensionName));
+    assert.ok(extension);
   });
 
   it('should be activated', () => {
-    const extension = vscode.extensions.getExtension(extensionName);
     assert.ok(extension);
     if (extension) {
       assert.equal(extension.isActive, true);
@@ -48,7 +60,6 @@ describe(fixtureName, () => {
       console.log(
         'starting should refresh gradle tasks when command is executed'
       );
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
       await vscode.commands.executeCommand(refreshCommand);
@@ -57,14 +68,15 @@ describe(fixtureName, () => {
 
     it('should run a gradle task', async () => {
       console.log('starting should run a gradle task');
-      const extension = vscode.extensions.getExtension(extensionName);
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'hello'
       );
+      console.log('got task', task);
       assert.ok(task);
       const spy = sinon.spy(extension!.exports.logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
+          console.log('task ended: ', e.execution.task.definition.script);
           if (e.execution.task === task) {
             resolve();
           }
@@ -81,7 +93,6 @@ describe(fixtureName, () => {
         .stub(vscode.window, 'showInputBox')
         .returns(Promise.resolve('-PcustomProp=foo'));
 
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
 
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
@@ -111,7 +122,6 @@ describe(fixtureName, () => {
 
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const spy = sinon.spy(extension!.exports.logger, 'info');
       await vscode.commands.executeCommand('gradle.refresh');

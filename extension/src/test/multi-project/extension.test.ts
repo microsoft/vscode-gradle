@@ -2,22 +2,34 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { waitForTasksToLoad } from '../testUtil';
+import { waitForTasksToLoad, teardownSubscriptions } from '../testUtil';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let extension: vscode.Extension<any> | undefined;
+
+  before(() => {
+    extension = vscode.extensions.getExtension(extensionName);
+  });
+
+  after(() => {
+    if (extension) {
+      teardownSubscriptions(extension.exports.context);
+    }
+  });
+
   afterEach(() => {
     sinon.restore();
   });
 
   it('should be present', () => {
-    assert.ok(vscode.extensions.getExtension(extensionName));
+    assert.ok(extension);
   });
 
   it('should be activated', () => {
-    const extension = vscode.extensions.getExtension(extensionName);
     assert.ok(extension);
     assert.equal(extension!.isActive, true);
   });
@@ -34,7 +46,6 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const task = tasks!.find(({ name }) => name === 'hello');
       assert.ok(task);
@@ -51,7 +62,7 @@ describe(fixtureName, () => {
     });
 
     it('should run a subproject gradle task', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
+      console.log('starting should run a subproject gradle task');
       assert.ok(extension);
       const task = tasks!.find(
         ({ definition }) =>

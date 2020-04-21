@@ -22,7 +22,7 @@ function isProcessRunning(pid: number): boolean {
 }
 
 export class GradleTasksServer implements vscode.Disposable {
-  private taskExecution: vscode.TaskExecution | undefined;
+  public taskExecution: vscode.TaskExecution | undefined;
 
   private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
@@ -128,6 +128,7 @@ export class GradleTasksServer implements vscode.Disposable {
   public dispose(): void {
     this.taskExecution?.terminate();
     this._onReady.dispose();
+    this._onStop.dispose();
   }
 
   public getPort(): number | undefined {

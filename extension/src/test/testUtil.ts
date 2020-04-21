@@ -29,6 +29,12 @@ export async function waitForTasksToLoad(
   }
 }
 
+export function teardownSubscriptions(context: vscode.ExtensionContext): void {
+  context.subscriptions.forEach((subscription: vscode.Disposable) => {
+    subscription.dispose();
+  });
+}
+
 export function createTestRunner(pattern: string) {
   return function run(
     testsRoot: string,
@@ -38,7 +44,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'bdd',
-      timeout: 120000,
+      timeout: 90000,
     });
     mocha.useColors(true);
     mocha.bail(true);

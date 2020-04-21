@@ -1,5 +1,6 @@
 package com.github.badsyntax.gradletasks;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -31,25 +32,31 @@ public class GradleTasksUtil {
           projectConnection.model(org.gradle.tooling.model.GradleProject.class);
       rootProjectBuilder.withCancellationToken(cancellationTokenSource.token())
           .addProgressListener((ProgressEvent progressEvent) -> {
-            Progress progress =
-                Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
-            GetProjectReply reply = GetProjectReply.newBuilder().setProgress(progress).build();
-            responseObserver.onNext(reply);
+            synchronized (responseObserver) {
+              Progress progress =
+                  Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
+              GetProjectReply reply = GetProjectReply.newBuilder().setProgress(progress).build();
+              responseObserver.onNext(reply);
+            }
           }).setStandardOutput(new GradleOutputListener() {
             @Override
-            public final void onOutputChanged(String outputMessage) {
-              Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
-                  .setMessage(outputMessage).build();
-              GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
-              responseObserver.onNext(reply);
+            public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
+              synchronized (responseObserver) {
+                Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
+                    .setMessage(outputMessage.toString()).build();
+                GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
+                responseObserver.onNext(reply);
+              }
             }
           }).setStandardError(new GradleOutputListener() {
             @Override
-            public final void onOutputChanged(String outputMessage) {
-              Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
-                  .setMessage(outputMessage).build();
-              GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
-              responseObserver.onNext(reply);
+            public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
+              synchronized (responseObserver) {
+                Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
+                    .setMessage(outputMessage.toString()).build();
+                GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
+                responseObserver.onNext(reply);
+              }
             }
           }).setColorOutput(false);
       GradleProject gradleProject = buildProject(rootProjectBuilder.get());
@@ -64,7 +71,7 @@ public class GradleTasksUtil {
     } catch (RuntimeException err) {
       throw new GradleTasksException(err.getMessage(), err);
     } finally {
-      cancellationTokenPool.remove(CancellationTokenPool.TYPE.RUN, cancellationKey);
+      cancellationTokenPool.remove(CancellationTokenPool.TYPE.GET, cancellationKey);
     }
   }
 
@@ -79,25 +86,32 @@ public class GradleTasksUtil {
       BuildLauncher build =
           projectConnection.newBuild().withCancellationToken(cancellationTokenSource.token())
               .addProgressListener((ProgressEvent progressEvent) -> {
-                Progress progress =
-                    Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
-                RunTaskReply reply = RunTaskReply.newBuilder().setProgress(progress).build();
-                responseObserver.onNext(reply);
+                synchronized (responseObserver) {
+                  Progress progress =
+                      Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
+                  RunTaskReply reply = RunTaskReply.newBuilder().setProgress(progress).build();
+                  responseObserver.onNext(reply);
+                }
               }).setStandardOutput(new GradleOutputListener() {
                 @Override
-                public final void onOutputChanged(String outputMessage) {
-                  Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
-                      .setMessage(outputMessage).build();
-                  RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
-                  responseObserver.onNext(reply);
+                public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                  synchronized (responseObserver) {
+
+                    Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
+                        .setMessage(outputMessage.toString()).build();
+                    RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
+                    responseObserver.onNext(reply);
+                  }
                 }
               }).setStandardError(new GradleOutputListener() {
                 @Override
-                public final void onOutputChanged(String outputMessage) {
-                  Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
-                      .setMessage(outputMessage).build();
-                  RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
-                  responseObserver.onNext(reply);
+                public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                  synchronized (responseObserver) {
+                    Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
+                        .setMessage(outputMessage.toString()).build();
+                    RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
+                    responseObserver.onNext(reply);
+                  }
                 }
               }).setColorOutput(true).withArguments(args).forTasks(task);
       build.run();

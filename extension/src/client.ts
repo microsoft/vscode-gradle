@@ -22,17 +22,17 @@ import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { handleCancelledTask } from './tasks';
-import { ServiceError } from '@grpc/grpc-js';
 
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
   private connectDeadline = 30; // seconds
-  private grpcClient: GrpcClient | null = null;
+  public grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
+  private connectTries = 0;
 
   public constructor(
     private readonly context: vscode.ExtensionContext,
@@ -90,23 +90,8 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
-      grpc.setLogVerbosity(grpc.logVerbosity.DEBUG);
+      // grpc.setLogVerbosity(grpc.logVerbosity.DEBUG);
       this.grpcClient.waitForReady(deadline, this.handleClientReady);
-      this.grpcClient
-        .getChannel()
-        .watchConnectivityState(
-          this.grpcClient.getChannel().getConnectivityState(true),
-          deadline,
-          (err) => {
-            if (err) {
-              console.error('Connection error: ' + err);
-            }
-            console.info(
-              'Connectivity state: ' +
-                this.grpcClient!.getChannel().getConnectivityState(true)
-            );
-          }
-        );
     } catch (err) {
       // TODO
       logger.error(`Unable to construct the gRPC client: ${err.message}`);
@@ -127,11 +112,13 @@ export class GradleTasksClient implements vscode.Disposable {
       return await new Promise((resolve, reject) => {
         let project: GradleProject | void = undefined;
         getProjectStream
-          .on('error', reject)
-          .on('end', () => resolve(project))
           .on('data', (getProjectReply: GetProjectReply) => {
             switch (getProjectReply.getKindCase()) {
               case GetProjectReply.KindCase.PROGRESS:
+                console.log(
+                  'GOT PROGRESS',
+                  getProjectReply.getProgress()!.getMessage()
+                );
                 this.handleProgress(getProjectReply.getProgress()!);
                 break;
               case GetProjectReply.KindCase.OUTPUT:
@@ -144,6 +131,10 @@ export class GradleTasksClient implements vscode.Disposable {
                 project = getProjectReply.getGetProjectResult()!.getProject();
                 break;
             }
+          })
+          .on('error', reject)
+          .on('end', () => {
+            resolve(project);
           });
       });
     } catch (err) {
@@ -174,10 +165,11 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
+      logger.info(
+        'Requested to run task: ' + JSON.stringify(request.toObject(), null, 2)
+      );
       await new Promise((resolve, reject) => {
         runTaskStream
-          .on('error', reject)
-          .on('end', resolve)
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
@@ -190,6 +182,10 @@ export class GradleTasksClient implements vscode.Disposable {
                 this.handleRunTaskCancelled(runTaskReply.getCancelled()!);
                 break;
             }
+          })
+          .on('error', reject)
+          .on('end', () => {
+            resolve();
           });
       });
       logger.info(localize('client.completedTask', 'Completed task {0}', task));
@@ -217,7 +213,7 @@ export class GradleTasksClient implements vscode.Disposable {
           this.grpcClient!.cancelRunTask(
             request,
             (
-              err: ServiceError | null,
+              err: grpc.ServiceError | null,
               cancelRunTaskReply: CancelRunTaskReply | undefined
             ) => {
               if (err) {
@@ -250,7 +246,7 @@ export class GradleTasksClient implements vscode.Disposable {
           this.grpcClient!.cancelRunTasks(
             request,
             (
-              err: ServiceError | null,
+              err: grpc.ServiceError | null,
               cancelRunTasksReply: CancelRunTasksReply | undefined
             ) => {
               if (err) {
@@ -277,14 +273,13 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async cancelGetProjects(): Promise<void> {
     const request = new CancelGetProjectsRequest();
-
     try {
       const cancelGetProjectsReply: CancelGetProjectsReply = await new Promise(
         (resolve, reject) => {
           this.grpcClient!.cancelGetProjects(
             request,
             (
-              err: ServiceError | null,
+              err: grpc.ServiceError | null,
               cancelGetProjectsReply: CancelGetProjectsReply | undefined
             ) => {
               if (err) {
@@ -360,7 +355,14 @@ export class GradleTasksClient implements vscode.Disposable {
         e.message
       )
     );
-    this.server.showRestartMessage();
+    // TODO
+    if (this.connectTries < 3) {
+      this.connectTries += 1;
+      this.grpcClient?.close();
+      this.connectToServer();
+    } else {
+      this.server.showRestartMessage();
+    }
   };
 
   public dispose(): void {

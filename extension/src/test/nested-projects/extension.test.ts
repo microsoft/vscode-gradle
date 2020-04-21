@@ -3,18 +3,31 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { waitForExplorerRefresh } from '../testUtil';
+import { waitForTasksToLoad, teardownSubscriptions } from '../testUtil';
+import { Extension } from 'vscode';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
 describe(fixtureName, () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let extension: Extension<any> | undefined;
+
+  before(() => {
+    extension = vscode.extensions.getExtension(extensionName);
+  });
+
+  after(() => {
+    if (extension) {
+      teardownSubscriptions(extension.exports.context);
+    }
+  });
+
   it('should be present', () => {
-    assert.ok(vscode.extensions.getExtension(extensionName));
+    assert.ok(extension);
   });
 
   it('should be activated', () => {
-    const extension = vscode.extensions.getExtension(extensionName);
     assert.ok(extension);
     if (extension) {
       assert.equal(extension.isActive, true);
@@ -22,10 +35,11 @@ describe(fixtureName, () => {
   });
 
   describe('tasks', () => {
+    beforeEach(async () => {
+      await waitForTasksToLoad(extensionName);
+    });
     it('should load gradle tasks', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
-      await waitForExplorerRefresh(extension);
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
@@ -84,7 +98,6 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
-      const extension = vscode.extensions.getExtension(extensionName);
       assert.ok(extension);
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ definition }) =>
