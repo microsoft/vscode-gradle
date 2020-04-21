@@ -354,7 +354,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
-    const args = this.task.definition.args.split(' ').filter(Boolean);
+    const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
       await this.client.runTask(
         this.sourceDir,

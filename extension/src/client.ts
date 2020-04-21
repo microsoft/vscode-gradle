@@ -164,7 +164,7 @@ export class GradleTasksClient implements vscode.Disposable {
   public async runTask(
     sourceDir: string,
     task: string,
-    args: string[],
+    args: string[] = [],
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
@@ -197,8 +197,9 @@ export class GradleTasksClient implements vscode.Disposable {
       logger.error(
         localize(
           'client.errorRunningTask',
-          'Error running task: {0}',
-          err.details || err.message
+          'Error running task: {0} {1}',
+          err.details || err.message,
+          JSON.stringify(request.toObject(), null, 2)
         )
       );
     } finally {
