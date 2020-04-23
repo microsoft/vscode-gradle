@@ -14,7 +14,8 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final String SOURCE_DIR_ERROR = "Source directory does not exist: %s";
 
   @Override
-  public void getProject(GetProjectRequest req, StreamObserver<GetProjectReply> responseObserver) {
+  public void getProject(final GetProjectRequest req,
+      final StreamObserver<GetProjectReply> responseObserver) {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
@@ -31,7 +32,8 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   }
 
   @Override
-  public void runTask(RunTaskRequest req, StreamObserver<RunTaskReply> responseObserver) {
+  public void runTask(final RunTaskRequest req,
+      final StreamObserver<RunTaskReply> responseObserver) {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
@@ -48,15 +50,15 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   }
 
   @Override
-  public void cancelGetProjects(CancelGetProjectsRequest req,
-      StreamObserver<CancelGetProjectsReply> responseObserver) {
+  public void cancelGetProjects(final CancelGetProjectsRequest req,
+      final StreamObserver<CancelGetProjectsReply> responseObserver) {
     GradleTasksUtil.cancelGetProjects(responseObserver);
     responseObserver.onCompleted();
   }
 
   @Override
-  public void cancelRunTask(CancelRunTaskRequest req,
-      StreamObserver<CancelRunTaskReply> responseObserver) {
+  public void cancelRunTask(final CancelRunTaskRequest req,
+      final StreamObserver<CancelRunTaskReply> responseObserver) {
     try {
       File sourceDir = new File(req.getSourceDir().trim());
       if (!sourceDir.exists()) {
