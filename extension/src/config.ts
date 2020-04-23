@@ -57,7 +57,7 @@ export function getTaskPresentationOptions(): ConfigTaskPresentationOptions {
     .getConfiguration('gradle')
     .get<ConfigTaskPresentationOptions>('taskPresentationOptions', {
       reveal: 'always',
-      focus: true,
+      focus: false,
       echo: true,
       showReuseMessage: false,
       panel: 'shared',

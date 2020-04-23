@@ -1,0 +1,9 @@
+{
+  "commands.errorCancellingTask": "Error al cancelar la tarea: {0}",
+  "commands.errorCancellingTasks": "Error al cancelar tareas: {0}",
+  "commands.process.viewLogs": "Ver los registros",
+  "commands.process.cancelProcess": "Cancelar proceso",
+  "commands.process.gradleTasksProcess": "Proceso de tareas de Gradle",
+  "commands.gradleTaskCancelling": "La tarea de Gradle se está cancelando, por favor espere",
+  "commands.updateProjectConfigurationError": "No se puede actualizar la configuración del proyecto Java: {0}"
+}

@@ -110,12 +110,12 @@
         "title": "%extension.command.openBuildFile.title%"
       },
       {
-        "command": "gradle.stopTask",
-        "title": "%extension.command.stopTask.title%"
+        "command": "gradle.cancelTask",
+        "title": "%extension.command.cancelTask.title%"
       },
       {
-        "command": "gradle.stopTreeItemTask",
-        "title": "%extension.command.stopTreeItemTask.title%",
+        "command": "gradle.cancelTreeItemTask",
+        "title": "%extension.command.cancelTreeItemTask.title%",
         "icon": {
           "light": "resources/light/stop.svg",
           "dark": "resources/dark/stop.svg"
@@ -166,8 +166,8 @@
         }
       },
       {
-        "command": "gradle.stoppingTreeItemTask",
-        "title": "%extension.command.stoppingTreeItemTaskShow.title%",
+        "command": "gradle.cancellingTreeItemTask",
+        "title": "%extension.command.cancellingTreeItemTaskShow.title%",
         "icon": {
           "light": "resources/light/loading.svg",
           "dark": "resources/dark/loading.svg"
@@ -189,11 +189,11 @@
           "when": "false"
         },
         {
-          "command": "gradle.stopTask",
+          "command": "gradle.cancelTask",
           "when": "false"
         },
         {
-          "command": "gradle.stopTreeItemTask",
+          "command": "gradle.cancelTreeItemTask",
           "when": "false"
         },
         {
@@ -217,7 +217,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.stoppingTreeItemTask",
+          "command": "gradle.cancellingTreeItemTask",
           "when": "false"
         }
       ],
@@ -258,13 +258,13 @@
           "group": "inline"
         },
         {
-          "command": "gradle.stopTreeItemTask",
+          "command": "gradle.cancelTreeItemTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
           "group": "inline"
         },
         {
-          "command": "gradle.stoppingTreeItemTask",
-          "when": "view == gradleTreeView && viewItem == stoppingTask",
+          "command": "gradle.cancellingTreeItemTask",
+          "when": "view == gradleTreeView && viewItem == cancellingTask",
           "group": "inline"
         }
       ]
@@ -346,11 +346,11 @@
           },
           "default": {
             "reveal": "always",
-            "focus": true,
+            "focus": false,
             "echo": true,
             "showReuseMessage": false,
             "panel": "shared",
-            "clear": true
+            "clear": false
           }
         }
       }

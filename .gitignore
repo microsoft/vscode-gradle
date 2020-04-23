@@ -1,7 +1,6 @@
 
 # Output directories
 build/
-out/
 target/
 bin/
 

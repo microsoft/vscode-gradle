@@ -13,7 +13,6 @@ export class Logger {
     }
     const logMessage = this.format(message, type);
     this.channel.appendLine(logMessage);
-    // TODO: we should use a tracing approach instead
     if (isTest()) {
       console.log(logMessage);
     }

@@ -2,7 +2,12 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 
-import { isWorkspaceFolder, isTaskStopping, isTaskRunning } from './tasks';
+import {
+  isWorkspaceFolder,
+  isTaskCancelling,
+  isTaskRunning,
+  isTask,
+} from './tasks';
 import { getFocusTaskInExplorer } from './config';
 import { logger } from './logger';
 
@@ -93,8 +98,8 @@ function getTreeItemState(task: vscode.Task): string {
   if (isTaskRunning(task)) {
     return GradleTaskTreeItem.STATE_RUNNING;
   }
-  if (isTaskStopping(task)) {
-    return GradleTaskTreeItem.STATE_STOPPING;
+  if (isTaskCancelling(task)) {
+    return GradleTaskTreeItem.STATE_CANCELLING;
   }
   return GradleTaskTreeItem.STATE_IDLE;
 }
@@ -105,7 +110,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly execution: vscode.TaskExecution | undefined;
 
   public static STATE_RUNNING = 'runningTask';
-  public static STATE_STOPPING = 'stoppingTask';
+  public static STATE_CANCELLING = 'cancellingTask';
   public static STATE_IDLE = 'task';
 
   constructor(
@@ -151,7 +156,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 class NoTasksTreeItem extends vscode.TreeItem {
   constructor() {
     super(
-      localize('gradleView.runTask', 'No tasks found'),
+      localize('gradleView.noTasksFound', 'No tasks found'),
       vscode.TreeItemCollapsibleState.None
     );
     this.contextValue = 'notasks';
@@ -247,12 +252,7 @@ export class GradleTasksTreeDataProvider
   findTreeItem(task: vscode.Task): GradleTaskTreeItem | void {
     if (this.treeItems) {
       const tree = this.getFlattenedTree(this.treeItems);
-      // TODO: need better compare functions as this relies on order of keys
-      return tree.find(
-        (treeItem) =>
-          JSON.stringify(treeItem.task.definition) ===
-          JSON.stringify(task.definition)
-      );
+      return tree.find((treeItem) => isTask(treeItem.task, task));
     }
   }
 

@@ -36,7 +36,7 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   args: string;
 }
 
-const stoppingTasks: Set<vscode.Task> = new Set();
+const cancellingTasks: Set<vscode.Task> = new Set();
 let autoDetectOverride = false;
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -48,9 +48,13 @@ export function enableTaskDetection(): void {
 export function getTaskExecution(
   task: vscode.Task
 ): vscode.TaskExecution | undefined {
-  // TODO: need better compare functions as this relies on order of keys
-  return vscode.tasks.taskExecutions.find(
-    (e) => JSON.stringify(e.task.definition) === JSON.stringify(task.definition)
+  return vscode.tasks.taskExecutions.find((e) => isTask(e.task, task));
+}
+
+export function isTask(task1: vscode.Task, task2: vscode.Task): boolean {
+  return (
+    task1.definition.script === task2.definition.script &&
+    task1.definition.project === task2.definition.project
   );
 }
 
@@ -58,19 +62,18 @@ export function getGradleTaskExecutions(): vscode.TaskExecution[] {
   return vscode.tasks.taskExecutions.filter((e) => e.task.source === 'gradle');
 }
 
-export function stopRunningGradleTasks(): void {
+export function cancelRunningGradleTasks(): void {
   const taskExecutions = getGradleTaskExecutions();
   taskExecutions.forEach((execution) => {
-    vscode.commands.executeCommand('gradle.stopTask', execution.task);
+    vscode.commands.executeCommand('gradle.cancelTask', execution.task);
   });
 }
 
-export function stopTask(task: vscode.Task): void {
+export function cancelTask(task: vscode.Task): void {
   const execution = getTaskExecution(task);
   if (execution) {
-    console.log('attempting to stop task', task);
     execution.terminate();
-    stoppingTasks.add(task);
+    cancellingTasks.add(task);
   }
 }
 
@@ -78,20 +81,20 @@ export function isTaskRunning(task: vscode.Task): boolean {
   return getTaskExecution(task) !== undefined;
 }
 
-export function isTaskStopping(task: vscode.Task): boolean {
-  return stoppingTasks.has(task);
+export function isTaskCancelling(task: vscode.Task): boolean {
+  return cancellingTasks.has(task);
 }
 
-export function setStoppedTaskAsComplete(
+export function setCancelledTaskAsComplete(
   task: string,
   sourceDir: string
 ): void {
-  const stoppingTask = Array.from(stoppingTasks).find(
+  const cancellingTask = Array.from(cancellingTasks).find(
     ({ definition }) =>
       definition.script === task && definition.projectFolder === sourceDir
   );
-  if (stoppingTask) {
-    stoppingTasks.delete(stoppingTask);
+  if (cancellingTask) {
+    cancellingTasks.delete(cancellingTask);
   }
 }
 
@@ -217,8 +220,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     } catch (err) {
       logger.error(
         localize(
-          'tasks.errorRefreshingTasks',
-          'Error providing gradle tasks: {0}',
+          'tasks.errorGettingProject',
+          'Error getting gradle project: {0}',
           err.details || err.message
         )
       );
@@ -332,30 +335,15 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     private readonly client: GradleTasksClient,
     private readonly sourceDir: string,
     private readonly task: vscode.Task
-  ) {
-    console.log('CustomBuildTaskTerminal constructor');
-    console.log(
-      'new temrinal client state',
-      this.client.grpcClient?.getChannel().getConnectivityState(true)
-    );
-    vscode.window.activeTextEditor?.show();
-    vscode.window.activeTerminal?.show();
-  }
+  ) {}
 
   open(): void {
-    console.log(
-      'custom terminal opened for task: ' + this.task.definition.script
-    );
     this.doBuild();
   }
 
   close(): void {
-    // stopTask(this.task);
     if (isTaskRunning(this.task)) {
       this.client.cancelRunTask(this.sourceDir, this.task.definition.script);
-    } else {
-      // TODO
-      logger.debug('Prevent stop task, is not runnig');
     }
   }
 
@@ -371,7 +359,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
-    console.log('do build terminal');
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
       await this.client.runTask(
@@ -398,7 +385,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   handleInput(data: string): void {
     if (data === '\x03') {
-      vscode.commands.executeCommand('gradle.stopTask', this.task);
+      vscode.commands.executeCommand('gradle.cancelTask', this.task);
     }
   }
 }
@@ -517,13 +504,15 @@ export function buildGradleServerTask(
 }
 
 export function handleCancelledTask(cancelled: Cancelled): void {
-  setStoppedTaskAsComplete(cancelled.getTask(), cancelled.getSourceDir());
+  setCancelledTaskAsComplete(cancelled.getTask(), cancelled.getSourceDir());
   vscode.commands.executeCommand('gradle.explorerRender');
 }
 
 export function runTask(task: vscode.Task): void {
-  // TODO: check task ins't already running
-  vscode.tasks.executeTask(task);
+  // TODO: check task isn't already running
+  if (!isTaskRunning(task)) {
+    vscode.tasks.executeTask(task);
+  }
 }
 
 export async function runTaskWithArgs(
@@ -532,7 +521,7 @@ export async function runTaskWithArgs(
 ): Promise<void> {
   const args = await vscode.window.showInputBox({
     placeHolder: localize(
-      'gradleView.runTaskWithArgsExample',
+      'tasks.runTaskWithArgsExample',
       'For example: {0}',
       '--all'
     ),

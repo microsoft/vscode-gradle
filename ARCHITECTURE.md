@@ -1,12 +1,4 @@
-# Gradle Tasks Documentation
-
-## Overview
-
-This extension provides a UI layer over the Gradle Task graph. It shows Gradle projects and associated tasks and allows you to run those tasks within the context of the editor.
-
-The extension has been built to support *Gradle*, not just *Java projects using Gradle*, but it can work alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
-
-## Architecture Overview
+# Architecture Overview
 
 The extension uses client/server architecture using [gRPC](https://grpc.io/) as the interface between the client and server. It uses TypeScript (Node.js) on the client and Java on the server.
 

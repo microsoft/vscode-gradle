@@ -5,7 +5,7 @@ import * as nls from 'vscode-nls';
 
 import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
-  stopTask,
+  cancelTask,
   GradleTaskProvider,
   enableTaskDetection,
   runTask,
@@ -45,17 +45,17 @@ function registerRunTaskWithArgsCommand(
   );
 }
 
-function registerStopTaskCommand(
+function registerCancelTaskCommand(
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.stopTask', (task) => {
+  return vscode.commands.registerCommand('gradle.cancelTask', (task) => {
     try {
-      stopTask(task);
+      cancelTask(task);
     } catch (e) {
       logger.error(
         localize(
-          'commands.errorStoppingTask',
-          'Unable to stop task: {0}',
+          'commands.errorCancellingTask',
+          'Error cancelling task: {0}',
           e.message
         )
       );
@@ -65,12 +65,12 @@ function registerStopTaskCommand(
   });
 }
 
-function registerStopTreeItemTaskCommand(): vscode.Disposable {
+function registerCancelTreeItemTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.stopTreeItemTask',
+    'gradle.cancelTreeItemTask',
     (treeItem) => {
       if (treeItem && treeItem.task) {
-        vscode.commands.executeCommand('gradle.stopTask', treeItem.task);
+        vscode.commands.executeCommand('gradle.cancelTask', treeItem.task);
       }
     }
   );
@@ -123,27 +123,6 @@ function registerExplorerFlatCommand(
   });
 }
 
-// TODO: not used
-function registerKillGradleProcessCommand(
-  client: GradleTasksClient,
-  statusBarItem: vscode.StatusBarItem
-): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.killGradleProcess', () => {
-    try {
-      client.cancelGetProjects();
-      // TODO
-      // stopRunningGradleTasks();
-      statusBarItem.hide();
-    } catch (e) {
-      localize(
-        'commands.errorStoppingTasks',
-        'Unable to stop tasks: {0}',
-        e.message
-      );
-    }
-  });
-}
-
 function registerCancelGradleProcessesCommand(
   client: GradleTasksClient,
   statusBarItem: vscode.StatusBarItem
@@ -155,8 +134,8 @@ function registerCancelGradleProcessesCommand(
       statusBarItem.hide();
     } catch (e) {
       localize(
-        'commands.errorStoppingTasks',
-        'Unable to stop tasks: {0}',
+        'commands.errorCancellingTasks',
+        'Error cancelling tasks: {0}',
         e.message
       );
     }
@@ -207,15 +186,18 @@ function registerOpenBuildFileCommand(): vscode.Disposable {
   );
 }
 
-function registerStoppingTreeItemTaskCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.stoppingTreeItemTask', () => {
-    vscode.window.showInformationMessage(
-      localize(
-        'commands.gradleTaskShuttingDown',
-        'Gradle task is shutting down'
-      )
-    );
-  });
+function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.cancellingTreeItemTask',
+    () => {
+      vscode.window.showInformationMessage(
+        localize(
+          'commands.gradleTaskCancelling',
+          'Gradle task is cancelling, please wait'
+        )
+      );
+    }
+  );
 }
 
 const JAVA_EXTENSION_ID = 'redhat.java';
@@ -243,8 +225,8 @@ function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
         } catch (err) {
           logger.error(
             localize(
-              'client.updateProjectConfigurationError',
-              'Unable to update project configuration: {0}',
+              'commands.updateProjectConfigurationError',
+              'Unable to update Java project configuration: {0}',
               err.message
             )
           );
@@ -264,17 +246,16 @@ export function registerCommands(
   context.subscriptions.push(
     registerRunTaskCommand(),
     registerRunTaskWithArgsCommand(client),
-    registerStopTaskCommand(statusBarItem),
-    registerStopTreeItemTaskCommand(),
+    registerCancelTaskCommand(statusBarItem),
+    registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, treeDataProvider),
     registerExplorerTreeCommand(treeDataProvider),
     registerExplorerFlatCommand(treeDataProvider),
-    registerKillGradleProcessCommand(client, statusBarItem),
     registerCancelGradleProcessesCommand(client, statusBarItem),
     registerShowProcessMessageCommand(),
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
-    registerStoppingTreeItemTaskCommand(),
+    registerCancellingTreeItemTaskCommand(),
     registerExplorerRenderCommand(treeDataProvider),
     registerUpdateJavaProjectConfigurationCommand()
   );
