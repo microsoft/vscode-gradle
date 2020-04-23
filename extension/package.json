@@ -423,8 +423,7 @@
     "watch:ts": "tsc -watch -p ./",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "gulp package",
-    "build": "gulp build",
-    "postinstall": "patch-package"
+    "build": "gulp build"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.0.2",

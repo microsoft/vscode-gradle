@@ -509,7 +509,6 @@ export function handleCancelledTask(cancelled: Cancelled): void {
 }
 
 export function runTask(task: vscode.Task): void {
-  // TODO: check task isn't already running
   if (!isTaskRunning(task)) {
     vscode.tasks.executeTask(task);
   }
