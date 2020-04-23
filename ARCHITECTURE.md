@@ -1,5 +1,7 @@
 # Architecture Overview
 
+<img src="images/GradleTasks.svg" />
+
 The extension uses client/server architecture using [gRPC](https://grpc.io/) as the interface between the client and server. It uses TypeScript (Node.js) on the client and Java on the server.
 
 On extension activate, the client starts the Java gRPC server which remains running for the period the extension is activated. A long running server provides very good performance.
