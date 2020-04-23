@@ -26,13 +26,12 @@ import { handleCancelledTask } from './tasks';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 30; // seconds
+  private connectDeadline = 10; // seconds
   public grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
-  private connectTries = 0;
 
   public constructor(
     private readonly context: vscode.ExtensionContext,
@@ -114,10 +113,6 @@ export class GradleTasksClient implements vscode.Disposable {
           .on('data', (getProjectReply: GetProjectReply) => {
             switch (getProjectReply.getKindCase()) {
               case GetProjectReply.KindCase.PROGRESS:
-                console.log(
-                  'GOT PROGRESS',
-                  getProjectReply.getProgress()!.getMessage()
-                );
                 this.handleProgress(getProjectReply.getProgress()!);
                 break;
               case GetProjectReply.KindCase.OUTPUT:
@@ -349,14 +344,7 @@ export class GradleTasksClient implements vscode.Disposable {
         e.message
       )
     );
-    // TODO
-    if (this.connectTries < 3) {
-      this.connectTries += 1;
-      this.grpcClient?.close();
-      this.connectToServer();
-    } else {
-      this.server.showRestartMessage();
-    }
+    this.server.showRestartMessage();
   };
 
   public dispose(): void {
