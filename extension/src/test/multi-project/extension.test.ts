@@ -62,7 +62,6 @@ describe(fixtureName, () => {
     });
 
     it('should run a subproject gradle task', async () => {
-      console.log('starting should run a subproject gradle task');
       assert.ok(extension);
       const task = tasks!.find(
         ({ definition }) =>

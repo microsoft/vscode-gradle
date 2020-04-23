@@ -373,10 +373,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task.definition.buildFile)
       );
-    } catch (e) {
-      logger.info('error attemptung to run task');
     } finally {
-      console.log('task finished, attempting to close');
       setTimeout(() => {
         this.closeEmitter.fire();
       }, 100); // give the UI some time to render the terminal

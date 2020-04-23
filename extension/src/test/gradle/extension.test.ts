@@ -44,7 +44,6 @@ describe(fixtureName, () => {
     });
 
     it('should load gradle tasks', async () => {
-      console.log('starting should load gradle tasks');
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks!.length > 0, true);
@@ -57,9 +56,6 @@ describe(fixtureName, () => {
     });
 
     it('should refresh gradle tasks when command is executed', async () => {
-      console.log(
-        'starting should refresh gradle tasks when command is executed'
-      );
       assert.ok(extension);
       const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
       await vscode.commands.executeCommand(refreshCommand);
@@ -67,16 +63,13 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task', async () => {
-      console.log('starting should run a gradle task');
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'hello'
       );
-      console.log('got task', task);
       assert.ok(task);
       const spy = sinon.spy(extension!.exports.logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
-          console.log('task ended: ', e.execution.task.definition.script);
           if (e.execution.task === task) {
             resolve();
           }
@@ -88,7 +81,6 @@ describe(fixtureName, () => {
     });
 
     it('should run a gradle task with custom args', async () => {
-      console.log('starting should run a gradle task with custom args');
       sinon
         .stub(vscode.window, 'showInputBox')
         .returns(Promise.resolve('-PcustomProp=foo'));
