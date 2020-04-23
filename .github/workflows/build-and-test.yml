@@ -21,27 +21,26 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build
-      # - name: Lint
-      #   uses: eskatos/gradle-command-action@v1
-      #   with:
-      #     arguments: lint
-      # - name: SonarQube Analyse
-      #   uses: eskatos/gradle-command-action@v1
-      #   with:
-      #     arguments: sonarqube
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      #     JAVA_HOME: ''
+      - name: Lint
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: lint
+      - name: SonarQube Analyse
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: sonarqube
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          JAVA_HOME: ''
       - name: Upload lib
         uses: actions/upload-artifact@v1
         with:
           name: lib
           path: extension/lib
 
-  # Although the gradle build can run in all environments, we exclude tasks to
-  # build the Java lib to better mimic real-world situations, where the Java lib
-  # is built & published using on one environment (linux).
+  # Although the gradle build can run in all environments, we use the Java
+  # lib generated in the previous step for a better real-world test.
   test-extension:
     needs: [build-and-analyse]
     name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - ${{ matrix.os }}'

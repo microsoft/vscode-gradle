@@ -22,16 +22,15 @@ function isProcessRunning(pid: number): boolean {
 }
 
 export class GradleTasksServer implements vscode.Disposable {
-  public taskExecution: vscode.TaskExecution | undefined;
-
+  private taskExecution: vscode.TaskExecution | undefined;
   private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  public readonly onReady: vscode.Event<null> = this._onReady.event;
-  public readonly onStop: vscode.Event<null> = this._onStop.event;
-
   private isRestarting = false;
   private port: number | undefined;
   private taskName = 'Gradle Tasks Server';
+
+  public readonly onReady: vscode.Event<null> = this._onReady.event;
+  public readonly onStop: vscode.Event<null> = this._onStop.event;
 
   constructor(
     private readonly opts: ServerOptions,
@@ -81,6 +80,10 @@ export class GradleTasksServer implements vscode.Disposable {
     }
   }
 
+  public isStarted(): boolean {
+    return this.taskExecution !== null;
+  }
+
   public getTaskName(): string {
     return this.taskName;
   }
@@ -100,7 +103,9 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   public restart(): void {
-    logger.info('Restarting gradle server...');
+    logger.info(
+      localize('server.gradleServerRestarting', 'Restarting gradle server')
+    );
     if (!this.isRestarting) {
       if (this.taskExecution) {
         this.isRestarting = true;
@@ -145,7 +150,15 @@ export function registerServer(
   context: vscode.ExtensionContext
 ): GradleTasksServer {
   const server = new GradleTasksServer(opts, context);
-  context.subscriptions.push(server);
-
+  context.subscriptions.push(
+    server,
+    vscode.workspace.onDidChangeConfiguration(
+      (event: vscode.ConfigurationChangeEvent) => {
+        if (event.affectsConfiguration('java.home') && server.isStarted()) {
+          server.restart();
+        }
+      }
+    )
+  );
   return server;
 }
