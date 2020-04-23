@@ -26,7 +26,7 @@ import { handleCancelledTask } from './tasks';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 20; // seconds
+  private connectDeadline = 30; // seconds
   public grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
