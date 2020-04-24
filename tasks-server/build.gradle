@@ -80,7 +80,7 @@ distZip.enabled = false
 distTar.enabled = false
 assemble.enabled = false;
 
-task gradleTasksServerStartScripts(type: CreateStartScripts) {
+task serverStartScripts(type: CreateStartScripts) {
   dependsOn shadowJar
   outputDir = file(libsDirName)
   mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
@@ -94,4 +94,4 @@ task gradleTasksServerStartScripts(type: CreateStartScripts) {
   )
 }
 
-assemble.dependsOn gradleTasksServerStartScripts
+assemble.dependsOn serverStartScripts
