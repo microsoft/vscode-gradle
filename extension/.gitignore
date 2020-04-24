@@ -1,0 +1,9 @@
+/out
+node_modules
+*.vsix
+.vscode-test
+/lib
+.classpath
+.settings
+*nls.*.json
+/src/proto/

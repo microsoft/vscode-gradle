@@ -1,13 +1,29 @@
-/out
-node_modules
-*.vsix
-.vscode-test
+
+# Output directories
+build/
+target/
+bin/
+
+# Mac OS X files
 .DS_Store
-.envrc
-lib/**
-.classpath
+
+# Eclipse files
 .settings
-.idea
-.scannerwork
-# These files will be generated from the i18n folder
-*nls.*.json
+.classpath
+.project
+
+# vim files
+.*.sw[a-z]
+*.un~
+
+# Java class files
+*.class
+
+# Gradle
+.gradle
+
+# direnv
+.envrc
+
+# Ignore Gradle build output directory
+build

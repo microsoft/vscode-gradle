@@ -1,0 +1,9 @@
+node_modules
+.vscode-test
+out/
+test-fixtures/
+package-lock.json
+lib/
+*nls.*.json
+src/proto/
+build/

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "out",
+    "lib": ["es6", "es2018.promise", "es2019.array"],
+    "sourceMap": true,
+    "strict": true,
+    "rootDir": "src",
+    "noUnusedLocals": true
+  },
+  "exclude": ["node_modules", ".vscode-test", "build"]
+}

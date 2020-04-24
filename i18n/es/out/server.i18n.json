@@ -1,7 +1,0 @@
-{
-  "server.gradleServerStarted": "Se inició el servidor Gradle",
-  "server.gradleServerErrorStarting": "Error al iniciar el servidor gradle",
-  "server.gradleServerStopped": "Servidor Gradle detenido",
-  "server.restartServer": "Reiniciar servidor",
-  "server.restartMessage": "Sin conexión al servidor gradle. Intenta reiniciar el servidor."
-}

@@ -1,8 +1,0 @@
-node_modules
-.vscode-test
-/out
-/test-fixtures
-package-lock.json
-/java-gradle-tasks
-/lib
-*nls.*.json

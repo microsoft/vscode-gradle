@@ -4,12 +4,12 @@
 - List & run Gradle tasks in the Explorer
 - Updates project configuration after running tasks, via the [Java language server](https://github.com/redhat-developer/vscode-java) (if installed)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
-- Uses a long running websocket server which provides good performance
+- Uses a long running gRPC server which provides good performance
 - Supports Kotlin & Groovy build files
 - Supports [multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
 - Supports nested Gradle projects
 - Supports multi-root workspaces
 - Show flat or nested tasks in the explorer
-- Gracefully stop (cancel) a running Gradle Task
+- Gracefully cancel a running Gradle Task
 
 Watch a short demo of the features: https://www.youtube.com/watch?v=n8hmndccxHI

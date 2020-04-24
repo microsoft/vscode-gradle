@@ -1,18 +1,45 @@
-// A launch configuration that compiles the extension and then opens it inside a new window
-// Use IntelliSense to learn about possible attributes.
-// Hover to view descriptions of existing attributes.
-// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Extension",
+      "name": "Debug Extension",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "debug",
+        "order": 1
+      }
+    },
+    {
+      "type": "java",
+      "name": "Debug Server",
+      "request": "launch",
+      "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
+      "projectName": "tasks-server",
+      "cwd": "${workspaceFolder}/tasks-server",
+      "presentation": {
+        "group": "debug",
+        "order": 2
+      }
+    },
+    {
+      "name": "Debug Extension with Debug Server",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "env": {
+        "VSCODE_DEBUG_SERVER": "true"
+      },
+      "presentation": {
+        "hidden": true
+      }
     },
     {
       "name": "Test: Groovy Default",
@@ -20,16 +47,20 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "gradle-groovy-default-build-file"
+        "FIXTURE_NAME": "gradle-groovy-default-build-file",
+        "VSCODE_TEST": "true"
       },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/gradle",
-        "${workspaceFolder}/test-fixtures/gradle-groovy-default-build-file"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Kotlin Default",
@@ -37,16 +68,20 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "gradle-kotlin-default-build-file"
+        "FIXTURE_NAME": "gradle-kotlin-default-build-file",
+        "VSCODE_TEST": "true"
       },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/gradle",
-        "${workspaceFolder}/test-fixtures/gradle-kotlin-default-build-file"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "${workspaceFolder}/extension/test-fixtures/gradle-kotlin-default-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Groovy Custom",
@@ -54,30 +89,40 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "gradle-groovy-custom-build-file"
+        "FIXTURE_NAME": "gradle-groovy-custom-build-file",
+        "VSCODE_TEST": "true"
       },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/gradle",
-        "${workspaceFolder}/test-fixtures/gradle-groovy-custom-build-file"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "${workspaceFolder}/extension/test-fixtures/gradle-groovy-custom-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: No-Gradle",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
+      "env": {
+        "VSCODE_TEST": "true"
+      },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/no-gradle/",
-        "${workspaceFolder}/test-fixtures/no-gradle"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/no-gradle/",
+        "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Multi-root",
@@ -85,44 +130,70 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "FIXTURE_NAME": "multi-root-workspace"
+        "FIXTURE_NAME": "multi-root-workspace",
+        "VSCODE_TEST": "true"
       },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/multi-root/",
-        "${workspaceFolder}/test-fixtures/multi-root/multiple-project.code-workspace"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-root/",
+        "${workspaceFolder}/extension/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Multi-Project",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
+      "env": {
+        "VSCODE_TEST": "true"
+      },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/multi-project/",
-        "${workspaceFolder}/test-fixtures/multi-project"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-project/",
+        "${workspaceFolder}/extension/test-fixtures/multi-project"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
     },
     {
       "name": "Test: Nested Projects",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
+      "env": {
+        "VSCODE_TEST": "true"
+      },
       "args": [
         "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/test/nested-projects/",
-        "${workspaceFolder}/test-fixtures"
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/nested-projects/",
+        "${workspaceFolder}/extension/test-fixtures"
       ],
-      "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
-      "preLaunchTask": "npm: watch"
+      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "preLaunchTask": "Gradle: Build TypeScript",
+      "presentation": {
+        "group": "test"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Server & Extension",
+      "configurations": ["Debug Server", "Debug Extension with Debug Server"],
+      "presentation": {
+        "group": "debug",
+        "order": 3
+      }
     }
   ]
 }

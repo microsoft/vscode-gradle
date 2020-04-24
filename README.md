@@ -12,9 +12,12 @@ Run Gradle tasks in VS Code.
 
 ## Features
 
-- Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
-- List & run Gradle tasks in the Explorer
-- [More Features »](./FEATURES.md)
+This extension provides a UI layer over the Gradle Task graph. It shows Gradle projects and associated tasks and allows you to run those tasks within the context of the editor.
+
+This extension supports whatever Gradle supports and is thus language/project agnostic, but it can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
+
+- 👉 [All Features](./FEATURES.md)
+- 👉 [Architecture Overview](./ARCHITECTURE.md)
 
 ## Requirements
 
@@ -65,7 +68,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 <img src="./images/no-connection.png" width="500" />
 
-This error means the gradle task server has stopped, or there was an error starting it. Click on "Restart Server" to restart it.
+This error means the Gradle Task server has stopped, or there was an error starting it. Click on "Restart Server" to restart it.
 
 If you continue to get this error, view the task error messages by selecting "Gradle Tasks Server" in the Terminal panel.
 

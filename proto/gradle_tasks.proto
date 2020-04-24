@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.badsyntax.gradletasks";
+option java_outer_classname = "GradleTasksProto";
+
+package gradletasks;
+
+service GradleTasks {
+  rpc GetProject(GetProjectRequest) returns (stream GetProjectReply) {}
+  rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
+  rpc CancelGetProjects(CancelGetProjectsRequest)
+      returns (CancelGetProjectsReply) {}
+  rpc CancelRunTask(CancelRunTaskRequest) returns (CancelRunTaskReply) {}
+  rpc CancelRunTasks(CancelRunTasksRequest) returns (CancelRunTasksReply) {}
+}
+
+message CancelGetProjectsRequest {}
+
+message CancelGetProjectsReply { string message = 1; }
+
+message GetTasksRequest { string source_dir = 1; }
+
+message GetProjectRequest { string source_dir = 1; }
+
+message GetProjectReply {
+  oneof kind {
+    GetProjectResult get_project_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+    Cancelled cancelled = 4;
+  }
+}
+
+message GetTasksResult {
+  string message = 1;
+  repeated GradleTask tasks = 2;
+}
+
+message GetProjectResult {
+  string message = 1;
+  GradleProject project = 2;
+}
+
+message RunTaskRequest {
+  string source_dir = 1;
+  string task = 2;
+  repeated string args = 3;
+}
+
+message CancelRunTaskRequest {
+  string source_dir = 1;
+  string task = 2;
+}
+
+message CancelRunTaskReply {
+  string message = 1;
+  string task = 2;
+}
+
+message CancelRunTasksRequest {
+  string source_dir = 1;
+  string task = 2;
+}
+
+message CancelRunTasksReply { string message = 1; }
+
+message RunTaskReply {
+  oneof kind {
+    RunTaskResult run_task_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+    Cancelled cancelled = 4;
+  }
+}
+
+message GradleProject {
+  string name = 1;
+  bool is_root = 2;
+  repeated GradleTask tasks = 3;
+  repeated GradleProject sub_projects = 4;
+}
+
+message GradleTask {
+  string name = 1;
+  string group = 2;
+  string path = 3;
+  string project = 4;
+  string buildFile = 5;
+  string rootProject = 6;
+  string description = 7;
+}
+
+message Cancelled {
+  string message = 1;
+  string source_dir = 2;
+  string task = 3;
+}
+
+message Progress { string message = 1; }
+
+message RunTaskResult {
+  string message = 1;
+  string task = 2;
+}
+
+message Output {
+  enum OutputType {
+    STDERR = 0;
+    STDOUT = 1;
+  }
+
+  string message = 1;
+  OutputType output_type = 2;
+}
