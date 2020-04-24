@@ -12,9 +12,9 @@ Run Gradle tasks in VS Code.
 
 ## Features
 
-This extension provides a UI layer over a Gradle build. It shows Gradle projects and tasks and allows you to run tasks within the context of the editor.
+This extension provides a UI layer over Gradle builds. It shows Gradle projects and tasks and allows you to run tasks within the context of the editor.
 
-This extension supports whatever Gradle supports and is thus language/project agnostic, but it can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
+This extension supports whatever Gradle supports and is language/project agnostic, but it can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 - 👉 [All Features](./FEATURES.md)
 - 👉 [Architecture Overview](./ARCHITECTURE.md)
