@@ -11,7 +11,7 @@ targetCompatibility = 1.8
 
 dependencies {
     compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
-    compileOnly 'javax.annotation:javax.annotation-api:1.2'
+    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
     runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
