@@ -1,6 +1,14 @@
 description = 'vscode-gradle :: extension'
 
 def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+def docsFiles = [
+  "README.md",
+  "LICENSE.md",
+  "ARCHITECTURE.md",
+  "CONTRIBUTING.md",
+  "FEATURES.md",
+  "CHANGELOG.md"
+]
 
 sourceSets {
   main {
@@ -62,6 +70,8 @@ clean {
   delete file('out')
   delete file('.vscode-test')
   delete file('build')
+  delete file('images')
+  delete docsFiles
 }
 
 task copyProtoJs(type: Copy) {
@@ -126,6 +136,28 @@ task testVsCode(type: CrossPlatformExec) {
   group 'verification'
   description 'Tests the extension'
   commandLine 'npm', 'run', 'test'
+}
+
+task copyImages(type: Copy) {
+  group 'copy'
+  description 'Copies images from the root project into the extension'
+  from "$rootProject.projectDir/images"
+  into "$projectDir/images"
+}
+
+task copyDocs(type: Copy) {
+  group 'copy'
+  description 'Copies docs from the root project into the extension'
+  from docsFiles.collect { "$rootProject.projectDir/" + it }
+  into "$projectDir"
+}
+
+task copyExtensionFiles() {
+  dependsOn copyImages, copyDocs
+}
+
+task prepareForPublish() {
+  dependsOn build, copyExtensionFiles
 }
 
 build.dependsOn ':tasks-server:build'

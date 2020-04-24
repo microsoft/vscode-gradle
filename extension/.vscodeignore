@@ -1,6 +1,5 @@
 .vscode/**
 .vscode-test/**
-.github/**
 out/test/**
 src/**
 .gitignore
@@ -9,6 +8,9 @@ src/**
 **/.eslintrc.json
 **/.prettierrc.json
 **/.prettierignore
+**/.classpath
+**/.project
+**/.settings
 **/*.map
 **/*.ts
 test-fixtures/**
@@ -18,3 +20,4 @@ proto/**
 i18n/**
 gulpfile.js
 build.gradle
+build/**
