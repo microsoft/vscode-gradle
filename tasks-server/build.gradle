@@ -48,6 +48,10 @@ protobuf {
     }
   }
   generateProtoTasks {
+    generateTestProto.enabled = false
+    extractProto.enabled = false;
+    extractIncludeProto.enabled = false;
+    extractIncludeTestProto.enabled = false;
     all().each { task ->
       task.plugins {
         grpc {}
@@ -79,6 +83,7 @@ jar.enabled = false
 distZip.enabled = false
 distTar.enabled = false
 assemble.enabled = false;
+processResources.enabled = false;
 
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn shadowJar

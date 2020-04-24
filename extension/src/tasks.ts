@@ -17,7 +17,9 @@ import {
   GradleProject,
   GradleTask,
   Cancelled,
+  GradleBuild,
 } from './proto/gradle_tasks_pb';
+import { SERVER_TASK_NAME } from './server';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stripAnsi = require('strip-ansi');
@@ -58,15 +60,19 @@ export function isTask(task1: vscode.Task, task2: vscode.Task): boolean {
   );
 }
 
-export function getGradleTaskExecutions(): vscode.TaskExecution[] {
-  return vscode.tasks.taskExecutions.filter((e) => e.task.source === 'gradle');
+export function getRunningGradleTasks(): vscode.Task[] {
+  return vscode.tasks.taskExecutions
+    .filter(
+      ({ task }) => task.source === 'gradle' && task.name !== SERVER_TASK_NAME
+    )
+    .map(({ task }) => task);
 }
 
 export function cancelRunningGradleTasks(): void {
-  const taskExecutions = getGradleTaskExecutions();
-  taskExecutions.forEach((execution) => {
-    vscode.commands.executeCommand('gradle.cancelTask', execution.task);
-  });
+  const tasks = getRunningGradleTasks();
+  tasks.forEach((task) =>
+    vscode.commands.executeCommand('gradle.cancelTask', task)
+  );
 }
 
 export function cancelTask(task: vscode.Task): void {
@@ -87,11 +93,11 @@ export function isTaskCancelling(task: vscode.Task): boolean {
 
 export function setCancelledTaskAsComplete(
   task: string,
-  sourceDir: string
+  projectFolder: string
 ): void {
   const cancellingTask = Array.from(cancellingTasks).find(
     ({ definition }) =>
-      definition.script === task && definition.projectFolder === sourceDir
+      definition.script === task && definition.projectFolder === projectFolder
   );
   if (cancellingTask) {
     cancellingTasks.delete(cancellingTask);
@@ -164,9 +170,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         for (const projectFolder of projectFolders) {
           // TODO
           // Can't we do this in parallel?
-          const gradleProject = await this.getGradleProjectFromRootProjectFolder(
-            projectFolder
-          );
+          const gradleBuild = await this.getGradleBuild(projectFolder);
+          const gradleProject = gradleBuild && gradleBuild.getProject();
           if (gradleProject) {
             allTasks.push(
               ...this.getVSCodeTasksFromGradleProject(
@@ -212,20 +217,10 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     return cachedTasks;
   }
 
-  private async getGradleProjectFromRootProjectFolder(
+  private async getGradleBuild(
     projectFolder: vscode.Uri
-  ): Promise<GradleProject | void> {
-    try {
-      return await this.client?.getProject(projectFolder.fsPath);
-    } catch (err) {
-      logger.error(
-        localize(
-          'tasks.errorGettingProject',
-          'Error getting gradle project: {0}',
-          err.details || err.message
-        )
-      );
-    }
+  ): Promise<GradleBuild | void> {
+    return await this.client?.getBuild(projectFolder.fsPath);
   }
 
   private getVSCodeTasksFromGradleProject(
@@ -256,12 +251,12 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         )
       );
     }
-    gradleProject.getSubProjectsList().forEach((subProject) => {
+    gradleProject.getProjectsList().forEach((project) => {
       vsCodeTasks.push(
         ...this.getVSCodeTasksFromGradleProject(
           workspaceFolder,
           projectFolder,
-          subProject
+          project
         )
       );
     });
@@ -333,7 +328,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   constructor(
     private readonly client: GradleTasksClient,
-    private readonly sourceDir: string,
+    private readonly projectFolder: string,
     private readonly task: vscode.Task
   ) {}
 
@@ -343,7 +338,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   close(): void {
     if (isTaskRunning(this.task)) {
-      this.client.cancelRunTask(this.sourceDir, this.task.definition.script);
+      this.client.cancelRunTask(
+        this.projectFolder,
+        this.task.definition.script
+      );
     }
   }
 
@@ -362,7 +360,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
       await this.client.runTask(
-        this.sourceDir,
+        this.projectFolder,
         this.task.definition.script,
         args,
         (output: Output): void => {
@@ -501,7 +499,7 @@ export function buildGradleServerTask(
 }
 
 export function handleCancelledTask(cancelled: Cancelled): void {
-  setCancelledTaskAsComplete(cancelled.getTask(), cancelled.getSourceDir());
+  setCancelledTaskAsComplete(cancelled.getTask(), cancelled.getProjectDir());
   vscode.commands.executeCommand('gradle.explorerRender');
 }
 
