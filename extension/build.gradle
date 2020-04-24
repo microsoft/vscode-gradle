@@ -121,14 +121,8 @@ task buildTypeScript(type: CrossPlatformExec) {
   buildDir = 'out'
   outputs.dir("$buildDir")
   inputs.dir('src')
+  inputs.file('webpack.config.js')
   commandLine 'npm', 'run', 'compile'
-}
-
-task watchTypeScript(type: CrossPlatformExec) {
-  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
-  group 'build'
-  description 'Watches and builds TypeScript source files'
-  commandLine 'npm', 'run', 'watch:ts'
 }
 
 task testVsCode(type: CrossPlatformExec) {

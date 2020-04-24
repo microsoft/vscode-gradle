@@ -17,6 +17,9 @@ module.exports = () => {
   return {
     mode: 'none',
     target: 'node',
+    node: {
+      __dirname: false,
+    },
     entry: {
       extension: './src/extension.ts',
       runTests: './src/test/runTests.ts',
@@ -24,9 +27,11 @@ module.exports = () => {
     output: {
       filename: '[name].js',
       path: path.join(__dirname, 'out'),
-      libraryTarget: 'commonjs',
+      libraryTarget: 'commonjs2',
       pathinfo: false,
+      devtoolModuleFilenameTemplate: '../[resource-path]',
     },
+    devtool: 'source-map',
     resolve: {
       mainFields: ['module', 'main'],
       extensions: ['.ts', '.js'],
@@ -47,6 +52,9 @@ module.exports = () => {
               loader: 'ts-loader',
               options: {
                 transpileOnly: true,
+                compilerOptions: {
+                  sourceMap: true,
+                },
               },
             },
           ],
@@ -56,6 +64,11 @@ module.exports = () => {
     externals: {
       vscode: 'commonjs vscode',
       'vscode-test': 'commonjs vscode-test',
+      '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
+      'get-port': 'commonjs get-port',
+      'google-protobuf': 'commonjs google-protobuf',
+      'strip-ansi': 'commonjs strip-ansi',
+      'vscode-nls': 'commonjs vscode-nls',
     },
     plugins: [new NLSBundlePlugin(id)],
   };
