@@ -61,6 +61,7 @@ test.enabled = false;
 jar.enabled = false;
 compileJava.enabled = false
 compileTestJava.enabled = false
+processResources.enabled = false;
 
 clean {
   dependsOn ':tasks-server:clean'

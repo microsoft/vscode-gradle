@@ -55,7 +55,7 @@ public class GradleTasksServerTest {
     ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
     stub.getBuild(req, responseObserver);
     verify(responseObserver).onError(onError.capture());
-    assertEquals("INTERNAL: Build directory does not exist: does/not/exist",
+    assertEquals("INTERNAL: Project directory does not exist: does/not/exist",
         onError.getValue().getMessage());
   }
 }
