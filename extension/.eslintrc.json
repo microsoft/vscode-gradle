@@ -6,12 +6,22 @@
     "plugin:prettier/recommended",
     "plugin:sonarjs/recommended"
   ],
+  "plugins": ["sonarjs"],
   "parserOptions": { "ecmaVersion": 2018, "sourceType": "module" },
   "rules": {
     "@typescript-eslint/no-use-before-define": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
     "no-unused-vars": "off",
-    "@typescript-eslint/no-unused-vars": ["error"]
+    "@typescript-eslint/no-unused-vars": ["error"],
+    "@typescript-eslint/explicit-function-return-type": "off"
   },
-  "plugins": ["sonarjs"]
+  "overrides": [
+    {
+      // enable the rule specifically for TypeScript files
+      "files": ["*.ts", "*.tsx"],
+      "rules": {
+        "@typescript-eslint/explicit-function-return-type": ["error"]
+      }
+    }
+  ]
 }

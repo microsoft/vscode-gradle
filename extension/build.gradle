@@ -77,9 +77,9 @@ clean {
 task copyProtoJs(type: Copy) {
   dependsOn ':extension:generateProto'
   group 'copy'
-  description 'Copies proto JavaScript definitions into src dir'
+  description 'Copies proto JavaScript files into src dir'
   from "$protobuf.generatedFilesBaseDir/main/js"
-  into 'out/proto/'
+  into 'src/proto/'
   filter { line ->
     line.replaceAll("\'grpc\'", "\'@grpc/grpc-js\'")
   }
@@ -121,7 +121,7 @@ task buildTypeScript(type: CrossPlatformExec) {
   buildDir = 'out'
   outputs.dir("$buildDir")
   inputs.dir('src')
-  commandLine 'npm', 'run', 'compile:ts'
+  commandLine 'npm', 'run', 'compile'
 }
 
 task watchTypeScript(type: CrossPlatformExec) {
