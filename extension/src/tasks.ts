@@ -350,10 +350,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private handleOutput(message: string): void {
     const logMessage = message.trim();
     if (logMessage) {
-      this.writeEmitter.fire(message + '\r\n');
+      this.writeEmitter.fire(logMessage + '\r\n');
       // This allows us to test process stdout via the logger
       if (isTest()) {
-        logger.info(stripAnsi(message));
+        logger.info(stripAnsi(logMessage));
       }
     }
   }

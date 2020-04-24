@@ -26,12 +26,14 @@ import { handleCancelledTask } from './tasks';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 30; // seconds
-  public grpcClient: GrpcClient | null = null;
+  private connectDeadline = 5; // seconds
+  private grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
+  private connectTries = 0;
+  private maxConnectTries = 3;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -146,9 +148,6 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
-      logger.info(
-        'Requested to run task: ' + JSON.stringify(request.toObject(), null, 2)
-      );
       await new Promise((resolve, reject) => {
         runTaskStream
           .on('data', (runTaskReply: RunTaskReply) => {
@@ -332,7 +331,16 @@ export class GradleTasksClient implements vscode.Disposable {
         e.message
       )
     );
-    this.server.showRestartMessage();
+    // Even though the gRPC client should keep retrying to connect, in some cases
+    // that doesn't work as expected (like CI tests for windows), which is why we
+    // have to manually keep retrying.
+    if (this.connectTries < this.maxConnectTries) {
+      this.connectTries += 1;
+      this.grpcClient?.close();
+      this.connectToServer();
+    } else {
+      this.server.showRestartMessage();
+    }
   };
 
   public dispose(): void {
