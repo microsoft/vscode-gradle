@@ -2,6 +2,34 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.6.0
+
+### Internal
+
+- gRPC & build refactor (#272) @badsyntax, which includes:
+
+  - Replace websocket client & server with gRPC 🎉
+  - Complete refactor of the build system using Gradle multi-projects for managing the builds
+  - Improved developer experience
+    - Can now debug both client and server _at the same time_
+    - No need for separate & manual steps (eg shell scripts) for generating proto files or building jar files. Just "debug the extension" from VS Code and Gradle will handle the dependencies
+  - Improved contribution support
+    - The builds work on Linux/MacOS & Windows
+    - Improved docs with basic architecture overview
+    - Includes VS Code settings & recommended extensions to get VS Code environment setup correctly
+  - Less noisy logs - don't show redundant `runTask` logs in the output channel (they are already shown in the terminal)
+
+### Deps
+
+- Bump junit from 4.12 to 4.13 (#288) @dependabot-preview
+- Remove grpc_tools_node_protoc_ts dep (#290) @badsyntax
+- Bump mockito-core from 2.28.2 to 3.3.3 (#287) @dependabot-preview
+- Bump javax.annotation-api from 1.2 to 1.3.2 (#286) @dependabot-preview
+- Bump @typescript-eslint/parser from 2.27.0 to 2.28.0 (#271) @dependabot-preview
+- Bump eslint-plugin-prettier from 3.1.2 to 3.1.3 (#268) @dependabot-preview
+- Bump @types/ws from 7.2.3 to 7.2.4 (#270) @dependabot-preview
+- Bump @typescript-eslint/eslint-plugin from 2.27.0 to 2.28.0 (#269) @dependabot-preview
+
 ## 2.5.1
 
 - Fix excessive server restart message (#266)
