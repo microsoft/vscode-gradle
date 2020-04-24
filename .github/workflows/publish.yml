@@ -21,6 +21,7 @@ jobs:
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
+          cd extension
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
