@@ -17,7 +17,7 @@ dependencies {
     runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
     runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
     testImplementation "io.grpc:grpc-testing:${grpcVersion}"
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13'
     testImplementation 'org.mockito:mockito-core:2.28.2'
 }
 
