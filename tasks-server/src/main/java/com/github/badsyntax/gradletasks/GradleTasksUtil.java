@@ -16,12 +16,13 @@ import io.grpc.stub.StreamObserver;
 public class GradleTasksUtil {
 
   private static CancellationTokenPool cancellationTokenPool = new CancellationTokenPool();
+  private static final Object lock = new Object();
 
   private GradleTasksUtil() {
   }
 
-  public static void getProject(final File sourceDir,
-      final StreamObserver<GetProjectReply> responseObserver) throws GradleTasksException {
+  public static void getProject(final File sourceDir, final StreamObserver<GetProjectReply> responseObserver)
+      throws GradleTasksException {
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     GradleConnector gradleConnector = GradleConnector.newConnector().forProjectDirectory(sourceDir);
     String cancellationKey = sourceDir.getAbsolutePath();
@@ -32,7 +33,7 @@ public class GradleTasksUtil {
           projectConnection.model(org.gradle.tooling.model.GradleProject.class);
       rootProjectBuilder.withCancellationToken(cancellationTokenSource.token())
           .addProgressListener((ProgressEvent progressEvent) -> {
-            synchronized (responseObserver) {
+            synchronized (lock) {
               Progress progress =
                   Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
               GetProjectReply reply = GetProjectReply.newBuilder().setProgress(progress).build();
@@ -41,7 +42,7 @@ public class GradleTasksUtil {
           }).setStandardOutput(new GradleOutputListener() {
             @Override
             public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
-              synchronized (responseObserver) {
+              synchronized (lock) {
                 Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
                     .setMessage(outputMessage.toString()).build();
                 GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
@@ -51,7 +52,7 @@ public class GradleTasksUtil {
           }).setStandardError(new GradleOutputListener() {
             @Override
             public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
-              synchronized (responseObserver) {
+              synchronized (lock) {
                 Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
                     .setMessage(outputMessage.toString()).build();
                 GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
@@ -86,7 +87,7 @@ public class GradleTasksUtil {
       BuildLauncher build =
           projectConnection.newBuild().withCancellationToken(cancellationTokenSource.token())
               .addProgressListener((ProgressEvent progressEvent) -> {
-                synchronized (responseObserver) {
+                synchronized (lock) {
                   Progress progress =
                       Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
                   RunTaskReply reply = RunTaskReply.newBuilder().setProgress(progress).build();
@@ -95,7 +96,7 @@ public class GradleTasksUtil {
               }).setStandardOutput(new GradleOutputListener() {
                 @Override
                 public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
-                  synchronized (responseObserver) {
+                  synchronized (lock) {
 
                     Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
                         .setMessage(outputMessage.toString()).build();
@@ -106,7 +107,7 @@ public class GradleTasksUtil {
               }).setStandardError(new GradleOutputListener() {
                 @Override
                 public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
-                  synchronized (responseObserver) {
+                  synchronized (lock) {
                     Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
                         .setMessage(outputMessage.toString()).build();
                     RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
