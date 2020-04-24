@@ -11,17 +11,17 @@ import io.grpc.stub.StreamObserver;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
-  private static final String SOURCE_DIR_ERROR = "Source directory does not exist: %s";
+  private static final String PROJECT_DIR_ERROR = "Project directory does not exist: %s";
 
   @Override
-  public void getProject(final GetProjectRequest req,
-      final StreamObserver<GetProjectReply> responseObserver) {
+  public void getBuild(final GetBuildRequest req,
+      final StreamObserver<GetBuildReply> responseObserver) {
     try {
-      File sourceDir = new File(req.getSourceDir().trim());
-      if (!sourceDir.exists()) {
-        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
+      File projectDir = new File(req.getProjectDir().trim());
+      if (!projectDir.exists()) {
+        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
       }
-      GradleTasksUtil.getProject(sourceDir, responseObserver);
+      GradleTasksUtil.getBuild(projectDir, responseObserver);
       responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
@@ -35,11 +35,11 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   public void runTask(final RunTaskRequest req,
       final StreamObserver<RunTaskReply> responseObserver) {
     try {
-      File sourceDir = new File(req.getSourceDir().trim());
-      if (!sourceDir.exists()) {
-        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
+      File projectDir = new File(req.getProjectDir().trim());
+      if (!projectDir.exists()) {
+        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
       }
-      GradleTasksUtil.runTask(sourceDir, req.getTask(), req.getArgsList(), responseObserver);
+      GradleTasksUtil.runTask(projectDir, req.getTask(), req.getArgsList(), responseObserver);
       responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
@@ -50,9 +50,9 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   }
 
   @Override
-  public void cancelGetProjects(final CancelGetProjectsRequest req,
-      final StreamObserver<CancelGetProjectsReply> responseObserver) {
-    GradleTasksUtil.cancelGetProjects(responseObserver);
+  public void cancelGetBuilds(final CancelGetBuildsRequest req,
+      final StreamObserver<CancelGetBuildsReply> responseObserver) {
+    GradleTasksUtil.cancelGetBuilds(responseObserver);
     responseObserver.onCompleted();
   }
 
@@ -60,11 +60,11 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   public void cancelRunTask(final CancelRunTaskRequest req,
       final StreamObserver<CancelRunTaskReply> responseObserver) {
     try {
-      File sourceDir = new File(req.getSourceDir().trim());
-      if (!sourceDir.exists()) {
-        throw new GradleTasksException(String.format(SOURCE_DIR_ERROR, req.getSourceDir()));
+      File projectDir = new File(req.getProjectDir().trim());
+      if (!projectDir.exists()) {
+        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
       }
-      GradleTasksUtil.cancelRunTask(sourceDir, req.getTask(), responseObserver);
+      GradleTasksUtil.cancelRunTask(projectDir, req.getTask(), responseObserver);
       responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
@@ -75,8 +75,8 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   }
 
   @Override
-  public void cancelRunTasks(CancelRunTasksRequest req,
-      StreamObserver<CancelRunTasksReply> responseObserver) {
+  public void cancelRunTasks(final CancelRunTasksRequest req,
+      final StreamObserver<CancelRunTasksReply> responseObserver) {
     GradleTasksUtil.cancelRunTasks(responseObserver);
     responseObserver.onCompleted();
   }

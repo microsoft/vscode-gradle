@@ -2,14 +2,14 @@
   "client.connecting": "Cliente Gradle que se conecta al servidor ...",
   "client.connected": "Cliente Gradle conectado al servidor",
   "client.refreshingTasks": "{0} Gradle: tareas refrescantes",
-  "client.errorGettingProject": "Error al obtener el proyecto para {0}: {1}",
+  "client.errorGettingBuild": "Error al obtener la compilación para {0}: {1}",
   "client.completedTask": "Tarea completada {0}",
   "client.errorRunningTask": "Error al ejecutar la tarea: {0} {1}",
   "client.errorCancellingRunningTask": "Error al cancelar la tarea en ejecución: {0}",
   "client.errorCancellingRunningTasks": "Error al cancelar las tareas en ejecución",
-  "client.errorCancellingGetProjects": "Error al cancelar proyectos get: {0}",
+  "client.errorCancellingGetBuilds": "Error al cancelar las compilaciones: {0}",
   "client.errorConnectingToServer": "Error al conectarse al servidor gradle: {0}",
   "client.runTaskCancelled": "Tarea cancelada: {0}",
-  "client.getProjectCancelled": "Obtener proyecto cancelado: {0}",
+  "client.getBuildCancelled": "Obtener construcción cancelada: {0}",
   "client.grpcClientConstructionError": "No se puede construir el cliente gRPC: {0}"
 }

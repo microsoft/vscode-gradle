@@ -10,6 +10,7 @@ import {
   enableTaskDetection,
   runTask,
   runTaskWithArgs,
+  cancelRunningGradleTasks,
 } from './tasks';
 import { getIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
@@ -129,8 +130,8 @@ function registerCancelGradleProcessesCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand('gradle.cancelGradleProcesses', () => {
     try {
-      client.cancelGetProjects();
-      client.cancelRunTasks();
+      client.cancelGetBuilds();
+      cancelRunningGradleTasks();
       statusBarItem.hide();
     } catch (e) {
       localize(

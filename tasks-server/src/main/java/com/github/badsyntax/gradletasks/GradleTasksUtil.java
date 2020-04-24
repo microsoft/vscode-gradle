@@ -21,11 +21,12 @@ public class GradleTasksUtil {
   private GradleTasksUtil() {
   }
 
-  public static void getProject(final File sourceDir, final StreamObserver<GetProjectReply> responseObserver)
-      throws GradleTasksException {
+  public static void getBuild(final File projectDir,
+      final StreamObserver<GetBuildReply> responseObserver) throws GradleTasksException {
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
-    GradleConnector gradleConnector = GradleConnector.newConnector().forProjectDirectory(sourceDir);
-    String cancellationKey = sourceDir.getAbsolutePath();
+    GradleConnector gradleConnector =
+        GradleConnector.newConnector().forProjectDirectory(projectDir);
+    String cancellationKey = projectDir.getAbsolutePath();
     cancellationTokenPool.put(CancellationTokenPool.TYPE.GET, cancellationKey,
         cancellationTokenSource);
     try (ProjectConnection projectConnection = gradleConnector.connect()) {
@@ -36,7 +37,7 @@ public class GradleTasksUtil {
             synchronized (lock) {
               Progress progress =
                   Progress.newBuilder().setMessage(progressEvent.getDescription()).build();
-              GetProjectReply reply = GetProjectReply.newBuilder().setProgress(progress).build();
+              GetBuildReply reply = GetBuildReply.newBuilder().setProgress(progress).build();
               responseObserver.onNext(reply);
             }
           }).setStandardOutput(new GradleOutputListener() {
@@ -45,7 +46,7 @@ public class GradleTasksUtil {
               synchronized (lock) {
                 Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
                     .setMessage(outputMessage.toString()).build();
-                GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
+                GetBuildReply reply = GetBuildReply.newBuilder().setOutput(output).build();
                 responseObserver.onNext(reply);
               }
             }
@@ -55,19 +56,20 @@ public class GradleTasksUtil {
               synchronized (lock) {
                 Output output = Output.newBuilder().setOutputType(Output.OutputType.STDERR)
                     .setMessage(outputMessage.toString()).build();
-                GetProjectReply reply = GetProjectReply.newBuilder().setOutput(output).build();
+                GetBuildReply reply = GetBuildReply.newBuilder().setOutput(output).build();
                 responseObserver.onNext(reply);
               }
             }
           }).setColorOutput(false);
       GradleProject gradleProject = buildProject(rootProjectBuilder.get());
-      GetProjectResult result = GetProjectResult.newBuilder().setProject(gradleProject).build();
-      GetProjectReply reply = GetProjectReply.newBuilder().setGetProjectResult(result).build();
+      GradleBuild gradleBuild = GradleBuild.newBuilder().setProject(gradleProject).build();
+      GetBuildResult result = GetBuildResult.newBuilder().setBuild(gradleBuild).build();
+      GetBuildReply reply = GetBuildReply.newBuilder().setGetBuildResult(result).build();
       responseObserver.onNext(reply);
     } catch (BuildCancelledException e) {
       Cancelled cancelled = Cancelled.newBuilder().setMessage(e.getMessage())
-          .setSourceDir(sourceDir.getPath()).build();
-      GetProjectReply reply = GetProjectReply.newBuilder().setCancelled(cancelled).build();
+          .setProjectDir(projectDir.getPath()).build();
+      GetBuildReply reply = GetBuildReply.newBuilder().setCancelled(cancelled).build();
       responseObserver.onNext(reply);
     } catch (RuntimeException err) {
       throw new GradleTasksException(err.getMessage(), err);
@@ -76,11 +78,12 @@ public class GradleTasksUtil {
     }
   }
 
-  public static void runTask(final File sourceDir, final String task, final List<String> args,
+  public static void runTask(final File projectDir, final String task, final List<String> args,
       final StreamObserver<RunTaskReply> responseObserver) {
-    GradleConnector gradleConnector = GradleConnector.newConnector().forProjectDirectory(sourceDir);
+    GradleConnector gradleConnector =
+        GradleConnector.newConnector().forProjectDirectory(projectDir);
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
-    String cancellationKey = sourceDir.getAbsolutePath() + task;
+    String cancellationKey = projectDir.getAbsolutePath() + task;
     cancellationTokenPool.put(CancellationTokenPool.TYPE.RUN, cancellationKey,
         cancellationTokenSource);
     try (ProjectConnection projectConnection = gradleConnector.connect()) {
@@ -122,7 +125,7 @@ public class GradleTasksUtil {
       responseObserver.onNext(reply);
     } catch (BuildCancelledException e) {
       Cancelled cancelled = Cancelled.newBuilder().setMessage(e.getMessage()).setTask(task)
-          .setSourceDir(sourceDir.getPath()).build();
+          .setProjectDir(projectDir.getPath()).build();
       RunTaskReply reply = RunTaskReply.newBuilder().setCancelled(cancelled).build();
       responseObserver.onNext(reply);
     } finally {
@@ -130,18 +133,18 @@ public class GradleTasksUtil {
     }
   }
 
-  public static void cancelGetProjects(StreamObserver<CancelGetProjectsReply> responseObserver) {
+  public static void cancelGetBuilds(StreamObserver<CancelGetBuildsReply> responseObserver) {
     Map<String, CancellationTokenSource> pool =
         cancellationTokenPool.getPoolType(CancellationTokenPool.TYPE.GET);
     pool.keySet().stream().forEach(key -> pool.get(key).cancel());
-    CancelGetProjectsReply reply =
-        CancelGetProjectsReply.newBuilder().setMessage("Cancel get projects requested").build();
+    CancelGetBuildsReply reply =
+        CancelGetBuildsReply.newBuilder().setMessage("Cancel get projects requested").build();
     responseObserver.onNext(reply);
   }
 
-  public static void cancelRunTask(File sourceDir, String task,
+  public static void cancelRunTask(File projectDir, String task,
       StreamObserver<CancelRunTaskReply> responseObserver) {
-    String cancellationKey = sourceDir.getAbsolutePath() + task;
+    String cancellationKey = projectDir.getAbsolutePath() + task;
     CancellationTokenSource cancellationTokenSource =
         cancellationTokenPool.get(CancellationTokenPool.TYPE.RUN, cancellationKey);
     if (cancellationTokenSource != null) {
@@ -165,7 +168,7 @@ public class GradleTasksUtil {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
     gradleProject.getChildren().stream()
-        .forEach(childGradleProject -> project.addSubProjects(buildProject(childGradleProject)));
+        .forEach(childGradleProject -> project.addProjects(buildProject(childGradleProject)));
     gradleProject.getTasks().stream().forEach(task -> {
       GradleTask.Builder gradleTask = GradleTask.newBuilder()
           .setProject(task.getProject().getName()).setName(task.getName()).setPath(task.getPath())

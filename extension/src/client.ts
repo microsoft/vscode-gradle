@@ -7,15 +7,16 @@ import {
   RunTaskRequest,
   RunTaskReply,
   Output,
-  GetProjectRequest,
-  GetProjectReply,
-  GradleProject,
-  CancelGetProjectsRequest,
-  CancelGetProjectsReply,
+  GetBuildRequest,
+  GetBuildReply,
+  CancelGetBuildsRequest,
+  CancelGetBuildsReply,
   CancelRunTaskRequest,
   CancelRunTaskReply,
   CancelRunTasksReply,
   Cancelled,
+  GradleBuild,
+  CancelRunTasksRequest,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
@@ -86,47 +87,47 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async getProject(sourceDir: string): Promise<GradleProject | void> {
+  public async getBuild(projectFolder: string): Promise<GradleBuild | void> {
     this.statusBarItem.text = localize(
       'client.refreshingTasks',
       '{0} Gradle: Refreshing Tasks',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
-    const request = new GetProjectRequest();
-    request.setSourceDir(sourceDir);
-    const getProjectStream = this.grpcClient!.getProject(request);
+    const request = new GetBuildRequest();
+    request.setProjectDir(projectFolder);
+    const getBuildStream = this.grpcClient!.getBuild(request);
     try {
       return await new Promise((resolve, reject) => {
-        let project: GradleProject | void = undefined;
-        getProjectStream
-          .on('data', (getProjectReply: GetProjectReply) => {
-            switch (getProjectReply.getKindCase()) {
-              case GetProjectReply.KindCase.PROGRESS:
-                this.handleProgress(getProjectReply.getProgress()!);
+        let build: GradleBuild | void = undefined;
+        getBuildStream
+          .on('data', (getBuildReply: GetBuildReply) => {
+            switch (getBuildReply.getKindCase()) {
+              case GetBuildReply.KindCase.PROGRESS:
+                this.handleProgress(getBuildReply.getProgress()!);
                 break;
-              case GetProjectReply.KindCase.OUTPUT:
-                this.handleOutput(getProjectReply.getOutput()!);
+              case GetBuildReply.KindCase.OUTPUT:
+                this.handleOutput(getBuildReply.getOutput()!);
                 break;
-              case GetProjectReply.KindCase.CANCELLED:
-                this.handleGetProjectCancelled(getProjectReply.getCancelled()!);
+              case GetBuildReply.KindCase.CANCELLED:
+                this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
                 break;
-              case GetProjectReply.KindCase.GET_PROJECT_RESULT:
-                project = getProjectReply.getGetProjectResult()!.getProject();
+              case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                build = getBuildReply.getGetBuildResult()!.getBuild();
                 break;
             }
           })
           .on('error', reject)
           .on('end', () => {
-            resolve(project);
+            resolve(build);
           });
       });
     } catch (err) {
       logger.error(
         localize(
-          'client.errorGettingProject',
-          'Error getting project for {0}: {1}',
-          sourceDir,
+          'client.errorGettingBuild',
+          'Error getting build for {0}: {1}',
+          projectFolder,
           err.details || err.message
         )
       );
@@ -136,14 +137,14 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async runTask(
-    sourceDir: string,
+    projectFolder: string,
     task: string,
     args: string[] = [],
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
     const request = new RunTaskRequest();
-    request.setSourceDir(sourceDir);
+    request.setProjectDir(projectFolder);
     request.setTask(task);
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
@@ -183,9 +184,12 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async cancelRunTask(sourceDir: string, task: string): Promise<void> {
+  public async cancelRunTask(
+    projectFolder: string,
+    task: string
+  ): Promise<void> {
     const request = new CancelRunTaskRequest();
-    request.setSourceDir(sourceDir);
+    request.setProjectDir(projectFolder);
     request.setTask(task);
     try {
       const cancelRunTaskReply: CancelRunTaskReply = await new Promise(
@@ -218,7 +222,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async cancelRunTasks(): Promise<void> {
-    const request = new CancelRunTaskRequest();
+    const request = new CancelRunTasksRequest();
     try {
       const cancelRunTasksReply: CancelRunTasksReply = await new Promise(
         (resolve, reject) => {
@@ -249,32 +253,32 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async cancelGetProjects(): Promise<void> {
-    const request = new CancelGetProjectsRequest();
+  public async cancelGetBuilds(): Promise<void> {
+    const request = new CancelGetBuildsRequest();
     try {
-      const cancelGetProjectsReply: CancelGetProjectsReply = await new Promise(
+      const cancelGetBuildsReply: CancelGetBuildsReply = await new Promise(
         (resolve, reject) => {
-          this.grpcClient!.cancelGetProjects(
+          this.grpcClient!.cancelGetBuilds(
             request,
             (
               err: grpc.ServiceError | null,
-              cancelGetProjectsReply: CancelGetProjectsReply | undefined
+              cancelGetBuildsReply: CancelGetBuildsReply | undefined
             ) => {
               if (err) {
                 reject(err);
               } else {
-                resolve(cancelGetProjectsReply);
+                resolve(cancelGetBuildsReply);
               }
             }
           );
         }
       );
-      logger.info(cancelGetProjectsReply.getMessage());
+      logger.info(cancelGetBuildsReply.getMessage());
     } catch (err) {
       logger.error(
         localize(
-          'client.errorCancellingGetProjects',
-          'Error cancelling get projects: {0}',
+          'client.errorCancellingGetBuilds',
+          'Error cancelling get builds: {0}',
           err.details || err.message
         )
       );
@@ -292,11 +296,11 @@ export class GradleTasksClient implements vscode.Disposable {
     handleCancelledTask(cancelled);
   };
 
-  private handleGetProjectCancelled = (cancelled: Cancelled): void => {
+  private handleGetBuildCancelled = (cancelled: Cancelled): void => {
     logger.info(
       localize(
-        'client.getProjectCancelled',
-        'Get project cancelled: {0}',
+        'client.getBuildCancelled',
+        'Get build cancelled: {0}',
         cancelled.getMessage()
       )
     );

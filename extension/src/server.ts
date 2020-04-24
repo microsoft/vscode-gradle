@@ -8,6 +8,8 @@ import { isDebuggingServer } from './util';
 
 const localize = nls.loadMessageBundle();
 
+export const SERVER_TASK_NAME = 'Gradle Tasks Server';
+
 export interface ServerOptions {
   host: string;
 }
@@ -27,7 +29,6 @@ export class GradleTasksServer implements vscode.Disposable {
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private isRestarting = false;
   private port: number | undefined;
-  private taskName = 'Gradle Tasks Server';
 
   public readonly onReady: vscode.Event<null> = this._onReady.event;
   public readonly onStop: vscode.Event<null> = this._onStop.event;
@@ -37,8 +38,11 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTaskProcess((event) => {
-        if (event.execution.task.name === this.taskName && event.processId) {
+      vscode.tasks.onDidStartTaskProcess(async (event) => {
+        if (
+          event.execution.task.name === SERVER_TASK_NAME &&
+          (await event.processId)
+        ) {
           if (isProcessRunning(event.processId)) {
             this.fireOnReady();
           } else {
@@ -52,7 +56,7 @@ export class GradleTasksServer implements vscode.Disposable {
         }
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {
-        if (event.execution.task.name === this.taskName) {
+        if (event.execution.task.name === SERVER_TASK_NAME) {
           this._onStop.fire();
           if (!this.isRestarting) {
             logger.info(
@@ -73,7 +77,7 @@ export class GradleTasksServer implements vscode.Disposable {
     } else {
       this.port = await getPort();
       const cwd = this.context.asAbsolutePath('lib');
-      const task = buildGradleServerTask(this.taskName, cwd, [
+      const task = buildGradleServerTask(SERVER_TASK_NAME, cwd, [
         String(this.port),
       ]);
       this.taskExecution = await vscode.tasks.executeTask(task);
@@ -82,10 +86,6 @@ export class GradleTasksServer implements vscode.Disposable {
 
   public isStarted(): boolean {
     return this.taskExecution !== null;
-  }
-
-  public getTaskName(): string {
-    return this.taskName;
   }
 
   public async showRestartMessage(): Promise<void> {
@@ -110,7 +110,7 @@ export class GradleTasksServer implements vscode.Disposable {
       if (this.taskExecution) {
         this.isRestarting = true;
         const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
-          if (event.execution.task.name === this.taskName) {
+          if (event.execution.task.name === SERVER_TASK_NAME) {
             this.isRestarting = false;
             disposable.dispose();
             this.start();
