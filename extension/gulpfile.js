@@ -20,7 +20,7 @@ const outDest = 'out';
 const languages = [{ folderName: 'es', id: 'es' }];
 
 const cleanTask = function () {
-  return del(['out/**', 'package.nls.*.json', 'i18n-sample*.vsix']);
+  return del(['package.nls.*.json']);
 };
 
 const internalCompileTask = function () {
@@ -38,7 +38,9 @@ const addI18nTask = function () {
     .pipe(gulp.dest('.'));
 };
 
-const buildTask = gulp.series(cleanTask, internalNlsCompileTask, addI18nTask);
+const i18nTask = gulp.series(internalNlsCompileTask, addI18nTask);
+
+const buildTask = gulp.series(cleanTask, i18nTask);
 
 const doCompile = function (buildNls) {
   let r = tsProject
@@ -87,3 +89,5 @@ gulp.task('build', buildTask);
 gulp.task('publish', gulp.series(buildTask, vscePublishTask));
 
 gulp.task('package', gulp.series(buildTask, vscePackageTask));
+
+gulp.task('i18n', i18nTask);
