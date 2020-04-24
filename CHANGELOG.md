@@ -2,6 +2,13 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.6.1
+
+- Fixed language files not being published (#292)
+- Fixed proto source files included in published extension (#293)
+- Fixed task cancellation from statusbar
+- Updated docs
+
 ## 2.6.0
 
 ### Internal
