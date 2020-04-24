@@ -13,16 +13,15 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.x
-      - name: Build project
+      - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build
+          arguments: extension:prepareForPublish
       - name: Publish extension
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
           cd extension
-          chmod +x lib/tasks-server
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"

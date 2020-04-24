@@ -64,7 +64,7 @@ jobs:
       - name: Build Project
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build -x test -x gradleTasksServerLib -x compileJava -x shadowJar -x startShadowScripts
+          arguments: build -x test -x serverStartScripts -x compileJava -x shadowJar -x startShadowScripts
       - name: Download lib
         uses: actions/download-artifact@v1
         with:
@@ -82,7 +82,7 @@ jobs:
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: testVsCode -x test -x gradleTasksServerLib -x compileJava -x shadowJar -x startShadowScripts
+          arguments: testVsCode -x test -x serverStartScripts -x compileJava -x shadowJar -x startShadowScripts
         env:
           DISPLAY: ':99.0'
           CI: 'true'

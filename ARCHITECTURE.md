@@ -1,6 +1,6 @@
 # Architecture Overview
 
-<img src="images/GradleTasks.svg" />
+<img src="images/gradle-tasks-architecture.svg" />
 
 The extension uses client/server architecture using [gRPC](https://grpc.io/) as the interface between the client and server. It uses TypeScript (Node.js) on the client and Java on the server.
 

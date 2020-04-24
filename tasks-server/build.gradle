@@ -21,6 +21,9 @@ dependencies {
     testImplementation 'org.mockito:mockito-core:3.3.3'
 }
 
+def mainJavaDir = 'src/main/java';
+def mainResourcesDir = 'src/main/resources';
+
 sourceSets {
   libsDirName = file('../extension/lib')
   main {
@@ -28,8 +31,12 @@ sourceSets {
       srcDir file('../proto')
     }
     java {
+      srcDirs mainJavaDir
       srcDirs 'build/generated/source/proto/main/grpc'
       srcDirs 'build/generated/source/proto/main/java'
+    }
+    resources {
+      srcDirs mainResourcesDir
     }
   }
 }
@@ -73,14 +80,18 @@ distZip.enabled = false
 distTar.enabled = false
 assemble.enabled = false;
 
-task gradleTasksServerLib(type: CreateStartScripts) {
+task serverStartScripts(type: CreateStartScripts) {
   dependsOn shadowJar
   outputDir = file(libsDirName)
   mainClassName = 'com.github.badsyntax.gradletasks.GradleTasksServer'
   applicationName = project.name
   classpath = shadowJar.outputs.files
-  unixStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/unixStartScript.txt')
-  windowsStartScriptGenerator.template = resources.text.fromFile('startScriptTemplates/windowsStartScript.txt')
+  unixStartScriptGenerator.template = resources.text.fromFile(
+    "$mainResourcesDir/startScriptTemplates/unixStartScript.txt"
+  )
+  windowsStartScriptGenerator.template = resources.text.fromFile(
+    "$mainResourcesDir/startScriptTemplates/windowsStartScript.txt"
+  )
 }
 
-assemble.dependsOn gradleTasksServerLib
+assemble.dependsOn serverStartScripts
