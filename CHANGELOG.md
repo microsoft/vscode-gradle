@@ -2,6 +2,10 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.6.2
+
+- Fixed broken extension due to language file change in 2.6.1
+
 ## 2.6.1
 
 - Fixed language files not being published (#292)
