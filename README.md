@@ -47,7 +47,7 @@ Open a Gradle project to use the extension. The extension first starts a process
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
 
-To enable this feature you need to create some project configurations. The configuration needs to be added to your project `.vscode/settings.json` file, to specify which tasks can be debugged, for example:
+To enable this feature you need to create a project configuration which needs to be added to your project `.vscode/settings.json` file, to specify which tasks can be debugged, for example:
 
 ```json
 "gradle.javaDebug": {
@@ -60,6 +60,10 @@ To enable this feature you need to create some project configurations. The confi
 ```
 
 You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
+
+#### Debugging Limitations
+
+You'll need to remove any `jdwp` options that might have been set in your task configuration (eg via `jvmArgs`).
 
 ## Snippets
 
