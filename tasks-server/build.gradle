@@ -85,6 +85,17 @@ distTar.enabled = false
 assemble.enabled = false;
 processResources.enabled = false;
 
+sonarqube {
+  properties {
+    property "sonar.projectKey", "tasks-server"
+    property "sonar.projectName", "Tasks Server"
+    property "sonar.language", "java"
+    property "sonar.java.binaries", "build/classes/java"
+    property "sonar.junit.reportsPath", "build/test-results"
+    property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
+  }
+}
+
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn shadowJar
   outputDir = file(libsDirName)

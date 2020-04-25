@@ -44,29 +44,6 @@ subprojects {
       artifact = "com.google.protobuf:protoc:${protocVersion}"
     }
   }
-
-  project(":tasks-server") {
-    sonarqube {
-      properties {
-        property "sonar.projectKey", "tasks-server"
-        property "sonar.projectName", "Tasks Server"
-        property "sonar.language", "java"
-        property "sonar.java.binaries", "build/classes/java"
-        property "sonar.junit.reportsPath", "build/test-results"
-        property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
-      }
-    }
-  }
-
-  project(":extension") {
-    sonarqube {
-      properties {
-        property "projectKey", "extension"
-        property "projectName", "Extension"
-        property "language", "typescript"
-        property "sources", "src"
-        property "sonar.cpd.exclusions", "src/test/**"
-      }
-    }
-  }
 }
+
+project.tasks["sonarqube"].dependsOn ':extension:buildTypeScript'
