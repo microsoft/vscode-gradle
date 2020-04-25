@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
-// import * as getPort from 'get-port';
 import * as waitOn from 'wait-on';
+import * as getPort from 'get-port';
 
 import {
   getIsAutoDetectionEnabled,
@@ -11,7 +11,6 @@ import {
   ConfigTaskPresentationOptions,
   ConfigTaskPresentationOptionsRevealKind,
   ConfigTaskPresentationOptionsPanelKind,
-  getJavaDebug,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
@@ -24,7 +23,6 @@ import {
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
-import getPort = require('get-port');
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stripAnsi = require('strip-ansi');
