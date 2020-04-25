@@ -111,7 +111,6 @@ export function getCancellingTask(
   task: string,
   projectFolder: string
 ): vscode.Task | undefined {
-  // TODO: is "task" the full path? does it matter?
   return Array.from(cancellingTasks).find(
     ({ definition }) =>
       definition.script === task && definition.projectFolder === projectFolder
@@ -122,7 +121,6 @@ export function getRestartingTask(
   task: string,
   projectFolder: string
 ): vscode.Task | undefined {
-  // TODO: is "task" the full path? does it matter?
   return Array.from(restartingTasks).find(
     ({ definition }) =>
       definition.script === task && definition.projectFolder === projectFolder
@@ -388,23 +386,23 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       await waitOn({
         resources: [`tcp:${javaDebugPort}`],
-        verbose: true,
+        verbose: false,
       });
-      const isDebugging = await vscode.debug.startDebugging(
-        this.workspaceFolder,
-        {
-          type: 'java',
-          name: 'Debug (Attach) via Gradle Tasks',
-          request: 'attach',
-          hostName: 'localhost',
-          port: javaDebugPort,
-        }
-      );
-      if (!isDebugging) {
-        throw new Error('Error starting the debugger (unknown)');
-      }
+      await vscode.debug.startDebugging(this.workspaceFolder, {
+        type: 'java',
+        name: 'Debug (Attach) via Gradle Tasks',
+        request: 'attach',
+        hostName: 'localhost',
+        port: javaDebugPort,
+      });
     } catch (e) {
-      logger.error('Unable to start Java debugging: ' + e.message);
+      logger.error(
+        localize(
+          'tasks.debugError',
+          'Unable to start Java debugging: {0}',
+          e.message
+        )
+      );
     }
   }
 
@@ -430,8 +428,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task.definition.buildFile)
       );
-    } catch (e) {
-      console.log('error runnng task', e.message);
     } finally {
       setTimeout(() => {
         this.closeEmitter.fire();
@@ -604,7 +600,6 @@ export function runTask(
 }
 
 export function restartTask(task: vscode.Task): void {
-  // TODO, check if task will restart in debug mode
   if (isTaskRunning(task)) {
     restartingTasks.add(task);
     cancelTask(task); // after it's cancelled, it will restart

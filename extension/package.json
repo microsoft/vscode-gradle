@@ -278,27 +278,27 @@
         {
           "command": "gradle.debugTask",
           "when": "view == gradleTreeView && viewItem == debugTask",
-          "group": "inline"
+          "group": "inline@0"
         },
         {
           "command": "gradle.runTask",
           "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
-          "group": "inline"
+          "group": "inline@1"
         },
         {
           "command": "gradle.restartTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
-          "group": "inline"
+          "group": "inline@2"
         },
         {
           "command": "gradle.cancelTreeItemTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
-          "group": "inline"
+          "group": "inline@3"
         },
         {
           "command": "gradle.cancellingTreeItemTask",
           "when": "view == gradleTreeView && viewItem == cancellingTask",
-          "group": "inline"
+          "group": "inline@4"
         }
       ]
     },
@@ -349,11 +349,9 @@
             }
           },
           "required": [
-            "enabled",
             "tasks"
           ],
           "default": {
-            "enabled": false,
             "tasks": [
               "run",
               "runBoot",
@@ -439,7 +437,7 @@
           "projectFolder",
           "workspaceFolder",
           "args",
-          "debugJava"
+          "javaDebug"
         ],
         "properties": {
           "script": {
@@ -482,7 +480,7 @@
             "type": "string",
             "description": "Task args"
           },
-          "debugJava": {
+          "javaDebug": {
             "type": "boolean",
             "description": "Debug JavaExec task when executing"
           }

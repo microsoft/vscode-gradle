@@ -2,5 +2,6 @@
   "tasks.getGradleProjectsError": "No se pueden obtener las carpetas de proyectos de gradle: {0}",
   "tasks.refreshError": "No se pueden actualizar las tareas: {0}",
   "tasks.vsCodeTaskGenerateError": "No se pueden generar tareas de vscode a partir de tareas de gradle: {0}",
-  "tasks.runTaskWithArgsExample": "Por ejemplo: {0}"
+  "tasks.runTaskWithArgsExample": "Por ejemplo: {0}",
+  "tasks.debugError": "No se puede iniciar la depuración de Java: {0}"
 }

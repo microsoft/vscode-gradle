@@ -252,7 +252,7 @@ export class GradleTasksClient implements vscode.Disposable {
           );
         }
       );
-      logger.info(cancelRunTasksReply.getMessage());
+      logger.debug(cancelRunTasksReply.getMessage());
     } catch (err) {
       logger.error(
         localize(
@@ -284,7 +284,7 @@ export class GradleTasksClient implements vscode.Disposable {
           );
         }
       );
-      logger.info(cancelGetBuildsReply.getMessage());
+      logger.debug(cancelGetBuildsReply.getMessage());
     } catch (err) {
       logger.error(
         localize(

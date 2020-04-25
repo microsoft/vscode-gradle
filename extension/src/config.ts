@@ -37,8 +37,6 @@ export function getFocusTaskInExplorer(): boolean {
 }
 
 export type JavaDebug = {
-  enabled: boolean;
-  launchConfig: string | null;
   tasks: string[];
 };
 
@@ -48,8 +46,6 @@ export function getJavaDebug(
   return vscode.workspace
     .getConfiguration('gradle', workspaceFolder.uri)
     .get<JavaDebug>('javaDebug', {
-      enabled: false,
-      launchConfig: null,
       tasks: ['run', 'runBoot', 'test', 'intTest', 'integration'],
     });
 }

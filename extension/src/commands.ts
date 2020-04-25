@@ -12,6 +12,7 @@ import {
   runTaskWithArgs,
   cancelRunningGradleTasks,
   restartTask,
+  getTaskExecution,
 } from './tasks';
 import { getIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
@@ -52,7 +53,10 @@ function registerRestartTaskCommand(): vscode.Disposable {
     'gradle.restartTask',
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        restartTask(treeItem.task);
+        const taskExecution = getTaskExecution(treeItem.task);
+        if (taskExecution) {
+          restartTask(taskExecution.task);
+        }
       }
     }
   );
