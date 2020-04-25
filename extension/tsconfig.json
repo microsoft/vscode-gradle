@@ -7,7 +7,9 @@
     "sourceMap": true,
     "strict": true,
     "rootDir": "src",
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "allowJs": true
   },
-  "exclude": ["node_modules", ".vscode-test", "build"]
+  "exclude": ["node_modules", ".vscode-test", "build"],
+  "include": ["./src/**/*"]
 }

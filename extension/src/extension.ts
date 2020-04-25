@@ -1,7 +1,4 @@
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
-
-nls.config({ messageFormat: nls.MessageFormat.file })();
 
 import { GradleTasksTreeDataProvider, registerExplorer } from './gradleView';
 import { registerTaskProvider } from './tasks';
@@ -19,7 +16,7 @@ export interface ExtensionApi {
 
 export async function activate(
   context: vscode.ExtensionContext
-): Promise<ExtensionApi | void> {
+): Promise<ExtensionApi> {
   const statusBarItem = vscode.window.createStatusBarItem();
   statusBarItem.command = 'gradle.showProcessMessage';
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
