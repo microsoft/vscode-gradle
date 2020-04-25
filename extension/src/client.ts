@@ -138,14 +138,19 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async runTask(
     projectFolder: string,
-    task: string,
+    task: vscode.Task,
     args: string[] = [],
+    javaDebugPort: number | null,
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
-    request.setTask(task);
+    request.setTask(task.definition.script);
+    request.setJavaDebug(task.definition.javaDebug);
+    if (javaDebugPort !== null) {
+      request.setJavaDebugPort(javaDebugPort);
+    }
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
@@ -169,7 +174,13 @@ export class GradleTasksClient implements vscode.Disposable {
             resolve();
           });
       });
-      logger.info(localize('client.completedTask', 'Completed task {0}', task));
+      logger.info(
+        localize(
+          'client.completedTask',
+          'Completed task {0}',
+          task.definition.script
+        )
+      );
     } catch (err) {
       logger.error(
         localize(

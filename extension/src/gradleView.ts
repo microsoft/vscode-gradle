@@ -8,7 +8,7 @@ import {
   isTaskRunning,
   isTask,
 } from './tasks';
-import { getFocusTaskInExplorer } from './config';
+import { getFocusTaskInExplorer, JavaDebug, getJavaDebug } from './config';
 import { logger } from './logger';
 
 const localize = nls.loadMessageBundle();
@@ -94,14 +94,21 @@ class GroupTreeItem extends TreeItemWithTasksOrGroups {
   }
 }
 
-function getTreeItemState(task: vscode.Task): string {
+function getTreeItemState(
+  task: vscode.Task,
+  javaDebug: JavaDebug | undefined
+): string {
   if (isTaskRunning(task)) {
     return GradleTaskTreeItem.STATE_RUNNING;
   }
   if (isTaskCancelling(task)) {
     return GradleTaskTreeItem.STATE_CANCELLING;
   }
-  return GradleTaskTreeItem.STATE_IDLE;
+  return javaDebug &&
+    javaDebug.enabled &&
+    javaDebug.tasks.includes(task.definition.script)
+    ? GradleTaskTreeItem.STATE_DEBUG_IDLE
+    : GradleTaskTreeItem.STATE_IDLE;
 }
 
 export class GradleTaskTreeItem extends vscode.TreeItem {
@@ -112,13 +119,15 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public static STATE_RUNNING = 'runningTask';
   public static STATE_CANCELLING = 'cancellingTask';
   public static STATE_IDLE = 'task';
+  public static STATE_DEBUG_IDLE = 'debugTask';
 
   constructor(
     context: vscode.ExtensionContext,
     parentTreeItem: vscode.TreeItem,
     task: vscode.Task,
     label: string,
-    description?: string
+    description?: string,
+    javaDebug?: JavaDebug
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
@@ -129,7 +138,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     this.tooltip = description || label;
     this.parentTreeItem = parentTreeItem;
     this.task = task;
-    this.contextValue = getTreeItemState(task);
+    this.contextValue = getTreeItemState(task, javaDebug);
 
     if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
       this.iconPath = {
@@ -264,6 +273,7 @@ export class GradleTasksTreeDataProvider
     const nestedWorkspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
     const groupTreeItems: Map<string, GroupTreeItem> = new Map();
+    const workspaceJavaDebug: Map<string, JavaDebug> = new Map();
     let workspaceTreeItem = null;
 
     tasks.forEach((task) => {
@@ -275,6 +285,13 @@ export class GradleTasksTreeDataProvider
             task.scope.uri
           );
           workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
+        }
+
+        if (!workspaceJavaDebug.get(task.definition.workspaceFolder)) {
+          workspaceJavaDebug.set(
+            task.definition.workspaceFolder,
+            getJavaDebug(task.scope as vscode.WorkspaceFolder)
+          );
         }
 
         if (task.definition.projectFolder !== task.definition.workspaceFolder) {
@@ -336,7 +353,8 @@ export class GradleTasksTreeDataProvider
             parentTreeItem,
             task,
             taskName,
-            task.definition.description
+            task.definition.description,
+            workspaceJavaDebug.get(task.definition.workspaceFolder)
           )
         );
       }
@@ -365,7 +383,10 @@ export function registerExplorer(
     treeView,
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
+        if (
+          event.affectsConfiguration('gradle.enableTasksExplorer') ||
+          event.affectsConfiguration('gradle.javaDebug')
+        ) {
           vscode.commands.executeCommand('gradle.refresh', false, false);
         }
         if (event.affectsConfiguration('gradle.taskPresentationOptions')) {

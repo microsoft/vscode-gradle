@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as nls from 'vscode-nls';
+// import * as getPort from 'get-port';
+import * as waitOn from 'wait-on';
+
 import {
   getIsAutoDetectionEnabled,
   getTaskPresentationOptions,
@@ -8,6 +11,7 @@ import {
   ConfigTaskPresentationOptions,
   ConfigTaskPresentationOptionsRevealKind,
   ConfigTaskPresentationOptionsPanelKind,
+  getJavaDebug,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
@@ -20,6 +24,7 @@ import {
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
+import getPort = require('get-port');
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const stripAnsi = require('strip-ansi');
@@ -36,9 +41,11 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   projectFolder: string;
   workspaceFolder: string;
   args: string;
+  javaDebug: boolean;
 }
 
 const cancellingTasks: Set<vscode.Task> = new Set();
+const restartingTasks: Set<vscode.Task> = new Set();
 let autoDetectOverride = false;
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -91,17 +98,37 @@ export function isTaskCancelling(task: vscode.Task): boolean {
   return cancellingTasks.has(task);
 }
 
-export function setCancelledTaskAsComplete(
+export function isTaskRestarting(task: vscode.Task): boolean {
+  return restartingTasks.has(task);
+}
+
+export function hasRestartingTask(
   task: string,
   projectFolder: string
-): void {
-  const cancellingTask = Array.from(cancellingTasks).find(
+): boolean {
+  return getRestartingTask(task, projectFolder) !== undefined;
+}
+
+export function getCancellingTask(
+  task: string,
+  projectFolder: string
+): vscode.Task | undefined {
+  // TODO: is "task" the full path? does it matter?
+  return Array.from(cancellingTasks).find(
     ({ definition }) =>
       definition.script === task && definition.projectFolder === projectFolder
   );
-  if (cancellingTask) {
-    cancellingTasks.delete(cancellingTask);
-  }
+}
+
+export function getRestartingTask(
+  task: string,
+  projectFolder: string
+): vscode.Task | undefined {
+  // TODO: is "task" the full path? does it matter?
+  return Array.from(restartingTasks).find(
+    ({ definition }) =>
+      definition.script === task && definition.projectFolder === projectFolder
+  );
 }
 
 async function hasGradleBuildFile(folder: vscode.Uri): Promise<boolean> {
@@ -269,7 +296,8 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     rootProject: string,
     buildFile: vscode.Uri,
     projectFolder: vscode.Uri,
-    args = ''
+    args = '',
+    javaDebug = false
   ): vscode.Task {
     const script = gradleTask.getPath().replace(/^:/, '');
     const definition: GradleTaskDefinition = {
@@ -283,6 +311,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
       projectFolder: projectFolder.fsPath,
       workspaceFolder: workspaceFolder.uri.fsPath,
       args,
+      javaDebug,
     };
     return createTaskFromDefinition(
       definition,
@@ -327,6 +356,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 
   constructor(
+    private readonly workspaceFolder: vscode.WorkspaceFolder,
     private readonly client: GradleTasksClient,
     private readonly projectFolder: string,
     private readonly task: vscode.Task
@@ -356,21 +386,55 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     }
   }
 
+  private async startJavaDebug(javaDebugPort: number | null): Promise<void> {
+    try {
+      await waitOn({
+        resources: [`tcp:${javaDebugPort}`],
+        verbose: true,
+      });
+      const isDebugging = await vscode.debug.startDebugging(
+        this.workspaceFolder,
+        {
+          type: 'java',
+          name: 'Debug (Attach) via Gradle Tasks',
+          request: 'attach',
+          hostName: 'localhost',
+          port: javaDebugPort,
+        }
+      );
+      if (!isDebugging) {
+        throw new Error('Error starting the debugger (unknown)');
+      }
+    } catch (e) {
+      logger.error('Unable to start Java debugging: ' + e.message);
+    }
+  }
+
   private async doBuild(): Promise<void> {
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
-      await this.client.runTask(
+      const javaDebug = getJavaDebug(this.workspaceFolder);
+      const javaDebugEnabled = javaDebug && javaDebug.enabled;
+      const javaDebugPort = javaDebugEnabled ? await getPort() : null;
+      const runTask = this.client.runTask(
         this.projectFolder,
-        this.task.definition.script,
+        this.task,
         args,
+        javaDebugPort,
         (output: Output): void => {
           this.handleOutput(output.getMessage().trim());
         }
       );
+      if (javaDebugEnabled) {
+        await this.startJavaDebug(javaDebugPort);
+      }
+      await runTask;
       vscode.commands.executeCommand(
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task.definition.buildFile)
       );
+    } catch (e) {
+      console.log('error runnng task', e.message);
     } finally {
       setTimeout(() => {
         this.closeEmitter.fire();
@@ -422,7 +486,12 @@ export function createTaskFromDefinition(
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {
-        return new CustomBuildTaskTerminal(client, projectFolder.fsPath, task);
+        return new CustomBuildTaskTerminal(
+          workspaceFolder,
+          client,
+          projectFolder.fsPath,
+          task
+        );
       }
     ),
     ['$gradle']
@@ -445,13 +514,18 @@ export function createTaskFromDefinition(
   return task;
 }
 
-export async function cloneTask(
+export function cloneTask(
   task: vscode.Task,
   args: string,
-  client: GradleTasksClient
-): Promise<vscode.Task | undefined> {
+  client: GradleTasksClient,
+  javaDebug = false
+): vscode.Task {
   const folder = task.scope as vscode.WorkspaceFolder;
-  const definition = { ...(task.definition as GradleTaskDefinition), args };
+  const definition: GradleTaskDefinition = {
+    ...(task.definition as GradleTaskDefinition),
+    args,
+    javaDebug,
+  };
   return createTaskFromDefinition(
     definition as GradleTaskDefinition,
     folder,
@@ -498,14 +572,45 @@ export function buildGradleServerTask(
   return task;
 }
 
-export function handleCancelledTask(cancelled: Cancelled): void {
-  setCancelledTaskAsComplete(cancelled.getTask(), cancelled.getProjectDir());
+export async function handleCancelledTask(cancelled: Cancelled): Promise<void> {
+  const cancellingTask = getCancellingTask(
+    cancelled.getTask(),
+    cancelled.getProjectDir()
+  );
+  if (cancellingTask) {
+    cancellingTasks.delete(cancellingTask);
+  }
+  const restartingTask = getRestartingTask(
+    cancelled.getTask(),
+    cancelled.getProjectDir()
+  );
+  if (restartingTask) {
+    vscode.tasks.executeTask(restartingTask);
+    restartingTasks.delete(restartingTask);
+  }
   vscode.commands.executeCommand('gradle.explorerRender');
 }
 
-export function runTask(task: vscode.Task): void {
+export function runTask(
+  task: vscode.Task,
+  client: GradleTasksClient,
+  debug = false
+): void {
   if (!isTaskRunning(task)) {
-    vscode.tasks.executeTask(task);
+    if (debug) {
+      const debugTask = cloneTask(task, '', client, true);
+      vscode.tasks.executeTask(debugTask);
+    } else {
+      vscode.tasks.executeTask(task);
+    }
+  }
+}
+
+export function restartTask(task: vscode.Task): void {
+  // TODO, check if task will restart in debug mode
+  if (isTaskRunning(task)) {
+    restartingTasks.add(task);
+    cancelTask(task); // after it's cancelled, it will restart
   }
 }
 
@@ -522,9 +627,9 @@ export async function runTaskWithArgs(
     ignoreFocusOut: true,
   });
   if (args !== undefined) {
-    const taskWithArgs = await cloneTask(task, args, client);
+    const taskWithArgs = cloneTask(task, args, client);
     if (taskWithArgs) {
-      runTask(taskWithArgs);
+      runTask(taskWithArgs, client);
     }
   }
 }

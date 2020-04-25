@@ -3,11 +3,11 @@ import * as vscode from 'vscode';
 type AutoDetect = 'on' | 'off';
 
 export function getIsAutoDetectionEnabled(
-  folder: vscode.WorkspaceFolder
+  workspaceFolder: vscode.WorkspaceFolder
 ): boolean {
   return (
     vscode.workspace
-      .getConfiguration('gradle', folder.uri)
+      .getConfiguration('gradle', workspaceFolder.uri)
       .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
 }
@@ -34,6 +34,24 @@ export function getFocusTaskInExplorer(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('focusTaskInExplorer', true);
+}
+
+export type JavaDebug = {
+  enabled: boolean;
+  launchConfig: string | null;
+  tasks: string[];
+};
+
+export function getJavaDebug(
+  workspaceFolder: vscode.WorkspaceFolder
+): JavaDebug {
+  return vscode.workspace
+    .getConfiguration('gradle', workspaceFolder.uri)
+    .get<JavaDebug>('javaDebug', {
+      enabled: false,
+      launchConfig: null,
+      tasks: ['run', 'runBoot', 'test', 'intTest', 'integration'],
+    });
 }
 
 export type ConfigTaskPresentationOptionsRevealKind =

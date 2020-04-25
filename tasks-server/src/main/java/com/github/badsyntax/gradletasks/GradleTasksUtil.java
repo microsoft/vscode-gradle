@@ -2,8 +2,10 @@ package com.github.badsyntax.gradletasks;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.CancellationTokenSource;
@@ -11,6 +13,8 @@ import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
+import org.gradle.tooling.model.build.BuildEnvironment;
+import org.gradle.tooling.model.build.JavaEnvironment;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksUtil {
@@ -79,7 +83,7 @@ public class GradleTasksUtil {
   }
 
   public static void runTask(final File projectDir, final String task, final List<String> args,
-      final StreamObserver<RunTaskReply> responseObserver) {
+      final Boolean javaDebug, final int javaDebugPort, final StreamObserver<RunTaskReply> responseObserver) {
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
@@ -118,6 +122,9 @@ public class GradleTasksUtil {
                   }
                 }
               }).setColorOutput(true).withArguments(args).forTasks(task);
+      if (javaDebug) {
+        build.setEnvironmentVariables(getDebugJvmArgument(projectConnection, javaDebugPort));
+      }
       build.run();
       RunTaskResult result =
           RunTaskResult.newBuilder().setMessage("Successfully run task").setTask(task).build();
@@ -131,6 +138,13 @@ public class GradleTasksUtil {
     } finally {
       cancellationTokenPool.remove(CancellationTokenPool.TYPE.RUN, cancellationKey);
     }
+  }
+
+  private static Map<String, String> getDebugJvmArgument(ProjectConnection projectConnection, int javaDebugPort) {
+    HashMap<String, String> envVars = new HashMap<>();
+    envVars.put("JAVA_TOOL_OPTIONS",
+        String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=%d", javaDebugPort));
+    return envVars;
   }
 
   public static void cancelGetBuilds(StreamObserver<CancelGetBuildsReply> responseObserver) {

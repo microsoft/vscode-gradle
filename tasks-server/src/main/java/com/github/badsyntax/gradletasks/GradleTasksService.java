@@ -39,7 +39,8 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       if (!projectDir.exists()) {
         throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
       }
-      GradleTasksUtil.runTask(projectDir, req.getTask(), req.getArgsList(), responseObserver);
+      GradleTasksUtil.runTask(projectDir, req.getTask(), req.getArgsList(), req.getJavaDebug(),
+          req.getJavaDebugPort(), responseObserver);
       responseObserver.onCompleted();
     } catch (GradleTasksException e) {
       logger.error(e.getMessage());
