@@ -122,11 +122,22 @@ task buildTypeScript(type: CrossPlatformExec) {
   outputs.dir("$buildDir")
   inputs.dir('src')
   inputs.file('webpack.config.js')
-  commandLine 'npm', 'run', 'compile'
+  commandLine 'npm', 'run', 'compile:dev'
+}
+
+task bundle(type: CrossPlatformExec) {
+  dependsOn copyProtoJs, copyProtoTs
+  group 'build'
+  description 'Bundles the extension files for release'
+  buildDir = 'out'
+  outputs.dir("$buildDir")
+  inputs.dir('src')
+  inputs.file('webpack.config.js')
+  commandLine 'npm', 'run', 'compile:prod'
 }
 
 task testVsCode(type: CrossPlatformExec) {
-  dependsOn assemble, copyProtoJs, copyProtoTs
+  dependsOn copyProtoJs, copyProtoTs
   group 'verification'
   description 'Tests the extension'
   commandLine 'npm', 'run', 'test'
@@ -139,10 +150,10 @@ task copyDocs(type: Copy) {
   into "$projectDir"
 }
 
-task prepareForPublish() {
-  dependsOn build, copyDocs
+task prepareForRelease() {
+  dependsOn build, bundle, copyDocs
 }
 
 build.dependsOn ':tasks-server:build'
-assemble.finalizedBy buildTypeScript
 assemble.dependsOn ':tasks-server:build'
+assemble.finalizedBy buildTypeScript

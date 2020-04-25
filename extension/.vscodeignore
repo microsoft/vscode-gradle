@@ -18,6 +18,7 @@ images/**
 sonar-project.properties
 proto/**
 i18n/**
-gulpfile.js
 build.gradle
 build/**
+node_modules
+webpack.config.js

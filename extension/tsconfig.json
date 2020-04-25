@@ -8,6 +8,8 @@
     "strict": true,
     "rootDir": "src",
     "noUnusedLocals": true,
+    "allowJs": true
   },
-  "exclude": ["node_modules", ".vscode-test", "build"]
+  "exclude": ["node_modules", ".vscode-test", "build"],
+  "include": ["./src/**/*"]
 }

@@ -22,7 +22,6 @@ module.exports = () => {
     },
     entry: {
       extension: './src/extension.ts',
-      runTests: './src/test/runTests.ts',
     },
     output: {
       filename: '[name].js',
@@ -52,9 +51,6 @@ module.exports = () => {
               loader: 'ts-loader',
               options: {
                 transpileOnly: true,
-                compilerOptions: {
-                  sourceMap: true,
-                },
               },
             },
           ],
@@ -63,12 +59,6 @@ module.exports = () => {
     },
     externals: {
       vscode: 'commonjs vscode',
-      'vscode-test': 'commonjs vscode-test',
-      '@grpc/grpc-js': 'commonjs @grpc/grpc-js',
-      'get-port': 'commonjs get-port',
-      'google-protobuf': 'commonjs google-protobuf',
-      'strip-ansi': 'commonjs strip-ansi',
-      'vscode-nls': 'commonjs vscode-nls',
     },
     plugins: [new NLSBundlePlugin(id)],
   };

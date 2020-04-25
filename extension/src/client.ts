@@ -50,7 +50,7 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   public handleServerReady = (): void => {
-    logger.info(
+    logger.debug(
       localize('client.connecting', 'Gradle client connecting to server')
     );
     this.connectToServer();

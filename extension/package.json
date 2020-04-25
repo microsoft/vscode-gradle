@@ -413,16 +413,16 @@
     ]
   },
   "scripts": {
-    "test": "node ./out/runTests.js",
+    "test": "node ./out/test/runTests.js",
     "lint": "npm run lint:prettier && npm run lint:eslint",
     "lint:prettier": "prettier --check \"**/*.{ts,js,json,svg,md,yml}\"",
     "lint:eslint": "eslint . --ext .js,.ts",
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
-    "compile": "webpack",
+    "compile:prod": "webpack --mode production",
+    "compile:dev": "tsc -p ./",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
-    "preinstall:ext": "vsce package",
-    "webpack": "webpack"
+    "preinstall:ext": "vsce package"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.0.2",
@@ -432,6 +432,7 @@
     "vscode-nls": "^4.1.2"
   },
   "devDependencies": {
+    "@types/glob": "^7.1.1",
     "@types/google-protobuf": "^3.7.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.11.1",
