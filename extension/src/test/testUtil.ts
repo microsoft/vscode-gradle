@@ -29,12 +29,6 @@ export async function waitForTasksToLoad(
   }
 }
 
-export function teardownSubscriptions(context: vscode.ExtensionContext): void {
-  context.subscriptions.forEach((subscription: vscode.Disposable) => {
-    subscription.dispose();
-  });
-}
-
 export function createTestRunner(pattern: string) {
   return function run(
     testsRoot: string,

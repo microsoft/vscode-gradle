@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { teardownSubscriptions } from '../testUtil';
 
 const extensionName = 'richardwillis.vscode-gradle';
 
@@ -10,12 +9,6 @@ describe('without any build file or local gradle wrapper', () => {
 
   before(() => {
     extension = vscode.extensions.getExtension(extensionName);
-  });
-
-  after(() => {
-    if (extension) {
-      teardownSubscriptions(extension.exports.context);
-    }
   });
 
   it('should be present', () => {
