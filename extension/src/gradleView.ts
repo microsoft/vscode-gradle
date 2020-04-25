@@ -104,9 +104,7 @@ function getTreeItemState(
   if (isTaskCancelling(task)) {
     return GradleTaskTreeItem.STATE_CANCELLING;
   }
-  return javaDebug &&
-    javaDebug.enabled &&
-    javaDebug.tasks.includes(task.definition.script)
+  return javaDebug && javaDebug.tasks.includes(task.definition.script)
     ? GradleTaskTreeItem.STATE_DEBUG_IDLE
     : GradleTaskTreeItem.STATE_IDLE;
 }

@@ -336,11 +336,6 @@
           "type": "object",
           "description": "%extension.config.javaDebug.description%",
           "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "%extension.config.javaDebug.enabled.description%",
-              "default": false
-            },
             "tasks": {
               "type": "array",
               "default": [

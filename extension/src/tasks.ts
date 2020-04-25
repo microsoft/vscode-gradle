@@ -413,8 +413,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private async doBuild(): Promise<void> {
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
-      const javaDebug = getJavaDebug(this.workspaceFolder);
-      const javaDebugEnabled = javaDebug && javaDebug.enabled;
+      const javaDebugEnabled = this.task.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : null;
       const runTask = this.client.runTask(
         this.projectFolder,
