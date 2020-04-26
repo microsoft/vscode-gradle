@@ -6,12 +6,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.gradle.tooling.BuildCancelledException;
+import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.CancellationTokenSource;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
+import org.gradle.tooling.UnsupportedVersionException;
+import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
+import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksUtil {
@@ -72,6 +76,9 @@ public class GradleTasksUtil {
           .setProjectDir(projectDir.getPath()).build();
       GetBuildReply reply = GetBuildReply.newBuilder().setCancelled(cancelled).build();
       responseObserver.onNext(reply);
+    } catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
+        | IllegalStateException e) {
+      throw new GradleTasksException(e.getMessage(), e);
     } catch (RuntimeException err) {
       throw new GradleTasksException(err.getMessage(), err);
     } finally {
@@ -81,7 +88,7 @@ public class GradleTasksUtil {
 
   public static void runTask(final File projectDir, final String task, final List<String> args,
       final Boolean javaDebug, final int javaDebugPort,
-      final StreamObserver<RunTaskReply> responseObserver) {
+      final StreamObserver<RunTaskReply> responseObserver) throws GradleTasksException {
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
@@ -121,13 +128,16 @@ public class GradleTasksUtil {
                 }
               }).setColorOutput(true).withArguments(args).forTasks(task);
       if (Boolean.TRUE.equals(javaDebug)) {
-        build.setEnvironmentVariables(buildDebugJvmArgument(javaDebugPort));
+        build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
       }
       build.run();
       RunTaskResult result =
           RunTaskResult.newBuilder().setMessage("Successfully run task").setTask(task).build();
       RunTaskReply reply = RunTaskReply.newBuilder().setRunTaskResult(result).build();
       responseObserver.onNext(reply);
+    } catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
+        | IllegalStateException e) {
+      throw new GradleTasksException(e.getMessage(), e);
     } catch (BuildCancelledException e) {
       Cancelled cancelled = Cancelled.newBuilder().setMessage(e.getMessage()).setTask(task)
           .setProjectDir(projectDir.getPath()).build();
@@ -136,13 +146,6 @@ public class GradleTasksUtil {
     } finally {
       cancellationTokenPool.remove(CancellationTokenPool.TYPE.RUN, cancellationKey);
     }
-  }
-
-  private static Map<String, String> buildDebugJvmArgument(int javaDebugPort) {
-    HashMap<String, String> envVars = new HashMap<>();
-    envVars.put("JAVA_TOOL_OPTIONS", String
-        .format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=%d", javaDebugPort));
-    return envVars;
   }
 
   public static void cancelGetBuilds(StreamObserver<CancelGetBuildsReply> responseObserver) {
@@ -161,10 +164,14 @@ public class GradleTasksUtil {
         cancellationTokenPool.get(CancellationTokenPool.TYPE.RUN, cancellationKey);
     if (cancellationTokenSource != null) {
       cancellationTokenSource.cancel();
+      CancelRunTaskReply reply = CancelRunTaskReply.newBuilder()
+          .setMessage("Cancel run task requested").setTaskRunning(true).build();
+      responseObserver.onNext(reply);
+    } else {
+      CancelRunTaskReply reply = CancelRunTaskReply.newBuilder().setMessage("Task is not running")
+          .setTaskRunning(false).build();
+      responseObserver.onNext(reply);
     }
-    CancelRunTaskReply reply =
-        CancelRunTaskReply.newBuilder().setMessage("Cancel run task requested").build();
-    responseObserver.onNext(reply);
   }
 
   public static void cancelRunTasks(StreamObserver<CancelRunTasksReply> responseObserver) {
@@ -195,5 +202,14 @@ public class GradleTasksUtil {
       project.addTasks(gradleTask.build());
     });
     return project.build();
+  }
+
+  private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
+    HashMap<String, String> envVars = new HashMap<>(System.getenv());
+    envVars.put("JAVA_TOOL_OPTIONS",
+        String.format(
+            "-agentlib:jdwp=transport=dt_soddcket,server=y,suspend=y,address=localhost:%d",
+            javaDebugPort));
+    return envVars;
   }
 }
