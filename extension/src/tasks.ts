@@ -616,7 +616,8 @@ export function restartTask(task: vscode.Task): void {
 
 export async function runTaskWithArgs(
   task: vscode.Task,
-  client: GradleTasksClient
+  client: GradleTasksClient,
+  debug = false
 ): Promise<void> {
   const args = await vscode.window.showInputBox({
     placeHolder: localize(
@@ -629,7 +630,7 @@ export async function runTaskWithArgs(
   if (args !== undefined) {
     const taskWithArgs = cloneTask(task, args, client);
     if (taskWithArgs) {
-      runTask(taskWithArgs, client);
+      runTask(taskWithArgs, client, debug);
     }
   }
 }

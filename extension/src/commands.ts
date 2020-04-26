@@ -40,8 +40,29 @@ function registerDebugTaskCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.debugTask',
-    (treeItem: GradleTaskTreeItem) => {
+    // eslint-disable-next-line sonarjs/cognitive-complexity
+    async (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
+        const INSTALL_EXTENSIONS = localize(
+          'commands.requiredExtensionMissing',
+          'Install Missing Extensions'
+        );
+        if (!isJavaDebuggerExtensionActivated()) {
+          const input = await vscode.window.showErrorMessage(
+            localize(
+              'commands.missingJavaLanguageSupportExtension',
+              'The Java Language support & Debugger extensions are required for debugging.'
+            ),
+            INSTALL_EXTENSIONS
+          );
+          if (input === INSTALL_EXTENSIONS) {
+            await vscode.commands.executeCommand(
+              'workbench.extensions.action.showExtensionsWithIds',
+              [JAVA_LANGUAGE_EXTENSION_ID, JAVA_DEBUGGER_EXTENSION_ID]
+            );
+          }
+          return;
+        }
         runTask(treeItem.task, client, true);
       }
     }
@@ -230,23 +251,39 @@ function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
   );
 }
 
-const JAVA_EXTENSION_ID = 'redhat.java';
+const JAVA_LANGUAGE_EXTENSION_ID = 'redhat.java';
+const JAVA_DEBUGGER_EXTENSION_ID = 'vscjava.vscode-java-debug';
 const JAVA_CONFIGURATION_UPDATE_COMMAND = 'java.projectConfiguration.update';
 
-function isJavaExtActivated(): boolean {
-  const javaExt: vscode.Extension<unknown> | undefined = getJavaExtension();
+function isJavaLanguageSupportExtensionActivated(): boolean {
+  const javaExt:
+    | vscode.Extension<unknown>
+    | undefined = getJavaDebuggerExtension();
   return !!javaExt && javaExt.isActive;
 }
 
-function getJavaExtension(): vscode.Extension<unknown> | undefined {
-  return vscode.extensions.getExtension(JAVA_EXTENSION_ID);
+function isJavaDebuggerExtensionActivated(): boolean {
+  const javaExt:
+    | vscode.Extension<unknown>
+    | undefined = getJavaLanguageSupportExtension();
+  return !!javaExt && javaExt.isActive;
+}
+
+function getJavaLanguageSupportExtension():
+  | vscode.Extension<unknown>
+  | undefined {
+  return vscode.extensions.getExtension(JAVA_LANGUAGE_EXTENSION_ID);
+}
+
+function getJavaDebuggerExtension(): vscode.Extension<unknown> | undefined {
+  return vscode.extensions.getExtension(JAVA_DEBUGGER_EXTENSION_ID);
 }
 
 function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.updateJavaProjectConfiguration',
     async (buildFile: vscode.Uri) => {
-      if (isJavaExtActivated()) {
+      if (isJavaLanguageSupportExtensionActivated()) {
         try {
           await vscode.commands.executeCommand(
             JAVA_CONFIGURATION_UPDATE_COMMAND,
