@@ -25,5 +25,4 @@ jobs:
           tag=${GITHUB_REF#refs/tags/}
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
-          npm run i18n
           npx vsce publish -p "$AZURE_TOKEN"
