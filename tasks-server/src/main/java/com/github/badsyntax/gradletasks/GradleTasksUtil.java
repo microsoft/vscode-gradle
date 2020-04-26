@@ -15,7 +15,6 @@ import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
-import org.gradle.tooling.exceptions.UnsupportedOperationConfigurationException;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksUtil {
@@ -208,7 +207,7 @@ public class GradleTasksUtil {
     HashMap<String, String> envVars = new HashMap<>(System.getenv());
     envVars.put("JAVA_TOOL_OPTIONS",
         String.format(
-            "-agentlib:jdwp=transport=dt_soddcket,server=y,suspend=y,address=localhost:%d",
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
             javaDebugPort));
     return envVars;
   }
