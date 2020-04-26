@@ -2,6 +2,11 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.0
+
+- Add Java debug feature (#298) @badsyntax
+- Use webpack for bundling extension (#296) @badsyntax
+
 ## 2.6.2
 
 - Fixed broken extension due to language file change in 2.6.1
