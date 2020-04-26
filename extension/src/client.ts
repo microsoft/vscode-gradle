@@ -50,6 +50,8 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   public handleServerReady = (): void => {
+    this.statusBarItem.text = '$(sync~spin) Gradle: Connecting';
+    this.statusBarItem.show();
     logger.debug(
       localize('client.connecting', 'Gradle client connecting to server')
     );
@@ -84,6 +86,7 @@ export class GradleTasksClient implements vscode.Disposable {
           err.message
         )
       );
+      this.statusBarItem.hide();
     }
   }
 
@@ -183,11 +186,11 @@ export class GradleTasksClient implements vscode.Disposable {
       );
     } catch (err) {
       logger.error(
+        // TODO
         localize(
           'client.errorRunningTask',
-          'Error running task: {0} {1}',
-          err.details || err.message,
-          JSON.stringify(request.toObject(), null, 2)
+          'Error running task: {0}',
+          err.details || err.message
         )
       );
     } finally {
@@ -220,7 +223,10 @@ export class GradleTasksClient implements vscode.Disposable {
           );
         }
       );
-      logger.info(cancelRunTaskReply.getMessage());
+      logger.debug(cancelRunTaskReply.getMessage());
+      if (!cancelRunTaskReply.getTaskRunning()) {
+        handleCancelledTask(task, projectFolder);
+      }
     } catch (err) {
       logger.error(
         localize(
@@ -304,7 +310,7 @@ export class GradleTasksClient implements vscode.Disposable {
         cancelled.getMessage()
       )
     );
-    handleCancelledTask(cancelled);
+    handleCancelledTask(cancelled.getTask(), cancelled.getProjectDir());
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {

@@ -19,7 +19,12 @@ export async function activate(
 ): Promise<ExtensionApi> {
   const statusBarItem = vscode.window.createStatusBarItem();
   statusBarItem.command = 'gradle.showProcessMessage';
+  // TODO
+  statusBarItem.text = '$(sync~spin) Gradle: Starting';
+  statusBarItem.show();
+
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
+
   const server = registerServer({ host: 'localhost' }, context);
   const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
