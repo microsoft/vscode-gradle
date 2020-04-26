@@ -11,6 +11,8 @@ import {
   runTask,
   runTaskWithArgs,
   cancelRunningGradleTasks,
+  restartTask,
+  getTaskExecution,
 } from './tasks';
 import { getIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
@@ -22,12 +24,39 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
 );
 
-function registerRunTaskCommand(): vscode.Disposable {
+function registerRunTaskCommand(client: GradleTasksClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.runTask',
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTask(treeItem.task);
+        runTask(treeItem.task, client);
+      }
+    }
+  );
+}
+
+function registerDebugTaskCommand(
+  client: GradleTasksClient
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.debugTask',
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        runTask(treeItem.task, client, true);
+      }
+    }
+  );
+}
+
+function registerRestartTaskCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.restartTask',
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        const taskExecution = getTaskExecution(treeItem.task);
+        if (taskExecution) {
+          restartTask(taskExecution.task);
+        }
       }
     }
   );
@@ -245,7 +274,9 @@ export function registerCommands(
   taskProvider: GradleTaskProvider
 ): void {
   context.subscriptions.push(
-    registerRunTaskCommand(),
+    registerRunTaskCommand(client),
+    registerDebugTaskCommand(client),
+    registerRestartTaskCommand(),
     registerRunTaskWithArgsCommand(client),
     registerCancelTaskCommand(statusBarItem),
     registerCancelTreeItemTaskCommand(),

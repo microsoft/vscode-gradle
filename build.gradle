@@ -5,14 +5,24 @@ plugins {
   id 'com.github.jlouns.cpe' version '0.5.0'
 }
 
-allprojects {
-  group = 'vscode-gradle'
-}
-
 project.ext.set('grpcVersion', '1.29.0')
 project.ext.set('protobufVersion', '3.11.0')
 project.ext.set('protocVersion', project.protobufVersion)
 project.ext.set('gradlingToolingApi', '6.3')
+
+sonarqube {
+  properties {
+    property "sonar.projectKey", "badsyntax_vscode-gradle"
+    property "sonar.organization", "badsyntax"
+    property "sonar.host.url", "https://sonarcloud.io"
+    property "sonar.login", System.env.SONAR_TOKEN
+    property "sonar.github.oauth", System.env.GITHUB_TOKEN
+  }
+}
+
+allprojects {
+  group = 'vscode-gradle'
+}
 
 subprojects {
   apply plugin: 'java'
@@ -36,12 +46,4 @@ subprojects {
   }
 }
 
-sonarqube {
-  properties {
-    property "sonar.projectKey", "badsyntax_vscode-gradle"
-    property "sonar.organization", "badsyntax"
-    property "sonar.host.url", "https://sonarcloud.io"
-    property "sonar.login", System.env.SONAR_TOKEN
-    property "sonar.github.oauth", System.env.GITHUB_TOKEN
-  }
-}
+project.tasks["sonarqube"].dependsOn ':extension:buildTypeScript'

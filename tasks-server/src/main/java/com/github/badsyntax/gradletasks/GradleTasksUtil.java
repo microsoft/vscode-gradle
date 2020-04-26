@@ -2,6 +2,7 @@ package com.github.badsyntax.gradletasks;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.gradle.tooling.BuildCancelledException;
@@ -79,6 +80,7 @@ public class GradleTasksUtil {
   }
 
   public static void runTask(final File projectDir, final String task, final List<String> args,
+      final Boolean javaDebug, final int javaDebugPort,
       final StreamObserver<RunTaskReply> responseObserver) {
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
@@ -118,6 +120,9 @@ public class GradleTasksUtil {
                   }
                 }
               }).setColorOutput(true).withArguments(args).forTasks(task);
+      if (Boolean.TRUE.equals(javaDebug)) {
+        build.setEnvironmentVariables(buildDebugJvmArgument(javaDebugPort));
+      }
       build.run();
       RunTaskResult result =
           RunTaskResult.newBuilder().setMessage("Successfully run task").setTask(task).build();
@@ -131,6 +136,13 @@ public class GradleTasksUtil {
     } finally {
       cancellationTokenPool.remove(CancellationTokenPool.TYPE.RUN, cancellationKey);
     }
+  }
+
+  private static Map<String, String> buildDebugJvmArgument(int javaDebugPort) {
+    HashMap<String, String> envVars = new HashMap<>();
+    envVars.put("JAVA_TOOL_OPTIONS", String
+        .format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=%d", javaDebugPort));
+    return envVars;
   }
 
   public static void cancelGetBuilds(StreamObserver<CancelGetBuildsReply> responseObserver) {

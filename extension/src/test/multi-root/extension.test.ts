@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { waitForTasksToLoad, teardownSubscriptions } from '../testUtil';
+import { waitForTasksToLoad } from '../testUtil';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
@@ -13,12 +13,6 @@ describe(fixtureName, () => {
 
   before(() => {
     extension = vscode.extensions.getExtension(extensionName);
-  });
-
-  after(() => {
-    if (extension) {
-      teardownSubscriptions(extension.exports.context);
-    }
   });
 
   describe('extension', () => {

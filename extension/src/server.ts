@@ -14,15 +14,6 @@ export interface ServerOptions {
   host: string;
 }
 
-function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === 'EPERM';
-  }
-}
-
 export class GradleTasksServer implements vscode.Disposable {
   private taskExecution: vscode.TaskExecution | undefined;
   private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
@@ -38,21 +29,9 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTaskProcess(async (event) => {
-        if (
-          event.execution.task.name === SERVER_TASK_NAME &&
-          (await event.processId)
-        ) {
-          if (isProcessRunning(event.processId)) {
-            this.fireOnReady();
-          } else {
-            logger.error(
-              localize(
-                'server.gradleServerErrorStarting',
-                'Error starting gradle server'
-              )
-            );
-          }
+      vscode.tasks.onDidStartTask((event) => {
+        if (event.execution.task.name === SERVER_TASK_NAME) {
+          this.fireOnReady();
         }
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {

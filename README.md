@@ -24,7 +24,7 @@ This extension supports whatever Gradle supports and is language/project agnosti
 - [Java >= 8](https://adoptopenjdk.net/) must be installed
 - Local Gradle wrapper executables must exist at the root of the workspace folders (either `gradlew` or `gradlew.bat`, depending on your environment)
 
-## Extension Settings
+## Settings
 
 This extension contributes the following settings:
 
@@ -32,11 +32,38 @@ This extension contributes the following settings:
 - `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
 - `gradle.taskPresentationOptions`: Task presentation options, see [tasks output behaviour](https://code.visualstudio.com/docs/editor/tasks#_output-behavior)
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
+- `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
 
 This extension supports the following settings:
 
 - `java.home`: Absolute path to JDK home folder used to launch the gradle daemons. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
+
+## Usage
+
+Open a Gradle project to use the extension. The extension first starts a process to discover tasks, and progress for this process is reported in the statusbar. Once tasks are discovered, a "Gradle Tasks" view is displayed in the explorer view, where you can view the Gradle project & task hierarchy and run specific tasks. You can also run Gradle tasks via vscode tasks by executing the "Run Task" command from the Command Palette and choosing a Gradle task.
+
+### Debugging JavaExec Tasks
+
+This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
+
+To enable this feature you need to create a project configuration which needs to be added to your project `.vscode/settings.json` file, to specify which tasks can be debugged, for example:
+
+```json
+"gradle.javaDebug": {
+    "tasks": [
+        "run",
+        "test",
+        "subproject:customJavaExecTask"
+    ]
+}
+```
+
+You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
+
+#### Debugging Limitations
+
+You'll need to remove any `jdwp` options that might have been set in your task configuration (eg via `jvmArgs`).
 
 ## Snippets
 

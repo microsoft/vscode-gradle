@@ -1,7 +1,7 @@
 # Features
 
-- Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
-- List & run Gradle tasks in the Explorer
+- Runs [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
+- Lists & runs Gradle tasks in the Explorer
 - Updates project configuration after running tasks, via the [Java language server](https://github.com/redhat-developer/vscode-java) (if installed)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
 - Uses a long running gRPC server which provides good performance
@@ -9,7 +9,8 @@
 - Supports [multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
 - Supports nested Gradle projects
 - Supports multi-root workspaces
-- Show flat or nested tasks in the explorer
-- Gracefully cancel a running Gradle Task
+- Shows flat or nested tasks in the explorer
+- Gracefully cancels a running Gradle Task
+- Debugs JavaExec tasks
 
 Watch a short demo of the features: https://www.youtube.com/watch?v=n8hmndccxHI

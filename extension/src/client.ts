@@ -27,14 +27,14 @@ import { handleCancelledTask } from './tasks';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 5; // seconds
+  private connectDeadline = 3; // seconds
   private grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
   private connectTries = 0;
-  private maxConnectTries = 3;
+  private maxConnectTries = 5;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -138,14 +138,19 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async runTask(
     projectFolder: string,
-    task: string,
+    task: vscode.Task,
     args: string[] = [],
+    javaDebugPort: number | null,
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
-    request.setTask(task);
+    request.setTask(task.definition.script);
+    request.setJavaDebug(task.definition.javaDebug);
+    if (javaDebugPort !== null) {
+      request.setJavaDebugPort(javaDebugPort);
+    }
     request.setArgsList(args);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
@@ -169,7 +174,13 @@ export class GradleTasksClient implements vscode.Disposable {
             resolve();
           });
       });
-      logger.info(localize('client.completedTask', 'Completed task {0}', task));
+      logger.info(
+        localize(
+          'client.completedTask',
+          'Completed task {0}',
+          task.definition.script
+        )
+      );
     } catch (err) {
       logger.error(
         localize(
@@ -241,7 +252,7 @@ export class GradleTasksClient implements vscode.Disposable {
           );
         }
       );
-      logger.info(cancelRunTasksReply.getMessage());
+      logger.debug(cancelRunTasksReply.getMessage());
     } catch (err) {
       logger.error(
         localize(
@@ -273,7 +284,7 @@ export class GradleTasksClient implements vscode.Disposable {
           );
         }
       );
-      logger.info(cancelGetBuildsReply.getMessage());
+      logger.debug(cancelGetBuildsReply.getMessage());
     } catch (err) {
       logger.error(
         localize(
@@ -328,21 +339,21 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private handleConnectError = (e: Error): void => {
-    logger.error(
-      localize(
-        'client.errorConnectingToServer',
-        'Error connecting to gradle server: {0}',
-        e.message
-      )
-    );
     // Even though the gRPC client should keep retrying to connect, in some cases
-    // that doesn't work as expected (like CI tests for windows), which is why we
+    // that doesn't work as expected (like CI tests in Windows), which is why we
     // have to manually keep retrying.
     if (this.connectTries < this.maxConnectTries) {
       this.connectTries += 1;
       this.grpcClient?.close();
       this.connectToServer();
     } else {
+      logger.error(
+        localize(
+          'client.errorConnectingToServer',
+          'Error connecting to gradle server: {0}',
+          e.message
+        )
+      );
       this.server.showRestartMessage();
     }
   };

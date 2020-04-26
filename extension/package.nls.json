@@ -12,6 +12,8 @@
   "extension.command.refresh.title": "Refresh Gradle Tasks",
   "extension.command.openSettings.title": "Open Settings",
   "extension.command.cancellingTreeItemTaskShow.title": "Cancelling Task",
+  "extension.command.restartTask.title": "Restart Task",
+  "extension.command.debugTask.title": "Debug Task",
   "extension.config.autoDetect.description": "Controls whether Gradle tasks should be automatically detected",
   "extension.config.enableTasksExplorer.description": "Enable an explorer view for Gradle tasks",
   "extension.config.debug.description": "Show extra debug information in the output panel",
@@ -22,5 +24,7 @@
   "extension.config.taskPresentationOptions.echo.description": "Controls whether the executed command is echoed in the terminal",
   "extension.config.taskPresentationOptions.showReuseMessage.description": "Controls whether to show the \"Terminal will be reused by tasks, press any key to close it\" message",
   "extension.config.taskPresentationOptions.panel.description": "Controls whether the terminal instance is shared between task runs",
-  "extension.config.taskPresentationOptions.clear.description": "Controls whether the terminal is cleared before this task is run"
+  "extension.config.taskPresentationOptions.clear.description": "Controls whether the terminal is cleared before this task is run",
+  "extension.config.javaDebug.description": "Java debug options",
+  "extension.config.javaDebug.tasks.description": "List of JavaExec tasks to debug"
 }

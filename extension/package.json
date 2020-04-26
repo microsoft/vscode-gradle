@@ -38,7 +38,6 @@
   "activationEvents": [
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:gradle.refresh",
-    "onCommand:gradle.runTask",
     "workspaceContains:**/gradlew",
     "workspaceContains:**/gradlew.bat",
     "onView:gradleTreeView"
@@ -99,6 +98,22 @@
         "icon": {
           "light": "resources/light/run.svg",
           "dark": "resources/dark/run.svg"
+        }
+      },
+      {
+        "command": "gradle.debugTask",
+        "title": "%extension.command.debugTask.title%",
+        "icon": {
+          "light": "resources/light/debug-and-run.svg",
+          "dark": "resources/dark/debug-and-run.svg"
+        }
+      },
+      {
+        "command": "gradle.restartTask",
+        "title": "%extension.command.restartTask.title%",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
         }
       },
       {
@@ -181,6 +196,14 @@
           "when": "false"
         },
         {
+          "command": "gradle.debugTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.restartTask",
+          "when": "false"
+        },
+        {
           "command": "gradle.openBuildFile",
           "when": "false"
         },
@@ -253,19 +276,29 @@
           "when": "view == gradleTreeView && viewItem == task"
         },
         {
+          "command": "gradle.debugTask",
+          "when": "view == gradleTreeView && viewItem == debugTask",
+          "group": "inline@0"
+        },
+        {
           "command": "gradle.runTask",
-          "when": "view == gradleTreeView && viewItem == task",
-          "group": "inline"
+          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "gradle.restartTask",
+          "when": "view == gradleTreeView && viewItem == runningTask",
+          "group": "inline@2"
         },
         {
           "command": "gradle.cancelTreeItemTask",
           "when": "view == gradleTreeView && viewItem == runningTask",
-          "group": "inline"
+          "group": "inline@3"
         },
         {
           "command": "gradle.cancellingTreeItemTask",
           "when": "view == gradleTreeView && viewItem == cancellingTask",
-          "group": "inline"
+          "group": "inline@4"
         }
       ]
     },
@@ -298,6 +331,35 @@
           "type": "boolean",
           "default": true,
           "description": "%extension.config.focusTaskInExplorer.description%"
+        },
+        "gradle.javaDebug": {
+          "type": "object",
+          "description": "%extension.config.javaDebug.description%",
+          "properties": {
+            "tasks": {
+              "type": "array",
+              "default": [
+                "run",
+                "runBoot",
+                "test",
+                "intTest",
+                "integration"
+              ],
+              "description": "%extension.config.javaDebug.tasks.description%"
+            }
+          },
+          "required": [
+            "tasks"
+          ],
+          "default": {
+            "tasks": [
+              "run",
+              "runBoot",
+              "test",
+              "intTest",
+              "integration"
+            ]
+          }
         },
         "gradle.taskPresentationOptions": {
           "type": "object",
@@ -365,7 +427,17 @@
       {
         "type": "gradle",
         "required": [
-          "script"
+          "script",
+          "description",
+          "group",
+          "project",
+          "buildFile",
+          "rootProject",
+          "path",
+          "projectFolder",
+          "workspaceFolder",
+          "args",
+          "javaDebug"
         ],
         "properties": {
           "script": {
@@ -407,6 +479,10 @@
           "args": {
             "type": "string",
             "description": "Task args"
+          },
+          "javaDebug": {
+            "type": "boolean",
+            "description": "Debug JavaExec task when executing"
           }
         }
       }
@@ -429,7 +505,8 @@
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",
-    "vscode-nls": "^4.1.2"
+    "vscode-nls": "^4.1.2",
+    "wait-on": "^4.0.2"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -438,6 +515,7 @@
     "@types/node": "^13.11.1",
     "@types/sinon": "^9.0.0",
     "@types/vscode": "^1.44.0",
+    "@types/wait-on": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^2.28.0",
     "@typescript-eslint/parser": "^2.28.0",
     "eslint": "^6.8.0",

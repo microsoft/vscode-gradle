@@ -45,6 +45,8 @@ message RunTaskRequest {
   string project_dir = 1;
   string task = 2;
   repeated string args = 3;
+  bool java_debug = 4;
+  int32 java_debug_port = 5;
 }
 
 message RunTaskResult {
