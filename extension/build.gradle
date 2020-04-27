@@ -129,9 +129,10 @@ task buildTypeScript(type: CrossPlatformExec) {
   group 'build'
   description 'Builds TypeScript source files'
   buildDir = 'out'
-  outputs.dir("$buildDir")
+  outputs.dir(buildDir)
   inputs.dir('src')
   inputs.file('webpack.config.js')
+  inputs.file('tsconfig.json')
   commandLine 'npm', 'run', 'compile:dev'
 }
 
