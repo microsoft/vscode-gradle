@@ -117,6 +117,10 @@
         }
       },
       {
+        "command": "gradle.showTasks",
+        "title": "%extension.command.showTasks.title%"
+      },
+      {
         "command": "gradle.runTaskWithArgs",
         "title": "%extension.command.runTaskWithArgs.title%"
       },
@@ -191,6 +195,10 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "gradle.showTasks",
+          "when": "false"
+        },
         {
           "command": "gradle.runTask",
           "when": "false"
@@ -306,6 +314,20 @@
           "command": "gradle.cancellingTreeItemTask",
           "when": "view == gradleTreeView && viewItem == cancellingTask",
           "group": "inline@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
+          "command": "gradle.showTasks",
+          "group": "gradle@0"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
+          "command": "gradle.showTasks",
+          "group": "gradle@0"
         }
       ]
     },

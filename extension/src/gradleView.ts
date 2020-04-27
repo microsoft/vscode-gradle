@@ -223,13 +223,13 @@ export class GradleTasksTreeDataProvider
     return null;
   }
 
-  getFlattenedTree(treeItems: vscode.TreeItem[]): GradleTaskTreeItem[] {
+  getFlattenedTaskTree(treeItems: vscode.TreeItem[]): GradleTaskTreeItem[] {
     return treeItems
       .map((element: vscode.TreeItem) => {
         if (element instanceof GradleTaskTreeItem) {
           return element;
         }
-        return this.getFlattenedTree(this.getChildren(element));
+        return this.getFlattenedTaskTree(this.getChildren(element));
       })
       .flat() as GradleTaskTreeItem[];
   }
@@ -256,10 +256,21 @@ export class GradleTasksTreeDataProvider
     return [];
   }
 
-  findTreeItem(task: vscode.Task): GradleTaskTreeItem | void {
+  findTaskTreeItem(task: vscode.Task): GradleTaskTreeItem | void {
     if (this.treeItems) {
-      const tree = this.getFlattenedTree(this.treeItems);
+      const tree = this.getFlattenedTaskTree(this.treeItems);
       return tree.find((treeItem) => isTask(treeItem.task, task));
+    }
+  }
+
+  findProjectTreeItem(uri: vscode.Uri): ProjectTreeItem | undefined {
+    if (this.treeItems) {
+      return this.treeItems.find((element: vscode.TreeItem) => {
+        return (
+          element instanceof ProjectTreeItem &&
+          element.resourceUri?.fsPath === uri.fsPath
+        );
+      }) as ProjectTreeItem | undefined;
     }
   }
 
@@ -369,7 +380,10 @@ export class GradleTasksTreeDataProvider
 
 export function registerExplorer(
   context: vscode.ExtensionContext
-): GradleTasksTreeDataProvider {
+): {
+  treeDataProvider: GradleTasksTreeDataProvider;
+  treeView: vscode.TreeView<vscode.TreeItem>;
+} {
   const collapsed = context.workspaceState.get('explorerCollapsed', false);
   const treeDataProvider = new GradleTasksTreeDataProvider(context);
   treeDataProvider.setCollapsed(collapsed);
@@ -395,7 +409,9 @@ export function registerExplorer(
     vscode.tasks.onDidStartTask(async (event: vscode.TaskStartEvent) => {
       const { type } = event.execution.task.definition;
       if (type === 'gradle') {
-        const treeItem = treeDataProvider.findTreeItem(event.execution.task);
+        const treeItem = treeDataProvider.findTaskTreeItem(
+          event.execution.task
+        );
         const shouldFocus = treeView.visible && getFocusTaskInExplorer();
         if (treeItem && shouldFocus) {
           try {
@@ -420,5 +436,5 @@ export function registerExplorer(
       treeDataProvider.render();
     })
   );
-  return treeDataProvider;
+  return { treeDataProvider, treeView };
 }
