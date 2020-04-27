@@ -50,12 +50,14 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   public handleServerReady = (): void => {
-    // TODO
-    this.statusBarItem.text = '$(sync~spin) Gradle: Connecting';
+    this.statusBarItem.text = localize(
+      'client.connecting',
+      '{0} Gradle: Connecting',
+      '$(sync~spin)'
+    );
     this.statusBarItem.show();
-    // TODO
     logger.debug(
-      localize('client.connecting', 'Gradle client connecting to server')
+      localize('client.connectingDebug', 'Gradle client connecting to server')
     );
     this.connectToServer();
   };
@@ -188,7 +190,6 @@ export class GradleTasksClient implements vscode.Disposable {
       );
     } catch (err) {
       logger.error(
-        // TODO
         localize(
           'client.errorRunningTask',
           'Error running task: {0}',

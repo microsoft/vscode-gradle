@@ -40,7 +40,6 @@ function registerDebugTaskCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.debugTask',
-    // eslint-disable-next-line sonarjs/cognitive-complexity
     async (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const INSTALL_EXTENSIONS = localize(
@@ -51,7 +50,7 @@ function registerDebugTaskCommand(
           const input = await vscode.window.showErrorMessage(
             localize(
               'commands.missingJavaLanguageSupportExtension',
-              'The Java Language support & Debugger extensions are required for debugging.'
+              'The Java Language Support & Debugger extensions are required for debugging.'
             ),
             INSTALL_EXTENSIONS
           );

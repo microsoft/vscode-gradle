@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 
 import { GradleTasksTreeDataProvider, registerExplorer } from './gradleView';
 import { registerTaskProvider } from './tasks';
@@ -6,6 +7,8 @@ import { registerServer } from './server';
 import { registerClient, GradleTasksClient } from './client';
 import { registerCommands } from './commands';
 import { Logger, logger } from './logger';
+
+const localize = nls.loadMessageBundle();
 
 export interface ExtensionApi {
   treeDataProvider: GradleTasksTreeDataProvider;
@@ -19,8 +22,11 @@ export async function activate(
 ): Promise<ExtensionApi> {
   const statusBarItem = vscode.window.createStatusBarItem();
   statusBarItem.command = 'gradle.showProcessMessage';
-  // TODO
-  statusBarItem.text = '$(sync~spin) Gradle: Starting';
+  statusBarItem.text = localize(
+    'extension.starting',
+    '{0} Gradle: Starting',
+    '$(sync~spin)'
+  );
   statusBarItem.show();
 
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));

@@ -398,16 +398,19 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         }
       );
       if (!startedDebugging) {
-        // TODO
-        throw new Error('The debugger could was not started');
+        throw new Error(
+          localize(
+            'tasks.debuggerNotStartedError',
+            'The debugger was not started'
+          )
+        );
       }
-    } catch (e) {
+    } catch (err) {
       logger.error(
-        // TODO
         localize(
           'tasks.debugError',
           'Unable to start Java debugging: {0}',
-          e.message
+          err.message
         )
       );
     }
