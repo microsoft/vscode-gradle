@@ -51,6 +51,7 @@ module.exports = () => {
               loader: 'ts-loader',
               options: {
                 transpileOnly: true,
+                module: 'es6',
               },
             },
           ],
