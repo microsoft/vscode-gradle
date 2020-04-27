@@ -322,6 +322,13 @@
           "command": "gradle.showTasks",
           "group": "gradle@0"
         }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
+          "command": "gradle.showTasks",
+          "group": "gradle@0"
+        }
       ]
     },
     "configuration": {
