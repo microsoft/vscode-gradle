@@ -62,6 +62,7 @@ message CancelRunTaskRequest {
 message CancelRunTaskReply {
   string message = 1;
   string task = 2;
+  bool task_running = 3;
 }
 
 message CancelRunTasksRequest {}

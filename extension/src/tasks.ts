@@ -19,7 +19,6 @@ import {
   Output,
   GradleProject,
   GradleTask,
-  Cancelled,
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
@@ -388,19 +387,30 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         resources: [`tcp:${javaDebugPort}`],
         verbose: false,
       });
-      await vscode.debug.startDebugging(this.workspaceFolder, {
-        type: 'java',
-        name: 'Debug (Attach) via Gradle Tasks',
-        request: 'attach',
-        hostName: 'localhost',
-        port: javaDebugPort,
-      });
-    } catch (e) {
+      const startedDebugging = await vscode.debug.startDebugging(
+        this.workspaceFolder,
+        {
+          type: 'java',
+          name: 'Debug (Attach) via Gradle Tasks',
+          request: 'attach',
+          hostName: 'localhost',
+          port: javaDebugPort,
+        }
+      );
+      if (!startedDebugging) {
+        throw new Error(
+          localize(
+            'tasks.debuggerNotStartedError',
+            'The debugger was not started'
+          )
+        );
+      }
+    } catch (err) {
       logger.error(
         localize(
           'tasks.debugError',
           'Unable to start Java debugging: {0}',
-          e.message
+          err.message
         )
       );
     }
@@ -565,18 +575,19 @@ export function buildGradleServerTask(
   return task;
 }
 
-export async function handleCancelledTask(cancelled: Cancelled): Promise<void> {
-  const cancellingTask = getCancellingTask(
-    cancelled.getTask(),
-    cancelled.getProjectDir()
-  );
+export function removeCancellingTask(cancellingTask: vscode.Task): void {
+  cancellingTasks.delete(cancellingTask);
+}
+
+export async function handleCancelledTask(
+  task: string,
+  projectFolder: string
+): Promise<void> {
+  const cancellingTask = getCancellingTask(task, projectFolder);
   if (cancellingTask) {
-    cancellingTasks.delete(cancellingTask);
+    removeCancellingTask(cancellingTask);
   }
-  const restartingTask = getRestartingTask(
-    cancelled.getTask(),
-    cancelled.getProjectDir()
-  );
+  const restartingTask = getRestartingTask(task, projectFolder);
   if (restartingTask) {
     vscode.tasks.executeTask(restartingTask);
     restartingTasks.delete(restartingTask);
@@ -608,7 +619,8 @@ export function restartTask(task: vscode.Task): void {
 
 export async function runTaskWithArgs(
   task: vscode.Task,
-  client: GradleTasksClient
+  client: GradleTasksClient,
+  debug = false
 ): Promise<void> {
   const args = await vscode.window.showInputBox({
     placeHolder: localize(
@@ -621,7 +633,7 @@ export async function runTaskWithArgs(
   if (args !== undefined) {
     const taskWithArgs = cloneTask(task, args, client);
     if (taskWithArgs) {
-      runTask(taskWithArgs, client);
+      runTask(taskWithArgs, client, debug);
     }
   }
 }

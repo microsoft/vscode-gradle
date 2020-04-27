@@ -269,11 +269,18 @@
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradleTreeView && viewItem == task"
+          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "group": "run@0"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view == gradleTreeView && viewItem == task"
+          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "group": "run@1"
+        },
+        {
+          "command": "gradle.debugTask",
+          "when": "view == gradleTreeView && viewItem == debugTask",
+          "group": "debug@0"
         },
         {
           "command": "gradle.debugTask",
