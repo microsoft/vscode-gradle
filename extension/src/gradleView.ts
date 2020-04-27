@@ -161,12 +161,24 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 }
 
 class NoTasksTreeItem extends vscode.TreeItem {
-  constructor() {
+  constructor(context: vscode.ExtensionContext) {
     super(
       localize('gradleView.noTasksFound', 'No tasks found'),
       vscode.TreeItemCollapsibleState.None
     );
     this.contextValue = 'notasks';
+    this.command = {
+      title: localize('gradleView.showLogs', 'Show Logs'),
+      command: 'gradle.showLogs',
+    };
+    this.iconPath = {
+      light: context.asAbsolutePath(
+        path.join('resources', 'light', 'issues.svg')
+      ),
+      dark: context.asAbsolutePath(
+        path.join('resources', 'dark', 'issues.svg')
+      ),
+    };
   }
 }
 
@@ -180,11 +192,11 @@ export class GradleTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly extensionContext: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
-    this.extensionContext.workspaceState.update('explorerCollapsed', collapsed);
+    this.context.workspaceState.update('explorerCollapsed', collapsed);
     vscode.commands.executeCommand(
       'setContext',
       'gradle:explorerCollapsed',
@@ -200,7 +212,7 @@ export class GradleTasksTreeDataProvider
 
   render(): void {
     if (this.taskItems.length === 0) {
-      this.treeItems = [new NoTasksTreeItem()];
+      this.treeItems = [new NoTasksTreeItem(this.context)];
     } else {
       this.treeItems = this.buildItemsTreeFromTasks(this.taskItems);
     }
@@ -358,7 +370,7 @@ export class GradleTasksTreeDataProvider
 
         parentTreeItem.addTask(
           new GradleTaskTreeItem(
-            this.extensionContext,
+            this.context,
             parentTreeItem,
             task,
             taskName,
@@ -374,7 +386,7 @@ export class GradleTasksTreeDataProvider
         ...workspaceTreeItems.values().next().value.projects,
       ];
     }
-    return [...workspaceTreeItems.values()];
+    return [...workspaceTreeItems.values()].sort(treeItemSortCompareFunc);
   }
 }
 

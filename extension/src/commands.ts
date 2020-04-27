@@ -17,6 +17,13 @@ import {
 import { getIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
+import {
+  isJavaDebuggerExtensionActivated,
+  JAVA_LANGUAGE_EXTENSION_ID,
+  JAVA_DEBUGGER_EXTENSION_ID,
+  isJavaLanguageSupportExtensionActivated,
+  JAVA_CONFIGURATION_UPDATE_COMMAND,
+} from './compat';
 
 const localize = nls.loadMessageBundle();
 
@@ -225,7 +232,7 @@ function registerShowProcessMessageCommand(): vscode.Disposable {
         OPT_CANCEL
       );
       if (input === OPT_LOGS) {
-        logger.getChannel()?.show();
+        vscode.commands.executeCommand('gradle.showLogs');
       } else if (input === OPT_CANCEL) {
         vscode.commands.executeCommand('gradle.cancelGradleProcesses');
       }
@@ -268,34 +275,6 @@ function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
   );
 }
 
-const JAVA_LANGUAGE_EXTENSION_ID = 'redhat.java';
-const JAVA_DEBUGGER_EXTENSION_ID = 'vscjava.vscode-java-debug';
-const JAVA_CONFIGURATION_UPDATE_COMMAND = 'java.projectConfiguration.update';
-
-function isJavaLanguageSupportExtensionActivated(): boolean {
-  const javaExt:
-    | vscode.Extension<unknown>
-    | undefined = getJavaDebuggerExtension();
-  return !!javaExt && javaExt.isActive;
-}
-
-function isJavaDebuggerExtensionActivated(): boolean {
-  const javaExt:
-    | vscode.Extension<unknown>
-    | undefined = getJavaLanguageSupportExtension();
-  return !!javaExt && javaExt.isActive;
-}
-
-function getJavaLanguageSupportExtension():
-  | vscode.Extension<unknown>
-  | undefined {
-  return vscode.extensions.getExtension(JAVA_LANGUAGE_EXTENSION_ID);
-}
-
-function getJavaDebuggerExtension(): vscode.Extension<unknown> | undefined {
-  return vscode.extensions.getExtension(JAVA_DEBUGGER_EXTENSION_ID);
-}
-
 function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.updateJavaProjectConfiguration',
@@ -318,6 +297,12 @@ function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
       }
     }
   );
+}
+
+function registerShowLogsCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand('gradle.showLogs', () => {
+    logger.getChannel()?.show();
+  });
 }
 
 export function registerCommands(
@@ -345,6 +330,7 @@ export function registerCommands(
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),
     registerExplorerRenderCommand(treeDataProvider),
-    registerUpdateJavaProjectConfigurationCommand()
+    registerUpdateJavaProjectConfigurationCommand(),
+    registerShowLogsCommand()
   );
 }
