@@ -34,12 +34,13 @@ export async function activate(
   const server = registerServer({ host: 'localhost' }, context);
   const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
-  const treeDataProvider = registerExplorer(context);
+  const { treeDataProvider, treeView } = registerExplorer(context);
   registerCommands(
     context,
     statusBarItem,
     client,
     treeDataProvider,
+    treeView,
     taskProvider
   );
   return { treeDataProvider, context, client, logger };

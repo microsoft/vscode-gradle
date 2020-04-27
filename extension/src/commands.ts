@@ -24,6 +24,24 @@ const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
 );
 
+function registerShowTasks(
+  treeDataProvider: GradleTasksTreeDataProvider,
+  treeView: vscode.TreeView<vscode.TreeItem>
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.showTasks',
+    async (uri: vscode.Uri) => {
+      const treeItem = treeDataProvider.findProjectTreeItem(uri);
+      if (treeItem) {
+        await treeView.reveal(treeItem, {
+          focus: true,
+          expand: true,
+        });
+      }
+    }
+  );
+}
+
 function registerRunTaskCommand(client: GradleTasksClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.runTask',
@@ -307,9 +325,11 @@ export function registerCommands(
   statusBarItem: vscode.StatusBarItem,
   client: GradleTasksClient,
   treeDataProvider: GradleTasksTreeDataProvider,
+  treeView: vscode.TreeView<vscode.TreeItem>,
   taskProvider: GradleTaskProvider
 ): void {
   context.subscriptions.push(
+    registerShowTasks(treeDataProvider, treeView),
     registerRunTaskCommand(client),
     registerDebugTaskCommand(client),
     registerRestartTaskCommand(),

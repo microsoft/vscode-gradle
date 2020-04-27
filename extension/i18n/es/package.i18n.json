@@ -14,6 +14,7 @@
   "extension.command.cancellingTreeItemTaskShow.title": "Tarea de cancelación",
   "extension.command.restartTask.title": "Reiniciar tarea",
   "extension.command.debugTask.title": "Tarea de depuración",
+  "extension.command.showTasks.title": "Mostrar tareas de Gradle",
   "extension.config.autoDetect.description": "Controla si las tareas de Gradle deben detectarse automáticamente",
   "extension.config.enableTasksExplorer.description": "Habilitar una vista de explorador para tareas de Gradle",
   "extension.config.debug.description": "Mostrar información adicional de depuración en el panel de salida",
