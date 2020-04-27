@@ -8,7 +8,7 @@
 
 Run Gradle tasks in VS Code.
 
-![Screencat](images/screencast.gif)
+![Gradle Tasks Screencast](images/screencast.gif)
 
 ## Features
 
@@ -44,6 +44,8 @@ This extension supports the following settings:
 Open a Gradle project to use the extension. The extension first starts a process to discover tasks, and progress for this process is reported in the statusbar. Once tasks are discovered, a "Gradle Tasks" view is displayed in the explorer view, where you can view the Gradle project & task hierarchy and run specific tasks. You can also run Gradle tasks via vscode tasks by executing the "Run Task" command from the Command Palette and choosing a Gradle task.
 
 ### Debugging JavaExec Tasks
+
+![Debug Screencast](images/debug-screencast.gif)
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
 
