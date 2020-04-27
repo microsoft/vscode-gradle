@@ -2,6 +2,16 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.1
+
+- Java debug fixes in Windows & additional debugging features (#302) @badsyntax
+- Add "Show Gradle Tasks" feature to explorer and editor context menus (#305) @badsyntax
+
+Deps:
+
+- Bump @types/node from 13.13.2 to 13.13.4 in /extension (#303) @dependabot-preview
+- Bump mocha from 7.1.1 to 7.1.2 in /extension (#304) @dependabot-preview
+
 ## 2.7.0
 
 - Add Java debug feature (#298) @badsyntax
