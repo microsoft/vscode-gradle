@@ -30,7 +30,6 @@ module.exports = () => {
       pathinfo: false,
       devtoolModuleFilenameTemplate: '../[resource-path]',
     },
-    devtool: 'source-map',
     resolve: {
       mainFields: ['module', 'main'],
       extensions: ['.ts', '.js'],
@@ -51,7 +50,9 @@ module.exports = () => {
               loader: 'ts-loader',
               options: {
                 transpileOnly: true,
-                module: 'es6',
+                compilerOptions: {
+                  module: 'es6',
+                },
               },
             },
           ],
