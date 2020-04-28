@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Use Node 12.x
+      - name: Use Node 12.16.2
         uses: actions/setup-node@v1
         with:
-          node-version: 12.x
+          node-version: 12.16.2
       - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:
