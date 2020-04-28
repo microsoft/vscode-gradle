@@ -128,7 +128,7 @@ task buildTypeScript(type: CrossPlatformExec) {
   dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript source files'
-  buildDir = 'out'
+  buildDir = 'dist'
   outputs.dir(buildDir)
   inputs.dir('src')
   inputs.file('webpack.config.js')
@@ -136,11 +136,23 @@ task buildTypeScript(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile:dev'
 }
 
+task buildTypeScriptTests(type: CrossPlatformExec) {
+  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
+  group 'build'
+  description 'Builds TypeScript test source files'
+  buildDir = 'out'
+  outputs.dir(buildDir)
+  inputs.dir('src')
+  inputs.file('webpack.config.js')
+  inputs.file('tsconfig.json')
+  commandLine 'npm', 'run', 'compile:test'
+}
+
 task bundle(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Bundles the extension files for release'
-  buildDir = 'out'
+  buildDir = 'dist'
   outputs.dir("$buildDir")
   inputs.dir('src')
   inputs.file('webpack.config.js')

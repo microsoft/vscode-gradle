@@ -42,7 +42,7 @@
     "workspaceContains:gradlew.bat",
     "onView:gradleTreeView"
   ],
-  "main": "./out/extension",
+  "main": "./dist/extension",
   "contributes": {
     "languages": [
       {
@@ -530,7 +530,8 @@
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{json,svg,md,yml}'",
     "compile:prod": "webpack --mode production",
-    "compile:dev": "tsc -p ./",
+    "compile:dev": "webpack --mode development",
+    "compile:test": "tsc -p ./",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "vsce package"
   },
@@ -540,8 +541,7 @@
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",
-    "vscode-nls": "^4.1.2",
-    "wait-on": "^4.0.2"
+    "vscode-nls": "^4.1.2"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",

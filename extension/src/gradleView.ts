@@ -1,16 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import * as perfHooks from 'perf_hooks';
-// import * as util from 'util';
 
-const { performance, PerformanceObserver } = perfHooks;
-// const debug = util.debuglog('performance');
-const obs = new PerformanceObserver((items) => {
-  console.log('get task tree', items.getEntries()[0].duration, 'ms');
-  performance.clearMarks();
-});
-obs.observe({ entryTypes: ['measure'] });
 import {
   isWorkspaceFolder,
   isTaskCancelling,
@@ -336,7 +327,6 @@ export class GradleTasksTreeDataProvider
   buildItemsTreeFromTasks(
     tasks: vscode.Task[]
   ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
-    performance.mark('A');
     const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
     const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
     const groupTreeItems: Map<string, GroupTreeItem> = new Map();
@@ -355,7 +345,7 @@ export class GradleTasksTreeDataProvider
           workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
         }
 
-        if (!workspaceJavaDebug.get(task.scope.name)) {
+        if (!workspaceJavaDebug.has(task.scope.name)) {
           workspaceJavaDebug.set(
             task.scope.name,
             getConfigJavaDebug(task.scope as vscode.WorkspaceFolder)
@@ -410,9 +400,6 @@ export class GradleTasksTreeDataProvider
         parentTreeItem.addTask(taskTreeItem);
       }
     });
-
-    performance.mark('B');
-    performance.measure('measure', 'A', 'B');
 
     if (workspaceTreeItems.size === 1) {
       return [

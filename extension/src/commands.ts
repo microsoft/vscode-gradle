@@ -22,6 +22,8 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
+  getJavaDebuggerExtension,
+  getJavaLanguageSupportExtension,
 } from './compat';
 
 const localize = nls.loadMessageBundle();
@@ -70,7 +72,7 @@ function registerDebugTaskCommand(
           'commands.requiredExtensionMissing',
           'Install Missing Extensions'
         );
-        if (!isJavaDebuggerExtensionActivated()) {
+        if (!getJavaLanguageSupportExtension() || !getJavaDebuggerExtension()) {
           const input = await vscode.window.showErrorMessage(
             localize(
               'commands.missingJavaLanguageSupportExtension',
@@ -84,6 +86,14 @@ function registerDebugTaskCommand(
               [JAVA_LANGUAGE_EXTENSION_ID, JAVA_DEBUGGER_EXTENSION_ID]
             );
           }
+          return;
+        } else if (!isJavaDebuggerExtensionActivated()) {
+          vscode.window.showErrorMessage(
+            localize(
+              'commands.javaDebuggerExtensionNotActivated',
+              'La extensión del depurador de Java no está activada.'
+            )
+          );
           return;
         }
         runTask(treeItem.task, client, true);

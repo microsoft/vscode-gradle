@@ -8,7 +8,6 @@ import {
   GradleTaskTreeItem,
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
-// import { GradleTaskTreeItem } from '../../gradleView';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';

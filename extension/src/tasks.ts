@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-// import * as path from 'path';
 import * as nls from 'vscode-nls';
-import * as waitOn from 'wait-on';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const stripAnsi = require('strip-ansi');
 
 import {
   getConfigIsAutoDetectionEnabled,
@@ -15,7 +16,7 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { isTest } from './util';
+import { isTest, waitOnTcp } from './util';
 import {
   Output,
   GradleProject,
@@ -24,12 +25,7 @@ import {
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const stripAnsi = require('strip-ansi');
-
 const localize = nls.loadMessageBundle();
-
-// const subProjectRegex = /^:/;
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   id: string;
@@ -369,7 +365,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private handleOutput(message: string): void {
     const logMessage = message.trim();
     if (logMessage) {
-      this.writeEmitter.fire(logMessage + '\r\n');
+      this.write(logMessage);
       // This allows us to test process stdout via the logger
       if (isTest()) {
         logger.info(stripAnsi(logMessage));
@@ -377,12 +373,13 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     }
   }
 
-  private async startJavaDebug(javaDebugPort: number | null): Promise<void> {
+  private write(message: string): void {
+    this.writeEmitter.fire(message + '\r\n');
+  }
+
+  private async startJavaDebug(javaDebugPort: number): Promise<void> {
     try {
-      await waitOn({
-        resources: [`tcp:${javaDebugPort}`],
-        verbose: false,
-      });
+      await waitOnTcp('localhost', javaDebugPort);
       const startedDebugging = await vscode.debug.startDebugging(
         this.workspaceFolder,
         {
@@ -409,6 +406,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
           err.message
         )
       );
+      this.close();
     }
   }
 
@@ -427,7 +425,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         }
       );
       if (javaDebugEnabled) {
-        await this.startJavaDebug(javaDebugPort);
+        await this.startJavaDebug(javaDebugPort!);
       }
       await runTask;
       vscode.commands.executeCommand(

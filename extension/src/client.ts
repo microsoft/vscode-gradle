@@ -182,7 +182,6 @@ export class GradleTasksClient implements vscode.Disposable {
           });
       });
       logger.info(
-        // TODO
         localize(
           'client.completedTask',
           'Completed task: {0}',
