@@ -38,8 +38,8 @@
   "activationEvents": [
     "onCommand:workbench.action.tasks.runTask",
     "onCommand:gradle.refresh",
-    "workspaceContains:**/gradlew",
-    "workspaceContains:**/gradlew.bat",
+    "workspaceContains:gradlew",
+    "workspaceContains:gradlew.bat",
     "onView:gradleTreeView"
   ],
   "main": "./out/extension",
@@ -153,10 +153,6 @@
         }
       },
       {
-        "command": "gradle.explorerRender",
-        "title": "%extension.command.explorerRender.title%"
-      },
-      {
         "command": "gradle.explorerTree",
         "title": "%extension.command.explorerTree.title%",
         "icon": {
@@ -241,10 +237,6 @@
         },
         {
           "command": "gradle.explorerTree",
-          "when": "false"
-        },
-        {
-          "command": "gradle.explorerRender",
           "when": "false"
         },
         {
@@ -464,6 +456,7 @@
       {
         "type": "gradle",
         "required": [
+          "id",
           "script",
           "description",
           "group",
@@ -477,6 +470,10 @@
           "javaDebug"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifoier for this task"
+          },
           "script": {
             "type": "string",
             "description": "The task script name"
@@ -539,6 +536,7 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.0.2",
+    "fast-glob": "^3.2.2",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "strip-ansi": "^6.0.0",

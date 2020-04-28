@@ -164,26 +164,6 @@
       "presentation": {
         "group": "test"
       }
-    },
-    {
-      "name": "Test: Nested Projects",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "env": {
-        "VSCODE_TEST": "true"
-      },
-      "args": [
-        "--disable-extensions",
-        "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/nested-projects/",
-        "${workspaceFolder}/extension/test-fixtures"
-      ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript",
-      "presentation": {
-        "group": "test"
-      }
     }
   ],
   "compounds": [

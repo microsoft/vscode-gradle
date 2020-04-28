@@ -5,7 +5,6 @@
   "extension.command.cancelTask.title": "Cancel Task",
   "extension.command.cancelTreeItemTask.title": "Cancel Task",
   "extension.command.explorerFlat.title": "Show Flat List",
-  "extension.command.explorerRender.title": "Render explorer",
   "extension.command.explorerTree.title": "Show Tree",
   "extension.command.killGradleProcess.title": "Kill Gradle task process",
   "extension.command.showProcessMessage.title": "Show Gradle process information message box",
