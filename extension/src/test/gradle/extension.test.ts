@@ -4,7 +4,10 @@ import * as sinon from 'sinon';
 import * as path from 'path';
 
 import { waitForTasksToLoad } from '../testUtil';
-import { GradleTaskTreeItem } from '../../gradleView';
+import {
+  GradleTaskTreeItem,
+  GradleTasksTreeDataProvider,
+} from '../../gradleView';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -71,7 +74,7 @@ describe(fixtureName, () => {
         vscode.tasks.executeTask(task!);
       });
       assert.ok(spy.calledWith(sinon.match('Hello, World!')));
-      assert.ok(spy.calledWith(sinon.match('Completed task hello')));
+      assert.ok(spy.calledWith(sinon.match('Completed task: hello')));
     });
 
     it('should run a gradle task with custom args', async () => {
@@ -86,6 +89,8 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension!.exports.logger, 'info');
+      const treeDataProvider = extension?.exports
+        .treeDataProvider as GradleTasksTreeDataProvider;
       await new Promise((resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         vscode.tasks.onDidEndTaskProcess((e) => {
@@ -94,11 +99,12 @@ describe(fixtureName, () => {
           }
         });
         const treeItem = new GradleTaskTreeItem(
-          extension!.exports.context,
           new vscode.TreeItem('parentTreeItem'),
           task!,
           task!.name,
-          task!.definition.description
+          task!.definition.description,
+          treeDataProvider.getIconPathRunning()!,
+          treeDataProvider.getIconPathIdle()!
         );
         vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
       });

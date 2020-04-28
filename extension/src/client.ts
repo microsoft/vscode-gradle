@@ -22,7 +22,7 @@ import {
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
-import { handleCancelledTask } from './tasks';
+import { handleCancelledTask, GradleTaskDefinition } from './tasks';
 
 const localize = nls.loadMessageBundle();
 
@@ -172,7 +172,7 @@ export class GradleTasksClient implements vscode.Disposable {
                 onOutput(runTaskReply.getOutput()!);
                 break;
               case RunTaskReply.KindCase.CANCELLED:
-                this.handleRunTaskCancelled(runTaskReply.getCancelled()!);
+                this.handleRunTaskCancelled(task, runTaskReply.getCancelled()!);
                 break;
             }
           })
@@ -184,7 +184,7 @@ export class GradleTasksClient implements vscode.Disposable {
       logger.info(
         localize(
           'client.completedTask',
-          'Completed task {0}',
+          'Completed task: {0}',
           task.definition.script
         )
       );
@@ -201,13 +201,11 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async cancelRunTask(
-    projectFolder: string,
-    task: string
-  ): Promise<void> {
+  public async cancelRunTask(task: vscode.Task): Promise<void> {
+    const definition = task.definition as GradleTaskDefinition;
     const request = new CancelRunTaskRequest();
-    request.setProjectDir(projectFolder);
-    request.setTask(task);
+    request.setProjectDir(definition.projectFolder);
+    request.setTask(definition.script);
     try {
       const cancelRunTaskReply: CancelRunTaskReply = await new Promise(
         (resolve, reject) => {
@@ -228,7 +226,7 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       logger.debug(cancelRunTaskReply.getMessage());
       if (!cancelRunTaskReply.getTaskRunning()) {
-        handleCancelledTask(task, projectFolder);
+        handleCancelledTask(task);
       }
     } catch (err) {
       logger.error(
@@ -305,7 +303,10 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  private handleRunTaskCancelled = (cancelled: Cancelled): void => {
+  private handleRunTaskCancelled = (
+    task: vscode.Task,
+    cancelled: Cancelled
+  ): void => {
     logger.info(
       localize(
         'client.runTaskCancelled',
@@ -313,7 +314,7 @@ export class GradleTasksClient implements vscode.Disposable {
         cancelled.getMessage()
       )
     );
-    handleCancelledTask(cancelled.getTask(), cancelled.getProjectDir());
+    handleCancelledTask(task);
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {
@@ -381,7 +382,7 @@ export function registerClient(
   const client = new GradleTasksClient(server, statusBarItem);
   context.subscriptions.push(client);
   client.onConnect(() => {
-    vscode.commands.executeCommand('gradle.refresh', false);
+    vscode.commands.executeCommand('gradle.refresh');
   });
   return client;
 }

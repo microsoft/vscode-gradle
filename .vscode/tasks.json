@@ -18,6 +18,24 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "Gradle: Build TypeScript & Tests",
+      "type": "shell",
+      "problemMatcher": "$tsc-watch",
+      "command": "./gradlew",
+      "windows": {
+        "command": ".\\gradlew.bat"
+      },
+      "args": [":extension:buildTypeScript", ":extension:buildTypeScriptTests", "-x", "test"],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }

@@ -7,7 +7,6 @@
 - Uses a long running gRPC server which provides good performance
 - Supports Kotlin & Groovy build files
 - Supports [multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
-- Supports nested Gradle projects
 - Supports multi-root workspaces
 - Shows flat or nested tasks in the explorer
 - Gracefully cancels a running Gradle Task

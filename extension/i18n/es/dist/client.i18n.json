@@ -4,7 +4,7 @@
   "client.connected": "Cliente Gradle conectado al servidor",
   "client.refreshingTasks": "{0} Gradle: tareas refrescantes",
   "client.errorGettingBuild": "Error al obtener la compilación para {0}: {1}",
-  "client.completedTask": "Tarea completada {0}",
+  "client.completedTask": "Tarea completada: {0}",
   "client.errorRunningTask": "Error al ejecutar la tarea: {0}",
   "client.errorCancellingRunningTask": "Error al cancelar la tarea en ejecución: {0}",
   "client.errorCancellingRunningTasks": "Error al cancelar las tareas en ejecución",

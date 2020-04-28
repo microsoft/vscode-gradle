@@ -7,14 +7,13 @@ import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
   cancelTask,
   GradleTaskProvider,
-  enableTaskDetection,
   runTask,
   runTaskWithArgs,
   cancelRunningGradleTasks,
   restartTask,
   getTaskExecution,
 } from './tasks';
-import { getIsTasksExplorerEnabled } from './config';
+import { getConfigIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
 import {
@@ -23,6 +22,8 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
+  getJavaDebuggerExtension,
+  getJavaLanguageSupportExtension,
 } from './compat';
 
 const localize = nls.loadMessageBundle();
@@ -71,7 +72,7 @@ function registerDebugTaskCommand(
           'commands.requiredExtensionMissing',
           'Install Missing Extensions'
         );
-        if (!isJavaDebuggerExtensionActivated()) {
+        if (!getJavaLanguageSupportExtension() || !getJavaDebuggerExtension()) {
           const input = await vscode.window.showErrorMessage(
             localize(
               'commands.missingJavaLanguageSupportExtension',
@@ -85,6 +86,14 @@ function registerDebugTaskCommand(
               [JAVA_LANGUAGE_EXTENSION_ID, JAVA_DEBUGGER_EXTENSION_ID]
             );
           }
+          return;
+        } else if (!isJavaDebuggerExtensionActivated()) {
+          vscode.window.showErrorMessage(
+            localize(
+              'commands.javaDebuggerExtensionNotActivated',
+              'The Java Debugger extension is not activated.'
+            )
+          );
           return;
         }
         runTask(treeItem.task, client, true);
@@ -120,24 +129,38 @@ function registerRunTaskWithArgsCommand(
   );
 }
 
+function registerRenderTaskCommand(
+  treeDataProvider: GradleTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.renderTask',
+    (task: vscode.Task) => {
+      treeDataProvider.renderTask(task);
+    }
+  );
+}
+
 function registerCancelTaskCommand(
   statusBarItem: vscode.StatusBarItem
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.cancelTask', (task) => {
-    try {
-      cancelTask(task);
-    } catch (e) {
-      logger.error(
-        localize(
-          'commands.errorCancellingTask',
-          'Error cancelling task: {0}',
-          e.message
-        )
-      );
-    } finally {
-      statusBarItem.hide();
+  return vscode.commands.registerCommand(
+    'gradle.cancelTask',
+    (task: vscode.Task) => {
+      try {
+        cancelTask(task);
+      } catch (e) {
+        logger.error(
+          localize(
+            'commands.errorCancellingTask',
+            'Error cancelling task: {0}',
+            e.message
+          )
+        );
+      } finally {
+        statusBarItem.hide();
+      }
     }
-  });
+  );
 }
 
 function registerCancelTreeItemTaskCommand(): vscode.Disposable {
@@ -157,29 +180,17 @@ function registerRefreshCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.refresh',
-    async (forceDetection = true, refreshTasks = true): Promise<void> => {
-      if (forceDetection) {
-        enableTaskDetection();
-      }
-      if (refreshTasks) {
-        await taskProvider.refresh();
-      }
-      await treeDataProvider?.refresh();
+    async (): Promise<void> => {
+      const tasks = await taskProvider.refresh();
+      treeDataProvider.setTaskItems(tasks);
+      treeDataProvider.refresh();
       vscode.commands.executeCommand(
         'setContext',
         'gradle:showTasksExplorer',
-        getIsTasksExplorerEnabled()
+        getConfigIsTasksExplorerEnabled()
       );
     }
   );
-}
-
-function registerExplorerRenderCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
-): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.explorerRender', (): void => {
-    treeDataProvider.render();
-  });
 }
 
 function registerExplorerTreeCommand(
@@ -329,7 +340,7 @@ export function registerCommands(
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),
-    registerExplorerRenderCommand(treeDataProvider),
+    registerRenderTaskCommand(treeDataProvider),
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand()
   );

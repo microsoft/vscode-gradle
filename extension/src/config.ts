@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 
 type AutoDetect = 'on' | 'off';
 
-export function getIsAutoDetectionEnabled(
+export function getConfigIsAutoDetectionEnabled(
   workspaceFolder: vscode.WorkspaceFolder
 ): boolean {
   return (
@@ -12,25 +12,25 @@ export function getIsAutoDetectionEnabled(
   );
 }
 
-export function getIsTasksExplorerEnabled(): boolean {
+export function getConfigIsTasksExplorerEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('enableTasksExplorer', true);
 }
 
-export function getJavaHome(): string | null {
+export function getConfigJavaHome(): string | null {
   return vscode.workspace
     .getConfiguration('java')
     .get<string | null>('home', null);
 }
 
-export function getIsDebugEnabled(): boolean {
+export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('debug', false);
 }
 
-export function getFocusTaskInExplorer(): boolean {
+export function getConfigFocusTaskInExplorer(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('focusTaskInExplorer', true);
@@ -40,7 +40,7 @@ export type JavaDebug = {
   tasks: string[];
 };
 
-export function getJavaDebug(
+export function getConfigJavaDebug(
   workspaceFolder: vscode.WorkspaceFolder
 ): JavaDebug {
   return vscode.workspace
@@ -66,7 +66,7 @@ export interface ConfigTaskPresentationOptions
   panel: ConfigTaskPresentationOptionsPanelKind;
 }
 
-export function getTaskPresentationOptions(): ConfigTaskPresentationOptions {
+export function getConfigTaskPresentationOptions(): ConfigTaskPresentationOptions {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<ConfigTaskPresentationOptions>('taskPresentationOptions', {

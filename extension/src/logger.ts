@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { getIsDebugEnabled } from './config';
+import { getConfigIsDebugEnabled } from './config';
 import { isTest } from './util';
 
 type logType = 'info' | 'warning' | 'error' | 'debug';
 
 export class Logger {
-  private channel: vscode.OutputChannel | undefined;
+  private channel?: vscode.OutputChannel;
 
   public log(message: string, type: logType): void {
     if (!this.channel) {
@@ -35,7 +35,7 @@ export class Logger {
   }
 
   public debug(message: string): void {
-    if (getIsDebugEnabled() || isTest()) {
+    if (getConfigIsDebugEnabled() || isTest()) {
       this.log(message, 'debug');
     }
   }
