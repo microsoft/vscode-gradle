@@ -2,6 +2,10 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.3
+
+- Freeze fix in massive projects with generated build files (#313) @badsyntax
+
 ## 2.7.2
 
 - Various performance improvements, now supports projects with 10000+ tasks! (#311) @badsyntax
