@@ -181,15 +181,9 @@ function registerRefreshCommand(
   return vscode.commands.registerCommand(
     'gradle.refresh',
     async (): Promise<void> => {
-      const start = Date.now();
-      await taskProvider.refresh();
-      console.log('refresh tasks', Date.now() - start);
-      const tasks = taskProvider.getTasks();
-
-      const renderStart = Date.now();
+      const tasks = await taskProvider.refresh();
       treeDataProvider.setTaskItems(tasks);
       treeDataProvider.refresh();
-      console.log('tree provider renbder', Date.now() - renderStart);
       vscode.commands.executeCommand(
         'setContext',
         'gradle:showTasksExplorer',

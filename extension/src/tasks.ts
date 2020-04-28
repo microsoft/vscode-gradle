@@ -136,13 +136,11 @@ export function getRestartingTask(task: vscode.Task): vscode.Task | void {
 async function hasGradleBuildFile(
   folder: vscode.WorkspaceFolder
 ): Promise<boolean> {
-  const start = Date.now();
   const files = fg.sync('*{.gradle,.gradle.kts}', {
     onlyFiles: true,
     cwd: folder.uri.fsPath,
     deep: 1,
   });
-  console.log('end has grdle build file', Date.now() - start);
   return files.length > 0;
 }
 
@@ -186,7 +184,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         const gradleBuild = await this.getGradleBuild(workspaceFolder);
         const gradleProject = gradleBuild && gradleBuild.getProject();
         if (gradleProject) {
-          const start = Date.now();
           allTasks.push(
             ...this.getVSCodeTasksFromGradleProject(
               workspaceFolder,
@@ -195,8 +192,6 @@ export class GradleTaskProvider implements vscode.TaskProvider {
               taskPresentationOptions
             )
           );
-          console.log('get vscode tasks', Date.now() - start);
-          console.log('all tasks length', allTasks.length);
         }
       }
     }
