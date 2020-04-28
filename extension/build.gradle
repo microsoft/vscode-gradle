@@ -179,4 +179,4 @@ task prepareForRelease() {
 
 build.dependsOn ':tasks-server:build'
 assemble.dependsOn ':tasks-server:build'
-assemble.finalizedBy buildTypeScript
+assemble.finalizedBy buildTypeScript, buildTypeScriptTests
