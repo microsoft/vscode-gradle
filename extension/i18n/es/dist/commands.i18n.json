@@ -7,5 +7,5 @@
   "commands.gradleTaskCancelling": "La tarea de Gradle se está cancelando, por favor espere",
   "commands.updateProjectConfigurationError": "No se puede actualizar la configuración del proyecto Java: {0}",
   "commands.missingJavaLanguageSupportExtension": "Las extensiones Java Language Support y Debugger son necesarias para la depuración.",
-  "commands.javaDebuggerExtensionNotActivated":
+  "commands.javaDebuggerExtensionNotActivated": "La extensión Java Debugger no está activada."
 }

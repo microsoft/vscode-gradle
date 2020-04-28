@@ -91,7 +91,7 @@ function registerDebugTaskCommand(
           vscode.window.showErrorMessage(
             localize(
               'commands.javaDebuggerExtensionNotActivated',
-              'La extensión del depurador de Java no está activada.'
+              'The Java Debugger extension is not activated.'
             )
           );
           return;
