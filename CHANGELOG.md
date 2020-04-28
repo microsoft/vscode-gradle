@@ -2,6 +2,16 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.2
+
+- Various performance improvements, now supports projects with 10000+ tasks! (#311) @badsyntax
+- Show logs on error & better project sort (#306) @badsyntax
+
+Deps:
+
+- Bump @typescript-eslint/eslint-plugin from 2.29.0 to 2.30.0 in /extension (#309) @dependabot-preview
+- Bump @typescript-eslint/parser from 2.29.0 to 2.30.0 in /extension (#310) @dependabot-preview
+
 ## 2.7.1
 
 - Java debug fixes in Windows & additional debugging features (#302) @badsyntax
