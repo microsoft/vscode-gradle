@@ -24,6 +24,7 @@ import {
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
+import { hasBuildFile } from './gradleView';
 
 const localize = nls.loadMessageBundle();
 
@@ -598,17 +599,23 @@ export function registerTaskProvider(
   context: vscode.ExtensionContext,
   client: GradleTasksClient
 ): GradleTaskProvider {
-  function refreshTasks(): void {
-    vscode.commands.executeCommand('gradle.refresh', false);
+  function handleBuildFileChange(uri: vscode.Uri): void {
+    // Ignore any nested build files outside of the multi-project builds
+    if (hasBuildFile(uri.fsPath)) {
+      vscode.commands.executeCommand('gradle.refresh');
+    }
+  }
+  function handleWorkspaceFoldersChange(): void {
+    vscode.commands.executeCommand('gradle.refresh');
   }
   const buildFileGlob = `**/*.{gradle,gradle.kts}`;
   const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
   context.subscriptions.push(watcher);
-  watcher.onDidChange(refreshTasks);
-  watcher.onDidDelete(refreshTasks);
-  watcher.onDidCreate(refreshTasks);
+  watcher.onDidChange(handleBuildFileChange);
+  watcher.onDidDelete(handleBuildFileChange);
+  watcher.onDidCreate(handleBuildFileChange);
   context.subscriptions.push(
-    vscode.workspace.onDidChangeWorkspaceFolders(refreshTasks)
+    vscode.workspace.onDidChangeWorkspaceFolders(handleWorkspaceFoldersChange)
   );
   const provider = new GradleTaskProvider(client);
   const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);

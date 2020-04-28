@@ -17,13 +17,21 @@ import {
 } from './config';
 import { logger } from './logger';
 
+type IconPath = { light: string | vscode.Uri; dark: string | vscode.Uri };
+
 const localize = nls.loadMessageBundle();
+const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
+const projectBuildFiles: Set<string> = new Set();
 
 function treeItemSortCompareFunc(
   a: vscode.TreeItem,
   b: vscode.TreeItem
 ): number {
   return a.label!.localeCompare(b.label!);
+}
+
+export function hasBuildFile(buildFile: string): boolean {
+  return projectBuildFiles.has(buildFile);
 }
 
 class WorkspaceTreeItem extends vscode.TreeItem {
@@ -112,8 +120,6 @@ function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug): string {
     : GradleTaskTreeItem.STATE_IDLE;
 }
 
-type IconPath = { light: string | vscode.Uri; dark: string | vscode.Uri };
-
 export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
@@ -184,8 +190,6 @@ class NoTasksTreeItem extends vscode.TreeItem {
   }
 }
 
-const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
-
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private collapsed = true;
@@ -242,6 +246,7 @@ export class GradleTasksTreeDataProvider
 
   buildTreeItems(): void {
     taskTreeItemMap.clear();
+    projectBuildFiles.clear();
     if (this.taskItems.length === 0) {
       this.treeItems = [new NoTasksTreeItem(this.context)];
     } else {
@@ -364,6 +369,7 @@ export class GradleTasksTreeDataProvider
           );
           workspaceTreeItem.addProject(projectTreeItem);
           projectTreeItems.set(projectName, projectTreeItem);
+          projectBuildFiles.add(definition.buildFile);
         }
 
         const taskName = definition.script.slice(
