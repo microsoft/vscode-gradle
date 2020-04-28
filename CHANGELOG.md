@@ -5,6 +5,7 @@
 ## 2.7.2
 
 - Various performance improvements, now supports projects with 10000+ tasks! (#311) @badsyntax
+- Removed nested project support (#311) @badsyntax
 - Show logs on error & better project sort (#306) @badsyntax
 
 Deps:
