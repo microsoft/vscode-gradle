@@ -65,6 +65,7 @@ public class GradleTasksUtil {
               }
             }
           }).setColorOutput(false);
+        rootProjectBuilder.withArguments("-Dgradle.user.home=testuserhome")
       GradleProject gradleProject = buildProject(rootProjectBuilder.get());
       GradleBuild gradleBuild = GradleBuild.newBuilder().setProject(gradleProject).build();
       GetBuildResult result = GetBuildResult.newBuilder().setBuild(gradleBuild).build();
