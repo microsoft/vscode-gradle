@@ -41,8 +41,8 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
   javaDebug: boolean;
 }
 
-const cancellingTasks: Set<vscode.Task> = new Set();
-const restartingTasks: Set<vscode.Task> = new Set();
+const cancellingTasks: Map<string, vscode.Task> = new Map();
+const restartingTasks: Map<string, vscode.Task> = new Map();
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
 
@@ -93,7 +93,7 @@ export function cancelTask(task: vscode.Task): void {
   const execution = getTaskExecution(task);
   if (execution) {
     execution.terminate();
-    cancellingTasks.add(task);
+    cancellingTasks.set(task.definition.id, task);
   }
 }
 
@@ -102,35 +102,23 @@ export function isTaskRunning(task: vscode.Task): boolean {
 }
 
 export function isTaskCancelling(task: vscode.Task): boolean {
-  return cancellingTasks.has(task);
+  return cancellingTasks.has(task.definition.id);
 }
 
 export function isTaskRestarting(task: vscode.Task): boolean {
-  return restartingTasks.has(task);
+  return restartingTasks.has(task.definition.id);
 }
 
 export function hasRestartingTask(task: vscode.Task): boolean {
   return getRestartingTask(task) !== undefined;
 }
 
-function getTaskFromSet(
-  set: Set<vscode.Task>,
-  task: vscode.Task
-): vscode.Task | void {
-  const definition = task.definition as GradleTaskDefinition;
-  return Array.from(set).find(
-    ({ definition: _definition }) =>
-      _definition.script === definition.script &&
-      _definition.projectFolder === definition.projectFolder
-  );
-}
-
 export function getCancellingTask(task: vscode.Task): vscode.Task | void {
-  return getTaskFromSet(cancellingTasks, task);
+  return cancellingTasks.get(task.definition.id);
 }
 
 export function getRestartingTask(task: vscode.Task): vscode.Task | void {
-  return getTaskFromSet(restartingTasks, task);
+  return restartingTasks.get(task.definition.id);
 }
 
 async function hasGradleBuildFile(
@@ -550,19 +538,15 @@ export function buildGradleServerTask(
   return task;
 }
 
-export function removeCancellingTask(cancellingTask: vscode.Task): void {
-  cancellingTasks.delete(cancellingTask);
-}
-
 export async function handleCancelledTask(task: vscode.Task): Promise<void> {
   const cancellingTask = getCancellingTask(task);
   if (cancellingTask) {
-    removeCancellingTask(cancellingTask);
+    cancellingTasks.delete(cancellingTask.definition.id);
   }
   const restartingTask = getRestartingTask(task);
   if (restartingTask) {
     vscode.tasks.executeTask(restartingTask);
-    restartingTasks.delete(restartingTask);
+    restartingTasks.delete(restartingTask.definition.id);
   }
   vscode.commands.executeCommand('gradle.renderTask', task);
 }
@@ -584,7 +568,7 @@ export function runTask(
 
 export function restartTask(task: vscode.Task): void {
   if (isTaskRunning(task)) {
-    restartingTasks.add(task);
+    restartingTasks.set(task.definition.id, task);
     cancelTask(task); // after it's cancelled, it will restart
   }
 }
