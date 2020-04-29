@@ -59,6 +59,8 @@ You can use an environment manager like [direnv](https://direnv.net/) to set pro
 }
 ```
 
+Note, the VS Code settings take precedence over the environment variables.
+
 ## Debugging JavaExec Tasks
 
 ![Debug Screencast](images/debug-screencast.gif)

@@ -102,7 +102,7 @@ export class GradleTasksClient implements vscode.Disposable {
     this.statusBarItem.text = localize(
       // TODO
       'client.refreshingTasks',
-      '{0} Gradle: Building',
+      '{0} Gradle: Building...',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
