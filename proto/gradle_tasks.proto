@@ -22,7 +22,7 @@ message GetTasksRequest { string project_dir = 1; }
 
 message GetBuildRequest {
   string project_dir = 1;
-  string gradle_home = 2;
+  string gradle_user_home = 2;
  }
 
 message GetBuildReply {
@@ -51,7 +51,7 @@ message RunTaskRequest {
   repeated string args = 3;
   bool java_debug = 4;
   int32 java_debug_port = 5;
-  string gradle_home = 6;
+  string gradle_user_home = 6;
 }
 
 message RunTaskResult {

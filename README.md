@@ -16,12 +16,12 @@ This extension provides a visual interface for your Gradle build. You can view G
 
 This extension supports whatever Gradle supports and is language/project agnostic, but it can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
-- 👉 [All Features](./FEATURES.md)
+👉 [All Features](./FEATURES.md)
 
 ## Requirements
 
 - [Java >= 8](https://adoptopenjdk.net/) must be installed
-- Local Gradle wrapper executables must exist at the root of the workspace folders (either `gradlew` or `gradlew.bat`, depending on your environment)
+- Local Gradle wrapper executables must exist at the root of the workspace folders
 
 ## Settings
 
@@ -36,15 +36,16 @@ This extension contributes the following settings:
 
 This extension supports the following settings:
 
-- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
-- `java.import.gradle.home`: Setting for GRADLE_HOME. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
+- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
+- `java.import.gradle.user.home`: Setting for GRADLE_HOME (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
+- `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
 
 ## Supported Environment Variables
 
 Most of the standard Java & Gradle environment variables are supported:
 
 - `JAVE_HOME` (overridden by `java.home`)
-- `GRADLE_USER_HOME` (overridden by `java.import.gradle.home`)
+- `GRADLE_USER_HOME` (overridden by `java.import.gradle.user.home`)
 
 ### Setting Project Environment Variables
 
@@ -58,7 +59,7 @@ You can use an environment manager like [direnv](https://direnv.net/) to set pro
 }
 ```
 
-## Debugging Debugging JavaExec Tasks
+## Debugging JavaExec Tasks
 
 ![Debug Screencast](images/debug-screencast.gif)
 

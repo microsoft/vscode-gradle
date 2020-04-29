@@ -2,6 +2,7 @@ package com.github.badsyntax.gradletasks;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import com.google.common.base.Strings;
@@ -23,7 +24,6 @@ public class GradleTasksUtil {
   private static final CancellationTokenPool cancellationTokenPool = new CancellationTokenPool();
   private static final Object lock = new Object();
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
-  private static final String GRADLE_USER_HOME_ARG = "-Dgradle.user.home=%s";
 
   private GradleTasksUtil() {
   }
@@ -33,11 +33,15 @@ public class GradleTasksUtil {
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
+    if (!Strings.isNullOrEmpty(req.getGradleUserHome())) {
+      gradleConnector
+          .useGradleUserHomeDir(buildGradleUserHomeFile(req.getGradleUserHome(), projectDir));
+    }
     String cancellationKey = projectDir.getAbsolutePath();
     cancellationTokenPool.put(CancellationTokenPool.TYPE.GET, cancellationKey,
         cancellationTokenSource);
     try (ProjectConnection connection = gradleConnector.connect()) {
-      responseObserver.onNext(buildEnvironmentReply(connection, req.getGradleHome()));
+      responseObserver.onNext(buildEnvironmentReply(connection));
 
       ModelBuilder<org.gradle.tooling.model.GradleProject> rootProjectBuilder =
           connection.model(org.gradle.tooling.model.GradleProject.class);
@@ -70,9 +74,6 @@ public class GradleTasksUtil {
               }
             }
           }).setColorOutput(false);
-      if (!Strings.isNullOrEmpty(req.getGradleHome())) {
-        rootProjectBuilder.withArguments(String.format(GRADLE_USER_HOME_ARG, req.getGradleHome()));
-      }
       GradleProject gradleProject = buildProject(rootProjectBuilder.get());
       GradleBuild gradleBuild = GradleBuild.newBuilder().setProject(gradleProject).build();
       GetBuildResult result = GetBuildResult.newBuilder().setBuild(gradleBuild).build();
@@ -93,28 +94,14 @@ public class GradleTasksUtil {
     }
   }
 
-  private static GetBuildReply buildEnvironmentReply(ProjectConnection connection,
-      String gradleHome) {
-    BuildEnvironment environment = connection.model(BuildEnvironment.class).get();
-    org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
-    org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
-    return GetBuildReply.newBuilder()
-        .setEnvironment(Environment.newBuilder()
-            .setGradleEnvironment(GradleEnvironment.newBuilder()
-                .setGradleUserHome(Strings.isNullOrEmpty(gradleHome)
-                    ? gradleEnvironment.getGradleUserHome().getAbsolutePath()
-                    : gradleHome)
-                .setGradleVersion(gradleEnvironment.getGradleVersion()))
-            .setJavaEnvironment(JavaEnvironment.newBuilder()
-                .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
-                .addAllJvmArgs(javaEnvironment.getJvmArguments())))
-        .build();
-  }
-
   public static void runTask(final File projectDir, final RunTaskRequest req,
       final StreamObserver<RunTaskReply> responseObserver) throws GradleTasksException {
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
+    if (!Strings.isNullOrEmpty(req.getGradleUserHome())) {
+      gradleConnector
+          .useGradleUserHomeDir(buildGradleUserHomeFile(req.getGradleUserHome(), projectDir));
+    }
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     String cancellationKey = projectDir.getAbsolutePath() + req.getTask();
     cancellationTokenPool.put(CancellationTokenPool.TYPE.RUN, cancellationKey,
@@ -150,9 +137,6 @@ public class GradleTasksUtil {
                   }
                 }
               }).setColorOutput(true).withArguments(req.getArgsList()).forTasks(req.getTask());
-      if (!Strings.isNullOrEmpty(req.getGradleHome())) {
-        build.addArguments(String.format(GRADLE_USER_HOME_ARG, req.getGradleHome()));
-      }
       if (Boolean.TRUE.equals(req.getJavaDebug())) {
         build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(req.getJavaDebugPort()));
       }
@@ -236,5 +220,26 @@ public class GradleTasksUtil {
         String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
             javaDebugPort));
     return envVars;
+  }
+
+  private static File buildGradleUserHomeFile(String gradleUserHome, File projectDir) {
+    String gradleUserHomePath = Paths.get(gradleUserHome).isAbsolute() ? gradleUserHome
+        : Paths.get(projectDir.getAbsolutePath(), gradleUserHome).toAbsolutePath().toString();
+    return new File(gradleUserHomePath);
+  }
+
+  private static GetBuildReply buildEnvironmentReply(ProjectConnection connection) {
+    BuildEnvironment environment = connection.model(BuildEnvironment.class).get();
+    org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
+    org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
+    return GetBuildReply.newBuilder()
+        .setEnvironment(Environment.newBuilder()
+            .setGradleEnvironment(GradleEnvironment.newBuilder()
+                .setGradleUserHome(gradleEnvironment.getGradleUserHome().getAbsolutePath())
+                .setGradleVersion(gradleEnvironment.getGradleVersion()))
+            .setJavaEnvironment(JavaEnvironment.newBuilder()
+                .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
+                .addAllJvmArgs(javaEnvironment.getJvmArguments())))
+        .build();
   }
 }

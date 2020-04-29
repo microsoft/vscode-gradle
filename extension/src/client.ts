@@ -97,18 +97,19 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async getBuild(
     projectFolder: string,
-    gradleHome: string | null
+    gradleUserHome: string | null
   ): Promise<GradleBuild | void> {
     this.statusBarItem.text = localize(
+      // TODO
       'client.refreshingTasks',
-      '{0} Gradle: Refreshing Tasks',
+      '{0} Gradle: Building',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
     const request = new GetBuildRequest();
     request.setProjectDir(projectFolder);
-    if (gradleHome) {
-      request.setGradleHome(gradleHome);
+    if (gradleUserHome) {
+      request.setGradleUserHome(gradleUserHome);
     }
     const getBuildStream = this.grpcClient!.getBuild(request);
     try {
@@ -158,7 +159,7 @@ export class GradleTasksClient implements vscode.Disposable {
     task: vscode.Task,
     args: string[] = [],
     javaDebugPort: number | null,
-    gradleHome: string | null,
+    gradleUserHome: string | null,
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
@@ -170,8 +171,8 @@ export class GradleTasksClient implements vscode.Disposable {
     if (javaDebugPort !== null) {
       request.setJavaDebugPort(javaDebugPort);
     }
-    if (gradleHome) {
-      request.setGradleHome(gradleHome);
+    if (gradleUserHome) {
+      request.setGradleUserHome(gradleUserHome);
     }
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
