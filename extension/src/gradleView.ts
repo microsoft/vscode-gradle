@@ -236,6 +236,7 @@ export class GradleTasksTreeDataProvider
       'gradle:explorerCollapsed',
       collapsed
     );
+    this.buildTreeItems();
     this.render();
   }
 
