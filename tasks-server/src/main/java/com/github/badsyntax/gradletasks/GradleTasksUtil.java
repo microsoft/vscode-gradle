@@ -3,8 +3,8 @@ package com.github.badsyntax.gradletasks;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import com.google.common.base.Strings;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
@@ -15,17 +15,20 @@ import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
+import org.gradle.tooling.model.build.BuildEnvironment;
 import io.grpc.stub.StreamObserver;
 
 public class GradleTasksUtil {
 
-  private static CancellationTokenPool cancellationTokenPool = new CancellationTokenPool();
+  private static final CancellationTokenPool cancellationTokenPool = new CancellationTokenPool();
   private static final Object lock = new Object();
+  private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+  private static final String GRADLE_USER_HOME_ARG = "-Dgradle.user.home=%s";
 
   private GradleTasksUtil() {
   }
 
-  public static void getBuild(final File projectDir,
+  public static void getBuild(final File projectDir, final GetBuildRequest req,
       final StreamObserver<GetBuildReply> responseObserver) throws GradleTasksException {
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
     GradleConnector gradleConnector =
@@ -33,9 +36,11 @@ public class GradleTasksUtil {
     String cancellationKey = projectDir.getAbsolutePath();
     cancellationTokenPool.put(CancellationTokenPool.TYPE.GET, cancellationKey,
         cancellationTokenSource);
-    try (ProjectConnection projectConnection = gradleConnector.connect()) {
+    try (ProjectConnection connection = gradleConnector.connect()) {
+      responseObserver.onNext(buildEnvironmentReply(connection, req.getGradleHome()));
+
       ModelBuilder<org.gradle.tooling.model.GradleProject> rootProjectBuilder =
-          projectConnection.model(org.gradle.tooling.model.GradleProject.class);
+          connection.model(org.gradle.tooling.model.GradleProject.class);
       rootProjectBuilder.withCancellationToken(cancellationTokenSource.token())
           .addProgressListener((ProgressEvent progressEvent) -> {
             synchronized (lock) {
@@ -65,7 +70,9 @@ public class GradleTasksUtil {
               }
             }
           }).setColorOutput(false);
-        rootProjectBuilder.withArguments("-Dgradle.user.home=testuserhome")
+      if (!Strings.isNullOrEmpty(req.getGradleHome())) {
+        rootProjectBuilder.withArguments(String.format(GRADLE_USER_HOME_ARG, req.getGradleHome()));
+      }
       GradleProject gradleProject = buildProject(rootProjectBuilder.get());
       GradleBuild gradleBuild = GradleBuild.newBuilder().setProject(gradleProject).build();
       GetBuildResult result = GetBuildResult.newBuilder().setBuild(gradleBuild).build();
@@ -86,18 +93,35 @@ public class GradleTasksUtil {
     }
   }
 
-  public static void runTask(final File projectDir, final String task, final List<String> args,
-      final Boolean javaDebug, final int javaDebugPort,
+  private static GetBuildReply buildEnvironmentReply(ProjectConnection connection,
+      String gradleHome) {
+    BuildEnvironment environment = connection.model(BuildEnvironment.class).get();
+    org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
+    org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
+    return GetBuildReply.newBuilder()
+        .setEnvironment(Environment.newBuilder()
+            .setGradleEnvironment(GradleEnvironment.newBuilder()
+                .setGradleUserHome(Strings.isNullOrEmpty(gradleHome)
+                    ? gradleEnvironment.getGradleUserHome().getAbsolutePath()
+                    : gradleHome)
+                .setGradleVersion(gradleEnvironment.getGradleVersion()))
+            .setJavaEnvironment(JavaEnvironment.newBuilder()
+                .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
+                .addAllJvmArgs(javaEnvironment.getJvmArguments())))
+        .build();
+  }
+
+  public static void runTask(final File projectDir, final RunTaskRequest req,
       final StreamObserver<RunTaskReply> responseObserver) throws GradleTasksException {
     GradleConnector gradleConnector =
         GradleConnector.newConnector().forProjectDirectory(projectDir);
     CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
-    String cancellationKey = projectDir.getAbsolutePath() + task;
+    String cancellationKey = projectDir.getAbsolutePath() + req.getTask();
     cancellationTokenPool.put(CancellationTokenPool.TYPE.RUN, cancellationKey,
         cancellationTokenSource);
-    try (ProjectConnection projectConnection = gradleConnector.connect()) {
+    try (ProjectConnection connection = gradleConnector.connect()) {
       BuildLauncher build =
-          projectConnection.newBuild().withCancellationToken(cancellationTokenSource.token())
+          connection.newBuild().withCancellationToken(cancellationTokenSource.token())
               .addProgressListener((ProgressEvent progressEvent) -> {
                 synchronized (lock) {
                   Progress progress =
@@ -109,7 +133,6 @@ public class GradleTasksUtil {
                 @Override
                 public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
                   synchronized (lock) {
-
                     Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
                         .setMessage(outputMessage.toString()).build();
                     RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
@@ -126,20 +149,23 @@ public class GradleTasksUtil {
                     responseObserver.onNext(reply);
                   }
                 }
-              }).setColorOutput(true).withArguments(args).forTasks(task);
-      if (Boolean.TRUE.equals(javaDebug)) {
-        build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
+              }).setColorOutput(true).withArguments(req.getArgsList()).forTasks(req.getTask());
+      if (!Strings.isNullOrEmpty(req.getGradleHome())) {
+        build.addArguments(String.format(GRADLE_USER_HOME_ARG, req.getGradleHome()));
+      }
+      if (Boolean.TRUE.equals(req.getJavaDebug())) {
+        build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(req.getJavaDebugPort()));
       }
       build.run();
-      RunTaskResult result =
-          RunTaskResult.newBuilder().setMessage("Successfully run task").setTask(task).build();
+      RunTaskResult result = RunTaskResult.newBuilder().setMessage("Successfully run task")
+          .setTask(req.getTask()).build();
       RunTaskReply reply = RunTaskReply.newBuilder().setRunTaskResult(result).build();
       responseObserver.onNext(reply);
     } catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
         | IllegalStateException e) {
       throw new GradleTasksException(e.getMessage(), e);
     } catch (BuildCancelledException e) {
-      Cancelled cancelled = Cancelled.newBuilder().setMessage(e.getMessage()).setTask(task)
+      Cancelled cancelled = Cancelled.newBuilder().setMessage(e.getMessage()).setTask(req.getTask())
           .setProjectDir(projectDir.getPath()).build();
       RunTaskReply reply = RunTaskReply.newBuilder().setCancelled(cancelled).build();
       responseObserver.onNext(reply);
@@ -206,9 +232,8 @@ public class GradleTasksUtil {
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
     HashMap<String, String> envVars = new HashMap<>(System.getenv());
-    envVars.put("JAVA_TOOL_OPTIONS",
-        String.format(
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
+    envVars.put(JAVA_TOOL_OPTIONS_ENV,
+        String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
             javaDebugPort));
     return envVars;
   }

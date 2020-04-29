@@ -20,7 +20,10 @@ message CancelGetBuildsReply { string message = 1; }
 
 message GetTasksRequest { string project_dir = 1; }
 
-message GetBuildRequest { string project_dir = 1; }
+message GetBuildRequest {
+  string project_dir = 1;
+  string gradle_home = 2;
+ }
 
 message GetBuildReply {
   oneof kind {
@@ -28,6 +31,7 @@ message GetBuildReply {
     Progress progress = 2;
     Output output = 3;
     Cancelled cancelled = 4;
+    Environment environment = 5;
   }
 }
 
@@ -47,6 +51,7 @@ message RunTaskRequest {
   repeated string args = 3;
   bool java_debug = 4;
   int32 java_debug_port = 5;
+  string gradle_home = 6;
 }
 
 message RunTaskResult {
@@ -104,6 +109,21 @@ message Cancelled {
 }
 
 message Progress { string message = 1; }
+
+message Environment {
+  JavaEnvironment java_environment = 1;
+  GradleEnvironment gradle_environment = 2;
+}
+
+message JavaEnvironment {
+  string java_home = 1;
+  repeated string jvm_args = 2;
+}
+
+message GradleEnvironment {
+  string gradle_user_home = 1;
+  string gradle_version = 2;
+}
 
 message Output {
   enum OutputType {

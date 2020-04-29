@@ -22,21 +22,21 @@ export class Logger {
     return `[${type}] ${message}`;
   }
 
-  public info(message: string): void {
-    this.log(message, 'info');
+  public info(...messages: string[]): void {
+    this.log(messages.join(' '), 'info');
   }
 
-  public warning(message: string): void {
-    this.log(message, 'warning');
+  public warning(...messages: string[]): void {
+    this.log(messages.join(' '), 'warning');
   }
 
-  public error(message: string): void {
-    this.log(message, 'error');
+  public error(...messages: string[]): void {
+    this.log(messages.join(' '), 'error');
   }
 
-  public debug(message: string): void {
+  public debug(...messages: string[]): void {
     if (getConfigIsDebugEnabled() || isTest()) {
-      this.log(message, 'debug');
+      this.log(messages.join(' '), 'debug');
     }
   }
 
