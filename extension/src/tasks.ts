@@ -13,7 +13,7 @@ import {
   ConfigTaskPresentationOptionsPanelKind,
   ConfigTaskPresentationOptions,
   getConfigTaskPresentationOptions,
-  getConfigImportGradleUserHome,
+  getConfigJavaImportGradleUserHome,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
@@ -221,7 +221,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     projectFolder: vscode.WorkspaceFolder,
     buildFile: vscode.Uri
   ): Promise<GradleBuild | void> {
-    const gradleUserHome = getConfigImportGradleUserHome();
+    const gradleUserHome = getConfigJavaImportGradleUserHome();
     const build = await this.client?.getBuild(
       projectFolder.uri.fsPath,
       gradleUserHome
@@ -413,7 +413,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : null;
-      const gradleUserHome = getConfigImportGradleUserHome();
+      const gradleUserHome = getConfigJavaImportGradleUserHome();
       const runTask = this.client.runTask(
         this.projectFolder,
         this.task,
