@@ -12,12 +12,11 @@ Run Gradle tasks in VS Code.
 
 ## Features
 
-This extension provides a UI layer over Gradle builds. It shows Gradle projects and tasks and allows you to run tasks within the context of the editor.
+This extension provides a visual interface for your Gradle build. You can view Gradle projects and run Gradle tasks.
 
 This extension supports whatever Gradle supports and is language/project agnostic, but it can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 - 👉 [All Features](./FEATURES.md)
-- 👉 [Architecture Overview](./ARCHITECTURE.md)
 
 ## Requirements
 
@@ -38,12 +37,28 @@ This extension contributes the following settings:
 This extension supports the following settings:
 
 - `java.home`: Absolute path to JDK home folder used to launch the gradle daemons. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
+- `java.import.gradle.home`: Setting for GRADLE_HOME. (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java).)
 
-## Usage
+## Supported Environment Variables
 
-Open a Gradle project to use the extension. The extension first starts a process to discover tasks, and progress for this process is reported in the statusbar. Once tasks are discovered, a "Gradle Tasks" view is displayed in the explorer view, where you can view the Gradle project & task hierarchy and run specific tasks. You can also run Gradle tasks via vscode tasks by executing the "Run Task" command from the Command Palette and choosing a Gradle task.
+Most of the standard Java & Gradle environment variables are supported:
 
-### Debugging JavaExec Tasks
+- `JAVE_HOME` (overridden by `java.home`)
+- `GRADLE_USER_HOME` (overridden by `java.import.gradle.home`)
+
+### Setting Project Environment Variables
+
+You can use an environment manager like [direnv](https://direnv.net/) to set project specific environment variables, or set the variables in the terminal settings within `.vscode/settings.json`, for example:
+
+```json
+{
+  "terminal.integrated.env.osx": {
+    "GRADLE_USER_HOME": "${workspaceFolder}/.gradle"
+  }
+}
+```
+
+## Debugging Debugging JavaExec Tasks
 
 ![Debug Screencast](images/debug-screencast.gif)
 
@@ -63,7 +78,7 @@ To enable this feature you need to specify which tasks can be debugged within yo
 
 You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
-#### Debugging Limitations
+### Debugging Limitations
 
 You'll need to remove any `jdwp` options that might have been set in your task configuration (eg via `jvmArgs`).
 
@@ -160,10 +175,6 @@ The reason for the incompatibility is due to the extensions providing the same t
 
 </details>
 
-## Contributing
-
-Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the project.
-
 ## Support
 
 For general support queries, use the [#gradle-tasks](https://vscode-dev-community.slack.com/archives/C011NUFTHLM) channel in the [slack development community workspace](https://aka.ms/vscode-dev-community), or
@@ -171,10 +182,17 @@ For general support queries, use the [#gradle-tasks](https://vscode-dev-communit
 - 👉 [Submit a bug report](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=bug&template=bug_report.md&title=)
 - 👉 [Submit a feature request](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=enhancement&template=feature_request.md&title=)
 
+## Contributing
+
+Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the project.
+
+- 👉 [Architecture Overview](./ARCHITECTURE.md)
+
 ## Credits
 
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
 - Inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm)
+- Thanks to all who have submitted bug reports and feedback 👍
 
 ## Release Notes
 
