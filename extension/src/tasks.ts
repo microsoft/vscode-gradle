@@ -13,6 +13,7 @@ import {
   ConfigTaskPresentationOptionsPanelKind,
   ConfigTaskPresentationOptions,
   getConfigTaskPresentationOptions,
+  getConfigJavaImportGradleUserHome,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
@@ -122,15 +123,14 @@ export function getRestartingTask(task: vscode.Task): vscode.Task | void {
   return restartingTasks.get(task.definition.id);
 }
 
-async function hasGradleBuildFile(
-  folder: vscode.WorkspaceFolder
-): Promise<boolean> {
-  const files = fg.sync('*{.gradle,.gradle.kts}', {
+function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
+  const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
     onlyFiles: true,
     cwd: folder.uri.fsPath,
     deep: 1,
+    absolute: true,
   });
-  return files.length > 0;
+  return files[0];
 }
 
 function getTaskPresentationOptions(): vscode.TaskPresentationOptions {
@@ -166,11 +166,15 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     const allTasks: vscode.Task[] = [];
     const taskPresentationOptions = getTaskPresentationOptions();
     for (const workspaceFolder of folders) {
-      if (
-        getConfigIsAutoDetectionEnabled(workspaceFolder) &&
-        hasGradleBuildFile(workspaceFolder)
-      ) {
-        const gradleBuild = await this.getGradleBuild(workspaceFolder);
+      if (getConfigIsAutoDetectionEnabled(workspaceFolder)) {
+        const buildFile = getGradleBuildFile(workspaceFolder);
+        if (!buildFile) {
+          continue;
+        }
+        const gradleBuild = await this.getGradleBuild(
+          workspaceFolder,
+          vscode.Uri.file(buildFile)
+        );
         const gradleProject = gradleBuild && gradleBuild.getProject();
         if (gradleProject) {
           allTasks.push(
@@ -214,9 +218,19 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   }
 
   private async getGradleBuild(
-    projectFolder: vscode.WorkspaceFolder
+    projectFolder: vscode.WorkspaceFolder,
+    buildFile: vscode.Uri
   ): Promise<GradleBuild | void> {
-    return await this.client?.getBuild(projectFolder.uri.fsPath);
+    const gradleUserHome = getConfigJavaImportGradleUserHome();
+    const build = await this.client?.getBuild(
+      projectFolder.uri.fsPath,
+      gradleUserHome
+    );
+    vscode.commands.executeCommand(
+      'gradle.updateJavaProjectConfiguration',
+      buildFile
+    );
+    return build;
   }
 
   private getVSCodeTasksFromGradleProject(
@@ -399,11 +413,13 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : null;
+      const gradleUserHome = getConfigJavaImportGradleUserHome();
       const runTask = this.client.runTask(
         this.projectFolder,
         this.task,
         args,
         javaDebugPort,
+        gradleUserHome,
         (output: Output): void => {
           this.handleOutput(output.getMessage().trim());
         }

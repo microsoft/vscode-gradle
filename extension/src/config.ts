@@ -24,6 +24,12 @@ export function getConfigJavaHome(): string | null {
     .get<string | null>('home', null);
 }
 
+export function getConfigJavaImportGradleUserHome(): string | null {
+  return vscode.workspace
+    .getConfiguration('java')
+    .get<string | null>('import.gradle.user.home', null);
+}
+
 export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')

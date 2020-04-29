@@ -17,6 +17,7 @@ import {
   Cancelled,
   GradleBuild,
   CancelRunTasksRequest,
+  Environment,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
@@ -94,15 +95,22 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async getBuild(projectFolder: string): Promise<GradleBuild | void> {
+  public async getBuild(
+    projectFolder: string,
+    gradleUserHome: string | null
+  ): Promise<GradleBuild | void> {
     this.statusBarItem.text = localize(
+      // TODO
       'client.refreshingTasks',
-      '{0} Gradle: Refreshing Tasks',
+      '{0} Gradle: Building...',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
     const request = new GetBuildRequest();
     request.setProjectDir(projectFolder);
+    if (gradleUserHome) {
+      request.setGradleUserHome(gradleUserHome);
+    }
     const getBuildStream = this.grpcClient!.getBuild(request);
     try {
       return await new Promise((resolve, reject) => {
@@ -121,6 +129,9 @@ export class GradleTasksClient implements vscode.Disposable {
                 break;
               case GetBuildReply.KindCase.GET_BUILD_RESULT:
                 build = getBuildReply.getGetBuildResult()!.getBuild();
+                break;
+              case GetBuildReply.KindCase.ENVIRONMENT:
+                this.handleGetBuildEnvironment(getBuildReply.getEnvironment()!);
                 break;
             }
           })
@@ -148,6 +159,7 @@ export class GradleTasksClient implements vscode.Disposable {
     task: vscode.Task,
     args: string[] = [],
     javaDebugPort: number | null,
+    gradleUserHome: string | null,
     onOutput: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
@@ -155,10 +167,13 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setProjectDir(projectFolder);
     request.setTask(task.definition.script);
     request.setJavaDebug(task.definition.javaDebug);
+    request.setArgsList(args);
     if (javaDebugPort !== null) {
       request.setJavaDebugPort(javaDebugPort);
     }
-    request.setArgsList(args);
+    if (gradleUserHome) {
+      request.setGradleUserHome(gradleUserHome);
+    }
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
       await new Promise((resolve, reject) => {
@@ -301,6 +316,15 @@ export class GradleTasksClient implements vscode.Disposable {
         )
       );
     }
+  }
+
+  private handleGetBuildEnvironment(environment: Environment): void {
+    const javaEnv = environment.getJavaEnvironment()!;
+    const gradleEnv = environment.getGradleEnvironment()!;
+    logger.info('Java Home:', javaEnv.getJavaHome());
+    logger.info('JVM Args:', javaEnv.getJvmArgsList().join(','));
+    logger.info('Gradle User Home:', gradleEnv.getGradleUserHome());
+    logger.info('Gradle Version:', gradleEnv.getGradleVersion());
   }
 
   private handleRunTaskCancelled = (
