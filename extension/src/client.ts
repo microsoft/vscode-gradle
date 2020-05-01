@@ -24,6 +24,7 @@ import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { handleCancelledTask, GradleTaskDefinition } from './tasks';
+import { getConfigJavaImportGradleUserHome } from './config';
 
 const localize = nls.loadMessageBundle();
 
@@ -159,10 +160,10 @@ export class GradleTasksClient implements vscode.Disposable {
     task: vscode.Task,
     args: string[] = [],
     javaDebugPort: number | null,
-    gradleUserHome: string | null,
-    onOutput: (output: Output) => void
+    onOutput?: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
+    const gradleUserHome = getConfigJavaImportGradleUserHome();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
     request.setTask(task.definition.script);
@@ -184,7 +185,9 @@ export class GradleTasksClient implements vscode.Disposable {
                 this.handleProgress(runTaskReply.getProgress()!);
                 break;
               case RunTaskReply.KindCase.OUTPUT:
-                onOutput(runTaskReply.getOutput()!);
+                if (onOutput) {
+                  onOutput(runTaskReply.getOutput()!);
+                }
                 break;
               case RunTaskReply.KindCase.CANCELLED:
                 this.handleRunTaskCancelled(task, runTaskReply.getCancelled()!);
