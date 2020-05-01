@@ -8,10 +8,20 @@ import {
   GradleTaskTreeItem,
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
+import { ExtensionApi } from '../../extension';
+import { Output } from '../../proto/gradle_tasks_pb';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
+const fixturePath = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'test-fixtures',
+  fixtureName
+);
 
 describe(fixtureName, () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,6 +119,19 @@ describe(fixtureName, () => {
         vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
       });
       assert.ok(spy.calledWith(sinon.match('Hello, Project Property!foo')));
+    });
+  });
+
+  describe('extension api', () => {
+    it('should run a task using the extension api', async () => {
+      const api = extension!.exports as ExtensionApi;
+      let hasMessage = false;
+      await api.runTask(fixturePath, 'hello', [], (output: Output) => {
+        if (output.getMessage().trim() == 'Hello, World!') {
+          hasMessage = true;
+        }
+      });
+      assert.ok(hasMessage);
     });
   });
 

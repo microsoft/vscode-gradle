@@ -144,11 +144,42 @@ function getTaskPresentationOptions(): vscode.TaskPresentationOptions {
   };
 }
 
+type callback = () => void;
+
 export class GradleTaskProvider implements vscode.TaskProvider {
-  constructor(private readonly client: GradleTasksClient) {}
+  private _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
+    null
+  >();
+  private waitForLoadedCallbacks: callback[] = [];
+  private hasLoaded = false;
+  private readonly onTasksLoaded: vscode.Event<null> = this._onTasksLoaded
+    .event;
+
+  constructor(private readonly client: GradleTasksClient) {
+    this.onTasksLoaded(() => {
+      if (!this.hasLoaded) {
+        this.callWaitForLoadedCallbacks();
+        this.hasLoaded = true;
+      } else {
+        this._onTasksLoaded.dispose();
+      }
+    });
+  }
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return cachedTasks;
+  }
+
+  public waitForLoaded(callback: callback): void {
+    this.waitForLoadedCallbacks.push(callback);
+    if (this.hasLoaded) {
+      this.callWaitForLoadedCallbacks();
+    }
+  }
+
+  private callWaitForLoadedCallbacks(): void {
+    this.waitForLoadedCallbacks.forEach((callback) => callback());
+    this.waitForLoadedCallbacks.splice(0);
   }
 
   // TODO
@@ -210,6 +241,7 @@ export class GradleTaskProvider implements vscode.TaskProvider {
         cachedTasks = emptyTasks;
       }
     }
+    this._onTasksLoaded.fire();
     return cachedTasks;
   }
 
@@ -413,13 +445,12 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : null;
-      const gradleUserHome = getConfigJavaImportGradleUserHome();
+
       const runTask = this.client.runTask(
         this.projectFolder,
         this.task,
         args,
         javaDebugPort,
-        gradleUserHome,
         (output: Output): void => {
           this.handleOutput(output.getMessage().trim());
         }

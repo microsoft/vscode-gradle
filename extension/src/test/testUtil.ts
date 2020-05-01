@@ -39,8 +39,8 @@ export function createTestRunner(pattern: string) {
     const mocha = new Mocha({
       ui: 'bdd',
       timeout: 90000,
+      color: true,
     });
-    mocha.useColors(true);
     mocha.bail(true);
 
     glob(pattern, { cwd: testsRoot }, (err, files) => {

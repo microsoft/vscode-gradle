@@ -9,6 +9,7 @@ import { registerServer } from './server';
 import { registerClient, GradleTasksClient } from './client';
 import { registerCommands } from './commands';
 import { Logger, logger } from './logger';
+import { registerRunTask, RunTaskHandler } from './runTask';
 
 const localize = nls.loadMessageBundle();
 
@@ -17,6 +18,7 @@ export interface ExtensionApi {
   context: vscode.ExtensionContext;
   client: GradleTasksClient;
   logger: Logger;
+  runTask: RunTaskHandler;
 }
 
 export async function activate(
@@ -37,6 +39,8 @@ export async function activate(
   const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
   const { treeDataProvider, treeView } = registerExplorer(context);
+  const runTask = registerRunTask(client, taskProvider);
+
   registerCommands(
     context,
     statusBarItem,
@@ -45,7 +49,7 @@ export async function activate(
     treeView,
     taskProvider
   );
-  return { treeDataProvider, context, client, logger };
+  return { treeDataProvider, context, client, logger, runTask };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
