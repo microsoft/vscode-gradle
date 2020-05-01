@@ -73,7 +73,7 @@ describe(fixtureName, () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'hello'
       );
-      assert.ok(extension);
+      assert.ok(task);
       const spy = sinon.spy(extension!.exports.logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
