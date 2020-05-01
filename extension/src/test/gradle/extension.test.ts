@@ -127,6 +127,7 @@ describe(fixtureName, () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
       await api.runTask(fixturePath, 'hello', [], (output: Output) => {
+        console.log('GOT API OUTPUT', output.getMessage());
         if (output.getMessage() == 'Hello, World!') {
           hasMessage = true;
         }
