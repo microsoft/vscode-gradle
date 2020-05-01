@@ -12,6 +12,7 @@
   "java.configuration.updateBuildConfiguration": "automatic",
   "cSpell.language": "en-GB",
   "cSpell.words": [
+    "Grpc",
     "Proto",
     "Protobuf",
     "linting"
@@ -30,5 +31,6 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "java.dependency.packagePresentation": "hierarchical"
 }

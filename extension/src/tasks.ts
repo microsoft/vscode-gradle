@@ -13,7 +13,7 @@ import {
   ConfigTaskPresentationOptionsPanelKind,
   ConfigTaskPresentationOptions,
   getConfigTaskPresentationOptions,
-  getConfigJavaImportGradleUserHome,
+  getGradleConfig,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
@@ -253,10 +253,9 @@ export class GradleTaskProvider implements vscode.TaskProvider {
     projectFolder: vscode.WorkspaceFolder,
     buildFile: vscode.Uri
   ): Promise<GradleBuild | void> {
-    const gradleUserHome = getConfigJavaImportGradleUserHome();
     const build = await this.client?.getBuild(
       projectFolder.uri.fsPath,
-      gradleUserHome
+      getGradleConfig()
     );
     vscode.commands.executeCommand(
       'gradle.updateJavaProjectConfiguration',
@@ -445,7 +444,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : null;
-
       const runTask = this.client.runTask(
         this.projectFolder,
         this.task,
@@ -648,6 +646,7 @@ export function registerTaskProvider(
 ): GradleTaskProvider {
   function handleBuildFileChange(uri: vscode.Uri): void {
     // Ignore any nested build files outside of the multi-project builds
+    // TODO: Maybe we only ignore if a task/build is running?
     if (hasBuildFile(uri.fsPath)) {
       vscode.commands.executeCommand('gradle.refresh');
     }

@@ -1,7 +1,8 @@
 plugins {
-    id 'java'
-    id 'application'
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
+  id 'java'
+  id 'application'
+  id 'com.github.johnrengelman.shadow' version '5.2.0'
+  id 'com.diffplug.gradle.spotless'
 }
 
 description = 'vscode-gradle :: tasks-server'
@@ -10,15 +11,15 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
-    compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
-    compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
-    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
-    implementation "io.grpc:grpc-stub:${grpcVersion}"
-    runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
-    runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
-    testImplementation "io.grpc:grpc-testing:${grpcVersion}"
-    testImplementation 'junit:junit:4.13'
-    testImplementation 'org.mockito:mockito-core:3.3.3'
+  compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
+  compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+  implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+  implementation "io.grpc:grpc-stub:${grpcVersion}"
+  runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+  runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
+  testImplementation "io.grpc:grpc-testing:${grpcVersion}"
+  testImplementation 'junit:junit:4.13'
+  testImplementation 'org.mockito:mockito-core:3.3.3'
 }
 
 def mainJavaDir = 'src/main/java';
@@ -96,6 +97,16 @@ sonarqube {
   }
 }
 
+spotless {
+  java {
+    googleJavaFormat()
+    removeUnusedImports()
+    trimTrailingWhitespace()
+    paddedCell()      // https://github.com/diffplug/spotless/blob/master/PADDEDCELL.md
+    targetExclude "build/**"
+  }
+}
+
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn shadowJar
   outputDir = file(libsDirName)
@@ -108,6 +119,10 @@ task serverStartScripts(type: CreateStartScripts) {
   windowsStartScriptGenerator.template = resources.text.fromFile(
     "$mainResourcesDir/startScriptTemplates/windowsStartScript.txt"
   )
+}
+
+task(format) {
+  dependsOn(spotlessApply)
 }
 
 assemble.dependsOn serverStartScripts

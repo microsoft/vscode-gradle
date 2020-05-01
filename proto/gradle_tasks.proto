@@ -22,7 +22,7 @@ message GetTasksRequest { string project_dir = 1; }
 
 message GetBuildRequest {
   string project_dir = 1;
-  string gradle_user_home = 2;
+  GradleConfig gradle_config = 2;
  }
 
 message GetBuildReply {
@@ -51,7 +51,7 @@ message RunTaskRequest {
   repeated string args = 3;
   bool java_debug = 4;
   int32 java_debug_port = 5;
-  string gradle_user_home = 6;
+  GradleConfig gradle_config = 6;
 }
 
 message RunTaskResult {
@@ -81,6 +81,13 @@ message RunTaskReply {
     Output output = 3;
     Cancelled cancelled = 4;
   }
+}
+
+message GradleConfig {
+  string user_home = 2;
+  string jvm_arguments = 3;
+  bool wrapper_enabled = 4;
+  string version = 5;
 }
 
 message GradleBuild { GradleProject project = 1; }

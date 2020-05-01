@@ -33,11 +33,17 @@ This extension contributes the following settings:
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
+- `gradle.tasks.useImportJvmArgs`: Use the JVM args as set by `java.import.gradle.jvmArguments` when running tasks.
 
-This extension supports the following settings:
+This extension supports the following settings, which are contributed by [vscode-java](https://github.com/redhat-developer/vscode-java):
 
-- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
-- `java.import.gradle.user.home`: Setting for GRADLE_HOME (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
+TODO: GRADLE_HOME
+
+- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
+- `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
+- `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
+- `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
+- `java.import.gradle.version`: Gradle version, used if the gradle wrapper is missing or disabled
 
 ## Supported Environment Variables
 

@@ -1,83 +1,68 @@
 package com.github.badsyntax.gradletasks;
 
-import java.io.File;
-import com.google.rpc.Code;
-import com.google.rpc.Status;
+import com.github.badsyntax.gradletasks.actions.GradleProjectBuilder;
+import com.github.badsyntax.gradletasks.actions.GradleTaskCanceller;
+import com.github.badsyntax.gradletasks.actions.GradleTaskRunner;
+import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
+import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
+import io.grpc.stub.StreamObserver;
+import org.gradle.tooling.GradleConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.grpc.StatusRuntimeException;
-import io.grpc.protobuf.StatusProto;
-import io.grpc.stub.StreamObserver;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
-  private static final String PROJECT_DIR_ERROR = "Project directory does not exist: %s";
 
   @Override
-  public void getBuild(final GetBuildRequest req,
-      final StreamObserver<GetBuildReply> responseObserver) {
+  public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     try {
-      File projectDir = new File(req.getProjectDir().trim());
-      if (!projectDir.exists()) {
-        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
-      }
-      GradleTasksUtil.getBuild(projectDir, req, responseObserver);
-      responseObserver.onCompleted();
-    } catch (GradleTasksException e) {
+      GradleConnector gradleConnector =
+          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
+      GradleProjectBuilder projectBuilder =
+          new GradleProjectBuilder(req, responseObserver, gradleConnector);
+      projectBuilder.build();
+    } catch (GradleConnectionException e) {
       logger.error(e.getMessage());
-      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
-          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
-      responseObserver.onError(exception);
+      responseObserver.onError(ErrorMessageBuilder.build(e));
     }
   }
 
   @Override
-  public void runTask(final RunTaskRequest req,
-      final StreamObserver<RunTaskReply> responseObserver) {
+  public void runTask(RunTaskRequest req, StreamObserver<RunTaskReply> responseObserver) {
     try {
-      File projectDir = new File(req.getProjectDir().trim());
-      if (!projectDir.exists()) {
-        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
-      }
-      GradleTasksUtil.runTask(projectDir, req, responseObserver);
-      responseObserver.onCompleted();
-    } catch (GradleTasksException e) {
+      GradleConnector gradleConnector =
+          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
+      GradleTaskRunner taskRunner = new GradleTaskRunner(req, responseObserver, gradleConnector);
+      taskRunner.run();
+    } catch (GradleConnectionException e) {
       logger.error(e.getMessage());
-      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
-          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
-      responseObserver.onError(exception);
+      responseObserver.onError(ErrorMessageBuilder.build(e));
     }
   }
 
   @Override
-  public void cancelGetBuilds(final CancelGetBuildsRequest req,
-      final StreamObserver<CancelGetBuildsReply> responseObserver) {
-    GradleTasksUtil.cancelGetBuilds(responseObserver);
+  public void cancelGetBuilds(
+      CancelGetBuildsRequest req, StreamObserver<CancelGetBuildsReply> responseObserver) {
+    CancellationHandler.cancelAllRunningBuilds();
+    responseObserver.onNext(
+        CancelGetBuildsReply.newBuilder().setMessage("Cancel build projects requested").build());
     responseObserver.onCompleted();
   }
 
   @Override
-  public void cancelRunTask(final CancelRunTaskRequest req,
-      final StreamObserver<CancelRunTaskReply> responseObserver) {
-    try {
-      File projectDir = new File(req.getProjectDir().trim());
-      if (!projectDir.exists()) {
-        throw new GradleTasksException(String.format(PROJECT_DIR_ERROR, req.getProjectDir()));
-      }
-      GradleTasksUtil.cancelRunTask(projectDir, req.getTask(), responseObserver);
-      responseObserver.onCompleted();
-    } catch (GradleTasksException e) {
-      logger.error(e.getMessage());
-      StatusRuntimeException exception = StatusProto.toStatusRuntimeException(Status.newBuilder()
-          .setCode(Code.INTERNAL.getNumber()).setMessage(e.getMessage()).build());
-      responseObserver.onError(exception);
-    }
+  public void cancelRunTask(
+      CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
+    GradleTaskCanceller gradleTaskCanceller = new GradleTaskCanceller(req, responseObserver);
+    gradleTaskCanceller.cancelRunTask();
+    responseObserver.onCompleted();
   }
 
   @Override
-  public void cancelRunTasks(final CancelRunTasksRequest req,
-      final StreamObserver<CancelRunTasksReply> responseObserver) {
-    GradleTasksUtil.cancelRunTasks(responseObserver);
+  public void cancelRunTasks(
+      CancelRunTasksRequest req, StreamObserver<CancelRunTasksReply> responseObserver) {
+    CancellationHandler.cancelAllRunningTasks();
+    responseObserver.onNext(
+        CancelRunTasksReply.newBuilder().setMessage("Cancel running tasks requested").build());
     responseObserver.onCompleted();
   }
 }
