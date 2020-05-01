@@ -58,7 +58,7 @@ public class GradleTasksUtil {
             public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
               synchronized (lock) {
                 Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
-                    .setMessage(outputMessage.toString()).build();
+                    .setMessage(outputMessage.toString().trim()).build();
                 GetBuildReply reply = GetBuildReply.newBuilder().setOutput(output).build();
                 responseObserver.onNext(reply);
               }
@@ -121,7 +121,7 @@ public class GradleTasksUtil {
                 public final void onOutputChanged(ByteArrayOutputStream outputMessage) {
                   synchronized (lock) {
                     Output output = Output.newBuilder().setOutputType(Output.OutputType.STDOUT)
-                        .setMessage(outputMessage.toString()).build();
+                        .setMessage(outputMessage.toString().trim()).build();
                     RunTaskReply reply = RunTaskReply.newBuilder().setOutput(output).build();
                     responseObserver.onNext(reply);
                   }
