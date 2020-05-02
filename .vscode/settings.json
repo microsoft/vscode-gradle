@@ -19,7 +19,8 @@
   ],
   "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
+    "source.fixAll.eslint": true,
+    "source.fixAll.spotlessGradle": true
   },
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -30,7 +31,9 @@
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[java]": {
+    "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle"
+  },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true,
-  "java.dependency.packagePresentation": "hierarchical"
+  "files.trimTrailingWhitespace": true
 }
