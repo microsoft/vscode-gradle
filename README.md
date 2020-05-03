@@ -37,8 +37,6 @@ This extension contributes the following settings:
 
 This extension supports the following settings, which are contributed by [vscode-java](https://github.com/redhat-developer/vscode-java):
 
-<!-- TODO: GRADLE_HOME -->
-
 - `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
@@ -48,8 +46,6 @@ This extension supports the following settings, which are contributed by [vscode
 ## Supported Environment Variables
 
 Most of the standard Java & Gradle environment variables are supported:
-
-<!-- TODO: add other env vars -->
 
 - `JAVE_HOME` (overridden by `java.home`)
 - `GRADLE_USER_HOME` (overridden by `java.import.gradle.user.home`)

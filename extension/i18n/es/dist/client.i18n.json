@@ -2,7 +2,7 @@
   "client.connecting": "{0} Gradle: Conexión",
   "client.connectingDebug": "Cliente Gradle que se conecta al servidor ...",
   "client.connected": "Cliente Gradle conectado al servidor",
-  "client.refreshingTasks": "{0} Gradle: tareas refrescantes",
+  "client.building": "{0} Gradle: Edificio",
   "client.errorGettingBuild": "Error al obtener la compilación para {0}: {1}",
   "client.completedTask": "Tarea completada: {0}",
   "client.errorRunningTask": "Error al ejecutar la tarea: {0}",

@@ -119,6 +119,7 @@ public class GradleTasksServerTest {
   public void tearDown() throws Exception {
     server.stop();
     mockProjectDir.delete();
+    mockGradleUserHome.delete();
   }
 
   @Test
