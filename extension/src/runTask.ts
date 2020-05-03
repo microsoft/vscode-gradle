@@ -10,7 +10,7 @@ const localize = nls.loadMessageBundle();
 export type RunTaskHandler = (
   projectFolder: string,
   taskName: string,
-  args?: string[],
+  args?: ReadonlyArray<string>,
   onOutput?: (output: Output) => void
 ) => Promise<void>;
 
@@ -21,7 +21,7 @@ export function registerRunTask(
   return (
     projectFolder: string,
     taskName: string,
-    args?: string[],
+    args?: ReadonlyArray<string>,
     onOutput?: (output: Output) => void
   ): Promise<void> => {
     return new Promise((resolve, reject) => {

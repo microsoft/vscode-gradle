@@ -146,7 +146,8 @@ function getTaskPresentationOptions(): vscode.TaskPresentationOptions {
 
 type callback = () => void;
 
-export class GradleTaskProvider implements vscode.TaskProvider {
+export class GradleTaskProvider
+  implements vscode.TaskProvider, vscode.Disposable {
   private _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
@@ -180,6 +181,10 @@ export class GradleTaskProvider implements vscode.TaskProvider {
   private callWaitForLoadedCallbacks(): void {
     this.waitForLoadedCallbacks.forEach((callback) => callback());
     this.waitForLoadedCallbacks.splice(0);
+  }
+
+  public dispose(): void {
+    this._onTasksLoaded.dispose();
   }
 
   // TODO
