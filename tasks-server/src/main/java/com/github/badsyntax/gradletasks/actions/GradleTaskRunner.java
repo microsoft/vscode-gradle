@@ -54,8 +54,10 @@ public class GradleTaskRunner {
     try (ProjectConnection connection = gradleConnector.connect()) {
       getTaskBuildLauncher(connection).run();
       replyWithSuccess();
+      responseObserver.onCompleted();
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
+      responseObserver.onCompleted();
     } catch (BuildException
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException

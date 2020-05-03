@@ -54,7 +54,6 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
     GradleTaskCanceller gradleTaskCanceller = new GradleTaskCanceller(req, responseObserver);
     gradleTaskCanceller.cancelRunTask();
-    responseObserver.onCompleted();
   }
 
   @Override

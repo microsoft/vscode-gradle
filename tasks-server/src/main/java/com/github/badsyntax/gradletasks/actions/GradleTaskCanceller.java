@@ -28,6 +28,8 @@ public class GradleTaskCanceller {
     } catch (GradleCancellationException e) {
       logger.error(e.getMessage());
       replyWithCancelError(e);
+    } finally {
+      responseObserver.onCompleted();
     }
   }
 
