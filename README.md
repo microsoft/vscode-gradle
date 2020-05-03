@@ -33,15 +33,16 @@ This extension contributes the following settings:
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
-- `gradle.tasks.useImportJvmArgs`: Use the JVM args as set by `java.import.gradle.jvmArguments` when running tasks.
 
-This extension supports the following settings, which are contributed by [vscode-java](https://github.com/redhat-developer/vscode-java):
+To provide better compatibility with the [Java language support extension](https://github.com/redhat-developer/vscode-java), this extension supports the following settings:
 
 - `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
 - `java.import.gradle.version`: Gradle version, used if the gradle wrapper is missing or disabled
+
+If you're not using the [Java language support extension](https://github.com/redhat-developer/vscode-java), you can use the standard Java & Gradle environment variables (see below), or standard Gradle settings (eg via `gradle.properties` or task configuration), to configure your tasks and/or Gradle settings.
 
 ## Supported Environment Variables
 
@@ -96,7 +97,7 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 ## Extension API
 
-This extension exposes a `runTask` api with the following definition:
+This extension exposes a `runTask` API with the following definition:
 
 ```ts
 function runTask(
