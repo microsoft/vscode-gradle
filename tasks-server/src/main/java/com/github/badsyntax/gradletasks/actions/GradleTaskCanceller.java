@@ -32,7 +32,6 @@ public class GradleTaskCanceller {
   }
 
   private void replyWithCancelledSuccess() {
-    System.out.println("REPLY WITH CANCEL SUCCESS");
     responseObserver.onNext(
         CancelRunTaskReply.newBuilder()
             .setMessage("Cancel run task requested")
@@ -41,11 +40,7 @@ public class GradleTaskCanceller {
   }
 
   private void replyWithCancelError(Exception e) {
-    System.out.println("REPLY WITH CANCEL ERROR");
     responseObserver.onNext(
-        CancelRunTaskReply.newBuilder()
-            .setMessage("Task is not running")
-            .setTaskRunning(false)
-            .build());
+        CancelRunTaskReply.newBuilder().setMessage(e.getMessage()).setTaskRunning(false).build());
   }
 }

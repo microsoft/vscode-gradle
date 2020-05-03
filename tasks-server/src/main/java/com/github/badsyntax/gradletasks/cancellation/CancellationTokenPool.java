@@ -54,7 +54,7 @@ public class CancellationTokenPool {
   }
 
   public void cancel(CancellationTokenPool.TYPE type) {
-    Map<String, CancellationTokenSource> pool = getPoolType(type);
-    pool.keySet().stream().forEach(key -> pool.get(key).cancel());
+    Map<String, CancellationTokenSource> poolOfType = getPoolType(type);
+    poolOfType.keySet().stream().forEach(key -> poolOfType.get(key).cancel());
   }
 }
