@@ -157,7 +157,7 @@ export class GradleTasksClient implements vscode.Disposable {
   public async runTask(
     projectFolder: string,
     task: vscode.Task,
-    args: string[] = [],
+    args: ReadonlyArray<string> = [],
     javaDebugPort: number | null,
     onOutput?: (output: Output) => void
   ): Promise<void> {
@@ -166,7 +166,7 @@ export class GradleTasksClient implements vscode.Disposable {
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
     request.setTask(task.definition.script);
-    request.setArgsList(args);
+    request.setArgsList(args as string[]);
     request.setGradleConfig(gradleConfig);
     request.setJavaDebug(task.definition.javaDebug);
     if (javaDebugPort !== null) {
