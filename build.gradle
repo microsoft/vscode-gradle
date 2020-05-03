@@ -3,6 +3,7 @@ plugins {
   id 'com.google.protobuf' version '0.8.12'
   id 'org.sonarqube' version '2.8'
   id 'com.github.jlouns.cpe' version '0.5.0'
+  id 'com.diffplug.gradle.spotless' version '3.28.1'
 }
 
 project.ext.set('grpcVersion', '1.29.0')
@@ -44,6 +45,10 @@ subprojects {
       artifact = "com.google.protobuf:protoc:${protocVersion}"
     }
   }
+}
+
+task(format) {
+  dependsOn(spotlessApply)
 }
 
 project.tasks["sonarqube"].dependsOn ':extension:buildTypeScript'

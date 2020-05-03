@@ -1,11 +1,11 @@
 package com.github.badsyntax.gradletasks;
 
+import io.grpc.Server;
+import io.grpc.ServerBuilder;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.grpc.Server;
-import io.grpc.ServerBuilder;
 
 public class GradleTasksServer {
   private static final Logger logger = LoggerFactory.getLogger(GradleTasksServer.class.getName());
@@ -26,19 +26,21 @@ public class GradleTasksServer {
   public void start() throws IOException {
     server.start();
     logger.info("Server started, listening on {}", port);
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      @Override
-      public void run() {
-        logger.error("*** shutting down gRPC server since JVM is shutting down");
-        try {
-          GradleTasksServer.this.stop();
-        } catch (InterruptedException e) {
-          e.printStackTrace(System.err);
-          Thread.currentThread().interrupt();
-        }
-        logger.error("*** server shut down");
-      }
-    });
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread() {
+              @Override
+              public void run() {
+                logger.error("Shutting down gRPC server since JVM is shutting down");
+                try {
+                  GradleTasksServer.this.stop();
+                } catch (InterruptedException e) {
+                  e.printStackTrace(System.err);
+                  Thread.currentThread().interrupt();
+                }
+                logger.info("Server shut down");
+              }
+            });
   }
 
   public void stop() throws InterruptedException {

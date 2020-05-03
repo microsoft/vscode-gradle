@@ -18,13 +18,14 @@ import {
   GradleBuild,
   CancelRunTasksRequest,
   Environment,
+  GradleConfig,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { handleCancelledTask, GradleTaskDefinition } from './tasks';
-import { getConfigJavaImportGradleUserHome } from './config';
+import { getGradleConfig } from './config';
 
 const localize = nls.loadMessageBundle();
 
@@ -98,20 +99,17 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async getBuild(
     projectFolder: string,
-    gradleUserHome: string | null
+    gradleConfig: GradleConfig
   ): Promise<GradleBuild | void> {
     this.statusBarItem.text = localize(
-      // TODO
-      'client.refreshingTasks',
-      '{0} Gradle: Building...',
+      'client.building',
+      '{0} Gradle: Building',
       '$(sync~spin)'
     );
     this.statusBarItem.show();
     const request = new GetBuildRequest();
     request.setProjectDir(projectFolder);
-    if (gradleUserHome) {
-      request.setGradleUserHome(gradleUserHome);
-    }
+    request.setGradleConfig(gradleConfig);
     const getBuildStream = this.grpcClient!.getBuild(request);
     try {
       return await new Promise((resolve, reject) => {
@@ -158,22 +156,20 @@ export class GradleTasksClient implements vscode.Disposable {
   public async runTask(
     projectFolder: string,
     task: vscode.Task,
-    args: string[] = [],
+    args: ReadonlyArray<string> = [],
     javaDebugPort: number | null,
     onOutput?: (output: Output) => void
   ): Promise<void> {
     this.statusBarItem.show();
-    const gradleUserHome = getConfigJavaImportGradleUserHome();
+    const gradleConfig = getGradleConfig();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
     request.setTask(task.definition.script);
+    request.setArgsList(args as string[]);
+    request.setGradleConfig(gradleConfig);
     request.setJavaDebug(task.definition.javaDebug);
-    request.setArgsList(args);
     if (javaDebugPort !== null) {
       request.setJavaDebugPort(javaDebugPort);
-    }
-    if (gradleUserHome) {
-      request.setGradleUserHome(gradleUserHome);
     }
     const runTaskStream = this.grpcClient!.runTask(request);
     try {

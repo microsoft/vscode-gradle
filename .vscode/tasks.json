@@ -27,7 +27,12 @@
       "windows": {
         "command": ".\\gradlew.bat"
       },
-      "args": [":extension:buildTypeScript", ":extension:buildTypeScriptTests", "-x", "test"],
+      "args": [
+        ":extension:buildTypeScript",
+        ":extension:buildTypeScriptTests",
+        "-x",
+        "test"
+      ],
       "isBackground": true,
       "presentation": {
         "reveal": "always"

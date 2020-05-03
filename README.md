@@ -34,10 +34,15 @@ This extension contributes the following settings:
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
 
-This extension supports the following settings:
+To provide better compatibility with the [Java language support extension](https://github.com/redhat-developer/vscode-java), this extension supports the following settings:
 
-- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
-- `java.import.gradle.user.home`: Setting for GRADLE_HOME (Contributed by [vscode-java](https://github.com/redhat-developer/vscode-java))
+- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
+- `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
+- `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
+- `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
+- `java.import.gradle.version`: Gradle version, used if the gradle wrapper is missing or disabled
+
+If you're not using the [Java language support extension](https://github.com/redhat-developer/vscode-java), you can use the standard Java & Gradle environment variables (see below), or standard Gradle settings (eg via `gradle.properties` or task configuration), to configure your tasks and/or Gradle settings.
 
 ## Supported Environment Variables
 
@@ -92,18 +97,20 @@ This extensions provides snippets for the groovy and kotlin build files:
 
 ## Extension API
 
-This extension exposes a `runTask` api with the following definition:
+This extension exposes a `runTask` API with the following definition:
 
 ```ts
-(
+function runTask(
   projectFolder: string, // absolute path of root project folder
   taskName: string,
-  args?: string[],
-  onOutput?: (output: Output) => void
-) => Promise<void>;
+  args?: ReadonlyArray<string>,
+  onOutput?: (output: Output) => void,
+): Promise<void>;
 ```
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.
+
+Refer to [vscode-spotless-gradle](https://github.com/badsyntax/vscode-spotless-gradle) for example API usage.
 
 ## Troubleshooting
 
