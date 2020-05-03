@@ -104,8 +104,14 @@ function runTask(
   projectFolder: string, // absolute path of root project folder
   taskName: string,
   args?: ReadonlyArray<string>,
-  onOutput?: (output: Output) => void,
+  onOutput?: (output: Output) => void
 ): Promise<void>;
+```
+
+Import the API type definition like so:
+
+```ts
+import { ExtensionApi as GradleTasksApi } from "vscode-gradle";
 ```
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.
