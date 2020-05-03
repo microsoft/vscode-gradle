@@ -1,0 +1,83 @@
+description = 'vscode-gradle :: types'
+
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+
+sourceSets {
+  main {
+    proto {
+      srcDir file('../proto')
+    }
+  }
+}
+
+protobuf {
+  plugins {
+    grpc {
+      path = file(
+        './node_modules/.bin/grpc_tools_node_protoc_plugin' + (isWindows ? '.cmd' : '')
+      )
+    }
+    ts {
+      path = file(
+        './node_modules/.bin/protoc-gen-ts' + (isWindows ? '.cmd' : '')
+      )
+    }
+  }
+  generateProtoTasks {
+    generateTestProto.enabled = false
+    extractProto.enabled = false;
+    extractIncludeProto.enabled = false;
+    extractIncludeTestProto.enabled = false;
+    generateProto.finalizedBy copyProtoTs
+    all().each { task ->
+      task.plugins {
+        ts {
+          option 'service=grpc-node'
+        }
+      }
+      task.builtins {
+        remove java
+      }
+      task.dependsOn npmInstall
+    }
+  }
+}
+
+test.enabled = false;
+jar.enabled = false;
+compileJava.enabled = false
+compileTestJava.enabled = false
+processResources.enabled = false;
+
+clean {
+  delete protobuf.generatedFilesBaseDir
+  delete file('node_modules')
+  delete file('proto')
+}
+
+task copyProtoTs(type: Copy) {
+  dependsOn ':types-package:generateProto'
+  group 'copy'
+  description 'Copies proto TypeScript definitions'
+  from "$protobuf.generatedFilesBaseDir/main/ts"
+  into 'proto/'
+  filter { line ->
+    line.replaceAll('from \"grpc\"', 'from \"@grpc/grpc-js\"')
+  }
+}
+
+task copyPublicApiTypes(type: Copy) {
+  group 'copy'
+  description 'Copies publc API types'
+  from file("../extension/src/runTask.d.ts")
+  into 'lib/'
+}
+
+task npmInstall(type: CrossPlatformExec) {
+  description 'Installs node dependencies'
+  inputs.file('package-lock.json')
+  outputs.dir('node_modules')
+  commandLine 'npm', 'install'
+}
+
+assemble.finalizedBy copyPublicApiTypes
