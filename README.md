@@ -113,6 +113,8 @@ function runTask(
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.
 
+Refer to [vscode-spotless-gradle](https://github.com/badsyntax/vscode-spotless-gradle) for example API usage.
+
 ## Troubleshooting
 
 <details><summary>View logs by selecting "Gradle Tasks" in the output panel</summary>
