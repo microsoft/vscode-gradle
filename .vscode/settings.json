@@ -8,7 +8,6 @@
   "typescript.tsc.autoDetect": "off",
   "eslint.validate": ["javascript", "typescript"],
   "eslint.workingDirectories": ["extension"],
-  "java.format.settings.url": "https://raw.githubusercontent.com/google/styleguide/gh-pages/eclipse-java-google-style.xml",
   "java.configuration.updateBuildConfiguration": "automatic",
   "cSpell.language": "en-GB",
   "cSpell.words": [
