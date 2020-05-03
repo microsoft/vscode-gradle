@@ -25,7 +25,7 @@ public class GradleProjectConnector {
       gradleConnector.useGradleUserHomeDir(
           buildGradleUserHomeFile(config.getUserHome(), projectDir));
     }
-    if (!config.getWrapperEnabled() && !Strings.isNullOrEmpty(config.getVersion())) {
+    if (!config.getWrapperEnabled() && Strings.isNullOrEmpty(config.getVersion())) {
       throw new GradleConnectionException("Gradle version is required");
     }
     if (!Strings.isNullOrEmpty(config.getVersion())) {

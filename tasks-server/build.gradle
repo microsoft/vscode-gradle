@@ -19,7 +19,8 @@ dependencies {
   runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
   testImplementation "io.grpc:grpc-testing:${grpcVersion}"
   testImplementation 'junit:junit:4.13'
-  testImplementation 'org.mockito:mockito-core:3.3.3'
+  testCompile 'org.powermock:powermock-module-junit4:2.0.7'
+  testCompile 'org.powermock:powermock-api-mockito2:2.0.7'
 }
 
 def mainJavaDir = 'src/main/java';

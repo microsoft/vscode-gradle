@@ -31,14 +31,14 @@ public class GradleTasksServer {
             new Thread() {
               @Override
               public void run() {
-                logger.error("*** shutting down gRPC server since JVM is shutting down");
+                logger.error("Shutting down gRPC server since JVM is shutting down");
                 try {
                   GradleTasksServer.this.stop();
                 } catch (InterruptedException e) {
                   e.printStackTrace(System.err);
                   Thread.currentThread().interrupt();
                 }
-                logger.error("*** server shut down");
+                logger.info("Server shut down");
               }
             });
   }

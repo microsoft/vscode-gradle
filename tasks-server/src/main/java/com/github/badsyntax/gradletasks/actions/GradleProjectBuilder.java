@@ -182,6 +182,7 @@ public class GradleProjectBuilder {
                     .setMessage(e.getMessage())
                     .setProjectDir(req.getProjectDir()))
             .build());
+    responseObserver.onCompleted();
   }
 
   public void replyWithError(Exception e) {
