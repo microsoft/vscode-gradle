@@ -23,7 +23,6 @@ import org.gradle.tooling.BuildException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProgressEvent;
-import org.gradle.tooling.ProgressListener;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
@@ -81,9 +80,30 @@ public class GradleProjectBuilder {
         connection.model(org.gradle.tooling.model.GradleProject.class);
     projectBuilder
         .withCancellationToken(CancellationHandler.getBuildCancellationToken(getCancellationKey()))
-        .addProgressListener(buildProgressListener())
-        .setStandardOutput(buildStandardOutputListener())
-        .setStandardError(buildStandardErrorListener())
+        .addProgressListener(
+            (ProgressEvent progressEvent) -> {
+              synchronized (GradleProjectBuilder.class) {
+                replyWithProgress(progressEvent);
+              }
+            })
+        .setStandardOutput(
+            new GradleOutputListener() {
+              @Override
+              public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                synchronized (GradleProjectBuilder.class) {
+                  replyWithStandardOutput(outputMessage.toString());
+                }
+              }
+            })
+        .setStandardError(
+            new GradleOutputListener() {
+              @Override
+              public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                synchronized (GradleProjectBuilder.class) {
+                  replyWithStandardError(outputMessage.toString());
+                }
+              }
+            })
         .setColorOutput(false);
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
@@ -132,36 +152,6 @@ public class GradleProjectBuilder {
                 .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
                 .addAllJvmArgs(javaEnvironment.getJvmArguments()))
         .build();
-  }
-
-  public ProgressListener buildProgressListener() {
-    return (ProgressEvent progressEvent) -> {
-      synchronized (this) {
-        replyWithProgress(progressEvent);
-      }
-    };
-  }
-
-  public GradleOutputListener buildStandardOutputListener() {
-    return new GradleOutputListener() {
-      @Override
-      public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-        synchronized (this) {
-          replyWithStandardOutput(outputMessage.toString());
-        }
-      }
-    };
-  }
-
-  public GradleOutputListener buildStandardErrorListener() {
-    return new GradleOutputListener() {
-      @Override
-      public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-        synchronized (this) {
-          replyWithStandardError(outputMessage.toString());
-        }
-      }
-    };
   }
 
   public void replyWithGradleProject(GradleProject gradleProject) {

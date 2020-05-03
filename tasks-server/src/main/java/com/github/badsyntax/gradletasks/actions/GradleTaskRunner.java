@@ -18,7 +18,6 @@ import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProgressEvent;
-import org.gradle.tooling.ProgressListener;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
@@ -75,9 +74,30 @@ public class GradleTaskRunner {
             .newBuild()
             .withCancellationToken(
                 CancellationHandler.getRunTaskCancellationToken(getCancellationKey()))
-            .addProgressListener(buildProgressListener())
-            .setStandardOutput(buildStandardOutputListener())
-            .setStandardError(buildStandardErrorListener())
+            .addProgressListener(
+                (ProgressEvent progressEvent) -> {
+                  synchronized (GradleTaskRunner.class) {
+                    replyWithProgress(progressEvent);
+                  }
+                })
+            .setStandardOutput(
+                new GradleOutputListener() {
+                  @Override
+                  public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                    synchronized (GradleTaskRunner.class) {
+                      replyWithStandardOutput(outputMessage.toString());
+                    }
+                  }
+                })
+            .setStandardError(
+                new GradleOutputListener() {
+                  @Override
+                  public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                    synchronized (GradleTaskRunner.class) {
+                      replyWithStandardError(outputMessage.toString());
+                    }
+                  }
+                })
             .setColorOutput(true)
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
@@ -95,36 +115,6 @@ public class GradleTaskRunner {
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
             javaDebugPort));
     return envVars;
-  }
-
-  public ProgressListener buildProgressListener() {
-    return (ProgressEvent progressEvent) -> {
-      synchronized (this) {
-        replyWithProgress(progressEvent);
-      }
-    };
-  }
-
-  public GradleOutputListener buildStandardOutputListener() {
-    return new GradleOutputListener() {
-      @Override
-      public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-        synchronized (this) {
-          replyWithStandardOutput(outputMessage.toString());
-        }
-      }
-    };
-  }
-
-  public GradleOutputListener buildStandardErrorListener() {
-    return new GradleOutputListener() {
-      @Override
-      public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-        synchronized (this) {
-          replyWithStandardError(outputMessage.toString());
-        }
-      }
-    };
   }
 
   public void replyWithCancelled(BuildCancelledException e) {
