@@ -16,7 +16,17 @@ jobs:
       - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: extension:prepareForRelease -x buildTypeScript -x buildTypeScriptTests
+          arguments: extension:prepareForRelease types-package:build -x buildTypeScript -x buildTypeScriptTests
+      - name: Publish types
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd types-package
+          tag=${GITHUB_REF#refs/tags/}
+          echo "Setting package version $tag"
+          npm --no-git-tag-version version "$tag"
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
+          npm publish
       - name: Publish extension
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}

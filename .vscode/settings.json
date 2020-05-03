@@ -7,7 +7,7 @@
   },
   "typescript.tsc.autoDetect": "off",
   "eslint.validate": ["javascript", "typescript"],
-  "eslint.workingDirectories": ["extension"],
+  "eslint.workingDirectories": ["extension","types-package"],
   "java.configuration.updateBuildConfiguration": "automatic",
   "cSpell.language": "en-GB",
   "cSpell.words": [
@@ -34,5 +34,6 @@
     "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle"
   },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "git.ignoreLimitWarning": true
 }

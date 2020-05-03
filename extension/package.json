@@ -551,7 +551,6 @@
     "@types/node": "^13.13.4",
     "@types/sinon": "^9.0.0",
     "@types/vscode": "^1.44.0",
-    "@types/wait-on": "^4.0.0",
     "@typescript-eslint/eslint-plugin": "^2.30.0",
     "@typescript-eslint/parser": "^2.30.0",
     "eslint": "^6.8.0",

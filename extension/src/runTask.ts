@@ -4,15 +4,11 @@ import * as nls from 'vscode-nls';
 import { Output } from './proto/gradle_tasks_pb';
 import { GradleTaskProvider } from './tasks';
 import { GradleTasksClient } from './client';
+import { RunTaskHandler } from './runTask.d';
 
 const localize = nls.loadMessageBundle();
 
-export type RunTaskHandler = (
-  projectFolder: string,
-  taskName: string,
-  args?: ReadonlyArray<string>,
-  onOutput?: (output: Output) => void
-) => Promise<void>;
+export { RunTaskHandler };
 
 export function registerRunTask(
   client: GradleTasksClient,
