@@ -52,7 +52,7 @@ processResources.enabled = false;
 clean {
   delete protobuf.generatedFilesBaseDir
   delete file('node_modules')
-  delete file('proto')
+  delete file('lib')
 }
 
 task copyProtoTs(type: Copy) {
@@ -60,7 +60,7 @@ task copyProtoTs(type: Copy) {
   group 'copy'
   description 'Copies proto TypeScript definitions'
   from "$protobuf.generatedFilesBaseDir/main/ts"
-  into 'proto/'
+  into 'lib/proto/'
   filter { line ->
     line.replaceAll('from \"grpc\"', 'from \"@grpc/grpc-js\"')
   }
