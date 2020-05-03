@@ -37,7 +37,7 @@ This extension contributes the following settings:
 
 This extension supports the following settings, which are contributed by [vscode-java](https://github.com/redhat-developer/vscode-java):
 
-TODO: GRADLE_HOME
+<!-- TODO: GRADLE_HOME -->
 
 - `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
@@ -48,6 +48,8 @@ TODO: GRADLE_HOME
 ## Supported Environment Variables
 
 Most of the standard Java & Gradle environment variables are supported:
+
+<!-- TODO: add other env vars -->
 
 - `JAVE_HOME` (overridden by `java.home`)
 - `GRADLE_USER_HOME` (overridden by `java.import.gradle.user.home`)
@@ -101,12 +103,12 @@ This extensions provides snippets for the groovy and kotlin build files:
 This extension exposes a `runTask` api with the following definition:
 
 ```ts
-(
+function runTask(
   projectFolder: string, // absolute path of root project folder
   taskName: string,
-  args?: string[],
-  onOutput?: (output: Output) => void
-) => Promise<void>;
+  args?: ReadonlyArray<string>,
+  onOutput?: (output: Output) => void,
+): Promise<void>;
 ```
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.
