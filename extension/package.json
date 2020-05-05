@@ -349,7 +349,7 @@
         "gradle.enableTasksExplorer": {
           "type": "boolean",
           "default": true,
-          "scope": "resource",
+          "scope": "window",
           "description": "%extension.config.enableTasksExplorer.description%"
         },
         "gradle.debug": {
@@ -361,7 +361,7 @@
         "gradle.focusTaskInExplorer": {
           "type": "boolean",
           "default": true,
-          "scope": "resource",
+          "scope": "window",
           "description": "%extension.config.focusTaskInExplorer.description%"
         },
         "gradle.javaDebug": {
@@ -397,7 +397,7 @@
         "gradle.taskPresentationOptions": {
           "type": "object",
           "description": "%extension.config.taskPresentationOptions.description%",
-          "scope": "resource",
+          "scope": "window",
           "properties": {
             "reveal": {
               "type": "string",
