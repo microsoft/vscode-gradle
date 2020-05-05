@@ -159,6 +159,11 @@ task bundle(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile:prod'
 }
 
+task installExtension(type: CrossPlatformExec) {
+  dependsOn bundle
+  commandLine 'npm', 'run', 'install:ext'
+}
+
 task testVsCode(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'verification'
