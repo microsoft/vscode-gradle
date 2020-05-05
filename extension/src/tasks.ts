@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
@@ -361,9 +362,9 @@ export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
 export function getGradleTasksServerCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
-    return '.\\tasks-server.bat';
+    return 'tasks-server.bat';
   } else if (platform === 'linux' || platform === 'darwin') {
-    return './tasks-server';
+    return 'tasks-server';
   } else {
     throw new Error('Unsupported platform');
   }
@@ -553,12 +554,26 @@ export function cloneTask(
 
 export function buildGradleServerTask(
   taskName: string,
-  cwd: string,
+  executableDir: string,
   args: string[] = []
-): vscode.Task {
-  const cmd = `"${getGradleTasksServerCommand()}"`;
+): vscode.Task | undefined {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders) {
+    return;
+  }
+
+  // Quotes are needed to prevent vscode from "normalising" paths
+  // (eg back-slashes are removed if using git bash on Windows)
+  const cmd = `"${path.join(executableDir, getGradleTasksServerCommand())}"`;
+
+  // cwd is set to the workspace root to support relative paths
+  // This means we can only support relative paths for 1 workspace folder
+  // and breaks multi-root workspaces. What to do?
+  const cwd = workspaceFolders[0].uri.fsPath;
+
   logger.debug(`Gradle Tasks Server dir: ${cwd}`);
   logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
+
   const taskType = 'gradle';
   const definition = {
     type: taskType,
@@ -577,12 +592,16 @@ export function buildGradleServerTask(
     taskType,
     new vscode.ShellExecution(cmd, args, { cwd, env })
   );
-  // task.isBackground = true; // this hides errors on task start
+
+  // Allow the user to see stdout/stderr messages for this task in the terminal panel
+  task.isBackground = false;
+
   task.source = taskType;
   task.presentationOptions = {
     reveal: vscode.TaskRevealKind.Never,
     focus: false,
-    echo: true,
+    // The command is an absolute path and not very useful to echo
+    echo: false,
     clear: false,
     panel: vscode.TaskPanelKind.Shared,
   };
