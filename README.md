@@ -110,6 +110,10 @@ function runTask(
 
 Import the API type definition like so:
 
+```bash
+npm install vscode-gradle --save-dev
+```
+
 ```ts
 import { ExtensionApi as GradleTasksApi } from "vscode-gradle";
 ```
