@@ -89,12 +89,6 @@ You should now see a `debug` command next to the `run` command in the Gradle Tas
 
 You'll need to remove any `jdwp` options that might have been set in your task configuration (eg via `jvmArgs`).
 
-## Snippets
-
-This extensions provides snippets for the groovy and kotlin build files:
-
-- `cgt`: Create a new Gradle task
-
 ## Extension API
 
 This extension exposes a `runTask` API with the following definition:

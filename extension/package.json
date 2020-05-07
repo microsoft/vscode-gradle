@@ -25,8 +25,7 @@
     "npm": "^6.10.3"
   },
   "categories": [
-    "Other",
-    "Snippets"
+    "Other"
   ],
   "keywords": [
     "java",
@@ -55,16 +54,6 @@
           "Kotlin",
           "kotlin"
         ]
-      }
-    ],
-    "snippets": [
-      {
-        "language": "groovy",
-        "path": "./snippets/build.gradle.json"
-      },
-      {
-        "language": "kotlinscript",
-        "path": "./snippets/build.gradle.kts.json"
       }
     ],
     "problemMatchers": [
