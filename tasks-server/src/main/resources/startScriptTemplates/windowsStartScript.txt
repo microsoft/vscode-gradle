@@ -53,11 +53,8 @@ echo location of your Java installation.
 goto fail
 
 :findJavaFromJavaHome
-if defined VSCODE_JAVA_HOME (
-  set _JAVA_HOME=%VSCODE_JAVA_HOME:"=%
-) else (
-  set _JAVA_HOME=%JAVA_HOME:"=%
-)
+if defined JAVA_HOME set _JAVA_HOME=%JAVA_HOME:"=%
+if defined VSCODE_JAVA_HOME set _JAVA_HOME=%VSCODE_JAVA_HOME:"=%
 set JAVA_EXE=%_JAVA_HOME%/bin/java.exe
 
 if exist "%JAVA_EXE%" goto init
