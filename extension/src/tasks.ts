@@ -539,9 +539,9 @@ export function createTaskFromDefinition(
     ['$gradle']
   );
   task.presentationOptions = presentationOptions;
-  if (isTaskOfType(definition, 'build')) {
-    task.group = vscode.TaskGroup.Build;
-  }
+  // if (isTaskOfType(definition, 'build')) {
+  //   task.group = vscode.TaskGroup.Build;
+  // }
   if (isTaskOfType(definition, 'test')) {
     task.group = vscode.TaskGroup.Test;
   }
@@ -667,9 +667,37 @@ export function registerTaskProvider(
   context: vscode.ExtensionContext,
   client: GradleTasksClient
 ): GradleTaskProvider {
+<<<<<<< HEAD
   function handleWorkspaceFoldersChange(): void {
     vscode.commands.executeCommand('gradle.refresh');
   }
+=======
+  function handleBuildFileChange(uri: vscode.Uri): void {
+    const hasRunningTasks = getRunningGradleTasks().length;
+    // We check if there are running tasks to prevent an infinite loop
+    // when tasks generate gradle projects (eg for test fixtures).
+    // We can't limit this to known .gradle files as we don't know which ones
+    // are part of the multi-project build.
+    // TODO: for some reason this fires even if there are no running tasks
+    // Check for cancelling tasks also to fix (i think)
+    if (!hasRunningTasks) {
+      console.log('uri', uri);
+      vscode.commands.executeCommand('gradle.refresh');
+    }
+  }
+  function handleWorkspaceFoldersChange(): void {
+    vscode.commands.executeCommand('gradle.refresh');
+  }
+  const buildFileGlob = `**/*.{gradle,gradle.kts}`;
+
+  // Getting HIGH cpu usage when running gradle build
+  // Should remove the watcher when running tasks to improve perofmerance
+  const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
+  context.subscriptions.push(watcher);
+  watcher.onDidChange(handleBuildFileChange);
+  watcher.onDidDelete(handleBuildFileChange);
+  watcher.onDidCreate(handleBuildFileChange);
+>>>>>>> Foo
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(handleWorkspaceFoldersChange)
   );

@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as grpc from '@grpc/grpc-js';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const throttle = require('lodash.throttle');
+
 import {
   Progress,
   RunTaskRequest,
@@ -125,6 +128,11 @@ export class GradleTasksClient implements vscode.Disposable {
     );
 
     const getBuildStream = this.grpcClient!.getBuild(request);
+
+    const throttledFunc = throttle((getBuildReply: GetBuildReply) => {
+      this.handleProgress(getBuildReply.getProgress()!);
+    }, 50);
+
     try {
       const gradleBuild: GradleBuild | void = await new Promise(
         (resolve, reject) => {
@@ -133,7 +141,7 @@ export class GradleTasksClient implements vscode.Disposable {
             .on('data', (getBuildReply: GetBuildReply) => {
               switch (getBuildReply.getKindCase()) {
                 case GetBuildReply.KindCase.PROGRESS:
-                  this.handleProgress(getBuildReply.getProgress()!);
+                  throttledFunc(getBuildReply);
                   break;
                 case GetBuildReply.KindCase.OUTPUT:
                   switch (getBuildReply.getOutput()!.getOutputType()) {
@@ -211,11 +219,20 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setArgsList(args as string[]);
     request.setGradleConfig(gradleConfig);
     request.setJavaDebug(task.definition.javaDebug);
+<<<<<<< HEAD
     request.setShowOutputColors(showOutputColors);
     request.setJavaDebugPort(javaDebugPort);
     request.setInput(input);
     request.setOutputStream(outputStream);
 
+=======
+    if (javaDebugPort !== null) {
+      request.setJavaDebugPort(javaDebugPort);
+    }
+    const throttledFunc = throttle((runTaskReply: RunTaskReply) => {
+      this.handleProgress(runTaskReply.getProgress()!);
+    }, 50);
+>>>>>>> Foo
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
       await new Promise((resolve, reject) => {
@@ -223,9 +240,14 @@ export class GradleTasksClient implements vscode.Disposable {
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
+<<<<<<< HEAD
                 if (showProgress) {
                   this.handleProgress(runTaskReply.getProgress()!);
                 }
+=======
+                throttledFunc(runTaskReply);
+                // this.handleProgress(runTaskReply.getProgress()!);
+>>>>>>> Foo
                 break;
               case RunTaskReply.KindCase.OUTPUT:
                 if (onOutput) {
@@ -400,7 +422,7 @@ export class GradleTasksClient implements vscode.Disposable {
   private handleProgress = (progress: Progress): void => {
     const messageStr = progress.getMessage().trim();
     if (messageStr) {
-      this.statusBarItem.text = `$(sync~spin) Gradle: ${messageStr}`;
+      this.statusBarItem.text = `Gradle: ${messageStr}`;
     }
   };
 

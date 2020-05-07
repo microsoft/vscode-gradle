@@ -125,7 +125,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution?: vscode.TaskExecution;
 
-  private readonly iconPathRunning?: IconPath;
+  // private readonly iconPathRunning?: IconPath;
   private readonly iconPathIdle?: IconPath;
   private readonly javaDebug?: JavaDebug;
 
@@ -153,18 +153,18 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     this.parentTreeItem = parentTreeItem;
     this.task = task;
     this.javaDebug = javaDebug;
-    this.iconPathRunning = iconPathRunning;
+    // this.iconPathRunning = iconPathRunning;
     this.iconPathIdle = iconPathIdle;
     this.setContext();
   }
 
   setContext(): void {
     this.contextValue = getTreeItemState(this.task, this.javaDebug);
-    if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
-      this.iconPath = this.iconPathRunning;
-    } else {
-      this.iconPath = this.iconPathIdle;
-    }
+    // if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
+    //   this.iconPath = this.iconPathRunning;
+    // } else {
+    this.iconPath = this.iconPathIdle;
+    // }
   }
 }
 
