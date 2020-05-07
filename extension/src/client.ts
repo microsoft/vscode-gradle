@@ -157,10 +157,13 @@ export class GradleTasksClient implements vscode.Disposable {
     projectFolder: string,
     task: vscode.Task,
     args: ReadonlyArray<string> = [],
+    showProgress: boolean,
     javaDebugPort: number | null,
     onOutput?: (output: Output) => void
   ): Promise<void> {
-    this.statusBarItem.show();
+    if (showProgress) {
+      this.statusBarItem.show();
+    }
     const gradleConfig = getGradleConfig();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);
@@ -178,7 +181,9 @@ export class GradleTasksClient implements vscode.Disposable {
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
-                this.handleProgress(runTaskReply.getProgress()!);
+                if (showProgress) {
+                  this.handleProgress(runTaskReply.getProgress()!);
+                }
                 break;
               case RunTaskReply.KindCase.OUTPUT:
                 if (onOutput) {

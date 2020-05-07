@@ -8,8 +8,8 @@
     "strict": true,
     "rootDir": "./",
     "noUnusedLocals": true,
-    "allowJs": true
+    "allowJs": false
   },
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "lib", "build"],
   "include": ["./index.ts"]
 }

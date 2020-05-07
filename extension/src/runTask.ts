@@ -18,6 +18,7 @@ export function registerRunTask(
     projectFolder: string,
     taskName: string,
     args?: ReadonlyArray<string>,
+    showProgress?: boolean,
     onOutput?: (output: Output) => void
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -46,7 +47,7 @@ export function registerRunTask(
           );
         }
         client
-          .runTask(projectFolder, task, args, null, onOutput)
+          .runTask(projectFolder, task, args, !!showProgress, null, onOutput)
           .then(resolve, reject);
       });
     });

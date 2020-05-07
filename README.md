@@ -95,21 +95,25 @@ This extension exposes a `runTask` API with the following definition:
 
 ```ts
 function runTask(
-  projectFolder: string, // absolute path of root project folder
-  taskName: string,
-  args?: ReadonlyArray<string>,
-  onOutput?: (output: Output) => void
+  projectFolder: string,                // absolute path of the root project folder
+  taskName: string,                     // name of the task to run
+  args?: ReadonlyArray<string>,         // task arguments
+  showProgress?: boolean,               // show task progress
+  onOutput?: (output: Output) => void   // task output (STDERR & STDOUT) handler
 ): Promise<void>;
 ```
 
-Import the API type definition like so:
+Install the API definitions:
 
 ```bash
-npm install vscode-gradle --save-dev
+npm install vscode-gradle --save
 ```
 
+Import the API definitions:
+
 ```ts
-import { ExtensionApi as GradleTasksApi } from "vscode-gradle";
+import type { ExtensionApi as GradleTasksApi } from "vscode-gradle";
+import { Output } from "vscode-gradle";
 ```
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.

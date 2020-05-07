@@ -464,6 +464,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         this.projectFolder,
         this.task,
         args,
+        true,
         javaDebugPort,
         (output: Output): void => {
           this.handleOutput(output.getMessage().trim());
