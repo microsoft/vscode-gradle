@@ -10,6 +10,8 @@ def docsFiles = [
   "CHANGELOG.md"
 ]
 
+project.ext.set('protoLib', 'src/proto')
+
 sourceSets {
   main {
     proto {
@@ -77,7 +79,7 @@ clean {
   dependsOn ':tasks-server:clean'
   delete protobuf.generatedFilesBaseDir
   delete file('node_modules')
-  delete file('src/proto')
+  delete file(protoLib)
   delete file('out')
   delete file('.vscode-test')
   delete file('build')
@@ -89,7 +91,7 @@ task copyProtoJs(type: Copy) {
   group 'copy'
   description 'Copies proto JavaScript files into src dir'
   from "$protobuf.generatedFilesBaseDir/main/js"
-  into 'src/proto/'
+  into protoLib
   filter { line ->
     line.replaceAll("\'grpc\'", "\'@grpc/grpc-js\'")
   }
@@ -100,7 +102,7 @@ task copyProtoTs(type: Copy) {
   group 'copy'
   description 'Copies proto TypeScript definitions into src dir'
   from "$protobuf.generatedFilesBaseDir/main/ts"
-  into 'src/proto/'
+  into protoLib
   filter { line ->
     line.replaceAll('from \"grpc\"', 'from \"@grpc/grpc-js\"')
   }

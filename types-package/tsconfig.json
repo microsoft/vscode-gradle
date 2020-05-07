@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "./",
+    "lib": ["es6"],
+    "sourceMap": false,
+    "strict": true,
+    "rootDir": "./",
+    "noUnusedLocals": true,
+    "allowJs": true
+  },
+  "exclude": ["node_modules"],
+  "include": ["./index.ts"]
+}

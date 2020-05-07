@@ -2,75 +2,26 @@ description = 'vscode-gradle :: types'
 
 def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
 
-sourceSets {
-  main {
-    proto {
-      srcDir file('../proto')
-    }
-  }
-}
-
-protobuf {
-  plugins {
-    grpc {
-      path = file(
-        './node_modules/.bin/grpc_tools_node_protoc_plugin' + (isWindows ? '.cmd' : '')
-      )
-    }
-    ts {
-      path = file(
-        './node_modules/.bin/protoc-gen-ts' + (isWindows ? '.cmd' : '')
-      )
-    }
-  }
-  generateProtoTasks {
-    generateTestProto.enabled = false
-    extractProto.enabled = false;
-    extractIncludeProto.enabled = false;
-    extractIncludeTestProto.enabled = false;
-    generateProto.finalizedBy copyProtoTs
-    all().each { task ->
-      task.plugins {
-        ts {
-          option 'service=grpc-node'
-        }
-      }
-      task.builtins {
-        remove java
-      }
-      task.dependsOn npmInstall
-    }
-  }
-}
-
-test.enabled = false;
-jar.enabled = false;
-compileJava.enabled = false
-compileTestJava.enabled = false
-processResources.enabled = false;
+project.ext.set('protoLib', "lib/proto")
 
 clean {
-  delete protobuf.generatedFilesBaseDir
   delete file('node_modules')
   delete file('lib')
 }
 
-task copyProtoTs(type: Copy) {
-  dependsOn ':types-package:generateProto'
+task copyProtoLib(type: Copy) {
+  dependsOn ':extension:generateProto'
   group 'copy'
-  description 'Copies proto TypeScript definitions'
-  from "$protobuf.generatedFilesBaseDir/main/ts"
-  into 'lib/proto/'
-  filter { line ->
-    line.replaceAll('from \"grpc\"', 'from \"@grpc/grpc-js\"')
-  }
+  description 'Copies genereated proto files'
+  from file("../extension/src/proto")
+  into protoLib
 }
 
 task copyPublicApiTypes(type: Copy) {
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/src/runTask.d.ts")
-  into 'lib/'
+  into 'lib'
 }
 
 task npmInstall(type: CrossPlatformExec) {
@@ -80,4 +31,12 @@ task npmInstall(type: CrossPlatformExec) {
   commandLine 'npm', 'install'
 }
 
-assemble.finalizedBy copyPublicApiTypes
+task compileTypeScript(type: CrossPlatformExec) {
+  dependsOn npmInstall
+  description 'Compiles the TypeScript files'
+  inputs.file('index.ts')
+  outputs.file('index.js');
+  commandLine 'npm', 'run', 'compile'
+}
+
+assemble.finalizedBy npmInstall, compileTypeScript, copyProtoLib, copyPublicApiTypes
