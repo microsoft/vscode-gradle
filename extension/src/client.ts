@@ -57,12 +57,12 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   public handleServerReady = (): void => {
-    this.statusBarItem.text = localize(
-      'client.connecting',
-      '{0} Gradle: Connecting',
-      '$(sync~spin)'
-    );
-    this.statusBarItem.show();
+    // this.statusBarItem.text = localize(
+    //   'client.connecting',
+    //   '{0} Gradle: Connecting',
+    //   '$(sync~spin)'
+    // );
+    // this.statusBarItem.show();
     logger.debug(
       localize('client.connectingDebug', 'Gradle client connecting to server')
     );
@@ -106,91 +106,101 @@ export class GradleTasksClient implements vscode.Disposable {
     gradleConfig: GradleConfig,
     showOutputColors = false
   ): Promise<GradleBuild | void> {
-    this.statusBarItem.text = localize(
-      'client.building',
-      '{0} Gradle: Building',
-      '$(sync~spin)'
-    );
-    this.statusBarItem.show();
-    const request = new GetBuildRequest();
-    request.setProjectDir(projectFolder);
-    request.setGradleConfig(gradleConfig);
-    request.setShowOutputColors(showOutputColors);
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: 'Gradle',
+        cancellable: true,
+      },
+      async (
+        progress: vscode.Progress<{ increment?: number; message?: string }>,
+        token: vscode.CancellationToken
+      ) => {
+        const throttledProgressHandler = throttle(
+          (progressMessage: Progress) => {
+            const message = progressMessage.getMessage().trim();
+            if (message) {
+              progress.report({ message });
+            }
+          },
+          50
+        );
 
-    const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-    stdOutBuffer.onOutputLine((output: string) =>
-      this.handleOutput(output, stdOutBuffer.getOutputType())
-    );
+        token.onCancellationRequested(() => {
+          vscode.commands.executeCommand('gradle.showProcessMessage');
+        });
 
-    const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-    stdErrBuffer.onOutputLine((output: string) =>
-      this.handleOutput(output, stdErrBuffer.getOutputType())
-    );
+        progress.report({ message: 'Building' });
 
-    const getBuildStream = this.grpcClient!.getBuild(request);
+        const request = new GetBuildRequest();
+        request.setProjectDir(projectFolder);
+        request.setGradleConfig(gradleConfig);
+        request.setShowOutputColors(showOutputColors);
 
-    const throttledFunc = throttle((getBuildReply: GetBuildReply) => {
-      this.handleProgress(getBuildReply.getProgress()!);
-    }, 50);
+        const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
+        stdOutBuffer.onOutputLine((output: string) =>
+          this.handleOutput(output, stdOutBuffer.getOutputType())
+        );
 
-    try {
-      const gradleBuild: GradleBuild | void = await new Promise(
-        (resolve, reject) => {
-          let build: GradleBuild | void = undefined;
-          getBuildStream
-            .on('data', (getBuildReply: GetBuildReply) => {
-              switch (getBuildReply.getKindCase()) {
-                case GetBuildReply.KindCase.PROGRESS:
-                  throttledFunc(getBuildReply);
-                  break;
-                case GetBuildReply.KindCase.OUTPUT:
-                  switch (getBuildReply.getOutput()!.getOutputType()) {
-                    case Output.OutputType.STDOUT:
-                      stdOutBuffer.write(
-                        getBuildReply.getOutput()!.getMessageByte()
-                      );
-                      break;
-                    case Output.OutputType.STDERR:
-                      stdErrBuffer.write(
-                        getBuildReply.getOutput()!.getMessageByte()
-                      );
-                      break;
-                  }
-                  break;
-                case GetBuildReply.KindCase.CANCELLED:
-                  this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
-                  break;
-                case GetBuildReply.KindCase.GET_BUILD_RESULT:
-                  build = getBuildReply.getGetBuildResult()!.getBuild();
-                  break;
-                case GetBuildReply.KindCase.ENVIRONMENT:
-                  this.handleGetBuildEnvironment(
-                    getBuildReply.getEnvironment()!
-                  );
-                  break;
-              }
-            })
-            .on('error', reject)
-            .on('end', () => {
-              resolve(build);
-            });
+        const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
+        stdErrBuffer.onOutputLine((output: string) =>
+          this.handleOutput(output, stdErrBuffer.getOutputType())
+        );
+
+        const getBuildStream = this.grpcClient!.getBuild(request);
+        try {
+          return await new Promise((resolve, reject) => {
+            let build: GradleBuild | void = undefined;
+            getBuildStream
+              .on('data', (getBuildReply: GetBuildReply) => {
+                switch (getBuildReply.getKindCase()) {
+                  case GetBuildReply.KindCase.PROGRESS:
+                    throttledProgressHandler(getBuildReply.getProgress()!);
+                    break;
+                  case GetBuildReply.KindCase.OUTPUT:
+                    switch (getBuildReply.getOutput()!.getOutputType()) {
+                      case Output.OutputType.STDOUT:
+                        stdOutBuffer.write(
+                          getBuildReply.getOutput()!.getMessageByte()
+                        );
+                        break;
+                      case Output.OutputType.STDERR:
+                        stdErrBuffer.write(
+                          getBuildReply.getOutput()!.getMessageByte()
+                        );
+                        break;
+                    }
+                    break;
+                  case GetBuildReply.KindCase.CANCELLED:
+                    this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
+                    break;
+                  case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                    build = getBuildReply.getGetBuildResult()!.getBuild();
+                    break;
+                  case GetBuildReply.KindCase.ENVIRONMENT:
+                    this.handleGetBuildEnvironment(
+                      getBuildReply.getEnvironment()!
+                    );
+                    break;
+                }
+              })
+              .on('error', reject)
+              .on('end', () => {
+                resolve(build);
+              });
+          });
+        } catch (err) {
+          logger.error(
+            localize(
+              'client.errorGettingBuild',
+              'Error getting build for {0}: {1}',
+              projectFolder,
+              err.details || err.message
+            )
+          );
         }
-      );
-      stdOutBuffer.dispose();
-      stdErrBuffer.dispose();
-      return gradleBuild;
-    } catch (err) {
-      logger.error(
-        localize(
-          'client.errorGettingBuild',
-          'Error getting build for {0}: {1}',
-          projectFolder,
-          err.details || err.message
-        )
-      );
-    } finally {
-      this.statusBarItem.hide();
-    }
+      }
+    );
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -219,20 +229,13 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setArgsList(args as string[]);
     request.setGradleConfig(gradleConfig);
     request.setJavaDebug(task.definition.javaDebug);
-<<<<<<< HEAD
     request.setShowOutputColors(showOutputColors);
     request.setJavaDebugPort(javaDebugPort);
     request.setInput(input);
     request.setOutputStream(outputStream);
-
-=======
-    if (javaDebugPort !== null) {
-      request.setJavaDebugPort(javaDebugPort);
-    }
-    const throttledFunc = throttle((runTaskReply: RunTaskReply) => {
+    const throttledProgressHandler = throttle((runTaskReply: RunTaskReply) => {
       this.handleProgress(runTaskReply.getProgress()!);
     }, 50);
->>>>>>> Foo
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
       await new Promise((resolve, reject) => {
@@ -240,14 +243,10 @@ export class GradleTasksClient implements vscode.Disposable {
           .on('data', (runTaskReply: RunTaskReply) => {
             switch (runTaskReply.getKindCase()) {
               case RunTaskReply.KindCase.PROGRESS:
-<<<<<<< HEAD
                 if (showProgress) {
                   this.handleProgress(runTaskReply.getProgress()!);
                 }
-=======
-                throttledFunc(runTaskReply);
-                // this.handleProgress(runTaskReply.getProgress()!);
->>>>>>> Foo
+                throttledProgressHandler(runTaskReply);
                 break;
               case RunTaskReply.KindCase.OUTPUT:
                 if (onOutput) {
