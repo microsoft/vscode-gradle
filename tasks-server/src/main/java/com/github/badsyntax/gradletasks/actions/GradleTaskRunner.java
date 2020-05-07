@@ -9,6 +9,8 @@ import com.github.badsyntax.gradletasks.RunTaskReply;
 import com.github.badsyntax.gradletasks.RunTaskRequest;
 import com.github.badsyntax.gradletasks.RunTaskResult;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
+import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
+import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
@@ -60,7 +62,8 @@ public class GradleTaskRunner {
     } catch (BuildException
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException
-        | IllegalStateException e) {
+        | IllegalStateException
+        | GradleTaskRunnerException e) {
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {
@@ -68,7 +71,8 @@ public class GradleTaskRunner {
     }
   }
 
-  public BuildLauncher getTaskBuildLauncher(ProjectConnection connection) {
+  public BuildLauncher getTaskBuildLauncher(ProjectConnection connection)
+      throws GradleTaskRunnerException {
     BuildLauncher build =
         connection
             .newBuild()
@@ -102,7 +106,13 @@ public class GradleTaskRunner {
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
     if (Boolean.TRUE.equals(req.getJavaDebug())) {
+      if (req.getJavaDebugPort() == 0) {
+        throw new GradleTaskRunnerException("Java debug port is not set");
+      }
       build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(req.getJavaDebugPort()));
+    }
+    if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
+      build.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
     return build;
   }

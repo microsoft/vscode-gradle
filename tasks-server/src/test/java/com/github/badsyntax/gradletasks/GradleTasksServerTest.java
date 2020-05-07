@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.junit.After;
 import org.junit.Before;
@@ -68,6 +69,7 @@ public class GradleTasksServerTest {
   @Mock org.gradle.tooling.model.build.BuildEnvironment mockEnvironment;
   @Mock org.gradle.tooling.model.build.GradleEnvironment mockGradleEnvironment;
   @Mock org.gradle.tooling.model.build.JavaEnvironment mockJavaEnvironment;
+  @Mock org.gradle.tooling.BuildLauncher mockBuildLauncher;
 
   @Mock
   org.gradle.tooling.ModelBuilder<org.gradle.tooling.model.build.BuildEnvironment>
@@ -88,6 +90,8 @@ public class GradleTasksServerTest {
     when(mockCancellationTokenSource.token()).thenReturn(mockCancellationToken);
     when(mockConnector.forProjectDirectory(mockProjectDir)).thenReturn(mockConnector);
     when(mockConnector.connect()).thenReturn(mockConnection);
+
+    // Project build (getBuild) mocks
     when(mockGradleEnvironment.getGradleUserHome()).thenReturn(mockGradleUserHome);
     when(mockGradleEnvironment.getGradleVersion()).thenReturn("6.3");
     when(mockJavaEnvironment.getJavaHome()).thenReturn(mockJavaHome);
@@ -113,6 +117,18 @@ public class GradleTasksServerTest {
         .thenReturn(mockGradleProjectBuilder);
     when(mockConnection.model(org.gradle.tooling.model.build.BuildEnvironment.class))
         .thenReturn(mockBuildEnvironmentBuilder);
+
+    // Build launcher (run task) mocks
+    when(mockBuildLauncher.withCancellationToken(any())).thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.addProgressListener(any(org.gradle.tooling.ProgressListener.class)))
+        .thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.setStandardOutput(any(OutputStream.class)))
+        .thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.setStandardError(any(OutputStream.class))).thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.setColorOutput(any(Boolean.class))).thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.withArguments(any(List.class))).thenReturn(mockBuildLauncher);
+    when(mockBuildLauncher.forTasks(any(String.class))).thenReturn(mockBuildLauncher);
+    when(mockConnection.newBuild()).thenReturn(mockBuildLauncher);
   }
 
   @After
@@ -208,5 +224,138 @@ public class GradleTasksServerTest {
     stub.getBuild(req, mockResponseObserver);
     verify(mockResponseObserver, never()).onError(any());
     verify(mockGradleProjectBuilder).setJvmArguments(jvmArgs);
+  }
+
+  @Test
+  public void runTask_shouldSetProjectDirectory() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setTask("tasks")
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockConnector).forProjectDirectory(mockProjectDir);
+  }
+
+  @Test
+  public void runTask_shouldUseGradleUserHome() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(
+                GradleConfig.newBuilder()
+                    .setUserHome(mockGradleUserHome.getAbsolutePath().toString())
+                    .setWrapperEnabled(true))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockConnector).useGradleUserHomeDir(mockGradleUserHome);
+  }
+
+  @Test
+  public void runTask_shouldThrowIfWrapperNotEnabledAndNoVersionSpecified() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+    ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver).onError(onError.capture());
+    assertEquals("INTERNAL: Gradle version is required", onError.getValue().getMessage());
+  }
+
+  @Test
+  public void runTask_shouldSetGradleVersionWrapperNotEnabledVersionSpecified() throws Exception {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false).setVersion("6.3"))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    stub.runTask(req, mockResponseObserver);
+    mockResponseObserver.onCompleted();
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockConnector).useGradleVersion("6.3");
+  }
+
+  @Test
+  public void runTask_shouldUseJvmArgs() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    String jvmArgs = "-Xmx64m -Xms64m";
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(
+                GradleConfig.newBuilder().setJvmArguments(jvmArgs).setWrapperEnabled(true))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher).setJvmArguments(jvmArgs);
+  }
+
+  @Test
+  public void runTask_shouldThrowIfDebugAndNotPortSpecified() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setJavaDebug(true)
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver).onError(onError.capture());
+    assertEquals("INTERNAL: Java debug port is not set", onError.getValue().getMessage());
+  }
+
+  @Test
+  public void runTask_shouldSetJwdpEnvironmentVarIfDebug() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setJavaDebug(true)
+            .setJavaDebugPort(1111)
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables =
+        ArgumentCaptor.forClass(HashMap.class);
+
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
+    assertEquals(
+        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:1111",
+        setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
   }
 }
