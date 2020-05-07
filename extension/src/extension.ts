@@ -10,6 +10,8 @@ import { registerClient, GradleTasksClient } from './client';
 import { registerCommands } from './commands';
 import { Logger, logger } from './logger';
 import { registerRunTask, RunTaskHandler } from './runTask';
+import { registerTaskManager } from './taskManager';
+import { registerBuildFileWatcher } from './buildFileWatcher';
 
 const localize = nls.loadMessageBundle();
 
@@ -38,8 +40,11 @@ export async function activate(
   const server = registerServer({ host: 'localhost' }, context);
   const client = registerClient(server, statusBarItem, context);
   const taskProvider = registerTaskProvider(context, client);
+  const taskManager = registerTaskManager(context);
   const { treeDataProvider, treeView } = registerExplorer(context);
   const runTask = registerRunTask(client, taskProvider);
+
+  registerBuildFileWatcher(context, taskProvider, taskManager);
 
   registerCommands(
     context,

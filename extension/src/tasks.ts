@@ -25,7 +25,6 @@ import {
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
-import { hasBuildFile } from './gradleView';
 
 const localize = nls.loadMessageBundle();
 
@@ -151,10 +150,18 @@ export class GradleTaskProvider
   private _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
+  private _onDidRefreshStart: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
+  private _onDidRefreshStop: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
   private waitForLoadedCallbacks: callback[] = [];
   private hasLoaded = false;
   private readonly onTasksLoaded: vscode.Event<null> = this._onTasksLoaded
     .event;
+  public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
+  public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
 
   constructor(private readonly client: GradleTasksClient) {
     this.onTasksLoaded(() => {
@@ -185,6 +192,8 @@ export class GradleTaskProvider
 
   public dispose(): void {
     this._onTasksLoaded.dispose();
+    this._onDidRefreshStart.dispose();
+    this._onDidRefreshStop.dispose();
   }
 
   // TODO
@@ -228,6 +237,7 @@ export class GradleTaskProvider
   }
 
   public async refresh(): Promise<vscode.Task[]> {
+    this._onDidRefreshStart.fire();
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
       cachedTasks = emptyTasks;
@@ -247,6 +257,7 @@ export class GradleTaskProvider
       }
     }
     this._onTasksLoaded.fire();
+    this._onDidRefreshStop.fire();
     return cachedTasks;
   }
 
@@ -649,27 +660,15 @@ export function registerTaskProvider(
   context: vscode.ExtensionContext,
   client: GradleTasksClient
 ): GradleTaskProvider {
-  function handleBuildFileChange(uri: vscode.Uri): void {
-    // Ignore any nested build files outside of the multi-project builds
-    // TODO: Maybe we only ignore if a task/build is running?
-    if (hasBuildFile(uri.fsPath)) {
-      vscode.commands.executeCommand('gradle.refresh');
-    }
-  }
   function handleWorkspaceFoldersChange(): void {
     vscode.commands.executeCommand('gradle.refresh');
   }
-  const buildFileGlob = `**/*.{gradle,gradle.kts}`;
-  const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
-  context.subscriptions.push(watcher);
-  watcher.onDidChange(handleBuildFileChange);
-  watcher.onDidDelete(handleBuildFileChange);
-  watcher.onDidCreate(handleBuildFileChange);
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(handleWorkspaceFoldersChange)
   );
   const provider = new GradleTaskProvider(client);
   const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
+
   context.subscriptions.push(taskProvider);
   return provider;
 }
