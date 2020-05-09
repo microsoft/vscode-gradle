@@ -458,7 +458,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     // This is only required in the tests, so we can check the stdout of the task
     const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
     stdOutBuffer.onOutputLine((output: string) => {
-      logger.info(output);
+      logger.info(output.trim());
     });
 
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);

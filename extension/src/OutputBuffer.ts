@@ -1,8 +1,5 @@
-import * as os from 'os';
 import * as vscode from 'vscode';
 import { Output } from './proto/gradle_tasks_pb';
-
-const { EOL } = os;
 
 export type OutputType =
   | typeof Output.OutputType.STDERR
@@ -24,7 +21,7 @@ export class OutputBuffer implements vscode.Disposable {
   public write(byte: number): void {
     const char = String.fromCharCode(byte);
     this.buffer += char;
-    if (char === EOL) {
+    if (char === '\n' || char === '\r\n') {
       this.flush();
     }
   }
