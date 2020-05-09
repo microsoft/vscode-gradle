@@ -8,7 +8,6 @@ import com.github.badsyntax.gradletasks.GetBuildRequest;
 import com.github.badsyntax.gradletasks.GetBuildResult;
 import com.github.badsyntax.gradletasks.GradleBuild;
 import com.github.badsyntax.gradletasks.GradleEnvironment;
-import com.github.badsyntax.gradletasks.GradleOutputListener;
 import com.github.badsyntax.gradletasks.GradleProject;
 import com.github.badsyntax.gradletasks.GradleTask;
 import com.github.badsyntax.gradletasks.JavaEnvironment;
@@ -17,7 +16,8 @@ import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.GradleConnector;
@@ -58,14 +58,14 @@ public class GradleProjectBuilder {
   public void build() {
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
-      ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
-          buildGradleProject(connection);
-      replyWithGradleProject(buildProject(projectBuilder.get()));
+      org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
+      replyWithProject(getProjectData(gradleProject));
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (BuildException
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException
+        | IOException
         | IllegalStateException e) {
       logger.error(e.getMessage());
       replyWithError(e);
@@ -74,8 +74,9 @@ public class GradleProjectBuilder {
     }
   }
 
-  private ModelBuilder<org.gradle.tooling.model.GradleProject> buildGradleProject(
-      ProjectConnection connection) {
+  private org.gradle.tooling.model.GradleProject buildGradleProject(ProjectConnection connection)
+      throws IOException {
+
     ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
         connection.model(org.gradle.tooling.model.GradleProject.class);
     projectBuilder
@@ -87,20 +88,20 @@ public class GradleProjectBuilder {
               }
             })
         .setStandardOutput(
-            new GradleOutputListener() {
+            new OutputStream() {
               @Override
-              public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-                synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardOutput(outputMessage.toString());
+              public final void write(int b) throws IOException {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardOutput(b);
                 }
               }
             })
         .setStandardError(
-            new GradleOutputListener() {
+            new OutputStream() {
               @Override
-              public void onOutputChanged(ByteArrayOutputStream outputMessage) {
-                synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardError(outputMessage.toString());
+              public final void write(int b) throws IOException {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardError(b);
                 }
               }
             })
@@ -108,14 +109,17 @@ public class GradleProjectBuilder {
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
-    return projectBuilder;
+
+    org.gradle.tooling.model.GradleProject gradleProject = projectBuilder.get();
+
+    return gradleProject;
   }
 
-  private GradleProject buildProject(org.gradle.tooling.model.GradleProject gradleProject) {
+  private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject) {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
     gradleProject.getChildren().stream()
-        .forEach(childGradleProject -> project.addProjects(buildProject(childGradleProject)));
+        .forEach(childGradleProject -> project.addProjects(getProjectData(childGradleProject)));
     gradleProject.getTasks().stream()
         .forEach(
             task -> {
@@ -154,7 +158,7 @@ public class GradleProjectBuilder {
         .build();
   }
 
-  public void replyWithGradleProject(GradleProject gradleProject) {
+  public void replyWithProject(GradleProject gradleProject) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setGetBuildResult(
@@ -190,19 +194,19 @@ public class GradleProjectBuilder {
             .build());
   }
 
-  private void replyWithStandardOutput(String message) {
+  private void replyWithStandardOutput(int b) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessage(message))
+                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessageByte(b))
             .build());
   }
 
-  private void replyWithStandardError(String message) {
+  private void replyWithStandardError(int b) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessage(message))
+                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
             .build());
   }
 }

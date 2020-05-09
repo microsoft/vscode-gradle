@@ -2,7 +2,6 @@ package com.github.badsyntax.gradletasks.actions;
 
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
-import com.github.badsyntax.gradletasks.GradleOutputListener;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
@@ -13,8 +12,9 @@ import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.gradle.tooling.BuildCancelledException;
@@ -55,7 +55,7 @@ public class GradleTaskRunner {
 
   public void run() {
     try (ProjectConnection connection = gradleConnector.connect()) {
-      getTaskBuildLauncher(connection).run();
+      runTask(connection);
       replyWithSuccess();
       responseObserver.onCompleted();
     } catch (BuildCancelledException e) {
@@ -65,6 +65,7 @@ public class GradleTaskRunner {
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException
         | IllegalStateException
+        | IOException
         | GradleTaskRunnerException e) {
       logger.error(e.getMessage());
       replyWithError(e);
@@ -73,8 +74,7 @@ public class GradleTaskRunner {
     }
   }
 
-  public BuildLauncher getTaskBuildLauncher(ProjectConnection connection)
-      throws GradleTaskRunnerException {
+  public void runTask(ProjectConnection connection) throws GradleTaskRunnerException, IOException {
     BuildLauncher build =
         connection
             .newBuild()
@@ -87,20 +87,20 @@ public class GradleTaskRunner {
                   }
                 })
             .setStandardOutput(
-                new GradleOutputListener() {
+                new OutputStream() {
                   @Override
-                  public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                  public final void write(int b) throws IOException {
                     synchronized (GradleTaskRunner.class) {
-                      replyWithStandardOutput(outputMessage.toString());
+                      replyWithStandardOutput(b);
                     }
                   }
                 })
             .setStandardError(
-                new GradleOutputListener() {
+                new OutputStream() {
                   @Override
-                  public void onOutputChanged(ByteArrayOutputStream outputMessage) {
+                  public final void write(int b) throws IOException {
                     synchronized (GradleTaskRunner.class) {
-                      replyWithStandardError(outputMessage.toString());
+                      replyWithStandardError(b);
                     }
                   }
                 })
@@ -122,7 +122,8 @@ public class GradleTaskRunner {
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       build.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
-    return build;
+
+    build.run();
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
@@ -166,19 +167,19 @@ public class GradleTaskRunner {
             .build());
   }
 
-  private void replyWithStandardOutput(String message) {
+  private void replyWithStandardOutput(int b) {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessage(message))
+                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessageByte(b))
             .build());
   }
 
-  private void replyWithStandardError(String message) {
+  private void replyWithStandardError(int b) {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessage(message))
+                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
             .build());
   }
 }

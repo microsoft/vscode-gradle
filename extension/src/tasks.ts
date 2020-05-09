@@ -2,9 +2,7 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const stripAnsi = require('strip-ansi');
+import * as os from 'os';
 
 import {
   getConfigIsAutoDetectionEnabled,
@@ -17,7 +15,7 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { isTest, waitOnTcp } from './util';
+import { waitOnTcp } from './util';
 import {
   Output,
   GradleProject,
@@ -407,19 +405,19 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     }
   }
 
-  private handleOutput(message: string): void {
-    const logMessage = message.trim();
-    if (logMessage) {
-      this.write(logMessage);
-      // This allows us to test process stdout via the logger
-      if (isTest()) {
-        logger.info(stripAnsi(logMessage));
+  private handleOutput(messageByte: number): void {
+    if (messageByte) {
+      let char = String.fromCharCode(messageByte);
+      if (char === os.EOL) {
+        // This fixes weird whitespace issues in the terminal
+        char = '\r\n';
       }
+      this.write(char);
     }
   }
 
   private write(message: string): void {
-    this.writeEmitter.fire(message + '\r\n');
+    this.writeEmitter.fire(message);
   }
 
   private async startJavaDebug(javaDebugPort: number): Promise<void> {
@@ -468,7 +466,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         '',
         javaDebugPort,
         (output: Output): void => {
-          this.handleOutput(output.getMessage().trim());
+          this.handleOutput(output.getMessageByte());
         }
       );
       if (javaDebugEnabled) {
@@ -487,6 +485,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   handleInput(data: string): void {
+    // sigint eg cmd/ctrl+C
     if (data === '\x03') {
       vscode.commands.executeCommand('gradle.cancelTask', this.task);
     }

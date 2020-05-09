@@ -26,6 +26,7 @@ import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { handleCancelledTask, GradleTaskDefinition } from './tasks';
 import { getGradleConfig } from './config';
+import { OutputBuffer, OutputType } from './OutputBuffer';
 
 const localize = nls.loadMessageBundle();
 
@@ -112,35 +113,64 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setProjectDir(projectFolder);
     request.setGradleConfig(gradleConfig);
     request.setShowOutputColors(showOutputColors);
+
+    const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
+    stdOutBuffer.onOutputLine((output: string) =>
+      this.handleOutput(output, stdOutBuffer.getOutputType())
+    );
+
+    const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
+    stdErrBuffer.onOutputLine((output: string) =>
+      this.handleOutput(output, stdErrBuffer.getOutputType())
+    );
+
     const getBuildStream = this.grpcClient!.getBuild(request);
     try {
-      return await new Promise((resolve, reject) => {
-        let build: GradleBuild | void = undefined;
-        getBuildStream
-          .on('data', (getBuildReply: GetBuildReply) => {
-            switch (getBuildReply.getKindCase()) {
-              case GetBuildReply.KindCase.PROGRESS:
-                this.handleProgress(getBuildReply.getProgress()!);
-                break;
-              case GetBuildReply.KindCase.OUTPUT:
-                this.handleOutput(getBuildReply.getOutput()!);
-                break;
-              case GetBuildReply.KindCase.CANCELLED:
-                this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
-                break;
-              case GetBuildReply.KindCase.GET_BUILD_RESULT:
-                build = getBuildReply.getGetBuildResult()!.getBuild();
-                break;
-              case GetBuildReply.KindCase.ENVIRONMENT:
-                this.handleGetBuildEnvironment(getBuildReply.getEnvironment()!);
-                break;
-            }
-          })
-          .on('error', reject)
-          .on('end', () => {
-            resolve(build);
-          });
-      });
+      const gradleBuild: GradleBuild | void = await new Promise(
+        (resolve, reject) => {
+          let build: GradleBuild | void = undefined;
+          getBuildStream
+            .on('data', (getBuildReply: GetBuildReply) => {
+              switch (getBuildReply.getKindCase()) {
+                case GetBuildReply.KindCase.PROGRESS:
+                  this.handleProgress(getBuildReply.getProgress()!);
+                  break;
+                case GetBuildReply.KindCase.OUTPUT:
+                  switch (getBuildReply.getOutput()!.getOutputType()) {
+                    case Output.OutputType.STDOUT:
+                      stdOutBuffer.write(
+                        getBuildReply.getOutput()!.getMessageByte()
+                      );
+                      break;
+                    case Output.OutputType.STDERR:
+                      stdErrBuffer.write(
+                        getBuildReply.getOutput()!.getMessageByte()
+                      );
+                      break;
+                  }
+                  break;
+                case GetBuildReply.KindCase.CANCELLED:
+                  this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
+                  break;
+                case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                  build = getBuildReply.getGetBuildResult()!.getBuild();
+                  break;
+                case GetBuildReply.KindCase.ENVIRONMENT:
+                  this.handleGetBuildEnvironment(
+                    getBuildReply.getEnvironment()!
+                  );
+                  break;
+              }
+            })
+            .on('error', reject)
+            .on('end', () => {
+              resolve(build);
+            });
+        }
+      );
+      stdOutBuffer.dispose();
+      stdErrBuffer.dispose();
+      return gradleBuild;
     } catch (err) {
       logger.error(
         localize(
@@ -179,6 +209,7 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setShowOutputColors(showOutputColors);
     request.setJavaDebugPort(javaDebugPort);
     request.setInput(input);
+
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
       await new Promise((resolve, reject) => {
@@ -365,15 +396,15 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   };
 
-  private handleOutput = (output: Output): void => {
-    const logMessage = output.getMessage().trim();
-    if (logMessage) {
-      switch (output.getOutputType()) {
+  private handleOutput = (output: string, outputType: OutputType): void => {
+    const trimmedOutput = output.trim();
+    if (trimmedOutput) {
+      switch (outputType) {
         case Output.OutputType.STDERR:
-          logger.error(logMessage);
+          logger.error(trimmedOutput);
           break;
         case Output.OutputType.STDOUT:
-          logger.info(logMessage);
+          logger.info(trimmedOutput);
           break;
       }
     }

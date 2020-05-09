@@ -141,6 +141,6 @@ message Output {
     STDOUT = 1;
   }
 
-  string message = 1;
+  int32 message_byte = 1;
   OutputType output_type = 2;
 }
