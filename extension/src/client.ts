@@ -99,7 +99,8 @@ export class GradleTasksClient implements vscode.Disposable {
 
   public async getBuild(
     projectFolder: string,
-    gradleConfig: GradleConfig
+    gradleConfig: GradleConfig,
+    showOutputColors = false
   ): Promise<GradleBuild | void> {
     this.statusBarItem.text = localize(
       'client.building',
@@ -110,6 +111,7 @@ export class GradleTasksClient implements vscode.Disposable {
     const request = new GetBuildRequest();
     request.setProjectDir(projectFolder);
     request.setGradleConfig(gradleConfig);
+    request.setShowOutputColors(showOutputColors);
     const getBuildStream = this.grpcClient!.getBuild(request);
     try {
       return await new Promise((resolve, reject) => {
@@ -153,13 +155,16 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async runTask(
     projectFolder: string,
     task: vscode.Task,
     args: ReadonlyArray<string> = [],
     showProgress: boolean,
-    javaDebugPort: number | null,
-    onOutput?: (output: Output) => void
+    input = '',
+    javaDebugPort = 0,
+    onOutput?: (output: Output) => void,
+    showOutputColors = true
   ): Promise<void> {
     if (showProgress) {
       this.statusBarItem.show();
@@ -171,9 +176,9 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setArgsList(args as string[]);
     request.setGradleConfig(gradleConfig);
     request.setJavaDebug(task.definition.javaDebug);
-    if (javaDebugPort !== null) {
-      request.setJavaDebugPort(javaDebugPort);
-    }
+    request.setShowOutputColors(showOutputColors);
+    request.setJavaDebugPort(javaDebugPort);
+    request.setInput(input);
     const runTaskStream = this.grpcClient!.runTask(request);
     try {
       await new Promise((resolve, reject) => {
@@ -196,9 +201,7 @@ export class GradleTasksClient implements vscode.Disposable {
             }
           })
           .on('error', reject)
-          .on('end', () => {
-            resolve();
-          });
+          .on('end', resolve);
       });
       logger.info(
         localize(

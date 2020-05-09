@@ -104,7 +104,7 @@ public class GradleProjectBuilder {
                 }
               }
             })
-        .setColorOutput(false);
+        .setColorOutput(req.getShowOutputColors());
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }

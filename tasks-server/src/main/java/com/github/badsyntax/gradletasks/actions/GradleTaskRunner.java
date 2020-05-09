@@ -12,7 +12,9 @@ import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.gradle.tooling.BuildCancelledException;
@@ -102,9 +104,15 @@ public class GradleTaskRunner {
                     }
                   }
                 })
-            .setColorOutput(true)
+            .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
+
+    if (!Strings.isNullOrEmpty(req.getInput())) {
+      InputStream inputStream = new ByteArrayInputStream(req.getInput().getBytes());
+      build.setStandardInput(inputStream);
+    }
+
     if (Boolean.TRUE.equals(req.getJavaDebug())) {
       if (req.getJavaDebugPort() == 0) {
         throw new GradleTaskRunnerException("Java debug port is not set");
