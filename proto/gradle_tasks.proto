@@ -23,6 +23,7 @@ message GetTasksRequest { string project_dir = 1; }
 message GetBuildRequest {
   string project_dir = 1;
   GradleConfig gradle_config = 2;
+  bool show_output_colors = 8;
  }
 
 message GetBuildReply {
@@ -52,6 +53,8 @@ message RunTaskRequest {
   bool java_debug = 4;
   int32 java_debug_port = 5;
   GradleConfig gradle_config = 6;
+  string input = 7;
+  bool show_output_colors = 8;
 }
 
 message RunTaskResult {

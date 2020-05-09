@@ -21,6 +21,7 @@ export interface ExtensionApi {
   client: GradleTasksClient;
   logger: Logger;
   runTask: RunTaskHandler;
+  onTasksLoaded: vscode.Event<null>;
 }
 
 export async function activate(
@@ -54,7 +55,15 @@ export async function activate(
     treeView,
     taskProvider
   );
-  return { treeDataProvider, context, client, logger, runTask };
+
+  const _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
+    null
+  >();
+  const onTasksLoaded: vscode.Event<null> = _onTasksLoaded.event;
+  context.subscriptions.push(_onTasksLoaded);
+  taskProvider.waitForLoaded(() => _onTasksLoaded.fire());
+
+  return { treeDataProvider, context, client, logger, runTask, onTasksLoaded };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
