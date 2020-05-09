@@ -94,13 +94,17 @@ You'll need to remove any `jdwp` options that might have been set in your task c
 This extension exposes a `runTask` API with the following definition:
 
 ```ts
-function runTask(
-  projectFolder: string,                // absolute path of the root project folder
-  taskName: string,                     // name of the task to run
-  args?: ReadonlyArray<string>,         // task arguments
-  showProgress?: boolean,               // show task progress
-  onOutput?: (output: Output) => void   // task output (STDERR & STDOUT) handler
-): Promise<void>;
+interface RunTaskOpts {
+  projectFolder: string; // absolute path
+  taskName: string;
+  args?: ReadonlyArray<string>;
+  showProgress?: boolean;
+  input?: string; // standard input
+  onOutput?: (output: Output) => void; // STDERR & STDOUT handler
+  showOutputColors: boolean;
+}
+
+function runTask(runTaskOpts: RunTaskOpts): Promise<void>;
 ```
 
 Install the API definitions:
