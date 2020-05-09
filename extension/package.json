@@ -35,7 +35,8 @@
     "tasks"
   ],
   "activationEvents": [
-    "workspaceContains:/*.gradle(.kts)?"
+    "workspaceContains:gradlew",
+    "workspaceContains:gradlew.bat"
   ],
   "main": "./dist/extension",
   "contributes": {
