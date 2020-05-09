@@ -2,6 +2,45 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.8
+
+- Fix types package and improve extension API (#348) @badsyntax
+- Minor fixes (#331) @badsyntax
+- Set JVM args when running task and add runTask tests (#343) @badsyntax
+- Fix task refresh when editing build files (#352) @badsyntax
+- Fix server start script if java.home contains parens (#334) @badsyntax
+- Bump snyk from 1.319.1 to 1.319.2 in /types-package (#353) @dependabot-preview
+- Bump @types/node from 13.13.4 to 13.13.5 in /extension (#337) @dependabot-preview
+- Bump ts-loader from 7.0.2 to 7.0.3 in /extension (#345) @dependabot-preview
+- Bump snyk from 1.316.2 to 1.319.2 in /extension (#350) @dependabot-preview
+- Bump @typescript-eslint/parser from 2.30.0 to 2.31.0 in /types-package (#329) @dependabot-preview
+- Remove snippets (#349) @badsyntax
+- Bump @typescript-eslint/parser from 2.30.0 to 2.31.0 in /extension (#327) @dependabot-preview
+- Bump @typescript-eslint/eslint-plugin from 2.30.0 to 2.31.0 in /extension (#326) @dependabot-preview
+- Bump @typescript-eslint/eslint-plugin from 2.30.0 to 2.31.0 in /types-package (#330) @dependabot-preview
+- Bump snyk from 1.316.2 to 1.319.1 in /types-package (#347) @dependabot-preview
+- Bump com.diffplug.gradle.spotless from 3.28.1 to 3.29.0 (#338) @dependabot-preview
+
+## 2.7.7
+
+- Fix index types exports (#323) @badsyntax
+
+## 2.7.6
+
+- Fix types exports (#322) @badsyntax
+
+## 2.7.5
+
+- Add types package (#321) @badsyntax
+- Add support for additional gradle settings (#320) @badsyntax
+
+## 2.7.4
+
+- Add runTask api (#319) @badsyntax
+- Add support for custom GRADLE_USER_HOME (#314) @badsyntax
+- Bump ts-loader from 7.0.1 to 7.0.2 in /extension (#317) @dependabot-preview
+- [Snyk] Fix for 1 vulnerabilities (#318) @snyk-bot
+
 ## 2.7.3
 
 - Freeze fix in massive projects with generated build files (#313) @badsyntax
