@@ -110,9 +110,7 @@ public class GradleProjectBuilder {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
-    org.gradle.tooling.model.GradleProject gradleProject = projectBuilder.get();
-
-    return gradleProject;
+    return projectBuilder.get();
   }
 
   private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject) {
