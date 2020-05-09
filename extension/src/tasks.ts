@@ -15,7 +15,7 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { waitOnTcp } from './util';
+import { waitOnTcp, isTest } from './util';
 import {
   Output,
   GradleProject,
@@ -23,6 +23,7 @@ import {
   GradleBuild,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
+import { OutputBuffer } from './OutputBuffer';
 
 const localize = nls.loadMessageBundle();
 
@@ -454,6 +455,12 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
+    // This is only required in the tests, so we can check the stdout of the task
+    const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
+    stdOutBuffer.onOutputLine((output: string) => {
+      logger.info(output);
+    });
+
     const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
     try {
       const javaDebugEnabled = this.task.definition.javaDebug;
@@ -467,12 +474,16 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         javaDebugPort,
         (output: Output): void => {
           this.handleOutput(output.getMessageByte());
+          if (isTest()) {
+            stdOutBuffer.write(output.getMessageByte());
+          }
         }
       );
       if (javaDebugEnabled) {
         await this.startJavaDebug(javaDebugPort!);
       }
       await runTask;
+      stdOutBuffer.dispose();
       vscode.commands.executeCommand(
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task.definition.buildFile)

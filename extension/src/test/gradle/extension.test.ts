@@ -129,14 +129,14 @@ describe(fixtureName, () => {
       let hasMessage = false;
       const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
       stdOutBuffer.onOutputLine((message: string) => {
-        if (message === 'Hello, World!') {
+        if (message.trim() === 'Hello, World!') {
           hasMessage = true;
         }
       });
       const runTaskOpts = {
         projectFolder: fixturePath,
         taskName: 'hello',
-        showOutputColors: true,
+        showOutputColors: false,
         onOutput: (output: Output): void => {
           stdOutBuffer.write(output.getMessageByte());
         },

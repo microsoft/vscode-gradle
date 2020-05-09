@@ -151,7 +151,7 @@ task buildTypeScriptTests(type: CrossPlatformExec) {
 }
 
 task bundle(type: CrossPlatformExec) {
-  dependsOn ':tasks-server:build', ':types-package:build', copyProtoJs, copyProtoTs
+  dependsOn ':tasks-server:build', ':npm-package:build', copyProtoJs, copyProtoTs
   group 'build'
   description 'Bundles the extension files for release'
   buildDir = 'dist'

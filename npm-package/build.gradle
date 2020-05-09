@@ -1,4 +1,4 @@
-description = 'vscode-gradle :: types'
+description = 'vscode-gradle :: npm-package'
 
 def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
 
@@ -15,6 +15,13 @@ task copyProtoLib(type: Copy) {
   description 'Copies genereated proto files'
   from file("../extension/src/proto")
   into protoLib
+}
+
+task copyOutputBuffer(type: Copy) {
+  group 'copy'
+  description 'Copies OutputBuffer helper class'
+  from file("../extension/src/OutputBuffer.ts")
+  into 'lib'
 }
 
 task copyPublicApiTypes(type: Copy) {
@@ -39,4 +46,8 @@ task compileTypeScript(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile'
 }
 
-assemble.finalizedBy npmInstall, compileTypeScript, copyProtoLib, copyPublicApiTypes
+assemble.finalizedBy npmInstall,
+  compileTypeScript,
+  copyProtoLib,
+  copyPublicApiTypes,
+  copyOutputBuffer
