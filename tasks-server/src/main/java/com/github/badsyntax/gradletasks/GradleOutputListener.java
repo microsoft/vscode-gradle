@@ -10,11 +10,10 @@ public abstract class GradleOutputListener extends OutputStream {
   @Override
   public final void write(int b) throws IOException {
     char c = (char) b;
+    outputStream.write(b);
     if (c == System.lineSeparator().charAt(0)) {
       onOutputChanged(outputStream);
       outputStream.reset();
-    } else {
-      outputStream.write(b);
     }
   }
 

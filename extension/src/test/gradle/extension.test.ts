@@ -126,11 +126,17 @@ describe(fixtureName, () => {
     it('should run a task using the extension api', async () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
-      await api.runTask(fixturePath, 'hello', [], (output: Output) => {
-        if (output.getMessage().trim() == 'Hello, World!') {
-          hasMessage = true;
-        }
-      });
+      const runTaskOpts = {
+        projectFolder: fixturePath,
+        taskName: 'hello',
+        showOutputColors: true,
+        onOutput: (output: Output): void => {
+          if (output.getMessage().trim() == 'Hello, World!') {
+            hasMessage = true;
+          }
+        },
+      };
+      await api.runTask(runTaskOpts);
       assert.ok(hasMessage);
     });
   });

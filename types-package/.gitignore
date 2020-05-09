@@ -32,5 +32,11 @@ build
 # proto generated files
 proto
 
-# copied types
+# these files are copied from subprojects and should not be included
 lib
+
+#sourcemaps
+*.map
+
+# generated files
+index.js

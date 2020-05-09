@@ -12,8 +12,11 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.grpc.testing.GrpcCleanupRule;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -227,6 +230,34 @@ public class GradleTasksServerTest {
   }
 
   @Test
+  public void getBuild_shouldSetColorOutput() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    GetBuildRequest req1 =
+        GetBuildRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(false)
+            .build();
+    StreamObserver<GetBuildReply> mockResponseObserver =
+        (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
+
+    stub.getBuild(req1, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockGradleProjectBuilder).setColorOutput(false);
+
+    GetBuildRequest req2 =
+        GetBuildRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(true)
+            .build();
+    stub.getBuild(req2, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockGradleProjectBuilder).setColorOutput(true);
+  }
+
+  @Test
   public void runTask_shouldSetProjectDirectory() throws IOException {
     GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
     RunTaskRequest req =
@@ -357,5 +388,63 @@ public class GradleTasksServerTest {
     assertEquals(
         "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:1111",
         setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
+  }
+
+  @Test
+  public void runTask_shouldSetStandardInput() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setInput("An input string")
+            .build();
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    ArgumentCaptor<InputStream> inputStream = ArgumentCaptor.forClass(InputStream.class);
+
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher).setStandardInput(inputStream.capture());
+    InputStreamReader isReader = new InputStreamReader(inputStream.getValue());
+    BufferedReader reader = new BufferedReader(isReader);
+    StringBuffer sb = new StringBuffer();
+    String str;
+    while ((str = reader.readLine()) != null) {
+      sb.append(str);
+    }
+    assertEquals("An input string", sb.toString());
+  }
+
+  @Test
+  public void runTask_shouldSetColorOutput() throws IOException {
+    GradleTasksGrpc.GradleTasksStub stub = GradleTasksGrpc.newStub(inProcessChannel);
+
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    RunTaskRequest req1 =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(false)
+            .build();
+
+    stub.runTask(req1, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher).setColorOutput(false);
+
+    RunTaskRequest req2 =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(true)
+            .build();
+
+    stub.runTask(req2, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher).setColorOutput(true);
   }
 }

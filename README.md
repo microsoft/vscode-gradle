@@ -94,22 +94,30 @@ You'll need to remove any `jdwp` options that might have been set in your task c
 This extension exposes a `runTask` API with the following definition:
 
 ```ts
-function runTask(
-  projectFolder: string, // absolute path of root project folder
-  taskName: string,
-  args?: ReadonlyArray<string>,
-  onOutput?: (output: Output) => void
-): Promise<void>;
+interface RunTaskOpts {
+  projectFolder: string; // absolute path
+  taskName: string;
+  args?: ReadonlyArray<string>;
+  showProgress?: boolean;
+  input?: string; // standard input
+  onOutput?: (output: Output) => void; // STDERR & STDOUT handler
+  showOutputColors: boolean;
+}
+
+function runTask(runTaskOpts: RunTaskOpts): Promise<void>;
 ```
 
-Import the API type definition like so:
+Install the API definitions:
 
 ```bash
-npm install vscode-gradle --save-dev
+npm install vscode-gradle --save
 ```
 
+Import the API definitions:
+
 ```ts
-import { ExtensionApi as GradleTasksApi } from "vscode-gradle";
+import type { ExtensionApi as GradleTasksApi } from "vscode-gradle";
+import { Output } from "vscode-gradle";
 ```
 
 You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.

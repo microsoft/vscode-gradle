@@ -103,7 +103,6 @@ spotless {
     googleJavaFormat()
     removeUnusedImports()
     trimTrailingWhitespace()
-    paddedCell()      // https://github.com/diffplug/spotless/blob/master/PADDEDCELL.md
     targetExclude "build/**"
   }
 }

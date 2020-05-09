@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 
-import { Output } from './proto/gradle_tasks_pb';
 import { GradleTaskProvider } from './tasks';
 import { GradleTasksClient } from './client';
 import { RunTaskHandler } from './runTask.d';
@@ -14,12 +13,7 @@ export function registerRunTask(
   client: GradleTasksClient,
   taskProvider: GradleTaskProvider
 ): RunTaskHandler {
-  return (
-    projectFolder: string,
-    taskName: string,
-    args?: ReadonlyArray<string>,
-    onOutput?: (output: Output) => void
-  ): Promise<void> => {
+  return (opts): Promise<void> => {
     return new Promise((resolve, reject) => {
       taskProvider.waitForLoaded(async () => {
         const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
@@ -33,20 +27,29 @@ export function registerRunTask(
             )
           );
         }
-        const task = tasks.find(({ name }) => name === taskName);
+        const task = tasks.find(({ name }) => name === opts.taskName);
         if (!task) {
           return reject(
             new Error(
               localize(
                 'extension.runTaskNotFound',
                 'Unable to find task: {0}',
-                taskName
+                opts.taskName
               )
             )
           );
         }
         client
-          .runTask(projectFolder, task, args, null, onOutput)
+          .runTask(
+            opts.projectFolder,
+            task,
+            opts.args,
+            !!opts.showProgress,
+            opts.input,
+            0,
+            opts.onOutput,
+            opts.showOutputColors
+          )
           .then(resolve, reject);
       });
     });

@@ -35,11 +35,8 @@
     "tasks"
   ],
   "activationEvents": [
-    "onCommand:workbench.action.tasks.runTask",
-    "onCommand:gradle.refresh",
     "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat",
-    "onView:gradleTreeView"
+    "workspaceContains:gradlew.bat"
   ],
   "main": "./dist/extension",
   "contributes": {
