@@ -91,7 +91,7 @@ public class GradleProjectBuilder {
             new OutputStream() {
               @Override
               public final void write(int b) throws IOException {
-                synchronized (GradleTaskRunner.class) {
+                synchronized (GradleProjectBuilder.class) {
                   replyWithStandardOutput(b);
                 }
               }
@@ -100,7 +100,7 @@ public class GradleProjectBuilder {
             new OutputStream() {
               @Override
               public final void write(int b) throws IOException {
-                synchronized (GradleTaskRunner.class) {
+                synchronized (GradleProjectBuilder.class) {
                   replyWithStandardError(b);
                 }
               }
