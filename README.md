@@ -63,7 +63,7 @@ You can use an environment manager like [direnv](https://direnv.net/) to set pro
 }
 ```
 
-Note, the VS Code settings take precedence over the environment variables.
+_Note, the VS Code settings take precedence over the environment variables._
 
 ## Debugging JavaExec Tasks
 
@@ -91,7 +91,9 @@ You'll need to remove any `jdwp` options that might have been set in your task c
 
 ## Extension API
 
-This extension exposes a `runTask` API with the following definition:
+This extension provides an API which you can use in your own 3rd-party vscode extension.
+
+At the moment only a `runTask` API is exposed, with the following definition:
 
 ```ts
 interface RunTaskOpts {
@@ -107,20 +109,51 @@ interface RunTaskOpts {
 function runTask(runTaskOpts: RunTaskOpts): Promise<void>;
 ```
 
-Install the API definitions:
+### Installation
 
 ```bash
 npm install vscode-gradle --save
 ```
 
-Import the API definitions:
+### Usage
 
 ```ts
-import type { ExtensionApi as GradleTasksApi } from "vscode-gradle";
-import { Output } from "vscode-gradle";
-```
+// Import the types
+import type {
+  ExtensionApi as GradleTasksApi,
+  RunTaskOpts,
+} from "vscode-gradle";
 
-You can use this API to run Gradle tasks. It doesn't matter when you call this method as it will wait for tasks to be loaded before running the task.
+// Import the Output & OutputBuffer classes
+import { Output, OutputBuffer } from "vscode-gradle";
+
+// These buffers are used for storing output bytes and flushing when
+// the output stream is finished or a new-line is detected.
+
+const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
+stdOutBuffer.onOutputLine((output: string) => {
+  console.log(output);
+});
+
+const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
+stdErrBuffer.onOutputLine((output: string) => {
+  console.error(output);
+});
+
+// In your `onOutput` handler
+switch (output.getOutputType()) {
+  case Output.OutputType.STDOUT:
+    stdOutBuffer.write(output.getMessageByte());
+    break;
+  case Output.OutputType.STDERR:
+    stdErrBuffer.write(output.getMessageByte());
+    break;
+  }
+}
+// It's necessary to dispose the buffers to ensure any remaining bytes are flushed
+stdOutBuffer.dispose();
+stdErrBuffer.dispose();
+```
 
 Refer to [vscode-spotless-gradle](https://github.com/badsyntax/vscode-spotless-gradle) for example API usage.
 

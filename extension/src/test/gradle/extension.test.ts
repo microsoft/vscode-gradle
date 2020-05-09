@@ -10,6 +10,7 @@ import {
 } from '../../gradleView';
 import { ExtensionApi } from '../../extension';
 import { Output } from '../../proto/gradle_tasks_pb';
+import { OutputBuffer } from '../../OutputBuffer';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -126,17 +127,22 @@ describe(fixtureName, () => {
     it('should run a task using the extension api', async () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
+      const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
+      stdOutBuffer.onOutputLine((message: string) => {
+        if (message.trim() === 'Hello, World!') {
+          hasMessage = true;
+        }
+      });
       const runTaskOpts = {
         projectFolder: fixturePath,
         taskName: 'hello',
-        showOutputColors: true,
+        showOutputColors: false,
         onOutput: (output: Output): void => {
-          if (output.getMessage().trim() == 'Hello, World!') {
-            hasMessage = true;
-          }
+          stdOutBuffer.write(output.getMessageByte());
         },
       };
       await api.runTask(runTaskOpts);
+      stdOutBuffer.dispose();
       assert.ok(hasMessage);
     });
   });

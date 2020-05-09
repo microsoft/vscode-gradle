@@ -7,7 +7,7 @@
   },
   "typescript.tsc.autoDetect": "off",
   "eslint.validate": ["javascript", "typescript"],
-  "eslint.workingDirectories": ["extension","types-package"],
+  "eslint.workingDirectories": ["extension","npm-package"],
   "java.configuration.updateBuildConfiguration": "automatic",
   "cSpell.language": "en-GB",
   "cSpell.words": [
