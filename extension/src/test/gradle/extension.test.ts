@@ -18,13 +18,8 @@ import { OutputBuffer } from '../../OutputBuffer';
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
-const fixturePath = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'test-fixtures',
-  fixtureName
+const fixturePath = vscode.Uri.file(
+  path.resolve(__dirname, '..', '..', '..', 'test-fixtures', fixtureName)
 );
 
 describe(fixtureName, () => {
@@ -138,7 +133,7 @@ describe(fixtureName, () => {
         }
       });
       const runTaskOpts: RunTaskOpts = {
-        projectFolder: fixturePath,
+        projectFolder: fixturePath.fsPath,
         taskName: 'hello',
         showOutputColors: false,
         onOutput: (output: Output): void => {
