@@ -27,7 +27,7 @@ task copyOutputBuffer(type: Copy) {
 }
 
 task copyPublicApi(type: Copy) {
-  dependsOn ':extension:bundle'
+  dependsOn ':extension:buildTypeScript'
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/out")
@@ -43,7 +43,7 @@ task npmInstall(type: CrossPlatformExec) {
 }
 
 task compileTypeScript(type: CrossPlatformExec) {
-  dependsOn npmInstall
+  dependsOn npmInstall, copyPublicApi
   description 'Compiles the TypeScript files'
   inputs.file('index.ts')
   outputs.file('index.js');
