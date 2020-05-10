@@ -3,30 +3,19 @@ import * as nls from 'vscode-nls';
 
 nls.config({ messageFormat: nls.MessageFormat.bundle })();
 
-import { GradleTasksTreeDataProvider, registerExplorer } from './gradleView';
+import { registerExplorer } from './gradleView';
 import { registerTaskProvider } from './tasks';
 import { registerServer } from './server';
-import { registerClient, GradleTasksClient } from './client';
+import { registerClient } from './client';
 import { registerCommands } from './commands';
-import { Logger, logger } from './logger';
-import { registerRunTask, RunTaskHandler } from './runTask';
+import { logger } from './logger';
 import { registerTaskManager } from './taskManager';
 import { registerBuildFileWatcher } from './buildFileWatcher';
+import { Api } from './api';
 
 const localize = nls.loadMessageBundle();
 
-export interface ExtensionApi {
-  treeDataProvider: GradleTasksTreeDataProvider;
-  context: vscode.ExtensionContext;
-  client: GradleTasksClient;
-  logger: Logger;
-  runTask: RunTaskHandler;
-  onTasksLoaded: vscode.Event<null>;
-}
-
-export async function activate(
-  context: vscode.ExtensionContext
-): Promise<ExtensionApi> {
+export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   const statusBarItem = vscode.window.createStatusBarItem();
   statusBarItem.command = 'gradle.showProcessMessage';
   statusBarItem.text = localize(
@@ -43,7 +32,6 @@ export async function activate(
   const taskProvider = registerTaskProvider(context, client);
   const taskManager = registerTaskManager(context);
   const { treeDataProvider, treeView } = registerExplorer(context);
-  const runTask = registerRunTask(client, taskProvider);
 
   registerBuildFileWatcher(context, taskProvider, taskManager);
 
@@ -56,14 +44,10 @@ export async function activate(
     taskProvider
   );
 
-  const _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
-    null
-  >();
-  const onTasksLoaded: vscode.Event<null> = _onTasksLoaded.event;
-  context.subscriptions.push(_onTasksLoaded);
-  taskProvider.waitForLoaded(() => _onTasksLoaded.fire());
+  const api = new Api(client, taskProvider, treeDataProvider);
+  context.subscriptions.push(api);
 
-  return { treeDataProvider, context, client, logger, runTask, onTasksLoaded };
+  return api;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

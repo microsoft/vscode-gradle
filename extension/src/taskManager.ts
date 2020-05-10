@@ -25,7 +25,7 @@ export class GradleTaskManager implements vscode.Disposable {
           isGradleTask(e.execution.task) &&
           getRunningGradleTasks().length === 0
         ) {
-          this._onDidEndAllTasks.fire();
+          this._onDidEndAllTasks.fire(null);
         }
       })
     );

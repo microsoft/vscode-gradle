@@ -65,7 +65,7 @@ describe(fixtureName, () => {
         const task = tasks!.find(({ name }) => name === 'hello');
         assert.ok(task);
 
-        const spy = sinon.spy(extension!.exports.logger, 'info');
+        const spy = sinon.spy(extension.exports.logger, 'info');
         await new Promise((resolve) => {
           vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {

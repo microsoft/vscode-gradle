@@ -9,6 +9,8 @@ clean {
   delete file('lib')
 }
 
+jar.enabled = false;
+
 task copyProtoLib(type: Copy) {
   dependsOn ':extension:generateProto'
   group 'copy'
@@ -24,10 +26,12 @@ task copyOutputBuffer(type: Copy) {
   into 'lib'
 }
 
-task copyPublicApiTypes(type: Copy) {
+task copyPublicApi(type: Copy) {
+  dependsOn ':extension:buildTypeScript'
   group 'copy'
   description 'Copies publc API types'
-  from file("../extension/src/runTask.d.ts")
+  from file("../extension/out")
+  include "*.d.ts"
   into 'lib'
 }
 
@@ -39,7 +43,7 @@ task npmInstall(type: CrossPlatformExec) {
 }
 
 task compileTypeScript(type: CrossPlatformExec) {
-  dependsOn npmInstall
+  dependsOn npmInstall, copyPublicApi
   description 'Compiles the TypeScript files'
   inputs.file('index.ts')
   outputs.file('index.js');
@@ -49,5 +53,5 @@ task compileTypeScript(type: CrossPlatformExec) {
 assemble.finalizedBy npmInstall,
   compileTypeScript,
   copyProtoLib,
-  copyPublicApiTypes,
+  copyPublicApi,
   copyOutputBuffer
