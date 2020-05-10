@@ -2,6 +2,18 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 2.7.11
+
+- Refactor public API and expose cancelRunTask method (#358) @badsyntax
+
+## 2.7.10
+
+- Support buffering output streams to support massive stdout payloads (#357) @badsyntax
+
+## 2.7.9
+
+- Stream output bytes to the client & fix gradle progress (#356) @badsyntax
+
 ## 2.7.8
 
 - Fix types package and improve extension API (#348) @badsyntax
