@@ -47,6 +47,10 @@ message GetBuildResult {
 }
 
 message RunTaskRequest {
+  enum OutputStream {
+    BYTES = 0;
+    STRING = 1;
+  }
   string project_dir = 1;
   string task = 2;
   repeated string args = 3;
@@ -55,6 +59,7 @@ message RunTaskRequest {
   GradleConfig gradle_config = 6;
   string input = 7;
   bool show_output_colors = 8;
+  OutputStream output_stream = 9;
 }
 
 message RunTaskResult {
@@ -141,6 +146,7 @@ message Output {
     STDOUT = 1;
   }
 
-  int32 message_byte = 1;
-  OutputType output_type = 2;
+  OutputType output_type = 1;
+  int32 message_byte = 2;
+  string message = 3;
 }

@@ -21,6 +21,7 @@ import {
   GradleProject,
   GradleTask,
   GradleBuild,
+  RunTaskRequest,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
 import { OutputBuffer } from './OutputBuffer';
@@ -477,7 +478,9 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
           if (isTest()) {
             stdOutBuffer.write(output.getMessageByte());
           }
-        }
+        },
+        true,
+        RunTaskRequest.OutputStream.BYTES
       );
       if (javaDebugEnabled) {
         await this.startJavaDebug(javaDebugPort!);

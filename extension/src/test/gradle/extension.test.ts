@@ -9,8 +9,9 @@ import {
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
 import { ExtensionApi } from '../../extension';
-import { Output } from '../../proto/gradle_tasks_pb';
+import { Output, RunTaskRequest } from '../../proto/gradle_tasks_pb';
 import { OutputBuffer } from '../../OutputBuffer';
+import { RunTaskOpts } from '../../runTask.d';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -133,13 +134,14 @@ describe(fixtureName, () => {
           hasMessage = true;
         }
       });
-      const runTaskOpts = {
+      const runTaskOpts: RunTaskOpts = {
         projectFolder: fixturePath,
         taskName: 'hello',
         showOutputColors: false,
         onOutput: (output: Output): void => {
           stdOutBuffer.write(output.getMessageByte());
         },
+        outputStream: RunTaskRequest.OutputStream.BYTES,
       };
       await api.runTask(runTaskOpts);
       stdOutBuffer.dispose();

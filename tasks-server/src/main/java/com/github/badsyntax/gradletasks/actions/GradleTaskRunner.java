@@ -3,6 +3,7 @@ package com.github.badsyntax.gradletasks.actions;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
 import com.github.badsyntax.gradletasks.Output;
+import com.github.badsyntax.gradletasks.OutputStringBuffer;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
 import com.github.badsyntax.gradletasks.RunTaskRequest;
@@ -86,27 +87,36 @@ public class GradleTaskRunner {
                     replyWithProgress(progressEvent);
                   }
                 })
-            .setStandardOutput(
-                new OutputStream() {
-                  @Override
-                  public final void write(int b) throws IOException {
-                    synchronized (GradleTaskRunner.class) {
-                      replyWithStandardOutput(b);
-                    }
-                  }
-                })
-            .setStandardError(
-                new OutputStream() {
-                  @Override
-                  public final void write(int b) throws IOException {
-                    synchronized (GradleTaskRunner.class) {
-                      replyWithStandardError(b);
-                    }
-                  }
-                })
             .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
+
+    OutputStringBuffer standardOutputStringBuffer = new OutputStringBuffer();
+    OutputStringBuffer standardErrorStringBuffer = new OutputStringBuffer();
+
+    if (req.getOutputStream() == RunTaskRequest.OutputStream.STRING) {
+      build.setStandardOutput(standardOutputStringBuffer);
+      build.setStandardError(standardErrorStringBuffer);
+    } else {
+      build.setStandardOutput(
+          new OutputStream() {
+            @Override
+            public final void write(int b) throws IOException {
+              synchronized (GradleTaskRunner.class) {
+                replyWithStandardOutput(b);
+              }
+            }
+          });
+      build.setStandardError(
+          new OutputStream() {
+            @Override
+            public final void write(int b) throws IOException {
+              synchronized (GradleTaskRunner.class) {
+                replyWithStandardError(b);
+              }
+            }
+          });
+    }
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       InputStream inputStream = new ByteArrayInputStream(req.getInput().getBytes());
@@ -124,6 +134,15 @@ public class GradleTaskRunner {
     }
 
     build.run();
+
+    if (req.getOutputStream() == RunTaskRequest.OutputStream.STRING) {
+      synchronized (GradleTaskRunner.class) {
+        replyWithStandardOutput(standardOutputStringBuffer.getOutput());
+        replyWithStandardError(standardErrorStringBuffer.getOutput());
+      }
+      standardOutputStringBuffer.close();
+      standardErrorStringBuffer.close();
+    }
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
@@ -180,6 +199,22 @@ public class GradleTaskRunner {
         RunTaskReply.newBuilder()
             .setOutput(
                 Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
+            .build());
+  }
+
+  private void replyWithStandardOutput(String message) {
+    responseObserver.onNext(
+        RunTaskReply.newBuilder()
+            .setOutput(
+                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessage(message))
+            .build());
+  }
+
+  private void replyWithStandardError(String message) {
+    responseObserver.onNext(
+        RunTaskReply.newBuilder()
+            .setOutput(
+                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessage(message))
             .build());
   }
 }

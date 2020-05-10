@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { Output } from './lib/proto/gradle_tasks_pb';
-import { RunTaskHandler, RunTaskOpts } from './lib/runTask';
+import { Output, RunTaskRequest } from './lib/proto/gradle_tasks_pb';
+import { RunTaskHandler, RunTaskOpts } from './lib/runTask.d';
 import { OutputBuffer } from './lib/OutputBuffer';
 
 interface ExtensionApi {
@@ -8,4 +8,11 @@ interface ExtensionApi {
   onTasksLoaded: vscode.Event<null>;
 }
 
-export { Output, RunTaskHandler, RunTaskOpts, OutputBuffer, ExtensionApi };
+export {
+  Output,
+  RunTaskRequest,
+  RunTaskHandler,
+  RunTaskOpts,
+  OutputBuffer,
+  ExtensionApi,
+};
