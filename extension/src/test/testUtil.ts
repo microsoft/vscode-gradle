@@ -8,7 +8,8 @@ export async function waitForExplorerRefresh(
   extension: any
 ): Promise<vscode.Task[]> {
   return await new Promise(async (resolve) => {
-    extension.exports.treeDataProvider.onDidChangeTreeData(async () => {
+    const treeDataProvider = extension!.exports.getTreeProvider();
+    treeDataProvider.onDidChangeTreeData(async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       if (tasks.length) {
         resolve(tasks);

@@ -203,6 +203,7 @@ export class GradleTasksClient implements vscode.Disposable {
     if (showProgress) {
       this.statusBarItem.show();
     }
+
     const gradleConfig = getGradleConfig();
     const request = new RunTaskRequest();
     request.setProjectDir(projectFolder);

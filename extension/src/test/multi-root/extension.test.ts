@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { waitForTasksToLoad } from '../testUtil';
+import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
@@ -65,7 +66,7 @@ describe(fixtureName, () => {
         const task = tasks!.find(({ name }) => name === 'hello');
         assert.ok(task);
 
-        const spy = sinon.spy(extension!.exports.logger, 'info');
+        const spy = sinon.spy(logger, 'info');
         await new Promise((resolve) => {
           vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {

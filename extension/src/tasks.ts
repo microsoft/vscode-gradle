@@ -53,20 +53,12 @@ export function getTaskExecution(
   return vscode.tasks.taskExecutions.find((e) => isTask(e.task, task));
 }
 
-export function generateTaskId(
+export function buildTaskId(
   projectFolder: string,
   script: string,
   project: string
 ): string {
   return projectFolder + script + project;
-}
-
-export function getTaskId(task: vscode.Task): string {
-  return generateTaskId(
-    task.definition.projectFolder,
-    task.definition.script,
-    task.definition.project
-  );
 }
 
 function isTask(task1: vscode.Task, task2: vscode.Task): boolean {
@@ -338,7 +330,7 @@ export class GradleTaskProvider
     const script = taskPath[0] === ':' ? taskPath.substr(1) : taskPath;
     const definition: GradleTaskDefinition = {
       type: 'gradle',
-      id: generateTaskId(projectFolder.fsPath, script, gradleTask.getProject()),
+      id: buildTaskId(projectFolder.fsPath, script, gradleTask.getProject()),
       script,
       description: gradleTask.getDescription(),
       group: (gradleTask.getGroup() || 'other').toLowerCase(),

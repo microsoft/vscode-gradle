@@ -8,10 +8,10 @@ import {
   GradleTaskTreeItem,
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
-import { ExtensionApi } from '../../extension';
+import { Api as ExtensionApi, RunTaskOpts } from '../../api';
 import { Output, RunTaskRequest } from '../../proto/gradle_tasks_pb';
 import { OutputBuffer } from '../../OutputBuffer';
-import { RunTaskOpts } from '../../runTask.d';
+import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -66,7 +66,8 @@ describe(fixtureName, () => {
 
     it('should refresh gradle tasks when command is executed', async () => {
       assert.ok(extension);
-      const stub = sinon.stub(extension!.exports.treeDataProvider, 'refresh');
+      const treeDataProvider = extension!.exports.getTreeProvider();
+      const stub = sinon.stub(treeDataProvider, 'refresh');
       await vscode.commands.executeCommand(refreshCommand);
       assert.ok(stub.called);
     });
@@ -76,7 +77,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension!.exports.logger, 'info');
+      const spy = sinon.spy(logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -100,7 +101,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension!.exports.logger, 'info');
+      const spy = sinon.spy(logger, 'info');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
       await new Promise((resolve) => {
@@ -152,7 +153,7 @@ describe(fixtureName, () => {
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
-      const spy = sinon.spy(extension!.exports.logger, 'info');
+      const spy = sinon.spy(logger, 'info');
       await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });

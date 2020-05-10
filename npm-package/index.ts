@@ -1,18 +1,15 @@
-import * as vscode from 'vscode';
-import { Output, RunTaskRequest } from './lib/proto/gradle_tasks_pb';
-import { RunTaskHandler, RunTaskOpts } from './lib/runTask.d';
+import {
+  Output,
+  RunTaskRequest,
+  CancelRunTaskRequest,
+} from './lib/proto/gradle_tasks_pb';
 import { OutputBuffer } from './lib/OutputBuffer';
-
-interface ExtensionApi {
-  runTask: RunTaskHandler;
-  onTasksLoaded: vscode.Event<null>;
-}
+import type { Api } from './lib/api';
 
 export {
   Output,
   RunTaskRequest,
-  RunTaskHandler,
-  RunTaskOpts,
+  CancelRunTaskRequest,
   OutputBuffer,
-  ExtensionApi,
+  Api as ExtensionApi,
 };

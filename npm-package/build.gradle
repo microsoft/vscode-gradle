@@ -24,10 +24,12 @@ task copyOutputBuffer(type: Copy) {
   into 'lib'
 }
 
-task copyPublicApiTypes(type: Copy) {
+task copyPublicApi(type: Copy) {
+  dependsOn ':extension:bundle'
   group 'copy'
   description 'Copies publc API types'
-  from file("../extension/src/runTask.d.ts")
+  from file("../extension/out")
+  include "*.d.ts"
   into 'lib'
 }
 
@@ -49,5 +51,5 @@ task compileTypeScript(type: CrossPlatformExec) {
 assemble.finalizedBy npmInstall,
   compileTypeScript,
   copyProtoLib,
-  copyPublicApiTypes,
+  copyPublicApi,
   copyOutputBuffer
