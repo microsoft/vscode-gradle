@@ -73,7 +73,7 @@ export class GradleTasksClient implements vscode.Disposable {
       logger.info(
         localize('client.connected', 'Gradle client connected to server')
       );
-      this._onConnect.fire();
+      this._onConnect.fire(null);
     }
   };
 
@@ -378,7 +378,9 @@ export class GradleTasksClient implements vscode.Disposable {
     logger.info(
       localize(
         'client.runTaskCancelled',
-        'Task cancelled: {0}',
+        // FIXME
+        'Task cancelled: {0}: {1}',
+        task.definition.script,
         cancelled.getMessage()
       )
     );

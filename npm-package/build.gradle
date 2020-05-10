@@ -9,6 +9,8 @@ clean {
   delete file('lib')
 }
 
+jar.enabled = false;
+
 task copyProtoLib(type: Copy) {
   dependsOn ':extension:generateProto'
   group 'copy'

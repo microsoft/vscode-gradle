@@ -36,7 +36,7 @@ export class Api {
     private readonly taskProvider: GradleTaskProvider,
     private readonly treeDataProvider: GradleTasksTreeDataProvider
   ) {
-    taskProvider.waitForLoaded(() => this._onTasksLoaded.fire());
+    taskProvider.waitForLoaded(() => this._onTasksLoaded.fire(null));
   }
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
@@ -69,11 +69,7 @@ export class Api {
         if (!tasks) {
           return reject(
             new Error(
-              localize(
-                // TODO
-                'extension.runTaskNoTasks',
-                'Unable to load gradle tasks'
-              )
+              localize('api.findTaskNoTasks', 'Unable to load gradle tasks')
             )
           );
         }
@@ -87,8 +83,7 @@ export class Api {
           return reject(
             new Error(
               localize(
-                // TODO
-                'extension.runTaskNotFound',
+                'api.findTaskNotFound',
                 'Unable to find task: {0}',
                 taskName
               )

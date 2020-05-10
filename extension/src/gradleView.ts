@@ -266,7 +266,7 @@ export class GradleTasksTreeDataProvider
   }
 
   render(): void {
-    this._onDidChangeTreeData.fire();
+    this._onDidChangeTreeData.fire(null);
   }
 
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {

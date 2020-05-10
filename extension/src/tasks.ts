@@ -229,7 +229,7 @@ export class GradleTaskProvider
   }
 
   public async refresh(): Promise<vscode.Task[]> {
-    this._onDidRefreshStart.fire();
+    this._onDidRefreshStart.fire(null);
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
       cachedTasks = emptyTasks;
@@ -248,8 +248,8 @@ export class GradleTaskProvider
         cachedTasks = emptyTasks;
       }
     }
-    this._onTasksLoaded.fire();
-    this._onDidRefreshStop.fire();
+    this._onTasksLoaded.fire(null);
+    this._onDidRefreshStop.fire(null);
     return cachedTasks;
   }
 
