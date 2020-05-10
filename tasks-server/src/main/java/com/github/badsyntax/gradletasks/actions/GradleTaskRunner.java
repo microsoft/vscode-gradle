@@ -12,6 +12,7 @@ import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -86,27 +87,45 @@ public class GradleTaskRunner {
                     replyWithProgress(progressEvent);
                   }
                 })
-            .setStandardOutput(
-                new OutputStream() {
-                  @Override
-                  public final void write(int b) throws IOException {
-                    synchronized (GradleTaskRunner.class) {
-                      replyWithStandardOutput(b);
-                    }
-                  }
-                })
-            .setStandardError(
-                new OutputStream() {
-                  @Override
-                  public final void write(int b) throws IOException {
-                    synchronized (GradleTaskRunner.class) {
-                      replyWithStandardError(b);
-                    }
-                  }
-                })
             .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
+
+    OutputStream standardOutputListener =
+        req.getOutputStream() == RunTaskRequest.OutputStream.STRING
+            ? new ByteArrayOutputStream() {
+              @Override
+              public synchronized void close() {
+                replyWithStandardOutput(this.toString());
+              }
+            }
+            : new OutputStream() {
+              @Override
+              public final void write(int b) throws IOException {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardOutput(b);
+                }
+              }
+            };
+    OutputStream standardErrorListener =
+        req.getOutputStream() == RunTaskRequest.OutputStream.STRING
+            ? new ByteArrayOutputStream() {
+              @Override
+              public synchronized void close() {
+                replyWithStandardError(this.toString());
+              }
+            }
+            : new OutputStream() {
+              @Override
+              public final void write(int b) throws IOException {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardError(b);
+                }
+              }
+            };
+
+    build.setStandardOutput(standardOutputListener);
+    build.setStandardError(standardErrorListener);
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       InputStream inputStream = new ByteArrayInputStream(req.getInput().getBytes());
@@ -119,11 +138,17 @@ public class GradleTaskRunner {
       }
       build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(req.getJavaDebugPort()));
     }
+
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       build.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
-    build.run();
+    try {
+      build.run();
+    } finally {
+      standardOutputListener.close();
+      standardErrorListener.close();
+    }
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
@@ -180,6 +205,22 @@ public class GradleTaskRunner {
         RunTaskReply.newBuilder()
             .setOutput(
                 Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
+            .build());
+  }
+
+  private void replyWithStandardOutput(String message) {
+    responseObserver.onNext(
+        RunTaskReply.newBuilder()
+            .setOutput(
+                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessage(message))
+            .build());
+  }
+
+  private void replyWithStandardError(String message) {
+    responseObserver.onNext(
+        RunTaskReply.newBuilder()
+            .setOutput(
+                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessage(message))
             .build());
   }
 }

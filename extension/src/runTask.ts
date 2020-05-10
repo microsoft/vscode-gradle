@@ -48,7 +48,8 @@ export function registerRunTask(
             opts.input,
             0,
             opts.onOutput,
-            opts.showOutputColors
+            opts.showOutputColors,
+            opts.outputStream
           )
           .then(resolve, reject);
       });

@@ -194,7 +194,11 @@ export class GradleTasksClient implements vscode.Disposable {
     input = '',
     javaDebugPort = 0,
     onOutput?: (output: Output) => void,
-    showOutputColors = true
+    showOutputColors = true,
+    outputStream:
+      | typeof RunTaskRequest.OutputStream.BYTES
+      | typeof RunTaskRequest.OutputStream.STRING = RunTaskRequest.OutputStream
+      .BYTES
   ): Promise<void> {
     if (showProgress) {
       this.statusBarItem.show();
@@ -209,6 +213,7 @@ export class GradleTasksClient implements vscode.Disposable {
     request.setShowOutputColors(showOutputColors);
     request.setJavaDebugPort(javaDebugPort);
     request.setInput(input);
+    request.setOutputStream(outputStream);
 
     const runTaskStream = this.grpcClient!.runTask(request);
     try {

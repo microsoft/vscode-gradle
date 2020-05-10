@@ -126,10 +126,17 @@ import type {
 
 // Import the Output & OutputBuffer classes
 import { Output, OutputBuffer } from "vscode-gradle";
+```
 
+#### Working with output streams
+
+The `runTask` request can stream stdout/sterr with bytes or one single large string. You can control this behaviour via `RunTaskOpts.outputStream`.
+
+If you're working with bytes, this package provides some helper classes:
+
+```ts
 // These buffers are used for storing output bytes and flushing when
-// the output stream is finished or a new-line is detected.
-
+// the output stream is finished or when a new-line is detected.
 const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
 stdOutBuffer.onOutputLine((output: string) => {
   console.log(output);

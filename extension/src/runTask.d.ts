@@ -1,4 +1,4 @@
-import { Output } from './proto/gradle_tasks_pb';
+import { Output, RunTaskRequest } from './proto/gradle_tasks_pb';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -8,6 +8,9 @@ export interface RunTaskOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
+  outputStream:
+    | typeof RunTaskRequest.OutputStream.BYTES
+    | typeof RunTaskRequest.OutputStream.STRING;
 }
 
 export type RunTaskHandler = (runTaskOpts: RunTaskOpts) => Promise<void>;
