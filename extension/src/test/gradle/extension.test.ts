@@ -1,3 +1,6 @@
+// Note vscode is launch with webpack compiled files and the test with
+// typescript compiled files, which is why we can't mock files directly.
+
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
@@ -11,7 +14,6 @@ import {
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
 import { Output, RunTaskRequest } from '../../proto/gradle_tasks_pb';
 import { OutputBuffer } from '../../OutputBuffer';
-import { logger } from '../../logger';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -77,7 +79,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const spy = sinon.spy(logger, 'info');
+      const spy = sinon.spy(extension?.exports.logger, 'info');
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -101,7 +103,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-      const spy = sinon.spy(logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'info');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
       await new Promise((resolve) => {
@@ -153,7 +155,7 @@ describe(fixtureName, () => {
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
-      const spy = sinon.spy(logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'info');
       await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });

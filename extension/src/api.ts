@@ -4,6 +4,7 @@ import { GradleTaskProvider, GradleTaskDefinition } from './tasks';
 import { GradleTasksClient } from './client';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import { RunTaskRequest, Output } from './proto/gradle_tasks_pb';
+import { logger } from './logger';
 
 const localize = nls.loadMessageBundle();
 
@@ -30,6 +31,9 @@ export class Api {
     null
   > = new vscode.EventEmitter<null>();
   public onTasksLoaded: vscode.Event<null> = this._onTasksLoaded.event;
+
+  // To allow the tests to check for task logs
+  public logger = logger;
 
   constructor(
     private readonly client: GradleTasksClient,

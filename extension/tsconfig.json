@@ -8,7 +8,7 @@
     "strict": true,
     "rootDir": "src",
     "noUnusedLocals": true,
-    "allowJs": true,
+    "allowJs": true, // to support compiling the generated proto js files
     "declaration": true
   },
   "exclude": ["node_modules", ".vscode-test", "build"],
