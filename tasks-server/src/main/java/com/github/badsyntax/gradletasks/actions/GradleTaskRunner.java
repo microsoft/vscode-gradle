@@ -7,12 +7,12 @@ import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
 import com.github.badsyntax.gradletasks.RunTaskRequest;
 import com.github.badsyntax.gradletasks.RunTaskResult;
+import com.github.badsyntax.gradletasks.StringBufferOutputStream;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -93,10 +93,12 @@ public class GradleTaskRunner {
 
     OutputStream standardOutputListener =
         req.getOutputStream() == RunTaskRequest.OutputStream.STRING
-            ? new ByteArrayOutputStream() {
+            ? new StringBufferOutputStream() {
               @Override
-              public synchronized void close() {
-                replyWithStandardOutput(this.toString());
+              public void onClose(String output) {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardOutput(output);
+                }
               }
             }
             : new OutputStream() {
@@ -109,10 +111,12 @@ public class GradleTaskRunner {
             };
     OutputStream standardErrorListener =
         req.getOutputStream() == RunTaskRequest.OutputStream.STRING
-            ? new ByteArrayOutputStream() {
+            ? new StringBufferOutputStream() {
               @Override
-              public synchronized void close() {
-                replyWithStandardError(this.toString());
+              public void onClose(String output) {
+                synchronized (GradleTaskRunner.class) {
+                  replyWithStandardError(output);
+                }
               }
             }
             : new OutputStream() {
