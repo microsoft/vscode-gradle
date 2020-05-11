@@ -14,9 +14,11 @@ public abstract class StringBufferOutputStream extends OutputStream {
 
   @Override
   public void close() throws IOException {
-    onClose(outputStream.toString());
-    outputStream.reset();
-    outputStream.close();
+    if (outputStream.size() > 0) {
+      onClose(outputStream.toString());
+      outputStream.reset();
+      outputStream.close();
+    }
   }
 
   public abstract void onClose(String output);
