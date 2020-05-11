@@ -33,13 +33,13 @@ export default class BuildFileWatcher implements vscode.Disposable {
   stop(): void {
     if (this.fileSystemWatcher) {
       this.dispose();
-      this.fileSystemWatcher = undefined;
       logger.debug('Build file watcher stopped');
     }
   }
 
   dispose(): void {
     this.fileSystemWatcher?.dispose();
+    this.fileSystemWatcher = undefined;
   }
 }
 
