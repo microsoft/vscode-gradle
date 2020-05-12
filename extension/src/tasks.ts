@@ -3,19 +3,16 @@ import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
 import * as os from 'os';
+import * as util from 'util';
 
 import {
   getConfigIsAutoDetectionEnabled,
   getConfigJavaHome,
-  ConfigTaskPresentationOptionsRevealKind,
-  ConfigTaskPresentationOptionsPanelKind,
-  ConfigTaskPresentationOptions,
-  getConfigTaskPresentationOptions,
   getGradleConfig,
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { waitOnTcp, isTest } from './util';
+import { waitOnTcp /*, isTest*/ } from './util';
 import {
   Output,
   GradleProject,
@@ -45,8 +42,8 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
-let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
+let cachedTasks: vscode.Task[] = [];
 
 export function getTaskExecution(
   task: vscode.Task
@@ -67,7 +64,7 @@ function isTask(task1: vscode.Task, task2: vscode.Task): boolean {
 }
 
 export function isGradleTask(task: vscode.Task): boolean {
-  return task.source === 'gradle' && task.name !== SERVER_TASK_NAME;
+  return task.definition.type === 'gradle' && task.name !== SERVER_TASK_NAME;
 }
 
 export function getRunningGradleTasks(): vscode.Task[] {
@@ -75,13 +72,6 @@ export function getRunningGradleTasks(): vscode.Task[] {
     .filter(({ task }) => isGradleTask(task))
     .map(({ task }) => task);
 }
-
-// export function cancelRunningGradleTasks(): void {
-//   const tasks = getRunningGradleTasks();
-//   tasks.forEach((task) =>
-//     vscode.commands.executeCommand('gradle.cancelTask', task)
-//   );
-// }
 
 export function cancelTask(
   client: GradleTasksClient,
@@ -127,17 +117,6 @@ function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
     absolute: true,
   });
   return files[0];
-}
-
-function getTaskPresentationOptions(): vscode.TaskPresentationOptions {
-  const configTaskPresentationOptions: ConfigTaskPresentationOptions = getConfigTaskPresentationOptions();
-  return {
-    ...configTaskPresentationOptions,
-    ...{
-      panel: getTaskPanelKind(configTaskPresentationOptions.panel),
-      reveal: getTaskRevealKind(configTaskPresentationOptions.reveal),
-    },
-  };
 }
 
 type callback = () => void;
@@ -206,7 +185,6 @@ export class GradleTaskProvider
     folders: readonly vscode.WorkspaceFolder[]
   ): Promise<vscode.Task[]> {
     const allTasks: vscode.Task[] = [];
-    const taskPresentationOptions = getTaskPresentationOptions();
     for (const workspaceFolder of folders) {
       if (getConfigIsAutoDetectionEnabled(workspaceFolder)) {
         const buildFile = getGradleBuildFile(workspaceFolder);
@@ -223,8 +201,7 @@ export class GradleTaskProvider
             ...this.getVSCodeTasksFromGradleProject(
               workspaceFolder,
               workspaceFolder.uri,
-              gradleProject,
-              taskPresentationOptions
+              gradleProject
             )
           );
         }
@@ -280,8 +257,7 @@ export class GradleTaskProvider
   private getVSCodeTasksFromGradleProject(
     workspaceFolder: vscode.WorkspaceFolder,
     projectFolder: vscode.Uri,
-    gradleProject: GradleProject,
-    presentationOptions: vscode.TaskPresentationOptions
+    gradleProject: GradleProject
   ): vscode.Task[] {
     const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
     const vsCodeTasks = [];
@@ -293,8 +269,7 @@ export class GradleTaskProvider
             workspaceFolder,
             gradleTask.getRootproject(),
             gradleTask.getBuildfile(),
-            projectFolder,
-            presentationOptions
+            projectFolder
           )
         )
       );
@@ -312,8 +287,7 @@ export class GradleTaskProvider
         ...this.getVSCodeTasksFromGradleProject(
           workspaceFolder,
           projectFolder,
-          project,
-          presentationOptions
+          project
         )
       );
     });
@@ -326,12 +300,10 @@ export class GradleTaskProvider
     rootProject: string,
     buildFile: string,
     projectFolder: vscode.Uri,
-    presentationOptions: vscode.TaskPresentationOptions,
     args = '',
     javaDebug = false
   ): vscode.Task {
     const taskPath = gradleTask.getPath();
-    // Fastest op, tested with jsperf
     const script = taskPath[0] === ':' ? taskPath.substr(1) : taskPath;
     const definition: GradleTaskDefinition = {
       type: 'gradle',
@@ -351,8 +323,7 @@ export class GradleTaskProvider
       definition,
       workspaceFolder,
       projectFolder,
-      this.client,
-      presentationOptions
+      this.client
     );
   }
 }
@@ -377,42 +348,45 @@ export function getGradleTasksServerCommand(): string {
   }
 }
 
-function isTaskOfType(definition: GradleTaskDefinition, type: string): boolean {
-  return definition.group.toLowerCase() === type;
-}
-
 class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private writeEmitter = new vscode.EventEmitter<string>();
   public onDidWrite: vscode.Event<string> = this.writeEmitter.event;
   private closeEmitter = new vscode.EventEmitter<void>();
+  private task?: vscode.Task;
   onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
     private readonly client: GradleTasksClient,
-    private readonly projectFolder: string,
-    private readonly task: vscode.Task
+    private readonly projectFolder: string
   ) {}
+
+  public setTask(task: vscode.Task): void {
+    this.task = task;
+  }
 
   open(): void {
     this.doBuild();
   }
 
   close(): void {
-    if (isTaskRunning(this.task)) {
+    if (this.task && isTaskRunning(this.task)) {
       vscode.commands.executeCommand('gradle.cancelTask');
     }
   }
 
-  private handleOutput(messageByte: number): void {
-    if (messageByte) {
-      let char = String.fromCharCode(messageByte);
-      if (char === os.EOL) {
-        // Note writing `\n` will just move the cursor down 1 row, you need to write `\r` as well
-        // to move the cursor to the left-most cell.
-        char = '\n\r';
-      }
-      this.write(char);
+  private handleOutput(messageBytes: Uint8Array): void {
+    if (messageBytes.length) {
+      const string = new util.TextDecoder('utf-8')
+        .decode(messageBytes)
+        .split('')
+        .map((char: string) => {
+          // Note writing `\n` will just move the cursor down 1 row, you need to write `\r` as well
+          // to move the cursor to the left-most cell.
+          return char === os.EOL ? (char = '\n\r') : char;
+        })
+        .join('');
+      this.write(string);
     }
   }
 
@@ -460,21 +434,24 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
       logger.info(output.trim());
     });
 
-    const args: string[] = this.task.definition.args.split(' ').filter(Boolean);
+    const args: string[] = this.task!.definition.args.split(' ').filter(
+      Boolean
+    );
     try {
-      const javaDebugEnabled = this.task.definition.javaDebug;
+      const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
       const runTask = this.client.runTask(
         this.projectFolder,
-        this.task,
+        this.task!,
         args,
         '',
         javaDebugPort,
         (output: Output): void => {
-          this.handleOutput(output.getMessageByte());
-          if (isTest()) {
-            stdOutBuffer.write(output.getMessageByte());
-          }
+          console.log('output', output);
+          this.handleOutput(output.getOutputBytes_asU8());
+          // if (isTest()) {
+          //   stdOutBuffer.write(output.getMessageBytes());
+          // }
         },
         true,
         RunTaskRequest.OutputStream.BYTES
@@ -486,12 +463,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
       stdOutBuffer.dispose();
       vscode.commands.executeCommand(
         'gradle.updateJavaProjectConfiguration',
-        vscode.Uri.file(this.task.definition.buildFile)
+        vscode.Uri.file(this.task!.definition.buildFile)
       );
     } finally {
-      setTimeout(() => {
-        this.closeEmitter.fire();
-      }, 100); // give the UI some time to render the terminal
+      this.closeEmitter.fire();
     }
   }
 
@@ -503,53 +478,36 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 }
 
-function getTaskPanelKind(
-  panel: ConfigTaskPresentationOptionsPanelKind
-): vscode.TaskPanelKind {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-  // @ts-ignore
-  return vscode.TaskPanelKind[panel[0].toUpperCase() + panel.substr(1)];
-}
-
-function getTaskRevealKind(
-  reveal: ConfigTaskPresentationOptionsRevealKind
-): vscode.TaskRevealKind {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-  // @ts-ignore
-  return vscode.TaskRevealKind[reveal[0].toUpperCase() + reveal.substr(1)];
-}
-
 export function createTaskFromDefinition(
   definition: GradleTaskDefinition,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri,
-  client: GradleTasksClient,
-  presentationOptions: vscode.TaskPresentationOptions
+  client: GradleTasksClient
 ): vscode.Task {
+  const terminal = new CustomBuildTaskTerminal(
+    workspaceFolder,
+    client,
+    projectFolder.fsPath
+  );
   const task = new vscode.Task(
     definition,
     workspaceFolder,
     definition.script,
     'gradle',
     new vscode.CustomExecution(
-      async (): Promise<vscode.Pseudoterminal> => {
-        return new CustomBuildTaskTerminal(
-          workspaceFolder,
-          client,
-          projectFolder.fsPath,
-          task
-        );
-      }
+      async (): Promise<vscode.Pseudoterminal> => terminal
     ),
     ['$gradle']
   );
-  task.presentationOptions = presentationOptions;
-  // if (isTaskOfType(definition, 'build')) {
-  //   task.group = vscode.TaskGroup.Build;
-  // }
-  if (isTaskOfType(definition, 'test')) {
-    task.group = vscode.TaskGroup.Test;
-  }
+  task.presentationOptions = {
+    showReuseMessage: false,
+    clear: true,
+    echo: true,
+    focus: true,
+    panel: vscode.TaskPanelKind.Shared,
+    reveal: vscode.TaskRevealKind.Always,
+  };
+  terminal.setTask(task);
   return task;
 }
 
@@ -569,8 +527,7 @@ export function cloneTask(
     definition as GradleTaskDefinition,
     folder,
     vscode.Uri.file(definition.projectFolder),
-    client,
-    task.presentationOptions
+    client
   );
 }
 
@@ -612,17 +569,19 @@ export function buildGradleServerTask(
   return task;
 }
 
-export async function handleCancelledTask(task: vscode.Task): Promise<void> {
+export function restartTask(task: vscode.Task): void {
+  const restartingTask = getRestartingTask(task);
+  if (restartingTask) {
+    restartingTasks.delete(restartingTask.definition.id);
+    vscode.tasks.executeTask(restartingTask);
+  }
+}
+
+export async function removeCancellingTask(task: vscode.Task): Promise<void> {
   const cancellingTask = getCancellingTask(task);
   if (cancellingTask) {
     cancellingTasks.delete(cancellingTask.definition.id);
   }
-  const restartingTask = getRestartingTask(task);
-  if (restartingTask) {
-    vscode.tasks.executeTask(restartingTask);
-    restartingTasks.delete(restartingTask.definition.id);
-  }
-  vscode.commands.executeCommand('gradle.renderTask', task);
 }
 
 export function runTask(
@@ -640,14 +599,15 @@ export function runTask(
   }
 }
 
-export function restartTask(
+export function queueRestartTask(
   client: GradleTasksClient,
   treeDataProvider: GradleTasksTreeDataProvider,
   task: vscode.Task
 ): void {
   if (isTaskRunning(task)) {
     restartingTasks.set(task.definition.id, task);
-    cancelTask(client, treeDataProvider, task); // after it's cancelled, it will restart
+    // Once the task is cancelled it's restarted via onDidEndTask
+    cancelTask(client, treeDataProvider, task);
   }
 }
 
@@ -686,5 +646,14 @@ export function registerTaskProvider(
   const taskProvider = vscode.tasks.registerTaskProvider('gradle', provider);
 
   context.subscriptions.push(taskProvider);
+
+  context.subscriptions.push(
+    vscode.tasks.onDidEndTask((event: vscode.TaskEndEvent) => {
+      const { task } = event.execution;
+      if (isGradleTask(task)) {
+        restartTask(task);
+      }
+    })
+  );
   return provider;
 }

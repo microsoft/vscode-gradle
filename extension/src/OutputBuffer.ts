@@ -1,3 +1,4 @@
+import * as util from 'util';
 import * as vscode from 'vscode';
 import { Output } from './proto/gradle_tasks_pb';
 
@@ -18,12 +19,16 @@ export class OutputBuffer implements vscode.Disposable {
     return this.outputType;
   }
 
-  public write(byte: number): void {
-    const char = String.fromCharCode(byte);
-    this.buffer += char;
-    if (char === '\n' || char === '\r\n') {
-      this.flush();
-    }
+  public write(messageBytes: Uint8Array): void {
+    new util.TextDecoder('utf-8')
+      .decode(messageBytes)
+      .split('')
+      .forEach((char: string) => {
+        this.buffer += char;
+        if (char === '\n' || char === '\r\n') {
+          this.flush();
+        }
+      });
   }
 
   public dispose(): void {

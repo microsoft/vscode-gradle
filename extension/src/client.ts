@@ -23,7 +23,7 @@ import {
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
-import { handleCancelledTask, GradleTaskDefinition } from './tasks';
+import { removeCancellingTask, GradleTaskDefinition } from './tasks';
 import { getGradleConfig } from './config';
 import { OutputBuffer, OutputType } from './OutputBuffer';
 
@@ -149,12 +149,12 @@ export class GradleTasksClient implements vscode.Disposable {
                     switch (getBuildReply.getOutput()!.getOutputType()) {
                       case Output.OutputType.STDOUT:
                         stdOutBuffer.write(
-                          getBuildReply.getOutput()!.getMessageByte()
+                          getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
                         break;
                       case Output.OutputType.STDERR:
                         stdErrBuffer.write(
-                          getBuildReply.getOutput()!.getMessageByte()
+                          getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
                         break;
                     }
@@ -312,7 +312,7 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       logger.debug(cancelRunTaskReply.getMessage());
       if (!cancelRunTaskReply.getTaskRunning()) {
-        handleCancelledTask(task);
+        removeCancellingTask(task);
       }
     } catch (err) {
       logger.error(
@@ -411,7 +411,7 @@ export class GradleTasksClient implements vscode.Disposable {
         cancelled.getMessage()
       )
     );
-    handleCancelledTask(task);
+    removeCancellingTask(task);
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {

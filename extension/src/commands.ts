@@ -9,8 +9,8 @@ import {
   GradleTaskProvider,
   runTask,
   runTaskWithArgs,
-  restartTask,
   getTaskExecution,
+  queueRestartTask,
 } from './tasks';
 import { getConfigIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
@@ -111,7 +111,7 @@ function registerRestartTaskCommand(
       if (treeItem && treeItem.task) {
         const taskExecution = getTaskExecution(treeItem.task);
         if (taskExecution) {
-          restartTask(client, treeDataProvider, taskExecution.task);
+          queueRestartTask(client, treeDataProvider, taskExecution.task);
         }
       }
     }
@@ -210,48 +210,6 @@ function registerExplorerFlatCommand(
   });
 }
 
-// function registerCancelGradleProcessesCommand(
-//   client: GradleTasksClient,
-//   statusBarItem: vscode.StatusBarItem
-// ): vscode.Disposable {
-//   return vscode.commands.registerCommand('gradle.cancelGradleProcesses', () => {
-//     try {
-//       client.cancelGetBuilds();
-//       cancelRunningGradleTasks();
-//       statusBarItem.hide();
-//     } catch (e) {
-//       localize(
-//         'commands.errorCancellingTasks',
-//         'Error cancelling tasks: {0}',
-//         e.message
-//       );
-//     }
-//   });
-// }
-
-// function registerShowProcessMessageCommand(): vscode.Disposable {
-//   return vscode.commands.registerCommand(
-//     'gradle.showProcessMessage',
-//     async () => {
-//       const OPT_LOGS = localize('commands.process.viewLogs', 'View Logs');
-//       const OPT_CANCEL = localize(
-//         'commands.process.cancelProcess',
-//         'Cancel Process'
-//       );
-//       const input = await vscode.window.showInformationMessage(
-//         localize('commands.process.gradleTasksProcess', 'Gradle Tasks Process'),
-//         OPT_LOGS,
-//         OPT_CANCEL
-//       );
-//       if (input === OPT_LOGS) {
-//         vscode.commands.executeCommand('gradle.showLogs');
-//       } else if (input === OPT_CANCEL) {
-//         vscode.commands.executeCommand('gradle.cancelGradleProcesses');
-//       }
-//     }
-//   );
-// }
-
 function registerOpenSettingsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand('gradle.openSettings', (): void => {
     vscode.commands.executeCommand(
@@ -336,8 +294,6 @@ export function registerCommands(
     registerRefreshCommand(taskProvider, treeDataProvider),
     registerExplorerTreeCommand(treeDataProvider),
     registerExplorerFlatCommand(treeDataProvider),
-    // registerCancelGradleProcessesCommand(client, statusBarItem),
-    // registerShowProcessMessageCommand(),
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),

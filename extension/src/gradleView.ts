@@ -481,6 +481,12 @@ export function registerExplorer(
           await focusTaskInTree(treeView, task);
         }
       }
+    }),
+    vscode.tasks.onDidEndTask((event: vscode.TaskEndEvent) => {
+      const { task } = event.execution;
+      if (isGradleTask(task)) {
+        treeDataProvider.renderTask(task);
+      }
     })
   );
   return { treeDataProvider, treeView };

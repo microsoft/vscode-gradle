@@ -1,5 +1,6 @@
 package com.github.badsyntax.gradletasks.actions;
 
+import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.Environment;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
@@ -15,9 +16,10 @@ import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.google.common.base.Strings;
+import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Set;
 import org.gradle.tooling.BuildCancelledException;
@@ -102,20 +104,20 @@ public class GradleProjectBuilder {
         .withCancellationToken(CancellationHandler.getBuildCancellationToken(getCancellationKey()))
         .addProgressListener(progressListener, progressEvents)
         .setStandardOutput(
-            new OutputStream() {
+            new ByteBufferOutputStream() {
               @Override
-              public final void write(int b) throws IOException {
+              public void onFlush(ByteArrayOutputStream outputStream) {
                 synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardOutput(b);
+                  replyWithStandardOutput(outputStream);
                 }
               }
             })
         .setStandardError(
-            new OutputStream() {
+            new ByteBufferOutputStream() {
               @Override
-              public final void write(int b) throws IOException {
+              public void onFlush(ByteArrayOutputStream outputStream) {
                 synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardError(b);
+                  replyWithStandardError(outputStream);
                 }
               }
             })
@@ -206,19 +208,25 @@ public class GradleProjectBuilder {
             .build());
   }
 
-  private void replyWithStandardOutput(int b) {
+  private void replyWithStandardOutput(ByteArrayOutputStream outputStream) {
+    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessageByte(b))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDOUT)
+                    .setOutputBytes(byteString))
             .build());
   }
 
-  private void replyWithStandardError(int b) {
+  private void replyWithStandardError(ByteArrayOutputStream outputStream) {
+    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDERR)
+                    .setOutputBytes(byteString))
             .build());
   }
 }

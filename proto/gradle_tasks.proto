@@ -147,6 +147,6 @@ message Output {
   }
 
   OutputType output_type = 1;
-  int32 message_byte = 2;
-  string message = 3;
+  bytes output_bytes = 2;
+  string output_string = 3;
 }
