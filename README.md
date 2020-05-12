@@ -100,7 +100,6 @@ interface RunTaskOpts {
   projectFolder: string; // absolute path
   taskName: string;
   args?: ReadonlyArray<string>;
-  showProgress?: boolean;
   input?: string; // standard input
   onOutput?: (output: Output) => void; // STDERR & STDOUT handler
   showOutputColors: boolean;

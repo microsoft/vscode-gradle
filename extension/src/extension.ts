@@ -28,7 +28,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
 
   const server = registerServer({ host: 'localhost' }, context);
-  const client = registerClient(server, statusBarItem, context);
+  const client = registerClient(server, context);
   const taskProvider = registerTaskProvider(context, client);
   const taskManager = registerTaskManager(context);
   const { treeDataProvider, treeView } = registerExplorer(context);

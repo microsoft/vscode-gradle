@@ -25,6 +25,7 @@ import {
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
 import { OutputBuffer } from './OutputBuffer';
+import { GradleTasksTreeDataProvider } from './gradleView';
 
 const localize = nls.loadMessageBundle();
 
@@ -75,18 +76,22 @@ export function getRunningGradleTasks(): vscode.Task[] {
     .map(({ task }) => task);
 }
 
-export function cancelRunningGradleTasks(): void {
-  const tasks = getRunningGradleTasks();
-  tasks.forEach((task) =>
-    vscode.commands.executeCommand('gradle.cancelTask', task)
-  );
-}
+// export function cancelRunningGradleTasks(): void {
+//   const tasks = getRunningGradleTasks();
+//   tasks.forEach((task) =>
+//     vscode.commands.executeCommand('gradle.cancelTask', task)
+//   );
+// }
 
-export function cancelTask(task: vscode.Task): void {
-  const execution = getTaskExecution(task);
-  if (execution) {
-    execution.terminate();
+export function cancelTask(
+  client: GradleTasksClient,
+  treeDataProvider: GradleTasksTreeDataProvider,
+  task: vscode.Task
+): void {
+  if (isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
+    treeDataProvider.renderTask(task);
+    client.cancelRunTask(task);
   }
 }
 
@@ -395,7 +400,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   close(): void {
     if (isTaskRunning(this.task)) {
-      this.client.cancelRunTask(this.task);
+      vscode.commands.executeCommand('gradle.cancelTask');
     }
   }
 
@@ -403,8 +408,9 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     if (messageByte) {
       let char = String.fromCharCode(messageByte);
       if (char === os.EOL) {
-        // This fixes weird whitespace issues in the terminal
-        char = '\r\n';
+        // Note writing `\n` will just move the cursor down 1 row, you need to write `\r` as well
+        // to move the cursor to the left-most cell.
+        char = '\n\r';
       }
       this.write(char);
     }
@@ -462,7 +468,6 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         this.projectFolder,
         this.task,
         args,
-        true,
         '',
         javaDebugPort,
         (output: Output): void => {
@@ -635,10 +640,14 @@ export function runTask(
   }
 }
 
-export function restartTask(task: vscode.Task): void {
+export function restartTask(
+  client: GradleTasksClient,
+  treeDataProvider: GradleTasksTreeDataProvider,
+  task: vscode.Task
+): void {
   if (isTaskRunning(task)) {
     restartingTasks.set(task.definition.id, task);
-    cancelTask(task); // after it's cancelled, it will restart
+    cancelTask(client, treeDataProvider, task); // after it's cancelled, it will restart
   }
 }
 
@@ -667,37 +676,9 @@ export function registerTaskProvider(
   context: vscode.ExtensionContext,
   client: GradleTasksClient
 ): GradleTaskProvider {
-<<<<<<< HEAD
   function handleWorkspaceFoldersChange(): void {
     vscode.commands.executeCommand('gradle.refresh');
   }
-=======
-  function handleBuildFileChange(uri: vscode.Uri): void {
-    const hasRunningTasks = getRunningGradleTasks().length;
-    // We check if there are running tasks to prevent an infinite loop
-    // when tasks generate gradle projects (eg for test fixtures).
-    // We can't limit this to known .gradle files as we don't know which ones
-    // are part of the multi-project build.
-    // TODO: for some reason this fires even if there are no running tasks
-    // Check for cancelling tasks also to fix (i think)
-    if (!hasRunningTasks) {
-      console.log('uri', uri);
-      vscode.commands.executeCommand('gradle.refresh');
-    }
-  }
-  function handleWorkspaceFoldersChange(): void {
-    vscode.commands.executeCommand('gradle.refresh');
-  }
-  const buildFileGlob = `**/*.{gradle,gradle.kts}`;
-
-  // Getting HIGH cpu usage when running gradle build
-  // Should remove the watcher when running tasks to improve perofmerance
-  const watcher = vscode.workspace.createFileSystemWatcher(buildFileGlob);
-  context.subscriptions.push(watcher);
-  watcher.onDidChange(handleBuildFileChange);
-  watcher.onDidDelete(handleBuildFileChange);
-  watcher.onDidCreate(handleBuildFileChange);
->>>>>>> Foo
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(handleWorkspaceFoldersChange)
   );

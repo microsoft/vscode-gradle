@@ -130,8 +130,7 @@ task buildTypeScript(type: CrossPlatformExec) {
   dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript source files'
-  buildDir = 'out'
-  outputs.dir(buildDir)
+  outputs.dir('dist')
   inputs.dir('src')
   inputs.file('webpack.config.js')
   inputs.file('tsconfig.json')

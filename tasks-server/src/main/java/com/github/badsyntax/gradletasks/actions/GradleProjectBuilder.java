@@ -18,13 +18,17 @@ import com.google.common.base.Strings;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashSet;
+import java.util.Set;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
-import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
+import org.gradle.tooling.events.OperationType;
+import org.gradle.tooling.events.ProgressEvent;
+import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
@@ -79,14 +83,24 @@ public class GradleProjectBuilder {
 
     ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
         connection.model(org.gradle.tooling.model.GradleProject.class);
+
+    Set<OperationType> progressEvents = new HashSet<>();
+    progressEvents.add(OperationType.PROJECT_CONFIGURATION);
+    progressEvents.add(OperationType.TASK);
+
+    ProgressListener progressListener =
+        new ProgressListener() {
+          @Override
+          public void statusChanged(ProgressEvent event) {
+            synchronized (GradleProjectBuilder.class) {
+              replyWithProgress(event);
+            }
+          }
+        };
+    // Set<OperationType> eventTypes
     projectBuilder
         .withCancellationToken(CancellationHandler.getBuildCancellationToken(getCancellationKey()))
-        .addProgressListener(
-            (ProgressEvent progressEvent) -> {
-              synchronized (GradleProjectBuilder.class) {
-                replyWithProgress(progressEvent);
-              }
-            })
+        .addProgressListener(progressListener, progressEvents)
         .setStandardOutput(
             new OutputStream() {
               @Override
@@ -188,7 +202,7 @@ public class GradleProjectBuilder {
   private void replyWithProgress(ProgressEvent progressEvent) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
-            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDescription()))
+            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
             .build());
   }
 

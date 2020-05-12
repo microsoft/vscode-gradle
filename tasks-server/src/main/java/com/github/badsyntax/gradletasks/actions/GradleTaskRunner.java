@@ -17,14 +17,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.GradleConnector;
-import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
+import org.gradle.tooling.events.OperationType;
+import org.gradle.tooling.events.ProgressEvent;
+import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,17 +80,26 @@ public class GradleTaskRunner {
   }
 
   public void runTask(ProjectConnection connection) throws GradleTaskRunnerException, IOException {
+    Set<OperationType> progressEvents = new HashSet<>();
+    progressEvents.add(OperationType.PROJECT_CONFIGURATION);
+    progressEvents.add(OperationType.TASK);
+
+    ProgressListener progressListener =
+        new ProgressListener() {
+          @Override
+          public void statusChanged(ProgressEvent event) {
+            synchronized (GradleTaskRunner.class) {
+              replyWithProgress(event);
+            }
+          }
+        };
+
     BuildLauncher build =
         connection
             .newBuild()
             .withCancellationToken(
                 CancellationHandler.getRunTaskCancellationToken(getCancellationKey()))
-            .addProgressListener(
-                (ProgressEvent progressEvent) -> {
-                  synchronized (GradleTaskRunner.class) {
-                    replyWithProgress(progressEvent);
-                  }
-                })
+            .addProgressListener(progressListener, progressEvents)
             .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
@@ -192,7 +205,7 @@ public class GradleTaskRunner {
   private void replyWithProgress(ProgressEvent progressEvent) {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
-            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDescription()))
+            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
             .build());
   }
 
