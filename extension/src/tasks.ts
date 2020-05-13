@@ -383,7 +383,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         .map((char: string) => {
           // Note writing `\n` will just move the cursor down 1 row, you need to write `\r` as well
           // to move the cursor to the left-most cell.
-          return char === os.EOL ? (char = '\n\r') : char;
+          return char === os.EOL ? '\n\r' : char;
         })
         .join('');
       this.write(string);
