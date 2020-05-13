@@ -540,7 +540,7 @@
     "snyk": "^1.319.2",
     "ts-loader": "^7.0.3",
     "ts-protoc-gen": "^0.12.0",
-    "typescript": "^3.8.3",
+    "typescript": "^3.9.2",
     "vsce": "^1.75.0",
     "vscode-nls": "^4.1.2",
     "vscode-nls-dev": "^3.3.1",
