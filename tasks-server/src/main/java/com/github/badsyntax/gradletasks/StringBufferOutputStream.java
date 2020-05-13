@@ -20,6 +20,7 @@ public abstract class StringBufferOutputStream extends OutputStream {
     outputStream.close();
   }
 
+  @Override
   public void flush() {
     onFlush(outputStream.toString());
     outputStream.reset();

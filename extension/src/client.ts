@@ -35,7 +35,11 @@ export class GradleTasksClient implements vscode.Disposable {
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
   >();
+  private _onConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<
+    null
+  >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
+  public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
   private connectTries = 0;
   private maxConnectTries = 5;
 
@@ -52,15 +56,28 @@ export class GradleTasksClient implements vscode.Disposable {
     //
   };
 
-  public handleServerReady = (): void => {
-    // TODO
-    // this.statusBarItem.text = localize(
-    //   'client.connecting',
-    //   '{0} Gradle: Connecting',
-    //   '$(sync~spin)'
-    // );
-    // this.statusBarItem.show();
-    this.connectToServer();
+  public handleServerReady = (): Thenable<void> => {
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: 'Gradle',
+        cancellable: false,
+      },
+      (progress: vscode.Progress<{ message?: string }>) => {
+        progress.report({ message: 'Connecting' });
+        return new Promise((resolve) => {
+          const disposableConnectHandler = this.onConnect(() => {
+            disposableConnectHandler.dispose();
+            resolve();
+          });
+          const disposableConnectFailHandler = this.onConnectFail(() => {
+            disposableConnectFailHandler.dispose();
+            resolve();
+          });
+          this.connectToServer();
+        });
+      }
+    );
   };
 
   public handleClientReady = (err: Error | undefined): void => {
@@ -424,13 +441,6 @@ export class GradleTasksClient implements vscode.Disposable {
     );
   };
 
-  // private handleProgress = (progress: Progress): void => {
-  //   const messageStr = progress.getMessage().trim();
-  //   if (messageStr) {
-  //     this.statusBarItem.text = `Gradle: ${messageStr}`;
-  //   }
-  // };
-
   private handleOutput = (output: string, outputType: OutputType): void => {
     const trimmedOutput = output.trim();
     if (trimmedOutput) {
@@ -461,6 +471,7 @@ export class GradleTasksClient implements vscode.Disposable {
           e.message
         )
       );
+      this._onConnectFail.fire(null);
       this.server.showRestartMessage();
     }
   };
@@ -479,7 +490,9 @@ export function registerClient(
   const client = new GradleTasksClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
   client.onConnect(() => {
-    vscode.commands.executeCommand('gradle.refresh');
+    setTimeout(() => {
+      vscode.commands.executeCommand('gradle.refresh');
+    }, 1); // wait for other onConnectHandler to fire first
   });
   return client;
 }

@@ -89,12 +89,9 @@ public class GradleTaskRunner {
     progressEvents.add(OperationType.TRANSFORM);
 
     ProgressListener progressListener =
-        new ProgressListener() {
-          @Override
-          public void statusChanged(ProgressEvent event) {
-            synchronized (GradleTaskRunner.class) {
-              replyWithProgress(event);
-            }
+        (ProgressEvent event) -> {
+          synchronized (GradleTaskRunner.class) {
+            replyWithProgress(event);
           }
         };
 

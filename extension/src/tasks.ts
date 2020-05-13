@@ -12,7 +12,7 @@ import {
 } from './config';
 import { logger } from './logger';
 import { GradleTasksClient } from './client';
-import { waitOnTcp /*, isTest*/ } from './util';
+import { waitOnTcp, isTest } from './util';
 import {
   Output,
   GradleProject,
@@ -447,11 +447,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         '',
         javaDebugPort,
         (output: Output): void => {
-          console.log('output', output);
           this.handleOutput(output.getOutputBytes_asU8());
-          // if (isTest()) {
-          //   stdOutBuffer.write(output.getMessageBytes());
-          // }
+          if (isTest()) {
+            stdOutBuffer.write(output.getOutputBytes_asU8());
+          }
         },
         true,
         RunTaskRequest.OutputStream.BYTES

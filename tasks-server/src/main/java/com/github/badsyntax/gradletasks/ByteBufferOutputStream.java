@@ -11,7 +11,8 @@ public abstract class ByteBufferOutputStream extends OutputStream {
   @Override
   public final void write(int b) throws IOException {
     outputStream.write(b);
-    if (outputStream.size() == MAX_SIZE || Character.toString((char) b) == System.lineSeparator()) {
+    if (outputStream.size() == MAX_SIZE
+        || Character.toString((char) b).equals(System.lineSeparator())) {
       flush();
     }
   }
@@ -24,6 +25,7 @@ public abstract class ByteBufferOutputStream extends OutputStream {
     outputStream.close();
   }
 
+  @Override
   public void flush() {
     onFlush(outputStream);
     outputStream.reset();

@@ -36,7 +36,5 @@
     }
   },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true,
-  "git.ignoreLimitWarning": true,
-  "java.import.gradle.user.home": "/Users/richardwillis/Projects/badsyntax/vscode-gradle/.gradle"
+  "files.trimTrailingWhitespace": true
 }

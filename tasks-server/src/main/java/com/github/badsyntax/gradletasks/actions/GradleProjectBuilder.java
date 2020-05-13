@@ -91,15 +91,11 @@ public class GradleProjectBuilder {
     progressEvents.add(OperationType.TASK);
 
     ProgressListener progressListener =
-        new ProgressListener() {
-          @Override
-          public void statusChanged(ProgressEvent event) {
-            synchronized (GradleProjectBuilder.class) {
-              replyWithProgress(event);
-            }
+        (ProgressEvent event) -> {
+          synchronized (GradleProjectBuilder.class) {
+            replyWithProgress(event);
           }
         };
-    // Set<OperationType> eventTypes
     projectBuilder
         .withCancellationToken(CancellationHandler.getBuildCancellationToken(getCancellationKey()))
         .addProgressListener(progressListener, progressEvents)
