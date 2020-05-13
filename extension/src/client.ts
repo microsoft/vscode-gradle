@@ -115,12 +115,12 @@ export class GradleTasksClient implements vscode.Disposable {
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
         const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-        stdOutBuffer.onOutputLine((output: string) =>
+        stdOutBuffer.onFlush((output: string) =>
           this.handleOutput(output, stdOutBuffer.getOutputType())
         );
 
         const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-        stdErrBuffer.onOutputLine((output: string) =>
+        stdErrBuffer.onFlush((output: string) =>
           this.handleOutput(output, stdErrBuffer.getOutputType())
         );
 

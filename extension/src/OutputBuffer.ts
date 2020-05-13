@@ -7,10 +7,10 @@ export type OutputType =
   | typeof Output.OutputType.STDOUT;
 
 export class OutputBuffer implements vscode.Disposable {
-  private _onOutputLine: vscode.EventEmitter<string> = new vscode.EventEmitter<
+  private _onFlush: vscode.EventEmitter<string> = new vscode.EventEmitter<
     string
   >();
-  public readonly onOutputLine: vscode.Event<string> = this._onOutputLine.event;
+  public readonly onFlush: vscode.Event<string> = this._onFlush.event;
   private buffer = '';
 
   constructor(private readonly outputType: OutputType) {}
@@ -31,15 +31,15 @@ export class OutputBuffer implements vscode.Disposable {
       });
   }
 
+  private flush(): void {
+    this._onFlush.fire(this.buffer);
+    this.buffer = '';
+  }
+
   public dispose(): void {
     if (this.buffer.length) {
       this.flush();
     }
-    this._onOutputLine.dispose();
-  }
-
-  private flush(): void {
-    this._onOutputLine.fire(this.buffer);
-    this.buffer = '';
+    this._onFlush.dispose();
   }
 }

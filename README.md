@@ -136,22 +136,22 @@ If you're working with bytes, this package provides some helper classes:
 // These buffers are used for storing output bytes and flushing when
 // the output stream is finished or when a new-line is detected.
 const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-stdOutBuffer.onOutputLine((output: string) => {
+stdOutBuffer.onFlush((output: string) => {
   console.log(output);
 });
 
 const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-stdErrBuffer.onOutputLine((output: string) => {
+stdErrBuffer.onFlush((output: string) => {
   console.error(output);
 });
 
 // In your `onOutput` handler
 switch (output.getOutputType()) {
   case Output.OutputType.STDOUT:
-    stdOutBuffer.write(output.getMessageByte());
+    stdOutBuffer.write(output.getOutputBytes_asU8());
     break;
   case Output.OutputType.STDERR:
-    stdErrBuffer.write(output.getMessageByte());
+    stdErrBuffer.write(output.getOutputBytes_asU8());
     break;
   }
 }

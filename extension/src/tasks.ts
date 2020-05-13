@@ -430,7 +430,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private async doBuild(): Promise<void> {
     // This is only required for the tests, so we can check the stdout of the task
     const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-    stdOutBuffer.onOutputLine((output: string) => {
+    stdOutBuffer.onFlush((output: string) => {
       logger.info(output.trim());
     });
 
