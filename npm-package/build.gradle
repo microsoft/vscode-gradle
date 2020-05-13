@@ -7,6 +7,8 @@ project.ext.set('protoLib', "lib/proto")
 clean {
   delete file('node_modules')
   delete file('lib')
+  delete file('index.d.ts')
+  delete file('index.js')
 }
 
 jar.enabled = false;
@@ -22,7 +24,7 @@ task copyProtoLib(type: Copy) {
 task copyOutputBuffer(type: Copy) {
   group 'copy'
   description 'Copies OutputBuffer helper class'
-  from file("../extension/src/OutputBuffer.ts")
+  from file("../extension/out/OutputBuffer.js")
   into 'lib'
 }
 
@@ -46,6 +48,7 @@ task compileTypeScript(type: CrossPlatformExec) {
   dependsOn npmInstall, copyPublicApi
   description 'Compiles the TypeScript files'
   inputs.file('index.ts')
+  outputs.file('index.d.ts');
   outputs.file('index.js');
   commandLine 'npm', 'run', 'compile'
 }
