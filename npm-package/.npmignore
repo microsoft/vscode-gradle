@@ -44,4 +44,3 @@ build.gradle
 # TypeScript
 tsconfig.json
 index.ts
-lib/OutputBuffer.ts

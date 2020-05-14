@@ -8,17 +8,14 @@ import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
 import com.github.badsyntax.gradletasks.RunTaskRequest;
 import com.github.badsyntax.gradletasks.RunTaskResult;
-import com.github.badsyntax.gradletasks.StringBufferOutputStream;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -101,49 +98,27 @@ public class GradleTaskRunner {
             .withCancellationToken(
                 CancellationHandler.getRunTaskCancellationToken(getCancellationKey()))
             .addProgressListener(progressListener, progressEvents)
+            .setStandardOutput(
+                new ByteBufferOutputStream() {
+                  @Override
+                  public void onFlush(byte[] bytes) {
+                    synchronized (GradleTaskRunner.class) {
+                      replyWithStandardOutput(bytes);
+                    }
+                  }
+                })
+            .setStandardError(
+                new ByteBufferOutputStream() {
+                  @Override
+                  public void onFlush(byte[] bytes) {
+                    synchronized (GradleTaskRunner.class) {
+                      replyWithStandardError(bytes);
+                    }
+                  }
+                })
             .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
-
-    OutputStream standardOutputListener =
-        req.getOutputStream() == RunTaskRequest.OutputStream.STRING
-            ? new StringBufferOutputStream() {
-              @Override
-              public void onFlush(String output) {
-                synchronized (GradleTaskRunner.class) {
-                  replyWithStandardOutput(output);
-                }
-              }
-            }
-            : new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(ByteArrayOutputStream outputStream) {
-                synchronized (GradleTaskRunner.class) {
-                  replyWithStandardOutput(outputStream);
-                }
-              }
-            };
-    OutputStream standardErrorListener =
-        req.getOutputStream() == RunTaskRequest.OutputStream.STRING
-            ? new StringBufferOutputStream() {
-              @Override
-              public void onFlush(String output) {
-                synchronized (GradleTaskRunner.class) {
-                  replyWithStandardError(output);
-                }
-              }
-            }
-            : new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(ByteArrayOutputStream outputStream) {
-                synchronized (GradleTaskRunner.class) {
-                  replyWithStandardError(outputStream);
-                }
-              }
-            };
-
-    build.setStandardOutput(standardOutputListener);
-    build.setStandardError(standardErrorListener);
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       InputStream inputStream = new ByteArrayInputStream(req.getInput().getBytes());
@@ -161,12 +136,7 @@ public class GradleTaskRunner {
       build.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
-    try {
-      build.run();
-    } finally {
-      standardOutputListener.close();
-      standardErrorListener.close();
-    }
+    build.run();
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
@@ -210,8 +180,8 @@ public class GradleTaskRunner {
             .build());
   }
 
-  private void replyWithStandardOutput(ByteArrayOutputStream outputStream) {
-    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
+  private void replyWithStandardOutput(byte[] bytes) {
+    ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
@@ -221,34 +191,14 @@ public class GradleTaskRunner {
             .build());
   }
 
-  private void replyWithStandardError(ByteArrayOutputStream outputStream) {
-    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
+  private void replyWithStandardError(byte[] bytes) {
+    ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
                 Output.newBuilder()
                     .setOutputType(Output.OutputType.STDERR)
                     .setOutputBytes(byteString))
-            .build());
-  }
-
-  private void replyWithStandardOutput(String message) {
-    responseObserver.onNext(
-        RunTaskReply.newBuilder()
-            .setOutput(
-                Output.newBuilder()
-                    .setOutputType(Output.OutputType.STDOUT)
-                    .setOutputString(message))
-            .build());
-  }
-
-  private void replyWithStandardError(String message) {
-    responseObserver.onNext(
-        RunTaskReply.newBuilder()
-            .setOutput(
-                Output.newBuilder()
-                    .setOutputType(Output.OutputType.STDERR)
-                    .setOutputString(message))
             .build());
   }
 }

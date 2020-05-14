@@ -1,6 +1,7 @@
 // Note vscode is launch with webpack compiled files and the test with
 // typescript compiled files, which is why we can't mock files directly.
 
+import * as util from 'util';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
@@ -12,8 +13,7 @@ import {
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
-import { Output, RunTaskRequest } from '../../proto/gradle_tasks_pb';
-import { OutputBuffer } from '../../OutputBuffer';
+import { Output } from '../../proto/gradle_tasks_pb';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -74,7 +74,11 @@ describe(fixtureName, () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension?.exports.logger, 'info');
+      const loggerAppendSpy = sinon.spy(extension?.exports.logger, 'append');
+      const loggerApendLineSpy = sinon.spy(
+        extension?.exports.logger,
+        'appendLine'
+      );
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -83,8 +87,10 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(spy.calledWith(sinon.match('Hello, World!')));
-      assert.ok(spy.calledWith(sinon.match('Completed task: hello')));
+      assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
+      assert.ok(
+        loggerApendLineSpy.calledWith(sinon.match('Completed task: hello'))
+      );
     });
 
     it('should run a gradle task with custom args', async () => {
@@ -98,7 +104,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension.exports.logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'append');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
       await new Promise((resolve) => {
@@ -126,23 +132,20 @@ describe(fixtureName, () => {
     it('should run a task using the extension api', async () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
-      const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-      stdOutBuffer.onFlush((message: string) => {
-        if (message.trim() === 'Hello, World!') {
-          hasMessage = true;
-        }
-      });
       const runTaskOpts: RunTaskOpts = {
         projectFolder: fixturePath.fsPath,
         taskName: 'hello',
         showOutputColors: false,
         onOutput: (output: Output): void => {
-          stdOutBuffer.write(output.getOutputBytes_asU8());
+          const message = new util.TextDecoder('utf-8')
+            .decode(output.getOutputBytes_asU8())
+            .trim();
+          if (message === 'Hello, World!') {
+            hasMessage = true;
+          }
         },
-        outputStream: RunTaskRequest.OutputStream.BYTES,
       };
       await api.runTask(runTaskOpts);
-      stdOutBuffer.dispose();
       assert.ok(hasMessage);
     });
   });
@@ -150,7 +153,7 @@ describe(fixtureName, () => {
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
-      const spy = sinon.spy(extension.exports.logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'append');
       await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });
