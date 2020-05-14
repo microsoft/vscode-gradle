@@ -67,7 +67,7 @@ _Note, the VS Code settings take precedence over the environment variables._
 
 ## Debug JavaExec Tasks
 
-![Debug Screencast](images/debug-screencast.gif)
+![Debug Screencast](images/debug-screencast.gif?1)
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
 
