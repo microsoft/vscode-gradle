@@ -127,7 +127,7 @@ describe(fixtureName, () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
       const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-      stdOutBuffer.onOutputLine((message: string) => {
+      stdOutBuffer.onFlush((message: string) => {
         if (message.trim() === 'Hello, World!') {
           hasMessage = true;
         }
@@ -137,7 +137,7 @@ describe(fixtureName, () => {
         taskName: 'hello',
         showOutputColors: false,
         onOutput: (output: Output): void => {
-          stdOutBuffer.write(output.getMessageByte());
+          stdOutBuffer.write(output.getOutputBytes_asU8());
         },
         outputStream: RunTaskRequest.OutputStream.BYTES,
       };

@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradletasks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -22,12 +23,15 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+import org.gradle.tooling.events.OperationType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -110,7 +114,8 @@ public class GradleTasksServerTest {
     when(mockGradleProjectBuilder.withCancellationToken(any()))
         .thenReturn(mockGradleProjectBuilder);
     when(mockGradleProjectBuilder.addProgressListener(
-            any(org.gradle.tooling.ProgressListener.class)))
+            any(org.gradle.tooling.events.ProgressListener.class),
+            ArgumentMatchers.<Set<OperationType>>any()))
         .thenReturn(mockGradleProjectBuilder);
     when(mockGradleProjectBuilder.setStandardOutput(any(OutputStream.class)))
         .thenReturn(mockGradleProjectBuilder);
@@ -125,7 +130,9 @@ public class GradleTasksServerTest {
 
     // Build launcher (run task) mocks
     when(mockBuildLauncher.withCancellationToken(any())).thenReturn(mockBuildLauncher);
-    when(mockBuildLauncher.addProgressListener(any(org.gradle.tooling.ProgressListener.class)))
+    when(mockBuildLauncher.addProgressListener(
+            any(org.gradle.tooling.events.ProgressListener.class),
+            ArgumentMatchers.<Set<OperationType>>any()))
         .thenReturn(mockBuildLauncher);
     when(mockBuildLauncher.setStandardOutput(any(OutputStream.class)))
         .thenReturn(mockBuildLauncher);
@@ -256,6 +263,31 @@ public class GradleTasksServerTest {
     stub.getBuild(req2, mockResponseObserver);
     verify(mockResponseObserver, never()).onError(any());
     verify(mockGradleProjectBuilder).setColorOutput(true);
+  }
+
+  @Test
+  public void getBuild_shouldStreamCorrectProgressEvents() throws IOException {
+    StreamObserver<GetBuildReply> mockResponseObserver =
+        (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
+
+    GetBuildRequest req =
+        GetBuildRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(true)
+            .build();
+
+    ArgumentCaptor<Set<OperationType>> onAddProgressListener = ArgumentCaptor.forClass(Set.class);
+
+    stub.getBuild(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockGradleProjectBuilder)
+        .addProgressListener(
+            any(org.gradle.tooling.events.ProgressListener.class), onAddProgressListener.capture());
+
+    assertEquals(2, onAddProgressListener.getValue().size());
+    assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
+    assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
   }
 
   @Test
@@ -442,5 +474,31 @@ public class GradleTasksServerTest {
     stub.runTask(req2, mockResponseObserver);
     verify(mockResponseObserver, never()).onError(any());
     verify(mockBuildLauncher).setColorOutput(true);
+  }
+
+  @Test
+  public void runTask_shouldStreamCorrectProgressEvents() throws IOException {
+    StreamObserver<RunTaskReply> mockResponseObserver =
+        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
+
+    RunTaskRequest req =
+        RunTaskRequest.newBuilder()
+            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+            .setShowOutputColors(true)
+            .build();
+
+    ArgumentCaptor<Set<OperationType>> onAddProgressListener = ArgumentCaptor.forClass(Set.class);
+
+    stub.runTask(req, mockResponseObserver);
+    verify(mockResponseObserver, never()).onError(any());
+    verify(mockBuildLauncher)
+        .addProgressListener(
+            any(org.gradle.tooling.events.ProgressListener.class), onAddProgressListener.capture());
+
+    assertEquals(3, onAddProgressListener.getValue().size());
+    assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
+    assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
+    assertTrue(onAddProgressListener.getValue().contains(OperationType.TRANSFORM));
   }
 }

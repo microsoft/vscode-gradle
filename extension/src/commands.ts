@@ -9,9 +9,8 @@ import {
   GradleTaskProvider,
   runTask,
   runTaskWithArgs,
-  cancelRunningGradleTasks,
-  restartTask,
   getTaskExecution,
+  queueRestartTask,
 } from './tasks';
 import { getConfigIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
@@ -69,14 +68,17 @@ function registerDebugTaskCommand(
   );
 }
 
-function registerRestartTaskCommand(): vscode.Disposable {
+function registerRestartTaskCommand(
+  client: GradleTasksClient,
+  treeDataProvider: GradleTasksTreeDataProvider
+): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.restartTask',
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const taskExecution = getTaskExecution(treeItem.task);
         if (taskExecution) {
-          restartTask(taskExecution.task);
+          queueRestartTask(client, treeDataProvider, taskExecution.task);
         }
       }
     }
@@ -121,13 +123,14 @@ function registerRenderTaskCommand(
 }
 
 function registerCancelTaskCommand(
-  statusBarItem: vscode.StatusBarItem
+  client: GradleTasksClient,
+  treeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.cancelTask',
     (task: vscode.Task) => {
       try {
-        cancelTask(task);
+        cancelTask(client, treeDataProvider, task);
       } catch (e) {
         logger.error(
           localize(
@@ -136,8 +139,6 @@ function registerCancelTaskCommand(
             e.message
           )
         );
-      } finally {
-        statusBarItem.hide();
       }
     }
   );
@@ -187,48 +188,6 @@ function registerExplorerFlatCommand(
   return vscode.commands.registerCommand('gradle.explorerFlat', () => {
     treeDataProvider!.setCollapsed(true);
   });
-}
-
-function registerCancelGradleProcessesCommand(
-  client: GradleTasksClient,
-  statusBarItem: vscode.StatusBarItem
-): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.cancelGradleProcesses', () => {
-    try {
-      client.cancelGetBuilds();
-      cancelRunningGradleTasks();
-      statusBarItem.hide();
-    } catch (e) {
-      localize(
-        'commands.errorCancellingTasks',
-        'Error cancelling tasks: {0}',
-        e.message
-      );
-    }
-  });
-}
-
-function registerShowProcessMessageCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(
-    'gradle.showProcessMessage',
-    async () => {
-      const OPT_LOGS = localize('commands.process.viewLogs', 'View Logs');
-      const OPT_CANCEL = localize(
-        'commands.process.cancelProcess',
-        'Cancel Process'
-      );
-      const input = await vscode.window.showInformationMessage(
-        localize('commands.process.gradleTasksProcess', 'Gradle Tasks Process'),
-        OPT_LOGS,
-        OPT_CANCEL
-      );
-      if (input === OPT_LOGS) {
-        vscode.commands.executeCommand('gradle.showLogs');
-      } else if (input === OPT_CANCEL) {
-        vscode.commands.executeCommand('gradle.cancelGradleProcesses');
-      }
-    }
-  );
 }
 
 function registerOpenSettingsCommand(): vscode.Disposable {
@@ -308,16 +267,14 @@ export function registerCommands(
     registerShowTasks(treeDataProvider, treeView),
     registerRunTaskCommand(client),
     registerDebugTaskCommand(client),
-    registerRestartTaskCommand(),
+    registerRestartTaskCommand(client, treeDataProvider),
     registerRunTaskWithArgsCommand(client),
     registerDebugTaskWithArgsCommand(client),
-    registerCancelTaskCommand(statusBarItem),
+    registerCancelTaskCommand(client, treeDataProvider),
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, treeDataProvider),
     registerExplorerTreeCommand(treeDataProvider),
     registerExplorerFlatCommand(treeDataProvider),
-    registerCancelGradleProcessesCommand(client, statusBarItem),
-    registerShowProcessMessageCommand(),
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),

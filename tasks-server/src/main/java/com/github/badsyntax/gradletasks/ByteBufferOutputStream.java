@@ -4,12 +4,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-public abstract class StringBufferOutputStream extends OutputStream {
+public abstract class ByteBufferOutputStream extends OutputStream {
+  private static final int MAX_SIZE = 1024;
   private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
   @Override
   public final void write(int b) throws IOException {
     outputStream.write(b);
+    if (outputStream.size() == MAX_SIZE
+        || Character.toString((char) b).equals(System.lineSeparator())) {
+      flush();
+    }
   }
 
   @Override
@@ -22,9 +27,9 @@ public abstract class StringBufferOutputStream extends OutputStream {
 
   @Override
   public void flush() {
-    onFlush(outputStream.toString());
+    onFlush(outputStream);
     outputStream.reset();
   }
 
-  public abstract void onFlush(String output);
+  public abstract void onFlush(ByteArrayOutputStream outputStream);
 }

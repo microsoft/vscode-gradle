@@ -1,5 +1,6 @@
 package com.github.badsyntax.gradletasks.actions;
 
+import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
 import com.github.badsyntax.gradletasks.Output;
@@ -11,20 +12,26 @@ import com.github.badsyntax.gradletasks.StringBufferOutputStream;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
+import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.GradleConnector;
-import org.gradle.tooling.ProgressEvent;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.UnsupportedVersionException;
+import org.gradle.tooling.events.OperationType;
+import org.gradle.tooling.events.ProgressEvent;
+import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,17 +83,24 @@ public class GradleTaskRunner {
   }
 
   public void runTask(ProjectConnection connection) throws GradleTaskRunnerException, IOException {
+    Set<OperationType> progressEvents = new HashSet<>();
+    progressEvents.add(OperationType.PROJECT_CONFIGURATION);
+    progressEvents.add(OperationType.TASK);
+    progressEvents.add(OperationType.TRANSFORM);
+
+    ProgressListener progressListener =
+        (ProgressEvent event) -> {
+          synchronized (GradleTaskRunner.class) {
+            replyWithProgress(event);
+          }
+        };
+
     BuildLauncher build =
         connection
             .newBuild()
             .withCancellationToken(
                 CancellationHandler.getRunTaskCancellationToken(getCancellationKey()))
-            .addProgressListener(
-                (ProgressEvent progressEvent) -> {
-                  synchronized (GradleTaskRunner.class) {
-                    replyWithProgress(progressEvent);
-                  }
-                })
+            .addProgressListener(progressListener, progressEvents)
             .setColorOutput(req.getShowOutputColors())
             .withArguments(req.getArgsList())
             .forTasks(req.getTask());
@@ -95,17 +109,17 @@ public class GradleTaskRunner {
         req.getOutputStream() == RunTaskRequest.OutputStream.STRING
             ? new StringBufferOutputStream() {
               @Override
-              public void onClose(String output) {
+              public void onFlush(String output) {
                 synchronized (GradleTaskRunner.class) {
                   replyWithStandardOutput(output);
                 }
               }
             }
-            : new OutputStream() {
+            : new ByteBufferOutputStream() {
               @Override
-              public final void write(int b) throws IOException {
+              public void onFlush(ByteArrayOutputStream outputStream) {
                 synchronized (GradleTaskRunner.class) {
-                  replyWithStandardOutput(b);
+                  replyWithStandardOutput(outputStream);
                 }
               }
             };
@@ -113,17 +127,17 @@ public class GradleTaskRunner {
         req.getOutputStream() == RunTaskRequest.OutputStream.STRING
             ? new StringBufferOutputStream() {
               @Override
-              public void onClose(String output) {
+              public void onFlush(String output) {
                 synchronized (GradleTaskRunner.class) {
                   replyWithStandardError(output);
                 }
               }
             }
-            : new OutputStream() {
+            : new ByteBufferOutputStream() {
               @Override
-              public final void write(int b) throws IOException {
+              public void onFlush(ByteArrayOutputStream outputStream) {
                 synchronized (GradleTaskRunner.class) {
-                  replyWithStandardError(b);
+                  replyWithStandardError(outputStream);
                 }
               }
             };
@@ -192,23 +206,29 @@ public class GradleTaskRunner {
   private void replyWithProgress(ProgressEvent progressEvent) {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
-            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDescription()))
+            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
             .build());
   }
 
-  private void replyWithStandardOutput(int b) {
+  private void replyWithStandardOutput(ByteArrayOutputStream outputStream) {
+    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessageByte(b))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDOUT)
+                    .setOutputBytes(byteString))
             .build());
   }
 
-  private void replyWithStandardError(int b) {
+  private void replyWithStandardError(ByteArrayOutputStream outputStream) {
+    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessageByte(b))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDERR)
+                    .setOutputBytes(byteString))
             .build());
   }
 
@@ -216,7 +236,9 @@ public class GradleTaskRunner {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setMessage(message))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDOUT)
+                    .setOutputString(message))
             .build());
   }
 
@@ -224,7 +246,9 @@ public class GradleTaskRunner {
     responseObserver.onNext(
         RunTaskReply.newBuilder()
             .setOutput(
-                Output.newBuilder().setOutputType(Output.OutputType.STDERR).setMessage(message))
+                Output.newBuilder()
+                    .setOutputType(Output.OutputType.STDERR)
+                    .setOutputString(message))
             .build());
   }
 }

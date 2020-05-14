@@ -29,7 +29,6 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
-- `gradle.taskPresentationOptions`: Task presentation options, see [tasks output behaviour](https://code.visualstudio.com/docs/editor/tasks#_output-behavior)
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
@@ -100,7 +99,6 @@ interface RunTaskOpts {
   projectFolder: string; // absolute path
   taskName: string;
   args?: ReadonlyArray<string>;
-  showProgress?: boolean;
   input?: string; // standard input
   onOutput?: (output: Output) => void; // STDERR & STDOUT handler
   showOutputColors: boolean;
@@ -138,22 +136,22 @@ If you're working with bytes, this package provides some helper classes:
 // These buffers are used for storing output bytes and flushing when
 // the output stream is finished or when a new-line is detected.
 const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-stdOutBuffer.onOutputLine((output: string) => {
+stdOutBuffer.onFlush((output: string) => {
   console.log(output);
 });
 
 const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-stdErrBuffer.onOutputLine((output: string) => {
+stdErrBuffer.onFlush((output: string) => {
   console.error(output);
 });
 
 // In your `onOutput` handler
 switch (output.getOutputType()) {
   case Output.OutputType.STDOUT:
-    stdOutBuffer.write(output.getMessageByte());
+    stdOutBuffer.write(output.getOutputBytes_asU8());
     break;
   case Output.OutputType.STDERR:
-    stdErrBuffer.write(output.getMessageByte());
+    stdErrBuffer.write(output.getOutputBytes_asU8());
     break;
   }
 }

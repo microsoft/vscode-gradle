@@ -12,7 +12,6 @@ export interface RunTaskOpts {
   projectFolder: string;
   taskName: string;
   args?: ReadonlyArray<string>;
-  showProgress?: boolean;
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
@@ -49,7 +48,6 @@ export class Api {
       opts.projectFolder,
       task,
       opts.args,
-      !!opts.showProgress,
       opts.input,
       0,
       opts.onOutput,

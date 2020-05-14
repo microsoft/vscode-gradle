@@ -19,7 +19,6 @@
   "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true,
-    "source.fixAll.spotlessGradle": true
   },
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -31,9 +30,11 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[java]": {
-    "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle"
+    "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.spotlessGradle": true
+    }
   },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true,
-  "git.ignoreLimitWarning": true
+  "files.trimTrailingWhitespace": true
 }

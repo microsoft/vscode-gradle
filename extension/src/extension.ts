@@ -13,22 +13,13 @@ import { registerTaskManager } from './taskManager';
 import { registerBuildFileWatcher } from './buildFileWatcher';
 import { Api } from './api';
 
-const localize = nls.loadMessageBundle();
-
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   const statusBarItem = vscode.window.createStatusBarItem();
-  statusBarItem.command = 'gradle.showProcessMessage';
-  statusBarItem.text = localize(
-    'extension.starting',
-    '{0} Gradle: Starting',
-    '$(sync~spin)'
-  );
-  statusBarItem.show();
 
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
 
   const server = registerServer({ host: 'localhost' }, context);
-  const client = registerClient(server, statusBarItem, context);
+  const client = registerClient(server, context);
   const taskProvider = registerTaskProvider(context, client);
   const taskManager = registerTaskManager(context);
   const { treeDataProvider, treeView } = registerExplorer(context);

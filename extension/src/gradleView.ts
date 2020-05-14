@@ -109,11 +109,12 @@ class GroupTreeItem extends TreeItemWithTasksOrGroups {
 }
 
 function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug): string {
-  if (isTaskRunning(task)) {
-    return GradleTaskTreeItem.STATE_RUNNING;
-  }
+  // A task can be running but in a cancelling state
   if (isTaskCancelling(task)) {
     return GradleTaskTreeItem.STATE_CANCELLING;
+  }
+  if (isTaskRunning(task)) {
+    return GradleTaskTreeItem.STATE_RUNNING;
   }
   return javaDebug && javaDebug.tasks.includes(task.definition.script)
     ? GradleTaskTreeItem.STATE_DEBUG_IDLE
