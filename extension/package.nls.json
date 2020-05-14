@@ -13,6 +13,7 @@
   "extension.command.cancellingTreeItemTaskShow.title": "Cancelling Task",
   "extension.command.restartTask.title": "Restart Task",
   "extension.command.debugTask.title": "Debug Task",
+  "extension.command.debugTaskWithArgs.title": "Debug Task With Args",
   "extension.command.showTasks.title": "Show Gradle Tasks",
   "extension.config.autoDetect.description": "Controls whether Gradle tasks should be automatically detected",
   "extension.config.enableTasksExplorer.description": "Enable an explorer view for Gradle tasks",
