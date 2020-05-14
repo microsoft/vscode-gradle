@@ -273,7 +273,7 @@
         },
         {
           "command": "gradle.debugTaskWithArgs",
-          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "when": "view == gradleTreeView && viewItem == debugTask",
           "group": "debug@1"
         },
         {
