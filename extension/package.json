@@ -102,6 +102,10 @@
         "title": "%extension.command.runTaskWithArgs.title%"
       },
       {
+        "command": "gradle.debugTaskWithArgs",
+        "title": "%extension.command.debugTaskWithArgs.title%"
+      },
+      {
         "command": "gradle.openBuildFile",
         "title": "%extension.command.openBuildFile.title%"
       },
@@ -197,6 +201,10 @@
           "when": "false"
         },
         {
+          "command": "gradle.debugTaskWithArgs",
+          "when": "false"
+        },
+        {
           "command": "gradle.cancelTask",
           "when": "false"
         },
@@ -262,6 +270,11 @@
           "command": "gradle.debugTask",
           "when": "view == gradleTreeView && viewItem == debugTask",
           "group": "debug@0"
+        },
+        {
+          "command": "gradle.debugTaskWithArgs",
+          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "group": "debug@1"
         },
         {
           "command": "gradle.debugTask",

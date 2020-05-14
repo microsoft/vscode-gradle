@@ -16,13 +16,8 @@ import { getConfigIsTasksExplorerEnabled } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
 import {
-  isJavaDebuggerExtensionActivated,
-  JAVA_LANGUAGE_EXTENSION_ID,
-  JAVA_DEBUGGER_EXTENSION_ID,
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
-  getJavaDebuggerExtension,
-  getJavaLanguageSupportExtension,
 } from './compat';
 
 const localize = nls.loadMessageBundle();
@@ -65,37 +60,9 @@ function registerDebugTaskCommand(
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     'gradle.debugTask',
-    async (treeItem: GradleTaskTreeItem) => {
+    async (treeItem: GradleTaskTreeItem, args = '') => {
       if (treeItem && treeItem.task) {
-        const INSTALL_EXTENSIONS = localize(
-          'commands.requiredExtensionMissing',
-          'Install Missing Extensions'
-        );
-        if (!getJavaLanguageSupportExtension() || !getJavaDebuggerExtension()) {
-          const input = await vscode.window.showErrorMessage(
-            localize(
-              'commands.missingJavaLanguageSupportExtension',
-              'The Java Language Support & Debugger extensions are required for debugging.'
-            ),
-            INSTALL_EXTENSIONS
-          );
-          if (input === INSTALL_EXTENSIONS) {
-            await vscode.commands.executeCommand(
-              'workbench.extensions.action.showExtensionsWithIds',
-              [JAVA_LANGUAGE_EXTENSION_ID, JAVA_DEBUGGER_EXTENSION_ID]
-            );
-          }
-          return;
-        } else if (!isJavaDebuggerExtensionActivated()) {
-          vscode.window.showErrorMessage(
-            localize(
-              'commands.javaDebuggerExtensionNotActivated',
-              'The Java Debugger extension is not activated.'
-            )
-          );
-          return;
-        }
-        runTask(treeItem.task, client, true);
+        runTask(treeItem.task, client, args, true);
       }
     }
   );
@@ -125,7 +92,20 @@ function registerRunTaskWithArgsCommand(
     'gradle.runTaskWithArgs',
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTaskWithArgs(treeItem.task, client);
+        runTaskWithArgs(treeItem.task, client, false);
+      }
+    }
+  );
+}
+
+function registerDebugTaskWithArgsCommand(
+  client: GradleTasksClient
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    'gradle.debugTaskWithArgs',
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        runTaskWithArgs(treeItem.task, client, true);
       }
     }
   );
@@ -289,7 +269,8 @@ export function registerCommands(
     registerDebugTaskCommand(client),
     registerRestartTaskCommand(client, treeDataProvider),
     registerRunTaskWithArgsCommand(client),
-    registerCancelTaskCommand(client, treeDataProvider),
+    registerDebugTaskWithArgsCommand(client),
+    registerCancelTaskCommand(statusBarItem, treeDataProvider),
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, treeDataProvider),
     registerExplorerTreeCommand(treeDataProvider),
