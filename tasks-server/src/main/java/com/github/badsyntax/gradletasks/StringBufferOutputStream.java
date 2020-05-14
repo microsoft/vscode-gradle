@@ -15,15 +15,10 @@ public abstract class StringBufferOutputStream extends OutputStream {
   @Override
   public void close() throws IOException {
     if (outputStream.size() > 0) {
-      flush();
+      onFlush(outputStream.toString());
+      outputStream.reset();
     }
     outputStream.close();
-  }
-
-  @Override
-  public void flush() {
-    onFlush(outputStream.toString());
-    outputStream.reset();
   }
 
   public abstract void onFlush(String output);
