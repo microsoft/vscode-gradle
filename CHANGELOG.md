@@ -2,6 +2,18 @@
 
 > Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
 
+## 3.0.0
+
+- General performance improvements (#370) @badsyntax
+- Add debug task with args feature (#382) @badsyntax
+- Bump google-protobuf from 3.12.0-rc.1 to 3.12.0-rc.2 in /npm-package (#377) @dependabot-preview
+- Bump snyk from 1.319.2 to 1.320.3 in /extension (#380) @dependabot-preview
+- Bump @typescript-eslint/eslint-plugin from 2.31.0 to 2.33.0 in /extension (#371) @dependabot-preview
+
+The progress messages have been reduced to help with performance. Although I like seeing ALL progress, it did degrade performance. Now only certain progress events are shown.
+
+This is a major bump as the public API (used by consuming extensions) has changed.
+
 ## 2.7.11
 
 - Refactor public API and expose cancelRunTask method (#358) @badsyntax
