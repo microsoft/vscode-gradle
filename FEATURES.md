@@ -2,7 +2,7 @@
 
 - Runs [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
 - Lists & runs Gradle tasks in the Explorer
-- Updates project configuration after running tasks, via the [Java language server](https://github.com/redhat-developer/vscode-java) (if installed)
+- Supports massive Gradle projects (eg with 10000+ tasks)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
 - Uses a long running gRPC server which provides good performance
 - Supports Kotlin & Groovy build files
@@ -11,5 +11,6 @@
 - Shows flat or nested tasks in the explorer
 - Gracefully cancels a running Gradle Task
 - Debugs JavaExec tasks
+- Updates project configuration after running tasks, via the [Java language server](https://github.com/redhat-developer/vscode-java) (if installed)
 
 Watch a short demo of the features: https://www.youtube.com/watch?v=n8hmndccxHI
