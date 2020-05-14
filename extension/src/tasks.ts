@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
-import * as os from 'os';
 import * as util from 'util';
 
 import {
@@ -18,10 +17,8 @@ import {
   GradleProject,
   GradleTask,
   GradleBuild,
-  RunTaskRequest,
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
-import { OutputBuffer } from './OutputBuffer';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import {
   getJavaLanguageSupportExtension,
@@ -30,6 +27,7 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaDebuggerExtensionActivated,
 } from './compat';
+import { LoggerStream } from './LoggerSteam';
 
 const localize = nls.loadMessageBundle();
 
@@ -383,14 +381,16 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private handleOutput(messageBytes: Uint8Array): void {
+    const NL = '\n';
+    const CR = '\r';
     if (messageBytes.length) {
       const string = new util.TextDecoder('utf-8')
         .decode(messageBytes)
         .split('')
         .map((char: string) => {
-          // Note writing `\n` will just move the cursor down 1 row, you need to write `\r` as well
-          // to move the cursor to the left-most cell.
-          return char === os.EOL ? '\n\r' : char;
+          // Note writing `\n` will just move the cursor down 1 row.
+          // We need to write `\r` as well to move the cursor to the left-most cell.
+          return char === NL ? NL + CR : char;
         })
         .join('');
       this.write(string);
@@ -435,12 +435,7 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
-    // This is only required for the tests, so we can check the stdout of the task
-    const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-    stdOutBuffer.onFlush((output: string) => {
-      logger.info(output.trim());
-    });
-
+    const stdOutLoggerStream = new LoggerStream(logger, 'info');
     const args: string[] = this.task!.definition.args.split(' ').filter(
       Boolean
     );
@@ -456,17 +451,15 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         (output: Output): void => {
           this.handleOutput(output.getOutputBytes_asU8());
           if (isTest()) {
-            stdOutBuffer.write(output.getOutputBytes_asU8());
+            stdOutLoggerStream.write(output.getOutputBytes_asU8());
           }
         },
-        true,
-        RunTaskRequest.OutputStream.BYTES
+        true
       );
       if (javaDebugEnabled) {
         await this.startJavaDebug(javaDebugPort!);
       }
       await runTask;
-      stdOutBuffer.dispose();
       vscode.commands.executeCommand(
         'gradle.updateJavaProjectConfiguration',
         vscode.Uri.file(this.task!.definition.buildFile)

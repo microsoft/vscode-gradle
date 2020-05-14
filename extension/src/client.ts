@@ -25,7 +25,7 @@ import { GradleTasksServer } from './server';
 import { logger } from './logger';
 import { removeCancellingTask, GradleTaskDefinition } from './tasks';
 import { getGradleConfig } from './config';
-import { OutputBuffer, OutputType } from './OutputBuffer';
+import { LoggerStream } from './LoggerSteam';
 
 const localize = nls.loadMessageBundle();
 
@@ -131,15 +131,8 @@ export class GradleTasksClient implements vscode.Disposable {
         progress.report({ message: 'Configure project' });
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
-        const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-        stdOutBuffer.onFlush((output: string) =>
-          this.handleOutput(output, stdOutBuffer.getOutputType())
-        );
-
-        const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-        stdErrBuffer.onFlush((output: string) =>
-          this.handleOutput(output, stdErrBuffer.getOutputType())
-        );
+        const stdOutLoggerStream = new LoggerStream(logger, 'info');
+        const stdErrLoggerStream = new LoggerStream(logger, 'error');
 
         const request = new GetBuildRequest();
         request.setProjectDir(projectFolder);
@@ -165,12 +158,12 @@ export class GradleTasksClient implements vscode.Disposable {
                   case GetBuildReply.KindCase.OUTPUT:
                     switch (getBuildReply.getOutput()!.getOutputType()) {
                       case Output.OutputType.STDOUT:
-                        stdOutBuffer.write(
+                        stdOutLoggerStream.write(
                           getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
                         break;
                       case Output.OutputType.STDERR:
-                        stdErrBuffer.write(
+                        stdErrLoggerStream.write(
                           getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
                         break;
@@ -222,11 +215,7 @@ export class GradleTasksClient implements vscode.Disposable {
     input = '',
     javaDebugPort = 0,
     onOutput?: (output: Output) => void,
-    showOutputColors = true,
-    outputStream:
-      | typeof RunTaskRequest.OutputStream.BYTES
-      | typeof RunTaskRequest.OutputStream.STRING = RunTaskRequest.OutputStream
-      .BYTES
+    showOutputColors = true
   ): Promise<void> {
     return vscode.window.withProgress(
       {
@@ -252,7 +241,6 @@ export class GradleTasksClient implements vscode.Disposable {
         request.setShowOutputColors(showOutputColors);
         request.setJavaDebugPort(javaDebugPort);
         request.setInput(input);
-        request.setOutputStream(outputStream);
         const runTaskStream = this.grpcClient!.runTask(request);
         try {
           await new Promise((resolve, reject) => {
@@ -439,20 +427,6 @@ export class GradleTasksClient implements vscode.Disposable {
         cancelled.getMessage()
       )
     );
-  };
-
-  private handleOutput = (output: string, outputType: OutputType): void => {
-    const trimmedOutput = output.trim();
-    if (trimmedOutput) {
-      switch (outputType) {
-        case Output.OutputType.STDERR:
-          logger.error(trimmedOutput);
-          break;
-        case Output.OutputType.STDOUT:
-          logger.info(trimmedOutput);
-          break;
-      }
-    }
   };
 
   private handleConnectError = (e: Error): void => {

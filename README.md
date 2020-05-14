@@ -64,7 +64,17 @@ You can use an environment manager like [direnv](https://direnv.net/) to set pro
 
 _Note, the VS Code settings take precedence over the environment variables._
 
-## Debugging JavaExec Tasks
+### Running Tasks with Large Output
+
+The integrated terminal has a limited buffer size and will not show the full output for tasks that generate a large output. Increase the terminal buffer size in your settings, for example:
+
+```json
+{
+  "terminal.integrated.scrollback": 5000
+}
+```
+
+## Debug JavaExec Tasks
 
 ![Debug Screencast](images/debug-screencast.gif)
 
@@ -84,83 +94,11 @@ To enable this feature you need to specify which tasks can be debugged within yo
 
 You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
-### Debugging Limitations
-
-You'll need to remove any `jdwp` options that might have been set in your task configuration (eg via `jvmArgs`).
-
 ## Extension API
 
 This extension provides an API which you can use in your own 3rd-party vscode extension.
 
-At the moment only a `runTask` API is exposed, with the following definition:
-
-```ts
-interface RunTaskOpts {
-  projectFolder: string; // absolute path
-  taskName: string;
-  args?: ReadonlyArray<string>;
-  input?: string; // standard input
-  onOutput?: (output: Output) => void; // STDERR & STDOUT handler
-  showOutputColors: boolean;
-}
-
-function runTask(runTaskOpts: RunTaskOpts): Promise<void>;
-```
-
-### Installation
-
-```bash
-npm install vscode-gradle --save
-```
-
-### Usage
-
-```ts
-// Import the types
-import type {
-  ExtensionApi as GradleTasksApi,
-  RunTaskOpts,
-} from "vscode-gradle";
-
-// Import the Output & OutputBuffer classes
-import { Output, OutputBuffer } from "vscode-gradle";
-```
-
-#### Working with output streams
-
-The `runTask` request can stream stdout/sterr with bytes or one single large string. You can control this behaviour via `RunTaskOpts.outputStream`.
-
-If you're working with bytes, this package provides some helper classes:
-
-```ts
-// These buffers are used for storing output bytes and flushing when
-// the output stream is finished or when a new-line is detected.
-const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-stdOutBuffer.onFlush((output: string) => {
-  console.log(output);
-});
-
-const stdErrBuffer = new OutputBuffer(Output.OutputType.STDERR);
-stdErrBuffer.onFlush((output: string) => {
-  console.error(output);
-});
-
-// In your `onOutput` handler
-switch (output.getOutputType()) {
-  case Output.OutputType.STDOUT:
-    stdOutBuffer.write(output.getOutputBytes_asU8());
-    break;
-  case Output.OutputType.STDERR:
-    stdErrBuffer.write(output.getOutputBytes_asU8());
-    break;
-  }
-}
-// It's necessary to dispose the buffers to ensure any remaining bytes are flushed
-stdOutBuffer.dispose();
-stdErrBuffer.dispose();
-```
-
-Refer to [vscode-spotless-gradle](https://github.com/badsyntax/vscode-spotless-gradle) for example API usage.
+👉 [Extension API](./API.md)
 
 ## Troubleshooting
 
@@ -260,7 +198,7 @@ For general support queries, use the [#gradle-tasks](https://vscode-dev-communit
 
 Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the project.
 
-- 👉 [Architecture Overview](./ARCHITECTURE.md)
+👉 [Architecture Overview](./ARCHITECTURE.md)
 
 ## Credits
 

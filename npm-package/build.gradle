@@ -21,13 +21,6 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
-task copyOutputBuffer(type: Copy) {
-  group 'copy'
-  description 'Copies OutputBuffer helper class'
-  from file("../extension/out/OutputBuffer.js")
-  into 'lib'
-}
-
 task copyPublicApi(type: Copy) {
   dependsOn ':extension:buildTypeScript'
   group 'copy'
@@ -56,5 +49,4 @@ task compileTypeScript(type: CrossPlatformExec) {
 assemble.finalizedBy npmInstall,
   compileTypeScript,
   copyProtoLib,
-  copyPublicApi,
-  copyOutputBuffer
+  copyPublicApi

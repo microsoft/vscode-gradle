@@ -1,6 +1,7 @@
 // Note vscode is launch with webpack compiled files and the test with
 // typescript compiled files, which is why we can't mock files directly.
 
+import * as util from 'util';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
@@ -12,8 +13,7 @@ import {
   GradleTasksTreeDataProvider,
 } from '../../gradleView';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
-import { Output, RunTaskRequest } from '../../proto/gradle_tasks_pb';
-import { OutputBuffer } from '../../OutputBuffer';
+import { Output } from '../../proto/gradle_tasks_pb';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
@@ -126,23 +126,20 @@ describe(fixtureName, () => {
     it('should run a task using the extension api', async () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;
-      const stdOutBuffer = new OutputBuffer(Output.OutputType.STDOUT);
-      stdOutBuffer.onFlush((message: string) => {
-        if (message.trim() === 'Hello, World!') {
-          hasMessage = true;
-        }
-      });
       const runTaskOpts: RunTaskOpts = {
         projectFolder: fixturePath.fsPath,
         taskName: 'hello',
         showOutputColors: false,
         onOutput: (output: Output): void => {
-          stdOutBuffer.write(output.getOutputBytes_asU8());
+          const message = new util.TextDecoder('utf-8')
+            .decode(output.getOutputBytes_asU8())
+            .trim();
+          if (message === 'Hello, World!') {
+            hasMessage = true;
+          }
         },
-        outputStream: RunTaskRequest.OutputStream.BYTES,
       };
       await api.runTask(runTaskOpts);
-      stdOutBuffer.dispose();
       assert.ok(hasMessage);
     });
   });

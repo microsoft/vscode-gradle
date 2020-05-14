@@ -18,7 +18,6 @@ import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -102,18 +101,18 @@ public class GradleProjectBuilder {
         .setStandardOutput(
             new ByteBufferOutputStream() {
               @Override
-              public void onFlush(ByteArrayOutputStream outputStream) {
+              public void onFlush(byte[] bytes) {
                 synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardOutput(outputStream);
+                  replyWithStandardOutput(bytes);
                 }
               }
             })
         .setStandardError(
             new ByteBufferOutputStream() {
               @Override
-              public void onFlush(ByteArrayOutputStream outputStream) {
+              public void onFlush(byte[] bytes) {
                 synchronized (GradleProjectBuilder.class) {
-                  replyWithStandardError(outputStream);
+                  replyWithStandardError(bytes);
                 }
               }
             })
@@ -204,8 +203,8 @@ public class GradleProjectBuilder {
             .build());
   }
 
-  private void replyWithStandardOutput(ByteArrayOutputStream outputStream) {
-    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
+  private void replyWithStandardOutput(byte[] bytes) {
+    ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(
@@ -215,8 +214,8 @@ public class GradleProjectBuilder {
             .build());
   }
 
-  private void replyWithStandardError(ByteArrayOutputStream outputStream) {
-    ByteString byteString = ByteString.copyFrom(outputStream.toByteArray());
+  private void replyWithStandardError(byte[] bytes) {
+    ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setOutput(

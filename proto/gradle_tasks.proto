@@ -59,7 +59,6 @@ message RunTaskRequest {
   GradleConfig gradle_config = 6;
   string input = 7;
   bool show_output_colors = 8;
-  OutputStream output_stream = 9;
 }
 
 message RunTaskResult {
@@ -148,5 +147,4 @@ message Output {
 
   OutputType output_type = 1;
   bytes output_bytes = 2;
-  string output_string = 3;
 }

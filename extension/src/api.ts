@@ -3,7 +3,7 @@ import * as nls from 'vscode-nls';
 import { GradleTaskProvider, GradleTaskDefinition } from './tasks';
 import { GradleTasksClient } from './client';
 import { GradleTasksTreeDataProvider } from './gradleView';
-import { RunTaskRequest, Output } from './proto/gradle_tasks_pb';
+import { Output } from './proto/gradle_tasks_pb';
 import { logger } from './logger';
 
 const localize = nls.loadMessageBundle();
@@ -15,9 +15,6 @@ export interface RunTaskOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
-  outputStream:
-    | typeof RunTaskRequest.OutputStream.BYTES
-    | typeof RunTaskRequest.OutputStream.STRING;
 }
 
 export interface CancelTaskOpts {
@@ -51,8 +48,7 @@ export class Api {
       opts.input,
       0,
       opts.onOutput,
-      opts.showOutputColors,
-      opts.outputStream
+      opts.showOutputColors
     );
   }
 
