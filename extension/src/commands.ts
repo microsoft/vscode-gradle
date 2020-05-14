@@ -270,7 +270,7 @@ export function registerCommands(
     registerRestartTaskCommand(client, treeDataProvider),
     registerRunTaskWithArgsCommand(client),
     registerDebugTaskWithArgsCommand(client),
-    registerCancelTaskCommand(statusBarItem, treeDataProvider),
+    registerCancelTaskCommand(client, treeDataProvider),
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, treeDataProvider),
     registerExplorerTreeCommand(treeDataProvider),
