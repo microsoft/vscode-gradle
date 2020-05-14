@@ -20,7 +20,8 @@ This extension supports whatever Gradle supports and is language/project agnosti
 
 ## Requirements
 
-- [Java >= 8](https://adoptopenjdk.net/) must be installed
+- [VS Code >= 1.45.0](https://code.visualstudio.com/download)
+- [Java >= 8](https://adoptopenjdk.net/)
 - Local Gradle wrapper executables must exist at the root of the workspace folders
 
 ## Settings
@@ -64,16 +65,6 @@ You can use an environment manager like [direnv](https://direnv.net/) to set pro
 
 _Note, the VS Code settings take precedence over the environment variables._
 
-### Running Tasks with Large Output
-
-The integrated terminal has a limited buffer size and will not show the full output for tasks that generate a large output. Increase the terminal buffer size in your settings, for example:
-
-```json
-{
-  "terminal.integrated.scrollback": 5000
-}
-```
-
 ## Debug JavaExec Tasks
 
 ![Debug Screencast](images/debug-screencast.gif)
@@ -111,6 +102,18 @@ This extension provides an API which you can use in your own 3rd-party vscode ex
 <details><summary>Task output will be shown in the Terminal panel</summary>
 
 <img src="./images/terminal.png" width="600" />
+
+</details>
+
+<details><summary>Task output is truncated</summary>
+
+The integrated terminal has a limited buffer size and will not show the full output for tasks that generate a large output. Increase the terminal buffer size in your settings, for example:
+
+```json
+{
+  "terminal.integrated.scrollback": 5000
+}
+```
 
 </details>
 
