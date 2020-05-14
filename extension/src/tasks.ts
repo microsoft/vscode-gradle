@@ -25,6 +25,13 @@ import {
 } from './proto/gradle_tasks_pb';
 import { SERVER_TASK_NAME } from './server';
 import { OutputBuffer } from './OutputBuffer';
+import {
+  getJavaLanguageSupportExtension,
+  getJavaDebuggerExtension,
+  JAVA_LANGUAGE_EXTENSION_ID,
+  JAVA_DEBUGGER_EXTENSION_ID,
+  isJavaDebuggerExtensionActivated,
+} from './compat';
 
 const localize = nls.loadMessageBundle();
 
@@ -620,18 +627,50 @@ export async function handleCancelledTask(task: vscode.Task): Promise<void> {
   vscode.commands.executeCommand('gradle.renderTask', task);
 }
 
-export function runTask(
+export async function runTask(
   task: vscode.Task,
   client: GradleTasksClient,
+  args = '',
   debug = false
-): void {
-  if (!isTaskRunning(task)) {
-    if (debug) {
-      const debugTask = cloneTask(task, '', client, true);
-      vscode.tasks.executeTask(debugTask);
-    } else {
-      vscode.tasks.executeTask(task);
+): Promise<void> {
+  if (isTaskRunning(task)) {
+    return;
+  }
+  if (debug) {
+    const INSTALL_EXTENSIONS = localize(
+      'commands.requiredExtensionMissing',
+      'Install Missing Extensions'
+    );
+    if (!getJavaLanguageSupportExtension() || !getJavaDebuggerExtension()) {
+      const input = await vscode.window.showErrorMessage(
+        localize(
+          'commands.missingJavaLanguageSupportExtension',
+          'The Java Language Support & Debugger extensions are required for debugging.'
+        ),
+        INSTALL_EXTENSIONS
+      );
+      if (input === INSTALL_EXTENSIONS) {
+        await vscode.commands.executeCommand(
+          'workbench.extensions.action.showExtensionsWithIds',
+          [JAVA_LANGUAGE_EXTENSION_ID, JAVA_DEBUGGER_EXTENSION_ID]
+        );
+      }
+      return;
+    } else if (!isJavaDebuggerExtensionActivated()) {
+      vscode.window.showErrorMessage(
+        localize(
+          'commands.javaDebuggerExtensionNotActivated',
+          'The Java Debugger extension is not activated.'
+        )
+      );
+      return;
     }
+  }
+  if (debug || args) {
+    const debugTask = cloneTask(task, args, client, debug);
+    vscode.tasks.executeTask(debugTask);
+  } else {
+    vscode.tasks.executeTask(task);
   }
 }
 
@@ -651,15 +690,12 @@ export async function runTaskWithArgs(
     placeHolder: localize(
       'tasks.runTaskWithArgsExample',
       'For example: {0}',
-      '--all'
+      '--info'
     ),
     ignoreFocusOut: true,
   });
   if (args !== undefined) {
-    const taskWithArgs = cloneTask(task, args, client);
-    if (taskWithArgs) {
-      runTask(taskWithArgs, client, debug);
-    }
+    runTask(task, client, args, debug);
   }
 }
 
