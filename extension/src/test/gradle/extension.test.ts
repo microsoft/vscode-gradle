@@ -74,7 +74,11 @@ describe(fixtureName, () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension?.exports.logger, 'info');
+      const loggerAppendSpy = sinon.spy(extension?.exports.logger, 'append');
+      const loggerApendLineSpy = sinon.spy(
+        extension?.exports.logger,
+        'appendLine'
+      );
       await new Promise((resolve) => {
         vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -83,8 +87,10 @@ describe(fixtureName, () => {
         });
         vscode.tasks.executeTask(task!);
       });
-      assert.ok(spy.calledWith(sinon.match('Hello, World!')));
-      assert.ok(spy.calledWith(sinon.match('Completed task: hello')));
+      assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
+      assert.ok(
+        loggerApendLineSpy.calledWith(sinon.match('Completed task: hello'))
+      );
     });
 
     it('should run a gradle task with custom args', async () => {
@@ -98,7 +104,7 @@ describe(fixtureName, () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension.exports.logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'append');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
       await new Promise((resolve) => {
@@ -147,7 +153,7 @@ describe(fixtureName, () => {
   describe('logging', () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
-      const spy = sinon.spy(extension.exports.logger, 'info');
+      const spy = sinon.spy(extension.exports.logger, 'append');
       await vscode.commands.executeCommand('gradle.refresh');
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });
