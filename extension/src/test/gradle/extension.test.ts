@@ -103,10 +103,12 @@ describe(fixtureName, () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'helloProjectProperty'
       );
+      console.log('got task', JSON.stringify(task, null, 2));
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
+      console.log('got treeData Provider', treeDataProvider);
       await new Promise((resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         vscode.tasks.onDidEndTaskProcess((e) => {

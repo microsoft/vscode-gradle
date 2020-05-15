@@ -8,7 +8,7 @@
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/extension"],
       "outFiles": ["${workspaceFolder}/extension/dist/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "debug",
         "order": 1
@@ -33,7 +33,7 @@
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/extension"],
       "outFiles": ["${workspaceFolder}/extension/dist/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript",
+      "preLaunchTask": "Gradle: Build",
       "env": {
         "VSCODE_DEBUG_SERVER": "true"
       },
@@ -57,7 +57,7 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }
@@ -78,7 +78,7 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-kotlin-default-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }
@@ -99,7 +99,7 @@
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-custom-build-file"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }
@@ -119,7 +119,7 @@
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }
@@ -140,7 +140,7 @@
         "${workspaceFolder}/extension/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }
@@ -160,7 +160,7 @@
         "${workspaceFolder}/extension/test-fixtures/multi-project"
       ],
       "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
-      "preLaunchTask": "Gradle: Build TypeScript & Tests",
+      "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
       }

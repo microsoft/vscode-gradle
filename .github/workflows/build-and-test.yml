@@ -17,18 +17,14 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.16.2
-      - name: Build Project
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: build
       - name: Lint
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: lint
-      - name: SonarQube Analyse
+      - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: sonarqube
+          arguments: tasks-server:build sonarqube -x :test -x extension:test -x npm-package:test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -49,7 +45,7 @@ jobs:
       matrix:
         node-version: [12.16.2]
         java-version: ['8', '11']
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [macos-latest]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node ${{ matrix.node-version }}
@@ -61,15 +57,19 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
-      - name: Build Project
+      - name: Build Extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: build -x test -x serverStartScripts -x compileJava -x shadowJar -x startShadowScripts
+          arguments: extension:build
       - name: Download lib
         uses: actions/download-artifact@v1
         with:
           name: lib
           path: extension/lib
+      - name: MacOS fix
+        run: |
+          export NODE_OPTIONS="--no-force-async-hooks-checks"
+        if: matrix.os == 'macos-latest'
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -82,7 +82,8 @@ jobs:
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: testVsCode -x test -x serverStartScripts -x compileJava -x shadowJar -x startShadowScripts
+          arguments: testVsCode
         env:
           DISPLAY: ':99.0'
           CI: 'true'
+          NODE_OPTIONS: '--no-force-async-hooks-checks'

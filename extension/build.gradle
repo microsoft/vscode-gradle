@@ -76,7 +76,6 @@ compileTestJava.enabled = false
 processResources.enabled = false;
 
 clean {
-  dependsOn ':tasks-server:clean'
   delete protobuf.generatedFilesBaseDir
   delete file('node_modules')
   delete file(protoLib)
@@ -112,7 +111,7 @@ task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
-  commandLine 'npm', 'install'
+  commandLine 'npm', 'ci'
 }
 
 task lint(type: CrossPlatformExec) {
@@ -126,10 +125,10 @@ task format(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildTypeScript(type: CrossPlatformExec) {
-  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
+task buildDev(type: CrossPlatformExec) {
+  dependsOn copyProtoJs, copyProtoTs
   group 'build'
-  description 'Builds TypeScript source files'
+  description 'Builds development version TypeScript source files'
   outputs.dir('dist')
   inputs.dir('src')
   inputs.file('webpack.config.js')
@@ -137,8 +136,8 @@ task buildTypeScript(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile:dev'
 }
 
-task buildTypeScriptTests(type: CrossPlatformExec) {
-  dependsOn assemble, ':tasks-server:generateProto', copyProtoJs, copyProtoTs
+task buildTest(type: CrossPlatformExec) {
+  dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
   buildDir = 'out'
@@ -149,15 +148,21 @@ task buildTypeScriptTests(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile:test'
 }
 
-task bundle(type: CrossPlatformExec) {
-  dependsOn ':tasks-server:build', ':npm-package:build', copyProtoJs, copyProtoTs
+task buildProd(type: CrossPlatformExec) {
+  dependsOn copyProtoJs, copyProtoTs
   group 'build'
-  description 'Bundles the extension files for release'
+  description 'Builds production version TypeScript source files'
   buildDir = 'dist'
   outputs.dir("$buildDir")
   inputs.dir('src')
   inputs.file('webpack.config.js')
   commandLine 'npm', 'run', 'compile:prod'
+}
+
+task bundle() {
+  dependsOn buildProd, ':npm-package:build'
+  group 'build'
+  description 'Bundles the extension files for release'
 }
 
 task installExtension(type: CrossPlatformExec) {
@@ -166,7 +171,6 @@ task installExtension(type: CrossPlatformExec) {
 }
 
 task testVsCode(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
   group 'verification'
   description 'Tests the extension'
   commandLine 'npm', 'run', 'test'
@@ -180,9 +184,7 @@ task copyDocs(type: Copy) {
 }
 
 task prepareForRelease() {
-  dependsOn build, bundle, copyDocs
+  dependsOn bundle, copyDocs
 }
 
-build.dependsOn ':tasks-server:build'
-assemble.dependsOn ':tasks-server:build'
-assemble.finalizedBy buildTypeScript, buildTypeScriptTests
+build.finalizedBy buildDev, buildTest

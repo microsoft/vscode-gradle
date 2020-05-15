@@ -183,6 +183,7 @@ export class GradleTaskProvider
     */): Promise<
     vscode.Task | undefined
   > {
+    console.log('TRYING TO RESOLVE TASK');
     return undefined;
   }
 
