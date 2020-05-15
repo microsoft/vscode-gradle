@@ -27,7 +27,6 @@ allprojects {
 
 subprojects {
   apply plugin: 'java'
-  apply plugin: 'com.google.protobuf'
 
   repositories {
     maven {
@@ -38,12 +37,6 @@ subprojects {
     }
     mavenCentral()
     mavenLocal()
-  }
-
-  protobuf {
-    protoc {
-      artifact = "com.google.protobuf:protoc:${protocVersion}"
-    }
   }
 }
 

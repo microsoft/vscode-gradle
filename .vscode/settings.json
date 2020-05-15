@@ -36,5 +36,6 @@
     }
   },
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "java.format.enabled": false
 }

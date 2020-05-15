@@ -1,0 +1,46 @@
+plugins {
+  id 'com.diffplug.gradle.spotless'
+  id 'java-gradle-plugin'
+}
+
+description = 'vscode-gradle :: task-metadata-plugin'
+
+dependencies {
+  testImplementation 'junit:junit:4.12'
+  testImplementation gradleTestKit()
+}
+
+gradlePlugin {
+  plugins {
+    greeting {
+      id = 'task.metadata.greeting'
+      implementationClass = 'task.metadata.TaskMetadataPlugin'
+    }
+  }
+}
+
+sourceSets {
+    functionalTest {
+    }
+}
+
+spotless {
+  java {
+    googleJavaFormat()
+    removeUnusedImports()
+    trimTrailingWhitespace()
+    targetExclude "build/**"
+  }
+}
+
+gradlePlugin.testSourceSets(sourceSets.functionalTest)
+configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+
+task functionalTest(type: Test) {
+  testClassesDirs = sourceSets.functionalTest.output.classesDirs
+  classpath = sourceSets.functionalTest.runtimeClasspath
+}
+
+check {
+  dependsOn(tasks.functionalTest)
+}
