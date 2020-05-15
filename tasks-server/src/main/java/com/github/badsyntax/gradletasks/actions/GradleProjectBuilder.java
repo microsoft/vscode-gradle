@@ -21,6 +21,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.GradleConnector;
@@ -68,6 +69,7 @@ public class GradleProjectBuilder {
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (BuildException
+        | ServiceCreationException
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException
         | IOException
