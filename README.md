@@ -117,6 +117,12 @@ The integrated terminal has a limited buffer size and will not show the full out
 
 </details>
 
+<details><summary>Gradle: Configure project</summary>
+
+When you open a Gradle project for the first time, the Gradle wrapper will start downloading the Gradle distribution. This process can take a while. As there's no progress events emitted via the Tooling API for this process, the extension will simply report "Gradle: Configure project". You can however view progress by selecting the "Gradle Tasks Server" process in the terminal panel to view download progress.
+
+</details>
+
 <details><summary>Set the "gradle.debug" setting to "true" to view debug logs in the output panel</summary>
 
 <img src="./images/debug-output.png" width="600" />
