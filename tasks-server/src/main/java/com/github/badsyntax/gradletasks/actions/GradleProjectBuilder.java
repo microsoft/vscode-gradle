@@ -15,11 +15,17 @@ import com.github.badsyntax.gradletasks.JavaEnvironment;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
+import com.github.badsyntax.gradletasks.exceptions.GradleProjectBuilderException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildCancelledException;
@@ -35,6 +41,7 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import task.metadata.VsCodeProject;
 
 public class GradleProjectBuilder {
   private static final Logger logger =
@@ -43,14 +50,17 @@ public class GradleProjectBuilder {
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
   private GradleConnector gradleConnector;
+  private String pluginPath;
 
   public GradleProjectBuilder(
       GetBuildRequest req,
       StreamObserver<GetBuildReply> responseObserver,
-      GradleConnector gradleConnector) {
+      GradleConnector gradleConnector,
+      String pluginPath) {
     this.req = req;
     this.responseObserver = responseObserver;
     this.gradleConnector = gradleConnector;
+    this.pluginPath = pluginPath;
   }
 
   public static String getCancellationKey(String projectDir) {
@@ -61,11 +71,29 @@ public class GradleProjectBuilder {
     return GradleProjectBuilder.getCancellationKey(req.getProjectDir());
   }
 
+  private File createInitScriptFile() throws GradleProjectBuilderException {
+    File tempFile;
+    try {
+      tempFile = File.createTempFile("init", ".gradle");
+      String initScriptTemplate = getInitScriptTemplate();
+      String absolutePluginPath = new File(pluginPath).getCanonicalPath();
+      String initScript = initScriptTemplate.replace("PLUGIN_PATH", absolutePluginPath);
+      Files.write(tempFile.toPath(), initScript.getBytes());
+      return tempFile;
+    } catch (IOException e) {
+      throw new GradleProjectBuilderException("Unable to create temporary init script", e);
+    }
+  }
+
   public void build() {
+    File initScriptFile = null;
     try (ProjectConnection connection = gradleConnector.connect()) {
-      replyWithBuildEnvironment(buildEnvironment(connection));
-      org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
-      replyWithProject(getProjectData(gradleProject));
+      initScriptFile = createInitScriptFile();
+      Environment environment = buildEnvironment(connection);
+      replyWithBuildEnvironment(environment);
+      VsCodeProject gradleProject = buildGradleProject(connection, initScriptFile);
+      GradleProject projectData = getProjectData(gradleProject);
+      replyWithProject(projectData);
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (BuildException
@@ -73,19 +101,25 @@ public class GradleProjectBuilder {
         | UnsupportedVersionException
         | UnsupportedBuildArgumentException
         | IOException
-        | IllegalStateException e) {
+        | IllegalStateException
+        | GradleProjectBuilderException e) {
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {
+      if (initScriptFile != null) {
+        initScriptFile.delete();
+      }
       CancellationHandler.clearBuildToken(getCancellationKey());
     }
   }
 
-  private org.gradle.tooling.model.GradleProject buildGradleProject(ProjectConnection connection)
-      throws IOException {
+  private VsCodeProject buildGradleProject(ProjectConnection connection, File initScript)
+      throws IOException, GradleProjectBuilderException {
 
-    ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
-        connection.model(org.gradle.tooling.model.GradleProject.class);
+    ModelBuilder<VsCodeProject> projectBuilder = connection.model(VsCodeProject.class);
+
+    // ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
+    //     connection.model(org.gradle.tooling.model.GradleProject.class);
 
     Set<OperationType> progressEvents = new HashSet<>();
     progressEvents.add(OperationType.PROJECT_CONFIGURATION);
@@ -123,14 +157,32 @@ public class GradleProjectBuilder {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
+    projectBuilder.withArguments("--init-script", initScript.getAbsolutePath());
+
+    // ModelBuilder<CustomModel> customModelBuilder = connection.model(CustomModel.class);
+    // customModelBuilder.withArguments("--init-script", "init.gradle");
+    // CustomModel model = customModelBuilder.get();
+    // assert model.hasPlugin(JavaPlugin.class);
+    // System.out.println(model.getJavaSrcDir(0));
+    // System.out.println(model.getTasks().get(2));
+
+    // CustomModel custoModel = projectBuilder.get();
+    // System.out.println(custoModel.getJavaSrcDir(0));
+    // custoModel.getTasks().forEach(task -> System.out.println(task));
+    // System.out.println(custoModel.getTasks().get(2));
+
+    // return projectBuilder.get();
     return projectBuilder.get();
   }
 
-  private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject) {
+  private GradleProject getProjectData(VsCodeProject gradleProject) {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
     gradleProject.getChildren().stream()
-        .forEach(childGradleProject -> project.addProjects(getProjectData(childGradleProject)));
+        .forEach(
+            childGradleProject -> {
+              project.addProjects(getProjectData(childGradleProject));
+            });
     gradleProject.getTasks().stream()
         .forEach(
             task -> {
@@ -225,5 +277,15 @@ public class GradleProjectBuilder {
                     .setOutputType(Output.OutputType.STDERR)
                     .setOutputBytes(byteString))
             .build());
+  }
+
+  private String getInitScriptTemplate() throws IOException, GradleProjectBuilderException {
+    InputStream initFile =
+        getClass().getClassLoader().getResourceAsStream("init-script/init.gradle.tpl");
+    String text = null;
+    try (Scanner scanner = new Scanner(initFile, StandardCharsets.UTF_8.name())) {
+      text = scanner.useDelimiter("\\A").next();
+    }
+    return text;
   }
 }

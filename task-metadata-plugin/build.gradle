@@ -5,6 +5,9 @@ plugins {
 
 description = 'vscode-gradle :: task-metadata-plugin'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
 dependencies {
   testImplementation 'junit:junit:4.12'
   testImplementation gradleTestKit()
@@ -20,8 +23,9 @@ gradlePlugin {
 }
 
 sourceSets {
-    functionalTest {
-    }
+  libsDirName = file('../extension/lib')
+  functionalTest {
+  }
 }
 
 spotless {
@@ -33,8 +37,21 @@ spotless {
   }
 }
 
-gradlePlugin.testSourceSets(sourceSets.functionalTest)
-configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+// configurations {
+//     instrumentedJars {
+//         canBeConsumed = true
+//         canBeResolved = false
+//         // If you want this configuration to share the same dependencies, otherwise omit this line
+//         extendsFrom implementation, runtimeOnly
+//     }
+// }
+
+// artifacts {
+//     instrumentedJars(instrumentedJar)
+// }
+
+// gradlePlugin.testSourceSets(sourceSets.functionalTest)
+// configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
 
 task functionalTest(type: Test) {
   testClassesDirs = sourceSets.functionalTest.output.classesDirs

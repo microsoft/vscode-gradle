@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
 import * as nls from 'vscode-nls';
@@ -77,7 +78,9 @@ export class GradleTasksServer implements vscode.Disposable {
     } else {
       this.port = await getPort();
       const cwd = this.context.asAbsolutePath('lib');
+      const tasksMetadataPlugin = path.join(cwd, 'task-metadata-plugin.jar');
       const task = buildGradleServerTask(SERVER_TASK_NAME, cwd, [
+        tasksMetadataPlugin,
         String(this.port),
       ]);
       logger.debug('Starting server');

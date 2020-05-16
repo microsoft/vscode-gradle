@@ -21,6 +21,8 @@
       "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
       "projectName": "tasks-server",
       "cwd": "${workspaceFolder}/tasks-server",
+      "args": "../extension/lib/task-metadata-plugin.jar",
+      "preLaunchTask": "Gradle: Build Plugin",
       "presentation": {
         "group": "debug",
         "order": 2

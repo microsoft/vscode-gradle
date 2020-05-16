@@ -13,13 +13,13 @@ public class GradleTasksServer {
   private final int port;
   private final Server server;
 
-  public GradleTasksServer(int port) {
-    this(ServerBuilder.forPort(port), port);
+  public GradleTasksServer(int port, String pluginPath) {
+    this(ServerBuilder.forPort(port), port, pluginPath);
   }
 
-  public GradleTasksServer(ServerBuilder<?> serverBuilder, int port) {
+  public GradleTasksServer(ServerBuilder<?> serverBuilder, int port, String pluginPath) {
     this.port = port;
-    server = serverBuilder.addService(new GradleTasksService()).build();
+    server = serverBuilder.addService(new GradleTasksService(pluginPath)).build();
   }
 
   @SuppressWarnings("java:S106")
@@ -56,11 +56,16 @@ public class GradleTasksServer {
   }
 
   public static void main(String[] args) throws Exception {
-    int port = 8887;
-    if (args.length > 0) {
-      port = Integer.parseInt(args[0]);
+    if (args.length == 0) {
+      throw new RuntimeException("pluginPath argument is required");
     }
-    GradleTasksServer server = new GradleTasksServer(port);
+    String pluginPath = args[0];
+    int port = 8887;
+    if (args.length > 1) {
+      port = Integer.parseInt(args[1]);
+    }
+
+    GradleTasksServer server = new GradleTasksServer(port, pluginPath);
     server.start();
     server.blockUntilShutdown();
   }

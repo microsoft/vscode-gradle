@@ -12,6 +12,11 @@ import org.slf4j.LoggerFactory;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
+  private String pluginPath;
+
+  GradleTasksService(String pluginPath) {
+    this.pluginPath = pluginPath;
+  }
 
   @Override
   public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
@@ -19,7 +24,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       GradleConnector gradleConnector =
           GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
       GradleProjectBuilder projectBuilder =
-          new GradleProjectBuilder(req, responseObserver, gradleConnector);
+          new GradleProjectBuilder(req, responseObserver, gradleConnector, pluginPath);
       projectBuilder.build();
     } catch (GradleConnectionException e) {
       logger.error(e.getMessage());
