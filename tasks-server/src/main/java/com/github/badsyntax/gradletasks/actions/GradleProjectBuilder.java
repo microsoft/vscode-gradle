@@ -14,6 +14,7 @@ import com.github.badsyntax.gradletasks.GradleTask;
 import com.github.badsyntax.gradletasks.JavaEnvironment;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
+import com.github.badsyntax.gradletasks.VsCodeProject;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleProjectBuilderException;
 import com.google.common.base.Strings;
@@ -41,7 +42,7 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import task.metadata.VsCodeProject;
+import task.metadata.VsCodeProjectModel;
 
 public class GradleProjectBuilder {
   private static final Logger logger =
@@ -86,14 +87,15 @@ public class GradleProjectBuilder {
   }
 
   public void build() {
-    File initScriptFile = null;
+    File initScript = null;
     try (ProjectConnection connection = gradleConnector.connect()) {
-      initScriptFile = createInitScriptFile();
+      initScript = createInitScriptFile();
       Environment environment = buildEnvironment(connection);
       replyWithBuildEnvironment(environment);
-      VsCodeProject gradleProject = buildGradleProject(connection, initScriptFile);
+      org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
       GradleProject projectData = getProjectData(gradleProject);
-      replyWithProject(projectData);
+      VsCodeProjectModel vscodeProject = getVscodeProject(connection, initScript);
+      replyWithProject(projectData, vscodeProject);
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (BuildException
@@ -106,20 +108,18 @@ public class GradleProjectBuilder {
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {
-      if (initScriptFile != null) {
-        initScriptFile.delete();
+      if (initScript != null) {
+        initScript.delete();
       }
       CancellationHandler.clearBuildToken(getCancellationKey());
     }
   }
 
-  private VsCodeProject buildGradleProject(ProjectConnection connection, File initScript)
+  private org.gradle.tooling.model.GradleProject buildGradleProject(ProjectConnection connection)
       throws IOException, GradleProjectBuilderException {
 
-    ModelBuilder<VsCodeProject> projectBuilder = connection.model(VsCodeProject.class);
-
-    // ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
-    //     connection.model(org.gradle.tooling.model.GradleProject.class);
+    ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
+        connection.model(org.gradle.tooling.model.GradleProject.class);
 
     Set<OperationType> progressEvents = new HashSet<>();
     progressEvents.add(OperationType.PROJECT_CONFIGURATION);
@@ -157,32 +157,21 @@ public class GradleProjectBuilder {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
-    projectBuilder.withArguments("--init-script", initScript.getAbsolutePath());
-
-    // ModelBuilder<CustomModel> customModelBuilder = connection.model(CustomModel.class);
-    // customModelBuilder.withArguments("--init-script", "init.gradle");
-    // CustomModel model = customModelBuilder.get();
-    // assert model.hasPlugin(JavaPlugin.class);
-    // System.out.println(model.getJavaSrcDir(0));
-    // System.out.println(model.getTasks().get(2));
-
-    // CustomModel custoModel = projectBuilder.get();
-    // System.out.println(custoModel.getJavaSrcDir(0));
-    // custoModel.getTasks().forEach(task -> System.out.println(task));
-    // System.out.println(custoModel.getTasks().get(2));
-
-    // return projectBuilder.get();
     return projectBuilder.get();
   }
 
-  private GradleProject getProjectData(VsCodeProject gradleProject) {
+  private VsCodeProjectModel getVscodeProject(ProjectConnection connection, File initScript) {
+    ModelBuilder<VsCodeProjectModel> customModelBuilder =
+        connection.model(VsCodeProjectModel.class);
+    customModelBuilder.withArguments("--init-script", initScript.getAbsolutePath());
+    return customModelBuilder.get();
+  }
+
+  private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject) {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
     gradleProject.getChildren().stream()
-        .forEach(
-            childGradleProject -> {
-              project.addProjects(getProjectData(childGradleProject));
-            });
+        .forEach(childGradleProject -> project.addProjects(getProjectData(childGradleProject)));
     gradleProject.getTasks().stream()
         .forEach(
             task -> {
@@ -221,12 +210,14 @@ public class GradleProjectBuilder {
         .build();
   }
 
-  public void replyWithProject(GradleProject gradleProject) {
+  public void replyWithProject(GradleProject gradleProject, VsCodeProjectModel vscodeProject) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setGetBuildResult(
                 GetBuildResult.newBuilder()
-                    .setBuild(GradleBuild.newBuilder().setProject(gradleProject)))
+                    .setBuild(GradleBuild.newBuilder().setProject(gradleProject))
+                    .setVsCodeProject(
+                        VsCodeProject.newBuilder().addAllDebugTasks(vscodeProject.getDebugTasks())))
             .build());
     responseObserver.onCompleted();
   }

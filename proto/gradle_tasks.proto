@@ -44,6 +44,7 @@ message GetTasksResult {
 message GetBuildResult {
   string message = 1;
   GradleBuild build = 2;
+  VsCodeProject vs_code_project = 3;
 }
 
 message RunTaskRequest {
@@ -97,13 +98,19 @@ message GradleConfig {
   string version = 5;
 }
 
-message GradleBuild { GradleProject project = 1; }
+message GradleBuild {
+  GradleProject project = 1;
+}
 
 message GradleProject {
   string name = 1;
   bool is_root = 2;
   repeated GradleTask tasks = 3;
   repeated GradleProject projects = 4;
+}
+
+message VsCodeProject {
+  repeated string debug_tasks = 1;
 }
 
 message GradleTask {

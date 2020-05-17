@@ -171,6 +171,10 @@ export class GradleTasksClient implements vscode.Disposable {
                     this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
                     break;
                   case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                    const project = getBuildReply
+                      .getGetBuildResult()!
+                      .getVsCodeProject();
+                    console.log('project', project);
                     build = getBuildReply.getGetBuildResult()!.getBuild();
                     break;
                   case GetBuildReply.KindCase.ENVIRONMENT:

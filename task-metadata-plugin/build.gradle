@@ -15,9 +15,9 @@ dependencies {
 
 gradlePlugin {
   plugins {
-    greeting {
-      id = 'task.metadata.greeting'
-      implementationClass = 'task.metadata.TaskMetadataPlugin'
+    vscodeproject {
+      id = 'task.metadata.vscodeproject'
+      implementationClass = 'task.metadata.VsCodeProjectPlugin'
     }
   }
 }
