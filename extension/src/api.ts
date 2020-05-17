@@ -23,11 +23,6 @@ export interface CancelTaskOpts {
 }
 
 export class Api {
-  private readonly _onTasksLoaded: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
-  public onTasksLoaded: vscode.Event<null> = this._onTasksLoaded.event;
-
   // To allow the tests to check for task logs
   public logger = logger;
 
@@ -35,9 +30,7 @@ export class Api {
     private readonly client: GradleTasksClient,
     private readonly taskProvider: GradleTaskProvider,
     private readonly treeDataProvider: GradleTasksTreeDataProvider
-  ) {
-    taskProvider.waitForLoaded(() => this._onTasksLoaded.fire(null));
-  }
+  ) {}
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
     const task = await this.findTask(opts.projectFolder, opts.taskName);
@@ -97,7 +90,7 @@ export class Api {
     return this.treeDataProvider;
   }
 
-  dispose(): void {
-    this._onTasksLoaded.dispose();
+  public waitForLoaded(callback: () => void): void {
+    this.taskProvider.waitForLoaded(callback);
   }
 }

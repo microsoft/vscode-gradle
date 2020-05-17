@@ -9,7 +9,7 @@
       "windows": {
         "command": ".\\gradlew.bat"
       },
-      "args": ["build", "-x", "test"],
+      "args": ["build", "-x", "test", "-x", "npm-package:build"],
       "isBackground": true,
       "presentation": {
         "reveal": "always"

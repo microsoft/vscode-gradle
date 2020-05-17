@@ -22,8 +22,6 @@ async function runTestsWithGradle(): Promise<void> {
       extensionTestsEnv: {
         FIXTURE_NAME: fixture,
         VSCODE_TEST: 'true',
-        GRPC_VERBOSITY: 'debug',
-        GRPC_TRACE: 'all',
       },
     });
   }

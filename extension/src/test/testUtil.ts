@@ -3,31 +3,15 @@ import * as vscode from 'vscode';
 import * as Mocha from 'mocha';
 import * as glob from 'glob';
 
-export async function waitForExplorerRefresh(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extension: any
-): Promise<vscode.Task[]> {
-  return await new Promise(async (resolve) => {
-    const treeDataProvider = extension!.exports.getTreeProvider();
-    treeDataProvider.onDidChangeTreeData(async () => {
-      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-      if (tasks.length) {
-        resolve(tasks);
-      }
-    });
-  });
-}
-
 export async function waitForTasksToLoad(
   extensionName: string
 ): Promise<vscode.Task[]> {
   const extension = vscode.extensions.getExtension(extensionName);
-  const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-  if (!tasks || !tasks.length) {
-    return await waitForExplorerRefresh(extension);
-  } else {
-    return tasks;
-  }
+  return new Promise((resolve, reject) => {
+    extension?.exports.waitForLoaded(() => {
+      vscode.tasks.fetchTasks({ type: 'gradle' }).then(resolve, reject);
+    });
+  });
 }
 
 export function createTestRunner(pattern: string) {
@@ -39,7 +23,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'bdd',
-      timeout: 120000,
+      timeout: 60000,
       color: true,
     });
     mocha.bail(true);
