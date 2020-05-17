@@ -45,7 +45,7 @@ jobs:
       matrix:
         node-version: [12.16.2]
         java-version: ['8', '11']
-        os: [macos-latest]
+        os: [ubuntu-latest, windows-latest] # unable to test on macos-latest, see https://github.com/microsoft/vscode/issues/98080
     steps:
       - uses: actions/checkout@v1
       - name: Use Node ${{ matrix.node-version }}
@@ -66,10 +66,6 @@ jobs:
         with:
           name: lib
           path: extension/lib
-      - name: MacOS fix
-        run: |
-          export NODE_OPTIONS="--no-force-async-hooks-checks"
-        if: matrix.os == 'macos-latest'
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -79,6 +75,24 @@ jobs:
           chmod +x extension/lib/tasks-server
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
+      - name: Prepare gradle-groovy-custom-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build
+          build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+          wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+      - name: Prepare gradle-groovy-default-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build
+          build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
+          wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
+      - name: Prepare gradle-kotlin-default-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: build
+          build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
+          wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
         with:
@@ -86,4 +100,3 @@ jobs:
         env:
           DISPLAY: ':99.0'
           CI: 'true'
-          NODE_OPTIONS: '--no-force-async-hooks-checks'

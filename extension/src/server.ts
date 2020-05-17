@@ -29,7 +29,7 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTask((event) => {
+      vscode.tasks.onDidStartTaskProcess((event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this.fireOnReady();
         }
@@ -59,6 +59,7 @@ export class GradleTasksServer implements vscode.Disposable {
       const task = buildGradleServerTask(SERVER_TASK_NAME, cwd, [
         String(this.port),
       ]);
+      logger.debug('Starting server');
       this.taskExecution = await vscode.tasks.executeTask(task);
     }
   }

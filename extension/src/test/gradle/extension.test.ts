@@ -79,13 +79,14 @@ describe(fixtureName, () => {
         extension?.exports.logger,
         'appendLine'
       );
-      await new Promise((resolve) => {
-        vscode.tasks.onDidEndTaskProcess((e) => {
+      await new Promise((resolve, reject) => {
+        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
+            disposable.dispose();
             resolve();
           }
         });
-        vscode.tasks.executeTask(task!);
+        vscode.tasks.executeTask(task!).then(resolve, reject);
       });
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(
@@ -103,16 +104,15 @@ describe(fixtureName, () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
         ({ name }) => name === 'helloProjectProperty'
       );
-      console.log('got task', JSON.stringify(task, null, 2));
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
-      console.log('got treeData Provider', treeDataProvider);
-      await new Promise((resolve) => {
+      await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
-        vscode.tasks.onDidEndTaskProcess((e) => {
-          if (e.execution.task.definition.script === task?.definition.script) {
+        const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
+          if (e.execution.task.definition.script === task.definition.script) {
+            endDisposable.dispose();
             resolve();
           }
         });
@@ -124,7 +124,10 @@ describe(fixtureName, () => {
           treeDataProvider.getIconPathRunning()!,
           treeDataProvider.getIconPathIdle()!
         );
-        vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
+        await vscode.commands.executeCommand(
+          'gradle.runTaskWithArgs',
+          treeItem
+        );
       });
       assert.ok(spy.calledWith(sinon.match('Hello, Project Property!foo')));
     });

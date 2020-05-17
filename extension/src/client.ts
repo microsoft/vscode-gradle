@@ -464,9 +464,7 @@ export function registerClient(
   const client = new GradleTasksClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
   client.onConnect(() => {
-    setTimeout(() => {
-      vscode.commands.executeCommand('gradle.refresh');
-    }, 1); // wait for other onConnectHandler to fire first
+    vscode.commands.executeCommand('gradle.refresh');
   });
   return client;
 }
