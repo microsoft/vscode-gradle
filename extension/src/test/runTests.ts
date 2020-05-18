@@ -1,12 +1,17 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs-extra';
 
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 const VSCODE_VERSION = '1.45.0';
 
-async function runTestsWithGradle(vscodeExecutablePath: string): Promise<void> {
+async function runTestsWithGradle(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
@@ -20,6 +25,7 @@ async function runTestsWithGradle(vscodeExecutablePath: string): Promise<void> {
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
         '--disable-extensions',
+        `--user-data-dir=${userDir}`,
       ],
       extensionTestsEnv: {
         FIXTURE_NAME: fixture,
@@ -29,7 +35,10 @@ async function runTestsWithGradle(vscodeExecutablePath: string): Promise<void> {
   }
 }
 
-function runTestsWithoutGradle(vscodeExecutablePath: string): Promise<number> {
+function runTestsWithoutGradle(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<number> {
   return runTests({
     vscodeExecutablePath,
     extensionDevelopmentPath,
@@ -37,6 +46,7 @@ function runTestsWithoutGradle(vscodeExecutablePath: string): Promise<number> {
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       VSCODE_TEST: 'true',
@@ -44,7 +54,10 @@ function runTestsWithoutGradle(vscodeExecutablePath: string): Promise<number> {
   });
 }
 
-function runTestsWithMultiRoot(vscodeExecutablePath: string): Promise<number> {
+function runTestsWithMultiRoot(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<number> {
   return runTests({
     vscodeExecutablePath,
     extensionDevelopmentPath,
@@ -55,6 +68,7 @@ function runTestsWithMultiRoot(vscodeExecutablePath: string): Promise<number> {
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root',
@@ -64,7 +78,8 @@ function runTestsWithMultiRoot(vscodeExecutablePath: string): Promise<number> {
 }
 
 async function runTestsWithMultiProject(
-  vscodeExecutablePath: string
+  vscodeExecutablePath: string,
+  userDir: string
 ): Promise<number> {
   return runTests({
     vscodeExecutablePath,
@@ -73,6 +88,7 @@ async function runTestsWithMultiProject(
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project',
@@ -82,14 +98,22 @@ async function runTestsWithMultiProject(
 }
 
 async function main(): Promise<void> {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-user'));
+  fs.copySync(
+    path.resolve(__dirname, '../../test-fixtures/vscode-user/User'),
+    path.join(tmpDir, 'User')
+  );
   const vscodeExecutablePath = await downloadAndUnzipVSCode(VSCODE_VERSION);
 
-  runTestsWithGradle(vscodeExecutablePath)
-    .then(() => runTestsWithMultiRoot(vscodeExecutablePath))
-    .then(() => runTestsWithMultiProject(vscodeExecutablePath))
-    .then(() => runTestsWithoutGradle(vscodeExecutablePath))
+  runTestsWithGradle(vscodeExecutablePath, tmpDir)
+    .then(() => runTestsWithMultiRoot(vscodeExecutablePath, tmpDir))
+    .then(() => runTestsWithMultiProject(vscodeExecutablePath, tmpDir))
+    .then(() => runTestsWithoutGradle(vscodeExecutablePath, tmpDir))
     .catch((err) => {
       console.error('Error running tests:', err.message);
+    })
+    .finally(() => {
+      fs.remove(tmpDir);
     });
 }
 
