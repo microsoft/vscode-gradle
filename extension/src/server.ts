@@ -55,11 +55,13 @@ export class GradleTasksServer implements vscode.Disposable {
       this.fireOnReady();
     } else {
       this.port = await getPort();
-      const cwd = this.context.asAbsolutePath('lib');
-      const task = buildGradleServerTask(SERVER_TASK_NAME, cwd, [
+      const executableDir = this.context.asAbsolutePath('lib');
+      const task = buildGradleServerTask(SERVER_TASK_NAME, executableDir, [
         String(this.port),
       ]);
-      this.taskExecution = await vscode.tasks.executeTask(task);
+      if (task) {
+        this.taskExecution = await vscode.tasks.executeTask(task);
+      }
     }
   }
 
