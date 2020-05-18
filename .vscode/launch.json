@@ -56,7 +56,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
@@ -77,7 +80,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-kotlin-default-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
@@ -98,7 +104,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-custom-build-file"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
@@ -118,7 +127,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/no-gradle/",
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
@@ -139,7 +151,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-root/",
         "${workspaceFolder}/extension/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"
@@ -159,7 +174,10 @@
         "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-project/",
         "${workspaceFolder}/extension/test-fixtures/multi-project"
       ],
-      "outFiles": ["${workspaceFolder}/extension/out/test/**/*.js"],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "test"

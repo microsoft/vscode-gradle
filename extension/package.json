@@ -379,61 +379,6 @@
               "integration"
             ]
           }
-        },
-        "gradle.taskPresentationOptions": {
-          "type": "object",
-          "description": "%extension.config.taskPresentationOptions.description%",
-          "scope": "window",
-          "properties": {
-            "reveal": {
-              "type": "string",
-              "enum": [
-                "always",
-                "never",
-                "silent"
-              ],
-              "default": "always",
-              "description": "%extension.config.taskPresentationOptions.reveal.description%"
-            },
-            "focus": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.focus.description%"
-            },
-            "echo": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.echo.description%"
-            },
-            "showReuseMessage": {
-              "type": "boolean",
-              "default": false,
-              "description": "%extension.config.taskPresentationOptions.showReuseMessage.description%"
-            },
-            "panel": {
-              "type": "string",
-              "enum": [
-                "shared",
-                "dedicated",
-                "new"
-              ],
-              "default": "shared",
-              "description": "%extension.config.taskPresentationOptions.panel.description%"
-            },
-            "clear": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.clear.description%"
-            }
-          },
-          "default": {
-            "reveal": "always",
-            "focus": false,
-            "echo": true,
-            "showReuseMessage": false,
-            "panel": "shared",
-            "clear": false
-          }
         }
       }
     },

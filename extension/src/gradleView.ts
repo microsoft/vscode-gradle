@@ -465,10 +465,7 @@ export function registerExplorer(
             'gradle:showTasksExplorer',
             getConfigIsTasksExplorerEnabled()
           );
-        } else if (
-          event.affectsConfiguration('gradle.javaDebug') ||
-          event.affectsConfiguration('gradle.taskPresentationOptions')
-        ) {
+        } else if (event.affectsConfiguration('gradle.javaDebug')) {
           vscode.commands.executeCommand('gradle.refresh');
         }
       }

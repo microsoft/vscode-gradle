@@ -187,4 +187,4 @@ task prepareForRelease() {
   dependsOn bundle, copyDocs
 }
 
-build.finalizedBy buildDev, buildTest
+build.finalizedBy buildProd, buildTest

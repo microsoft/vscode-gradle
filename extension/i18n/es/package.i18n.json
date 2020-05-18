@@ -18,13 +18,6 @@
   "extension.config.enableTasksExplorer.description": "Habilitar una vista de explorador para tareas de Gradle",
   "extension.config.debug.description": "Mostrar información adicional de depuración en el panel de salida",
   "extension.config.focusTaskInExplorer.description": "Enfoca la tarea en el explorador cuando ejecutas una tarea",
-  "extension.config.taskPresentationOptions.description": "Opciones de terminal para ejecutar una tarea",
-  "extension.config.taskPresentationOptions.reveal.description": "Controla si el panel Terminal integrado se lleva al frente",
-  "extension.config.taskPresentationOptions.focus.description": "Controla si el terminal está tomando el foco de entrada o no",
-  "extension.config.taskPresentationOptions.echo.description": "Controla si el comando ejecutado se repite en el terminal",
-  "extension.config.taskPresentationOptions.showReuseMessage.description": "Controla si mostrar el \"Terminal será reutilizado por tareas, presione cualquier tecla para cerrarlo \" mensaje",
-  "extension.config.taskPresentationOptions.panel.description": "Controla si la instancia de terminal se comparte entre ejecuciones de tareas",
-  "extension.config.taskPresentationOptions.clear.description": "Controla si el terminal se borra antes de ejecutar esta tarea",
   "extension.config.javaDebug.description": "Opciones de depuración de Java",
   "extension.config.javaDebug.tasks.description": "Lista de tareas JavaExec para depurar"
 }

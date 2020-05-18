@@ -35,67 +35,67 @@ async function runTestsWithGradle(
   }
 }
 
-function runTestsWithoutGradle(
-  vscodeExecutablePath: string,
-  userDir: string
-): Promise<number> {
-  return runTests({
-    vscodeExecutablePath,
-    extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
-    launchArgs: [
-      path.resolve(__dirname, '../../test-fixtures/no-gradle'),
-      '--disable-extensions',
-      `--user-data-dir=${userDir}`,
-    ],
-    extensionTestsEnv: {
-      VSCODE_TEST: 'true',
-    },
-  });
-}
+// function runTestsWithoutGradle(
+//   vscodeExecutablePath: string,
+//   userDir: string
+// ): Promise<number> {
+//   return runTests({
+//     vscodeExecutablePath,
+//     extensionDevelopmentPath,
+//     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
+//     launchArgs: [
+//       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
+//       '--disable-extensions',
+//       `--user-data-dir=${userDir}`,
+//     ],
+//     extensionTestsEnv: {
+//       VSCODE_TEST: 'true',
+//     },
+//   });
+// }
 
-function runTestsWithMultiRoot(
-  vscodeExecutablePath: string,
-  userDir: string
-): Promise<number> {
-  return runTests({
-    vscodeExecutablePath,
-    extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'multi-root'),
-    launchArgs: [
-      path.resolve(
-        __dirname,
-        '../../test-fixtures/multi-root/multiple-project.code-workspace'
-      ),
-      '--disable-extensions',
-      `--user-data-dir=${userDir}`,
-    ],
-    extensionTestsEnv: {
-      FIXTURE_NAME: 'multi-root',
-      VSCODE_TEST: 'true',
-    },
-  });
-}
+// function runTestsWithMultiRoot(
+//   vscodeExecutablePath: string,
+//   userDir: string
+// ): Promise<number> {
+//   return runTests({
+//     vscodeExecutablePath,
+//     extensionDevelopmentPath,
+//     extensionTestsPath: path.resolve(__dirname, 'multi-root'),
+//     launchArgs: [
+//       path.resolve(
+//         __dirname,
+//         '../../test-fixtures/multi-root/multiple-project.code-workspace'
+//       ),
+//       '--disable-extensions',
+//       `--user-data-dir=${userDir}`,
+//     ],
+//     extensionTestsEnv: {
+//       FIXTURE_NAME: 'multi-root',
+//       VSCODE_TEST: 'true',
+//     },
+//   });
+// }
 
-async function runTestsWithMultiProject(
-  vscodeExecutablePath: string,
-  userDir: string
-): Promise<number> {
-  return runTests({
-    vscodeExecutablePath,
-    extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'multi-project'),
-    launchArgs: [
-      path.resolve(__dirname, '../../test-fixtures/multi-project/'),
-      '--disable-extensions',
-      `--user-data-dir=${userDir}`,
-    ],
-    extensionTestsEnv: {
-      FIXTURE_NAME: 'multi-project',
-      VSCODE_TEST: 'true',
-    },
-  });
-}
+// async function runTestsWithMultiProject(
+//   vscodeExecutablePath: string,
+//   userDir: string
+// ): Promise<number> {
+//   return runTests({
+//     vscodeExecutablePath,
+//     extensionDevelopmentPath,
+//     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
+//     launchArgs: [
+//       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
+//       '--disable-extensions',
+//       `--user-data-dir=${userDir}`,
+//     ],
+//     extensionTestsEnv: {
+//       FIXTURE_NAME: 'multi-project',
+//       VSCODE_TEST: 'true',
+//     },
+//   });
+// }
 
 async function main(): Promise<void> {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-user'));
@@ -106,9 +106,9 @@ async function main(): Promise<void> {
   const vscodeExecutablePath = await downloadAndUnzipVSCode(VSCODE_VERSION);
 
   runTestsWithGradle(vscodeExecutablePath, tmpDir)
-    .then(() => runTestsWithMultiRoot(vscodeExecutablePath, tmpDir))
-    .then(() => runTestsWithMultiProject(vscodeExecutablePath, tmpDir))
-    .then(() => runTestsWithoutGradle(vscodeExecutablePath, tmpDir))
+    // .then(() => runTestsWithMultiRoot(vscodeExecutablePath, tmpDir))
+    // .then(() => runTestsWithMultiProject(vscodeExecutablePath, tmpDir))
+    // .then(() => runTestsWithoutGradle(vscodeExecutablePath, tmpDir))
     .catch((err) => {
       console.error('Error running tests:', err.message);
       process.exit(1);
