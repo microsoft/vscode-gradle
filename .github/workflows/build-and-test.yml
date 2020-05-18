@@ -45,7 +45,7 @@ jobs:
       matrix:
         node-version: [12.16.2]
         java-version: ['8', '11']
-        os: [ubuntu-latest, windows-latest] # unable to test on macos-latest, see https://github.com/microsoft/vscode/issues/98080
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v1
       - name: Use Node ${{ matrix.node-version }}

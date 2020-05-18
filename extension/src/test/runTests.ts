@@ -1,11 +1,12 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import * as path from 'path';
 
-import { runTests } from 'vscode-test';
+import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+const VSCODE_VERSION = '1.45.0';
 
-async function runTestsWithGradle(): Promise<void> {
+async function runTestsWithGradle(vscodeExecutablePath: string): Promise<void> {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
@@ -13,6 +14,7 @@ async function runTestsWithGradle(): Promise<void> {
   ];
   for (const fixture of fixtures) {
     await runTests({
+      vscodeExecutablePath,
       extensionDevelopmentPath,
       extensionTestsPath: path.resolve(__dirname, 'gradle'),
       launchArgs: [
@@ -27,8 +29,9 @@ async function runTestsWithGradle(): Promise<void> {
   }
 }
 
-async function runTestsWithoutGradle(): Promise<void> {
-  await runTests({
+function runTestsWithoutGradle(vscodeExecutablePath: string): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
     launchArgs: [
@@ -41,8 +44,9 @@ async function runTestsWithoutGradle(): Promise<void> {
   });
 }
 
-async function runTestsWithMultiRoot(): Promise<void> {
-  await runTests({
+function runTestsWithMultiRoot(vscodeExecutablePath: string): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-root'),
     launchArgs: [
@@ -59,8 +63,11 @@ async function runTestsWithMultiRoot(): Promise<void> {
   });
 }
 
-async function runTestsWithMultiProject(): Promise<void> {
-  await runTests({
+async function runTestsWithMultiProject(
+  vscodeExecutablePath: string
+): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
     launchArgs: [
@@ -75,14 +82,15 @@ async function runTestsWithMultiProject(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  try {
-    await runTestsWithGradle();
-    await runTestsWithMultiRoot();
-    await runTestsWithMultiProject();
-    await runTestsWithoutGradle();
-  } catch (err) {
-    process.exit(1);
-  }
+  const vscodeExecutablePath = await downloadAndUnzipVSCode(VSCODE_VERSION);
+
+  runTestsWithGradle(vscodeExecutablePath)
+    .then(() => runTestsWithMultiRoot(vscodeExecutablePath))
+    .then(() => runTestsWithMultiProject(vscodeExecutablePath))
+    .then(() => runTestsWithoutGradle(vscodeExecutablePath))
+    .catch((err) => {
+      console.error('Error running tests:', err.message);
+    });
 }
 
 main();
