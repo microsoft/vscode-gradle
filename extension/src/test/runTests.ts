@@ -111,6 +111,7 @@ async function main(): Promise<void> {
     .then(() => runTestsWithoutGradle(vscodeExecutablePath, tmpDir))
     .catch((err) => {
       console.error('Error running tests:', err.message);
+      process.exit(1);
     })
     .finally(() => {
       fs.remove(tmpDir);
