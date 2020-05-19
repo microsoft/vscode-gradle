@@ -178,10 +178,11 @@ export class GradleTaskProvider
   }
 
   // TODO
-  public async resolveTask(
-    _task: vscode.Task
-  ): Promise<vscode.Task | undefined> {
-    console.log('TRY RESOLVE TASK', _task);
+  public async resolveTask(/*
+     _task: vscode.Task
+  */): Promise<
+    vscode.Task | undefined
+  > {
     return undefined;
   }
 
