@@ -125,4 +125,5 @@ task(format) {
   dependsOn(spotlessApply)
 }
 
+compileJava.dependsOn 'generateProto'
 assemble.dependsOn serverStartScripts

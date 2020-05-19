@@ -67,8 +67,9 @@ describe(fixtureName, () => {
 
         const spy = sinon.spy(extension.exports.logger, 'append');
         await new Promise((resolve) => {
-          vscode.tasks.onDidEndTaskProcess((e) => {
+          const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {
+              disposable.dispose();
               resolve();
             }
           });

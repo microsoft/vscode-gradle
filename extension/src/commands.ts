@@ -93,6 +93,10 @@ function registerRunTaskWithArgsCommand(
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         runTaskWithArgs(treeItem.task, client, false);
+      } else {
+        logger.error(
+          'Unable to run task with args. TreeItem or TreeItem task not found.'
+        );
       }
     }
   );
@@ -106,6 +110,10 @@ function registerDebugTaskWithArgsCommand(
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         runTaskWithArgs(treeItem.task, client, true);
+      } else {
+        logger.error(
+          'Unable to debug task with args. TreeItem or TreeItem task not found.'
+        );
       }
     }
   );

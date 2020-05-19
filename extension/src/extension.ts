@@ -35,10 +35,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     taskProvider
   );
 
-  const api = new Api(client, taskProvider, treeDataProvider);
-  context.subscriptions.push(api);
-
-  return api;
+  return new Api(client, taskProvider, treeDataProvider);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

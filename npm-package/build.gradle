@@ -22,7 +22,7 @@ task copyProtoLib(type: Copy) {
 }
 
 task copyPublicApi(type: Copy) {
-  dependsOn ':extension:buildTypeScript'
+  dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/out")
@@ -34,7 +34,7 @@ task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
-  commandLine 'npm', 'install'
+  commandLine 'npm', 'ci'
 }
 
 task compileTypeScript(type: CrossPlatformExec) {
@@ -46,7 +46,7 @@ task compileTypeScript(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile'
 }
 
-assemble.finalizedBy npmInstall,
+build.finalizedBy npmInstall,
   compileTypeScript,
   copyProtoLib,
   copyPublicApi

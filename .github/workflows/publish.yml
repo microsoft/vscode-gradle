@@ -16,7 +16,7 @@ jobs:
       - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: extension:prepareForRelease npm-package:build
+          arguments: prepareForRelease
       - name: Publish types
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

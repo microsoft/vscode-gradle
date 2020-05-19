@@ -179,8 +179,8 @@ export class GradleTaskProvider
 
   // TODO
   public async resolveTask(/*
-      _task: vscode.Task
-    */): Promise<
+     _task: vscode.Task
+  */): Promise<
     vscode.Task | undefined
   > {
     return undefined;
@@ -216,6 +216,7 @@ export class GradleTaskProvider
   }
 
   public async refresh(): Promise<vscode.Task[]> {
+    logger.debug('Refreshing tasks');
     this._onDidRefreshStart.fire(null);
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
@@ -535,9 +536,9 @@ export function buildGradleServerTask(
   cwd: string,
   args: string[] = []
 ): vscode.Task {
-  const cmd = `"${getGradleTasksServerCommand()}"`;
+  const cmd = getGradleTasksServerCommand();
   logger.debug(`Gradle Tasks Server dir: ${cwd}`);
-  logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args}`);
+  logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args.join(' ')}`);
   const taskType = 'gradle';
   const definition = {
     type: taskType,
@@ -549,23 +550,13 @@ export function buildGradleServerTask(
       VSCODE_JAVA_HOME: javaHome,
     });
   }
-  const task = new vscode.Task(
+  return new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     taskName,
     taskType,
-    new vscode.ShellExecution(cmd, args, { cwd, env })
+    new vscode.ProcessExecution(cmd, args, { cwd, env })
   );
-  // task.isBackground = true; // this hides errors on task start
-  task.source = taskType;
-  task.presentationOptions = {
-    reveal: vscode.TaskRevealKind.Never,
-    focus: false,
-    echo: true,
-    clear: false,
-    panel: vscode.TaskPanelKind.Shared,
-  };
-  return task;
 }
 
 export function restartTask(task: vscode.Task): void {
@@ -657,6 +648,8 @@ export async function runTaskWithArgs(
   });
   if (args !== undefined) {
     runTask(task, client, args, debug);
+  } else {
+    logger.error('Args not supplied');
   }
 }
 

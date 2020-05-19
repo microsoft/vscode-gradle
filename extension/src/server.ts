@@ -15,7 +15,7 @@ export interface ServerOptions {
 }
 
 export class GradleTasksServer implements vscode.Disposable {
-  private taskExecution: vscode.TaskExecution | undefined;
+  private taskExecution?: vscode.TaskExecution;
   private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private isRestarting = false;
@@ -29,7 +29,7 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTask((event) => {
+      vscode.tasks.onDidStartTaskProcess((event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this.fireOnReady();
         }
@@ -59,12 +59,13 @@ export class GradleTasksServer implements vscode.Disposable {
       const task = buildGradleServerTask(SERVER_TASK_NAME, cwd, [
         String(this.port),
       ]);
+      logger.debug('Starting server');
       this.taskExecution = await vscode.tasks.executeTask(task);
     }
   }
 
   public isStarted(): boolean {
-    return this.taskExecution !== null;
+    return this.taskExecution !== undefined;
   }
 
   public async showRestartMessage(): Promise<void> {
@@ -95,7 +96,7 @@ export class GradleTasksServer implements vscode.Disposable {
             this.start();
           }
         });
-        this.taskExecution.terminate();
+        this.taskExecution?.terminate();
       } else {
         this.start();
       }

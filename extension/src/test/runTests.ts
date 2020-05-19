@@ -1,11 +1,17 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs-extra';
 
-import { runTests } from 'vscode-test';
+import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
+const VSCODE_VERSION = '1.45.0';
 
-async function runTestsWithGradle(): Promise<void> {
+async function runTestsWithGradle(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
   const fixtures = [
     'gradle-groovy-default-build-file',
     'gradle-kotlin-default-build-file',
@@ -13,29 +19,34 @@ async function runTestsWithGradle(): Promise<void> {
   ];
   for (const fixture of fixtures) {
     await runTests({
+      vscodeExecutablePath,
       extensionDevelopmentPath,
       extensionTestsPath: path.resolve(__dirname, 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
         '--disable-extensions',
+        `--user-data-dir=${userDir}`,
       ],
       extensionTestsEnv: {
         FIXTURE_NAME: fixture,
         VSCODE_TEST: 'true',
-        GRPC_VERBOSITY: 'debug',
-        GRPC_TRACE: 'all',
       },
     });
   }
 }
 
-async function runTestsWithoutGradle(): Promise<void> {
-  await runTests({
+function runTestsWithoutGradle(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       VSCODE_TEST: 'true',
@@ -43,8 +54,12 @@ async function runTestsWithoutGradle(): Promise<void> {
   });
 }
 
-async function runTestsWithMultiRoot(): Promise<void> {
-  await runTests({
+function runTestsWithMultiRoot(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-root'),
     launchArgs: [
@@ -53,6 +68,7 @@ async function runTestsWithMultiRoot(): Promise<void> {
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root',
@@ -61,13 +77,18 @@ async function runTestsWithMultiRoot(): Promise<void> {
   });
 }
 
-async function runTestsWithMultiProject(): Promise<void> {
-  await runTests({
+function runTestsWithMultiProject(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<number> {
+  return runTests({
+    vscodeExecutablePath,
     extensionDevelopmentPath,
     extensionTestsPath: path.resolve(__dirname, 'multi-project'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
       '--disable-extensions',
+      `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project',
@@ -77,13 +98,28 @@ async function runTestsWithMultiProject(): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-user'));
+  fs.copySync(
+    path.resolve(__dirname, '../../test-fixtures/vscode-user/User'),
+    path.join(tmpDir, 'User')
+  );
+  const vscodeExecutablePath = await downloadAndUnzipVSCode(VSCODE_VERSION);
+
+  let hasErr = false;
+
   try {
-    await runTestsWithGradle();
-    await runTestsWithMultiRoot();
-    await runTestsWithMultiProject();
-    await runTestsWithoutGradle();
+    await runTestsWithGradle(vscodeExecutablePath, tmpDir);
+    await runTestsWithMultiRoot(vscodeExecutablePath, tmpDir);
+    await runTestsWithMultiProject(vscodeExecutablePath, tmpDir);
+    await runTestsWithoutGradle(vscodeExecutablePath, tmpDir);
   } catch (err) {
-    process.exit(1);
+    hasErr = true;
+    console.error('Error running tests:', err.message);
+  } finally {
+    fs.remove(tmpDir);
+    if (hasErr) {
+      process.exit(1);
+    }
   }
 }
 

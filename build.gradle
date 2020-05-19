@@ -50,5 +50,3 @@ subprojects {
 task(format) {
   dependsOn(spotlessApply)
 }
-
-project.tasks["sonarqube"].dependsOn ':extension:buildTypeScript'

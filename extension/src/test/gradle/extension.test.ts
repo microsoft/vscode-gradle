@@ -75,21 +75,22 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const loggerAppendSpy = sinon.spy(extension?.exports.logger, 'append');
-      const loggerApendLineSpy = sinon.spy(
+      const loggerAppendLineSpy = sinon.spy(
         extension?.exports.logger,
         'appendLine'
       );
-      await new Promise((resolve) => {
-        vscode.tasks.onDidEndTaskProcess((e) => {
+      await new Promise(async (resolve) => {
+        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
+            disposable.dispose();
             resolve();
           }
         });
-        vscode.tasks.executeTask(task!);
+        await vscode.tasks.executeTask(task!);
       });
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(
-        loggerApendLineSpy.calledWith(sinon.match('Completed task: hello'))
+        loggerAppendLineSpy.calledWith(sinon.match('Completed task: hello'))
       );
     });
 
@@ -107,10 +108,11 @@ describe(fixtureName, () => {
       const spy = sinon.spy(extension.exports.logger, 'append');
       const treeDataProvider = extension?.exports
         .treeDataProvider as GradleTasksTreeDataProvider;
-      await new Promise((resolve) => {
+      await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
-        vscode.tasks.onDidEndTaskProcess((e) => {
-          if (e.execution.task.definition.script === task?.definition.script) {
+        const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
+          if (e.execution.task.definition.script === task.definition.script) {
+            endDisposable.dispose();
             resolve();
           }
         });
@@ -122,7 +124,10 @@ describe(fixtureName, () => {
           treeDataProvider.getIconPathRunning()!,
           treeDataProvider.getIconPathIdle()!
         );
-        vscode.commands.executeCommand('gradle.runTaskWithArgs', treeItem);
+        await vscode.commands.executeCommand(
+          'gradle.runTaskWithArgs',
+          treeItem
+        );
       });
       assert.ok(spy.calledWith(sinon.match('Hello, Project Property!foo')));
     });

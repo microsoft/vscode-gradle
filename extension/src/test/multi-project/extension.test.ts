@@ -45,8 +45,9 @@ describe(fixtureName, () => {
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
       await new Promise((resolve) => {
-        vscode.tasks.onDidEndTaskProcess((e) => {
+        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
+            disposable.dispose();
             resolve();
           }
         });
@@ -67,8 +68,9 @@ describe(fixtureName, () => {
       // eslint-disable-next-line sonarjs/no-identical-functions
       await new Promise((resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
-        vscode.tasks.onDidEndTaskProcess((e) => {
+        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
+            disposable.dispose();
             resolve();
           }
         });

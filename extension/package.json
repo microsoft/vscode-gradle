@@ -379,61 +379,6 @@
               "integration"
             ]
           }
-        },
-        "gradle.taskPresentationOptions": {
-          "type": "object",
-          "description": "%extension.config.taskPresentationOptions.description%",
-          "scope": "window",
-          "properties": {
-            "reveal": {
-              "type": "string",
-              "enum": [
-                "always",
-                "never",
-                "silent"
-              ],
-              "default": "always",
-              "description": "%extension.config.taskPresentationOptions.reveal.description%"
-            },
-            "focus": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.focus.description%"
-            },
-            "echo": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.echo.description%"
-            },
-            "showReuseMessage": {
-              "type": "boolean",
-              "default": false,
-              "description": "%extension.config.taskPresentationOptions.showReuseMessage.description%"
-            },
-            "panel": {
-              "type": "string",
-              "enum": [
-                "shared",
-                "dedicated",
-                "new"
-              ],
-              "default": "shared",
-              "description": "%extension.config.taskPresentationOptions.panel.description%"
-            },
-            "clear": {
-              "type": "boolean",
-              "default": true,
-              "description": "%extension.config.taskPresentationOptions.clear.description%"
-            }
-          },
-          "default": {
-            "reveal": "always",
-            "focus": false,
-            "echo": true,
-            "showReuseMessage": false,
-            "panel": "shared",
-            "clear": false
-          }
         }
       }
     },
@@ -531,6 +476,7 @@
   "dependencies": {},
   "devDependencies": {
     "@grpc/grpc-js": "^1.0.2",
+    "@types/fs-extra": "^9.0.0",
     "@types/glob": "^7.1.1",
     "@types/google-protobuf": "^3.7.2",
     "@types/mocha": "^7.0.2",
@@ -544,6 +490,7 @@
     "eslint-plugin-prettier": "^3.1.3",
     "eslint-plugin-sonarjs": "^0.5.0",
     "fast-glob": "^3.2.2",
+    "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.11.4",
     "grpc-tools": "^1.8.1",
