@@ -23,7 +23,7 @@ export function createTestRunner(pattern: string) {
     // Create the mocha test
     const mocha = new Mocha({
       ui: 'bdd',
-      timeout: 60000,
+      timeout: 90000,
       color: true,
     });
     mocha.bail(true);
