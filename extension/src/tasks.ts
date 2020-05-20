@@ -551,17 +551,13 @@ export function buildGradleServerTask(
       VSCODE_JAVA_HOME: javaHome,
     });
   }
-  const task = new vscode.Task(
+  return new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     taskName,
     taskType,
     new vscode.ShellExecution(cmd, args, { cwd, env })
   );
-  task.presentationOptions = {
-    echo: false,
-  };
-  return task;
 }
 
 export function restartTask(task: vscode.Task): void {
