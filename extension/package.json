@@ -476,7 +476,7 @@
   "dependencies": {},
   "devDependencies": {
     "@grpc/grpc-js": "^1.0.2",
-    "@types/fs-extra": "^9.0.0",
+    "@types/fs-extra": "^9.0.1",
     "@types/glob": "^7.1.1",
     "@types/google-protobuf": "^3.7.2",
     "@types/mocha": "^7.0.2",
