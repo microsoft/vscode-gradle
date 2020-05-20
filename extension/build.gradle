@@ -113,7 +113,7 @@ task copyProtoTs(type: Copy) {
 
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
-  inputs.file('package-lock.json')
+  inputs.files('package-lock.json')
   outputs.dir('node_modules')
   commandLine 'npm', 'ci'
 }

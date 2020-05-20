@@ -11,14 +11,17 @@ description = 'vscode-gradle :: tasks-server'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+test {
+    testLogging.showStandardStreams = true
+}
+
 dependencies {
-  compile project(':task-metadata-plugin')
+  compile project(':vscode-gradle-plugin')
   compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
   compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
   implementation "io.grpc:grpc-stub:${grpcVersion}"
   runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
-  runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
   testImplementation "io.grpc:grpc-testing:${grpcVersion}"
   testImplementation 'junit:junit:4.13'
   testCompile 'org.powermock:powermock-module-junit4:2.0.7'
@@ -41,12 +44,6 @@ sourceSets {
     }
   }
 }
-
-
-compileJava.dependsOn{
-  generateProto
-}
-
 
 protobuf {
   plugins {
@@ -89,6 +86,8 @@ startScripts.enabled = false
 jar.enabled = false
 distZip.enabled = false
 distTar.enabled = false
+shadowDistTar.enabled = false;
+shadowDistZip.enabled = false;
 
 sonarqube {
   properties {
@@ -117,7 +116,6 @@ task serverStartScripts(type: CreateStartScripts) {
   applicationName = project.name
   classpath = shadowJar.outputs.files
   unixStartScriptGenerator.template = resources.text.fromFile(
-
     "$mainResourcesDir/startScriptTemplates/unixStartScript.txt"
   )
   windowsStartScriptGenerator.template = resources.text.fromFile(
@@ -125,11 +123,13 @@ task serverStartScripts(type: CreateStartScripts) {
   )
 }
 
-
 task(format) {
   dependsOn(spotlessApply)
 }
 
-compileJava.dependsOn 'generateProto'
 assemble.dependsOn serverStartScripts
-compileJava.dependsOn project(':task-metadata-plugin').compileJava
+
+compileJava.dependsOn {
+  generateProto
+  project(':vscode-gradle-plugin').compileJava
+}

@@ -2,14 +2,13 @@ package com.github.badsyntax.gradletasks.actions;
 
 import com.github.badsyntax.gradletasks.CancelRunTaskReply;
 import com.github.badsyntax.gradletasks.CancelRunTaskRequest;
+import com.github.badsyntax.gradletasks.Logger;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleCancellationException;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GradleTaskCanceller {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTaskCanceller.class.getName());
+  private static final Logger logger = Logger.getLogger(GradleTaskCanceller.class);
 
   private CancelRunTaskRequest req;
   private StreamObserver<CancelRunTaskReply> responseObserver;

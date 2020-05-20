@@ -4,13 +4,29 @@
     {
       "label": "Gradle: Build",
       "type": "shell",
-      "problemMatcher": "$tsc-watch",
       "command": "./gradlew",
       "windows": {
         "command": ".\\gradlew.bat"
       },
       "args": ["build", "-x", "test", "-x", "npm-package:build"],
-      "isBackground": true,
+      "isBackground": false,
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Gradle: Build Plugin",
+      "type": "shell",
+      "command": "./gradlew",
+      "windows": {
+        "command": ".\\gradlew.bat"
+      },
+      "args": [":vscode-gradle-plugin:build", "-x", "test"],
+      "isBackground": false,
       "presentation": {
         "reveal": "always"
       },

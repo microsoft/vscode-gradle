@@ -12,11 +12,13 @@ import com.github.badsyntax.gradletasks.GradleEnvironment;
 import com.github.badsyntax.gradletasks.GradleProject;
 import com.github.badsyntax.gradletasks.GradleTask;
 import com.github.badsyntax.gradletasks.JavaEnvironment;
+import com.github.badsyntax.gradletasks.Logger;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.VsCodeProject;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleProjectBuilderException;
+import com.github.badsyntax.vscodegradleplugin.VsCodeProjectModel;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
@@ -40,13 +42,9 @@ import org.gradle.tooling.events.ProgressEvent;
 import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import task.metadata.VsCodeProjectModel;
 
 public class GradleProjectBuilder {
-  private static final Logger logger =
-      LoggerFactory.getLogger(GradleProjectBuilder.class.getName());
+  private static final Logger logger = Logger.getLogger(GradleProjectBuilder.class);
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;

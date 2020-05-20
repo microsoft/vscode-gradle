@@ -110,12 +110,17 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async getBuild(
     projectFolder: string,
     gradleConfig: GradleConfig,
     showOutputColors = false
   ): Promise<GradleBuild | void> {
     this.statusBarItem.hide();
+    if (!this.server.isStarted()) {
+      this.server.showRestartMessage();
+      return;
+    }
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
@@ -219,6 +224,10 @@ export class GradleTasksClient implements vscode.Disposable {
     onOutput?: (output: Output) => void,
     showOutputColors = true
   ): Promise<void> {
+    if (!this.server.isStarted()) {
+      this.server.showRestartMessage();
+      return;
+    }
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,

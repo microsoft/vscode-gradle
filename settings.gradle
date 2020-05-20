@@ -2,4 +2,4 @@ rootProject.name = 'vscode-gradle'
 include('tasks-server')
 include('extension')
 include('npm-package')
-include('task-metadata-plugin')
+include('vscode-gradle-plugin')

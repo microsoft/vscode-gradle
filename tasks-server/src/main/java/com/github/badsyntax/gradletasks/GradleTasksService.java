@@ -7,11 +7,9 @@ import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
 import io.grpc.stub.StreamObserver;
 import org.gradle.tooling.GradleConnector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
+  private static final Logger logger = Logger.getLogger(GradleTasksService.class);
   private String pluginPath;
 
   GradleTasksService(String pluginPath) {

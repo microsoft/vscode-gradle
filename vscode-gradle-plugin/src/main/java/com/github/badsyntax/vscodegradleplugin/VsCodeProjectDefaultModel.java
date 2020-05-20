@@ -1,4 +1,4 @@
-package task.metadata;
+package com.github.badsyntax.vscodegradleplugin;
 
 import java.io.Serializable;
 import java.util.List;

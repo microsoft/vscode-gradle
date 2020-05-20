@@ -3,6 +3,7 @@ import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
 import * as util from 'util';
+import * as path from 'path';
 
 import {
   getConfigIsAutoDetectionEnabled,
@@ -550,13 +551,17 @@ export function buildGradleServerTask(
       VSCODE_JAVA_HOME: javaHome,
     });
   }
-  return new vscode.Task(
+  const task = new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     taskName,
     taskType,
     new vscode.ShellExecution(cmd, args, { cwd, env })
   );
+  task.presentationOptions = {
+    echo: false,
+  };
+  return task;
 }
 
 export function restartTask(task: vscode.Task): void {

@@ -3,6 +3,7 @@ package com.github.badsyntax.gradletasks.actions;
 import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
+import com.github.badsyntax.gradletasks.Logger;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
@@ -30,11 +31,9 @@ import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressEvent;
 import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GradleTaskRunner {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTaskRunner.class.getName());
+  private static final Logger logger = Logger.getLogger(GradleTaskRunner.class);
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
 
   private RunTaskRequest req;

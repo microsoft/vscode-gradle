@@ -4,20 +4,20 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GradleTasksServer {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTasksServer.class.getName());
+  private static final Logger logger = Logger.getLogger(GradleTasksServer.class);
 
   private final int port;
   private final Server server;
 
-  public GradleTasksServer(int port, String pluginPath) {
-    this(ServerBuilder.forPort(port), port, pluginPath);
+  public GradleTasksServer(String pluginPath, int port) {
+    this(ServerBuilder.forPort(port), pluginPath, port);
+    // See: https://discuss.gradle.org/t/logging-in-gradle-plugin/31685/5
+    Logger.setUseQuietLogs(true);
   }
 
-  public GradleTasksServer(ServerBuilder<?> serverBuilder, int port, String pluginPath) {
+  public GradleTasksServer(ServerBuilder<?> serverBuilder, String pluginPath, int port) {
     this.port = port;
     server = serverBuilder.addService(new GradleTasksService(pluginPath)).build();
   }
@@ -65,7 +65,7 @@ public class GradleTasksServer {
       port = Integer.parseInt(args[1]);
     }
 
-    GradleTasksServer server = new GradleTasksServer(port, pluginPath);
+    GradleTasksServer server = new GradleTasksServer(pluginPath, port);
     server.start();
     server.blockUntilShutdown();
   }

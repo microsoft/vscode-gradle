@@ -3,7 +3,7 @@ plugins {
   id 'java-gradle-plugin'
 }
 
-description = 'vscode-gradle :: task-metadata-plugin'
+description = 'vscode-gradle :: vscode-gradle-plugin'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -16,8 +16,8 @@ dependencies {
 gradlePlugin {
   plugins {
     vscodeproject {
-      id = 'task.metadata.vscodeproject'
-      implementationClass = 'task.metadata.VsCodeProjectPlugin'
+      id = 'com.github.badsyntax.vscodegradleplugin.vscodeproject'
+      implementationClass = 'com.github.badsyntax.vscodegradleplugin.VsCodeProjectPlugin'
     }
   }
 }
@@ -25,6 +25,7 @@ gradlePlugin {
 sourceSets {
   libsDirName = file('../extension/lib')
   functionalTest {
+
   }
 }
 
@@ -37,21 +38,8 @@ spotless {
   }
 }
 
-// configurations {
-//     instrumentedJars {
-//         canBeConsumed = true
-//         canBeResolved = false
-//         // If you want this configuration to share the same dependencies, otherwise omit this line
-//         extendsFrom implementation, runtimeOnly
-//     }
-// }
-
-// artifacts {
-//     instrumentedJars(instrumentedJar)
-// }
-
-// gradlePlugin.testSourceSets(sourceSets.functionalTest)
-// configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
+gradlePlugin.testSourceSets(sourceSets.functionalTest)
+configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
 
 task functionalTest(type: Test) {
   testClassesDirs = sourceSets.functionalTest.output.classesDirs

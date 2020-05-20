@@ -5,5 +5,5 @@ initscript {
 }
 
 allprojects {
-    apply plugin: task.metadata.VsCodeProjectPlugin
+    apply plugin: com.github.badsyntax.vscodegradleplugin.VsCodeProjectPlugin
 }
