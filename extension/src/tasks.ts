@@ -536,7 +536,7 @@ export function buildGradleServerTask(
   cwd: string,
   args: string[] = []
 ): vscode.Task {
-  const cmd = getGradleTasksServerCommand();
+  const cmd = `"${getGradleTasksServerCommand()}"`;
   logger.debug(`Gradle Tasks Server dir: ${cwd}`);
   logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args.join(' ')}`);
   const taskType = 'gradle';
