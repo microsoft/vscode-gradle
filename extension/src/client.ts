@@ -40,8 +40,6 @@ export class GradleTasksClient implements vscode.Disposable {
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
   public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
-  private connectTries = 0;
-  private maxConnectTries = 5;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -430,24 +428,15 @@ export class GradleTasksClient implements vscode.Disposable {
   };
 
   private handleConnectError = (e: Error): void => {
-    // Even though the gRPC client should keep retrying to connect, in some cases
-    // that doesn't work as expected (like CI tests in Windows), which is why we
-    // have to manually keep retrying.
-    if (this.connectTries < this.maxConnectTries) {
-      this.connectTries += 1;
-      this.grpcClient?.close();
-      this.connectToServer();
-    } else {
-      logger.error(
-        localize(
-          'client.errorConnectingToServer',
-          'Error connecting to gradle server: {0}',
-          e.message
-        )
-      );
-      this._onConnectFail.fire(null);
-      this.server.showRestartMessage();
-    }
+    logger.error(
+      localize(
+        'client.errorConnectingToServer',
+        'Error connecting to gradle server: {0}',
+        e.message
+      )
+    );
+    this._onConnectFail.fire(null);
+    this.server.showRestartMessage();
   };
 
   public dispose(): void {

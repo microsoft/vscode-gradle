@@ -555,7 +555,7 @@ export function buildGradleServerTask(
     vscode.TaskScope.Workspace,
     taskName,
     taskType,
-    new vscode.ProcessExecution(cmd, args, { cwd, env })
+    new vscode.ShellExecution(cmd, args, { cwd, env })
   );
 }
 
