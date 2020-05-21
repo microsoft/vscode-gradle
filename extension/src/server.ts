@@ -4,7 +4,7 @@ import * as nls from 'vscode-nls';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
-import { isDebuggingServer } from './util';
+import { isDebuggingServer, waitOnTcp } from './util';
 
 const localize = nls.loadMessageBundle();
 
@@ -38,11 +38,18 @@ export class GradleTasksServer implements vscode.Disposable {
     private readonly context: vscode.ExtensionContext
   ) {
     context.subscriptions.push(
-      vscode.tasks.onDidStartTaskProcess((event) => {
+      vscode.tasks.onDidStartTaskProcess(async (event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           if (isProcessRunning(event.processId)) {
-            logger.debug('Gradle server process started');
-            this.fireOnReady();
+            logger.debug(
+              'Gradle server process started, waiting for server to start'
+            );
+            try {
+              await waitOnTcp('localhost', this.port!);
+              this.fireOnReady();
+            } catch (e) {
+              logger.error('Gradle server not started:', e.message);
+            }
           } else {
             logger.error('Gradle server processes not started');
           }

@@ -6,6 +6,7 @@ export const isTest = (): boolean =>
 export const isDebuggingServer = (): boolean =>
   process.env.VSCODE_DEBUG_SERVER?.toLowerCase() === 'true';
 
+const maximumTimeout = 120000; // 2 minutes
 const tcpTimeout = 300;
 
 function tcpExists(host: string, port: number): Promise<boolean> {
@@ -27,14 +28,21 @@ function tcpExists(host: string, port: number): Promise<boolean> {
   });
 }
 
-async function tryConnect(host: string, port: number): Promise<void> {
+async function tryConnect(
+  host: string,
+  port: number,
+  startTime: number
+): Promise<void> {
   const connected = await tcpExists(host, port);
   if (connected) {
     return;
   }
-  await tryConnect(host, port);
+  if (Date.now() - startTime >= maximumTimeout) {
+    throw new Error('Unable to wait on tcp due to maxmium timeout reached');
+  }
+  await tryConnect(host, port, startTime);
 }
 
 export function waitOnTcp(host: string, port: number): Promise<void> {
-  return tryConnect(host, port);
+  return tryConnect(host, port, Date.now());
 }
