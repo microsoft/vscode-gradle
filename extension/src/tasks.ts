@@ -3,7 +3,6 @@ import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
 import * as util from 'util';
-import * as path from 'path';
 
 import {
   getConfigIsAutoDetectionEnabled,
