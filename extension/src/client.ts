@@ -30,7 +30,9 @@ import { LoggerStream } from './LoggerSteam';
 const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 3; // seconds
+  // The connectDeadline is a high number because, even though the Java process has been
+  // started, the gGRPC server is not yet ready to accept connections.
+  private connectDeadline = 120;
   private grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
@@ -436,6 +438,7 @@ export class GradleTasksClient implements vscode.Disposable {
       )
     );
     this._onConnectFail.fire(null);
+    // TODO: should this show a client reconnect message instead?
     this.server.showRestartMessage();
   };
 
