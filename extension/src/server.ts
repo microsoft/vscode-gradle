@@ -10,6 +10,15 @@ const localize = nls.loadMessageBundle();
 
 export const SERVER_TASK_NAME = 'Gradle Tasks Server';
 
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
 export interface ServerOptions {
   host: string;
 }
@@ -31,7 +40,12 @@ export class GradleTasksServer implements vscode.Disposable {
     context.subscriptions.push(
       vscode.tasks.onDidStartTaskProcess((event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
-          this.fireOnReady();
+          if (isProcessRunning(event.processId)) {
+            logger.debug('Gradle server process started');
+            this.fireOnReady();
+          } else {
+            logger.error('Gradle server processes not started');
+          }
         }
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {
