@@ -25,9 +25,10 @@ import { logger } from './logger';
 import { removeCancellingTask, GradleTaskDefinition } from './tasks';
 import { getGradleConfig } from './config';
 import { LoggerStream } from './LoggerSteam';
+import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
 
 export class GradleTasksClient implements vscode.Disposable {
-  private connectDeadline = 5; // seconds
+  private connectDeadline = 20; // seconds
   private grpcClient: GrpcClient | null = null;
   private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
     null
@@ -374,10 +375,30 @@ export class GradleTasksClient implements vscode.Disposable {
 
   private handleConnectError = (e: Error): void => {
     logger.error('Error connecting to gradle server:', e.message);
+    this.grpcClient?.close();
     this._onConnectFail.fire(null);
-    // TODO: should this show a client reconnect message instead?
-    this.server.showRestartMessage();
+    if (this.server.isReady()) {
+      const connectivityState = this.grpcClient!.getChannel().getConnectivityState(
+        true
+      );
+      const enumKey = ConnectivityState[connectivityState];
+      logger.error('The client has state:', enumKey);
+      this.showRestartMessage();
+    } else {
+      this.server.showRestartMessage();
+    }
   };
+
+  public async showRestartMessage(): Promise<void> {
+    const OPT_RESTART = 'Re-connect Client';
+    const input = await vscode.window.showErrorMessage(
+      'The Gradle client was unable to connect. Try re-connecting.',
+      OPT_RESTART
+    );
+    if (input === OPT_RESTART) {
+      this.handleServerReady();
+    }
+  }
 
   public dispose(): void {
     this.grpcClient?.close();
