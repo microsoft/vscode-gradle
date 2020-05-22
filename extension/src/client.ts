@@ -375,7 +375,7 @@ export class GradleTasksClient implements vscode.Disposable {
 
   private handleConnectError = (e: Error): void => {
     logger.error('Error connecting to gradle server:', e.message);
-    this.grpcClient?.close();
+    this.grpcClient!.close();
     this._onConnectFail.fire(null);
     if (this.server.isReady()) {
       const connectivityState = this.grpcClient!.getChannel().getConnectivityState(
