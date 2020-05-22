@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import * as grpc from '@grpc/grpc-js';
 
 import {
@@ -26,8 +25,6 @@ import { logger } from './logger';
 import { removeCancellingTask, GradleTaskDefinition } from './tasks';
 import { getGradleConfig } from './config';
 import { LoggerStream } from './LoggerSteam';
-
-const localize = nls.loadMessageBundle();
 
 export class GradleTasksClient implements vscode.Disposable {
   private connectDeadline = 5; // seconds
@@ -82,9 +79,7 @@ export class GradleTasksClient implements vscode.Disposable {
     if (err) {
       this.handleConnectError(err);
     } else {
-      logger.info(
-        localize('client.connected', 'Gradle client connected to server')
-      );
+      logger.info('Gradle client connected to server');
       this._onConnect.fire(null);
     }
   };
@@ -99,13 +94,7 @@ export class GradleTasksClient implements vscode.Disposable {
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
       this.grpcClient.waitForReady(deadline, this.handleClientReady);
     } catch (err) {
-      logger.error(
-        localize(
-          'client.grpcClientConstructionError',
-          'Unable to construct the gRPC client: {0}',
-          err.message
-        )
-      );
+      logger.error('Unable to construct the gRPC client:', err.message);
       this.statusBarItem.hide();
     }
   }
@@ -185,20 +174,12 @@ export class GradleTasksClient implements vscode.Disposable {
           });
         } catch (err) {
           logger.error(
-            localize(
-              'client.errorGettingBuild',
-              'Error getting build for {0}: {1}',
-              projectFolder,
+            `Error getting build for ${projectFolder}: ${
               err.details || err.message
-            )
+            }`
           );
           this.statusBarItem.command = 'gradle.showLogs';
-          this.statusBarItem.text = localize(
-            // TODO
-            'client.buildError',
-            '{0} Gradle: Build Error',
-            '$(issues)'
-          );
+          this.statusBarItem.text = '$(issues) Gradle: Build Error';
           this.statusBarItem.show();
         }
       }
@@ -270,21 +251,9 @@ export class GradleTasksClient implements vscode.Disposable {
               .on('error', reject)
               .on('end', resolve);
           });
-          logger.info(
-            localize(
-              'client.completedTask',
-              'Completed task: {0}',
-              task.definition.script
-            )
-          );
+          logger.info('Completed task:', task.definition.script);
         } catch (err) {
-          logger.error(
-            localize(
-              'client.errorRunningTask',
-              'Error running task: {0}',
-              err.details || err.message
-            )
-          );
+          logger.error('Error running task:', err.details || err.message);
         }
       }
     );
@@ -319,11 +288,8 @@ export class GradleTasksClient implements vscode.Disposable {
       }
     } catch (err) {
       logger.error(
-        localize(
-          'client.errorCancellingRunningTask',
-          'Error cancelling running task: {0}',
-          err.details || err.message
-        )
+        'Error cancelling running task:',
+        err.details || err.message
       );
     }
   }
@@ -351,11 +317,8 @@ export class GradleTasksClient implements vscode.Disposable {
       logger.debug(cancelRunTasksReply.getMessage());
     } catch (err) {
       logger.error(
-        localize(
-          'client.errorCancellingRunningTasks',
-          'Error cancelling running tasks: {0}',
-          err.details || err.message
-        )
+        'Error cancelling running tasks:',
+        err.details || err.message
       );
     }
   }
@@ -382,13 +345,7 @@ export class GradleTasksClient implements vscode.Disposable {
       );
       logger.debug(cancelGetBuildsReply.getMessage());
     } catch (err) {
-      logger.error(
-        localize(
-          'client.errorCancellingGetBuilds',
-          'Error cancelling get builds: {0}',
-          err.details || err.message
-        )
-      );
+      logger.error('Error cancelling get builds:', err.details || err.message);
     }
   }
 
@@ -406,35 +363,17 @@ export class GradleTasksClient implements vscode.Disposable {
     cancelled: Cancelled
   ): void => {
     logger.info(
-      localize(
-        'client.runTaskCancelled',
-        // FIXME
-        'Task cancelled: {0}: {1}',
-        task.definition.script,
-        cancelled.getMessage()
-      )
+      `Task cancelled: ${task.definition.script}: ${cancelled.getMessage()}`
     );
     removeCancellingTask(task);
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {
-    logger.info(
-      localize(
-        'client.getBuildCancelled',
-        'Get build cancelled: {0}',
-        cancelled.getMessage()
-      )
-    );
+    logger.info('Get build cancelled:', cancelled.getMessage());
   };
 
   private handleConnectError = (e: Error): void => {
-    logger.error(
-      localize(
-        'client.errorConnectingToServer',
-        'Error connecting to gradle server: {0}',
-        e.message
-      )
-    );
+    logger.error('Error connecting to gradle server:', e.message);
     this._onConnectFail.fire(null);
     // TODO: should this show a client reconnect message instead?
     this.server.showRestartMessage();

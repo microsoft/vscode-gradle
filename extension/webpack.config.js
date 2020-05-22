@@ -3,17 +3,11 @@
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
 const path = require('path');
-const { NLSBundlePlugin } = require('vscode-nls-dev/lib/webpack-bundler');
 
 /**
  * @returns {WebpackConfig}
  */
 module.exports = () => {
-  const pkgPath = path.join(__dirname, 'package.json');
-  const pkg = require(pkgPath);
-  const id = `${pkg.publisher}.${pkg.name}`;
-
-  /** @type WebpackConfig */
   return {
     mode: 'none',
     target: 'node',
@@ -41,12 +35,6 @@ module.exports = () => {
           exclude: [/node_modules/],
           use: [
             {
-              loader: 'vscode-nls-dev/lib/webpack-loader',
-              options: {
-                base: path.join(__dirname, 'src'),
-              },
-            },
-            {
               loader: 'ts-loader',
             },
           ],
@@ -57,6 +45,5 @@ module.exports = () => {
     externals: {
       vscode: 'commonjs vscode',
     },
-    plugins: [new NLSBundlePlugin(id)],
   };
 };

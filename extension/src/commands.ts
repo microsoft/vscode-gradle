@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as nls from 'vscode-nls';
 
 import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
@@ -19,8 +18,6 @@ import {
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
 } from './compat';
-
-const localize = nls.loadMessageBundle();
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
@@ -140,13 +137,7 @@ function registerCancelTaskCommand(
       try {
         cancelTask(client, treeDataProvider, task);
       } catch (e) {
-        logger.error(
-          localize(
-            'commands.errorCancellingTask',
-            'Error cancelling task: {0}',
-            e.message
-          )
-        );
+        logger.error('Error cancelling task:', e.message);
       }
     }
   );
@@ -224,10 +215,7 @@ function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
     'gradle.cancellingTreeItemTask',
     () => {
       vscode.window.showInformationMessage(
-        localize(
-          'commands.gradleTaskCancelling',
-          'Gradle task is cancelling, please wait'
-        )
+        'Gradle task is cancelling, please wait'
       );
     }
   );
@@ -245,11 +233,8 @@ function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
           );
         } catch (err) {
           logger.error(
-            localize(
-              'commands.updateProjectConfigurationError',
-              'Unable to update Java project configuration: {0}',
-              err.message
-            )
+            'Unable to update Java project configuration:',
+            err.message
           );
         }
       }

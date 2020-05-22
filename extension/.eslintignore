@@ -5,6 +5,5 @@ dist/
 test-fixtures/
 package-lock.json
 lib/
-*nls.*.json
 src/proto/
 build/

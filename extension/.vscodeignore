@@ -16,7 +16,6 @@ src/**
 test-fixtures/**
 images/**
 proto/**
-i18n/**
 build.gradle
 build/**
 .gradle/**

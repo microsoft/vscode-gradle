@@ -1,12 +1,9 @@
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
-import * as nls from 'vscode-nls';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
 import { isDebuggingServer, waitOnTcp } from './util';
-
-const localize = nls.loadMessageBundle();
 
 export const SERVER_TASK_NAME = 'Gradle Tasks Server';
 
@@ -59,9 +56,7 @@ export class GradleTasksServer implements vscode.Disposable {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this._onStop.fire(null);
           if (!this.isRestarting) {
-            logger.info(
-              localize('server.gradleServerStopped', 'Gradle server stopped')
-            );
+            logger.info('Gradle server stopped');
             this.taskExecution = undefined;
             this.showRestartMessage();
           }
@@ -90,12 +85,9 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   public async showRestartMessage(): Promise<void> {
-    const OPT_RESTART = localize('server.restartServer', 'Restart Server');
+    const OPT_RESTART = 'Restart Server';
     const input = await vscode.window.showErrorMessage(
-      localize(
-        'server.restartMessage',
-        'No connection to gradle server. Try restarting the server.'
-      ),
+      'No connection to gradle server. Try restarting the server.',
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
@@ -104,9 +96,7 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   public restart(): void {
-    logger.info(
-      localize('server.gradleServerRestarting', 'Restarting gradle server')
-    );
+    logger.info('Restarting gradle server');
     if (!this.isRestarting) {
       if (this.taskExecution) {
         this.isRestarting = true;
@@ -125,9 +115,7 @@ export class GradleTasksServer implements vscode.Disposable {
   }
 
   private fireOnReady(): void {
-    logger.info(
-      localize('server.gradleServerStarted', 'Gradle server started')
-    );
+    logger.info('Gradle server started');
     this._onReady.fire(null);
   }
 
