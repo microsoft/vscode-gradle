@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import * as getPort from 'get-port';
 import * as fg from 'fast-glob';
 import * as util from 'util';
@@ -28,8 +27,6 @@ import {
   isJavaDebuggerExtensionActivated,
 } from './compat';
 import { LoggerStream } from './LoggerSteam';
-
-const localize = nls.loadMessageBundle();
 
 export interface GradleTaskDefinition extends vscode.TaskDefinition {
   id: string;
@@ -224,15 +221,9 @@ export class GradleTaskProvider
     } else {
       try {
         cachedTasks = await this.refreshTasks(folders);
-        logger.info(
-          localize('tasks.foundAmount', 'Found {0} tasks', cachedTasks.length)
-        );
+        logger.info(`Found ${cachedTasks.length} tasks`);
       } catch (err) {
-        localize(
-          'tasks.refreshError',
-          'Unable to refresh tasks: {0}',
-          err.message
-        );
+        logger.error('Unable to refresh tasks:', err.message);
         cachedTasks = emptyTasks;
       }
     }
@@ -281,11 +272,8 @@ export class GradleTaskProvider
       );
     } catch (err) {
       logger.error(
-        localize(
-          'tasks.vsCodeTaskGenerateError',
-          'Unable to generate vscode tasks from gradle tasks: {0}',
-          err.message
-        )
+        'Unable to generate vscode tasks from gradle tasks:',
+        err.message
       );
     }
     gradleProject.getProjectsList().forEach((project) => {
@@ -416,21 +404,10 @@ class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         }
       );
       if (!startedDebugging) {
-        throw new Error(
-          localize(
-            'tasks.debuggerNotStartedError',
-            'The debugger was not started'
-          )
-        );
+        throw new Error('The debugger was not started');
       }
     } catch (err) {
-      logger.error(
-        localize(
-          'tasks.debugError',
-          'Unable to start Java debugging: {0}',
-          err.message
-        )
-      );
+      logger.error('Unable to start Java debugging:', err.message);
       this.close();
     }
   }
@@ -584,16 +561,10 @@ export async function runTask(
     return;
   }
   if (debug) {
-    const INSTALL_EXTENSIONS = localize(
-      'commands.requiredExtensionMissing',
-      'Install Missing Extensions'
-    );
+    const INSTALL_EXTENSIONS = 'Install Missing Extensions';
     if (!getJavaLanguageSupportExtension() || !getJavaDebuggerExtension()) {
       const input = await vscode.window.showErrorMessage(
-        localize(
-          'commands.missingJavaLanguageSupportExtension',
-          'The Java Language Support & Debugger extensions are required for debugging.'
-        ),
+        'The Java Language Support & Debugger extensions are required for debugging.',
         INSTALL_EXTENSIONS
       );
       if (input === INSTALL_EXTENSIONS) {
@@ -605,10 +576,7 @@ export async function runTask(
       return;
     } else if (!isJavaDebuggerExtensionActivated()) {
       vscode.window.showErrorMessage(
-        localize(
-          'commands.javaDebuggerExtensionNotActivated',
-          'The Java Debugger extension is not activated.'
-        )
+        'The Java Debugger extension is not activated.'
       );
       return;
     }
@@ -639,11 +607,7 @@ export async function runTaskWithArgs(
   debug = false
 ): Promise<void> {
   const args = await vscode.window.showInputBox({
-    placeHolder: localize(
-      'tasks.runTaskWithArgsExample',
-      'For example: {0}',
-      '--info'
-    ),
+    placeHolder: 'For example: --info',
     ignoreFocusOut: true,
   });
   if (args !== undefined) {

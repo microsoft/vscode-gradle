@@ -6,7 +6,6 @@ node_modules
 /lib
 .classpath
 .settings
-*nls.*.json
 /src/proto/
 /*.md
 /images

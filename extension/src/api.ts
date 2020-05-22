@@ -1,12 +1,9 @@
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { GradleTaskProvider, GradleTaskDefinition } from './tasks';
 import { GradleTasksClient } from './client';
 import { GradleTasksTreeDataProvider } from './gradleView';
 import { Output } from './proto/gradle_tasks_pb';
 import { logger } from './logger';
-
-const localize = nls.loadMessageBundle();
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -58,11 +55,7 @@ export class Api {
       this.taskProvider.waitForLoaded(async () => {
         const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
         if (!tasks) {
-          return reject(
-            new Error(
-              localize('api.findTaskNoTasks', 'Unable to load gradle tasks')
-            )
-          );
+          return reject(new Error('Unable to load gradle tasks'));
         }
         const task = tasks.find((task) => {
           const definition = task.definition as GradleTaskDefinition;
@@ -71,15 +64,7 @@ export class Api {
           );
         });
         if (!task) {
-          return reject(
-            new Error(
-              localize(
-                'api.findTaskNotFound',
-                'Unable to find task: {0}',
-                taskName
-              )
-            )
-          );
+          return reject(new Error(`Unable to find task: ${taskName}`));
         }
         resolve(task);
       });

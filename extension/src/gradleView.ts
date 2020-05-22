@@ -1,6 +1,5 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 
 import {
   isWorkspaceFolder,
@@ -19,7 +18,6 @@ import { logger } from './logger';
 
 type IconPath = { light: string | vscode.Uri; dark: string | vscode.Uri };
 
-const localize = nls.loadMessageBundle();
 const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const projectBuildFiles: Set<string> = new Set();
 
@@ -146,7 +144,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
-      title: localize('gradleView.runTask', 'Run Task'),
+      title: 'Run Task',
       command: 'gradle.openBuildFile',
       arguments: [this],
     };
@@ -171,13 +169,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 
 class NoTasksTreeItem extends vscode.TreeItem {
   constructor(context: vscode.ExtensionContext) {
-    super(
-      localize('gradleView.noTasksFound', 'No tasks found'),
-      vscode.TreeItemCollapsibleState.None
-    );
+    super('No tasks found', vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'notasks';
     this.command = {
-      title: localize('gradleView.showLogs', 'Show Logs'),
+      title: 'Show Logs',
       command: 'gradle.showLogs',
     };
     this.iconPath = {
@@ -294,7 +289,7 @@ export class GradleTasksTreeDataProvider
         }
         return this.getFlattenedTaskTree(this.getChildren(element));
       })
-      .flat() as GradleTaskTreeItem[];
+      .flat();
   }
 
   getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
@@ -432,13 +427,7 @@ async function focusTaskInTree(
       });
     }
   } catch (err) {
-    logger.error(
-      localize(
-        'gradleView.focusTaskError',
-        'Unable to focus task in explorer: {0}',
-        err.message
-      )
-    );
+    logger.error('Unable to focus task in explorer:', err.message);
   }
 }
 
