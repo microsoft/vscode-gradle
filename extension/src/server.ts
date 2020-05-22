@@ -24,7 +24,8 @@ export class GradleTasksServer implements vscode.Disposable {
   private taskExecution?: vscode.TaskExecution;
   private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
   private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private isRestarting = false;
+  private restarting = false;
+  private ready = false;
   private port: number | undefined;
 
   public readonly onReady: vscode.Event<null> = this._onReady.event;
@@ -54,8 +55,9 @@ export class GradleTasksServer implements vscode.Disposable {
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
+          this.ready = false;
           this._onStop.fire(null);
-          if (!this.isRestarting) {
+          if (!this.restarting) {
             logger.info('Gradle server stopped');
             this.taskExecution = undefined;
             this.showRestartMessage();
@@ -80,8 +82,8 @@ export class GradleTasksServer implements vscode.Disposable {
     }
   }
 
-  public isStarted(): boolean {
-    return this.taskExecution !== undefined;
+  public isReady(): boolean {
+    return this.ready;
   }
 
   public async showRestartMessage(): Promise<void> {
@@ -97,12 +99,12 @@ export class GradleTasksServer implements vscode.Disposable {
 
   public restart(): void {
     logger.info('Restarting gradle server');
-    if (!this.isRestarting) {
+    if (!this.restarting) {
       if (this.taskExecution) {
-        this.isRestarting = true;
+        this.restarting = true;
         const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
           if (event.execution.task.name === SERVER_TASK_NAME) {
-            this.isRestarting = false;
+            this.restarting = false;
             disposable.dispose();
             this.start();
           }
@@ -116,6 +118,7 @@ export class GradleTasksServer implements vscode.Disposable {
 
   private fireOnReady(): void {
     logger.info('Gradle server started');
+    this.ready = true;
     this._onReady.fire(null);
   }
 
@@ -143,7 +146,7 @@ export function registerServer(
     server,
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('java.home') && server.isStarted()) {
+        if (event.affectsConfiguration('java.home') && server.isReady()) {
           server.restart();
         }
       }
