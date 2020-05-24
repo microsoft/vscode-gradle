@@ -17,6 +17,10 @@ import { EventWaiter } from '../EventWaiter';
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
 
+export function invalidateTasksCache(): void {
+  cachedTasks = emptyTasks;
+}
+
 function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
   const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
     onlyFiles: true,
@@ -68,10 +72,6 @@ export function createTaskFromDefinition(
   return task;
 }
 
-export function invalidateTasksCache(): void {
-  cachedTasks = emptyTasks;
-}
-
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
   private _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
@@ -88,20 +88,12 @@ export class GradleTaskProvider
   public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
   public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
 
-  private readonly _onTasksLoadedWaiter = new EventWaiter(this.onTasksLoaded);
-  public readonly waitForTasksLoaded = this._onTasksLoadedWaiter.wait;
+  public readonly waitForTasksLoaded = new EventWaiter(this.onTasksLoaded).wait;
 
   constructor(private readonly client: GradleTasksClient) {}
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
-    return cachedTasks;
-  }
-
-  public dispose(): void {
-    this._onTasksLoaded.dispose();
-    this._onDidRefreshStart.dispose();
-    this._onDidRefreshStop.dispose();
-    this._onTasksLoadedWaiter.dispose();
+    return this.loadTasks();
   }
 
   // TODO
@@ -142,7 +134,10 @@ export class GradleTaskProvider
     return allTasks;
   }
 
-  public async refresh(): Promise<vscode.Task[]> {
+  public async loadTasks(): Promise<vscode.Task[]> {
+    if (cachedTasks.length) {
+      return cachedTasks;
+    }
     logger.debug('Refreshing tasks');
     this._onDidRefreshStart.fire(null);
     const folders = vscode.workspace.workspaceFolders;
@@ -249,5 +244,11 @@ export class GradleTaskProvider
       projectFolder,
       this.client
     );
+  }
+
+  public dispose(): void {
+    this._onTasksLoaded.dispose();
+    this._onDidRefreshStart.dispose();
+    this._onDidRefreshStop.dispose();
   }
 }

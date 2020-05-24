@@ -1,28 +1,27 @@
 import * as vscode from 'vscode';
 
-export class EventWaiter implements vscode.Disposable {
+type callback = () => void;
+
+export class EventWaiter {
   private eventRun = false;
-  private eventDisposable?: vscode.Disposable;
 
   constructor(private readonly event: vscode.Event<null>) {
-    this.eventDisposable = this.event(() => {
+    this.onEvent(() => {
       this.eventRun = true;
     });
   }
+
+  onEvent = (callback: callback): void => {
+    const disposable = this.event(() => {
+      disposable.dispose();
+      callback();
+    });
+  };
 
   wait = (): Promise<void> => {
     if (this.eventRun) {
       return Promise.resolve();
     }
-    return new Promise((resolve) => {
-      const disposable = this.event(() => {
-        disposable.dispose();
-        resolve();
-      });
-    });
+    return new Promise(this.onEvent);
   };
-
-  public dispose(): void {
-    this.eventDisposable?.dispose();
-  }
 }
