@@ -12,8 +12,8 @@ import {
 import { GradleTaskDefinition } from './GradleTaskDefinition';
 import { CustomBuildTaskTerminal } from './CustomBuildTaskTerminal';
 import { COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION } from '../commands';
+import { EventWaiter } from '../EventWaiter';
 
-type callback = () => void;
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
 
@@ -83,44 +83,25 @@ export class GradleTaskProvider
   private _onDidRefreshStop: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  private waitForLoadedCallbacks: callback[] = [];
-  private hasLoaded = false;
   private readonly onTasksLoaded: vscode.Event<null> = this._onTasksLoaded
     .event;
   public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
   public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
 
-  constructor(private readonly client: GradleTasksClient) {
-    this.onTasksLoaded(() => {
-      if (!this.hasLoaded) {
-        this.callWaitForLoadedCallbacks();
-        this.hasLoaded = true;
-      } else {
-        this._onTasksLoaded.dispose();
-      }
-    });
-  }
+  private readonly _onTasksLoadedWaiter = new EventWaiter(this.onTasksLoaded);
+  public readonly waitForTasksLoaded = this._onTasksLoadedWaiter.wait;
+
+  constructor(private readonly client: GradleTasksClient) {}
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return cachedTasks;
-  }
-
-  public waitForLoaded(callback: callback): void {
-    this.waitForLoadedCallbacks.push(callback);
-    if (this.hasLoaded) {
-      this.callWaitForLoadedCallbacks();
-    }
-  }
-
-  private callWaitForLoadedCallbacks(): void {
-    this.waitForLoadedCallbacks.forEach((callback) => callback());
-    this.waitForLoadedCallbacks.splice(0);
   }
 
   public dispose(): void {
     this._onTasksLoaded.dispose();
     this._onDidRefreshStart.dispose();
     this._onDidRefreshStop.dispose();
+    this._onTasksLoadedWaiter.dispose();
   }
 
   // TODO

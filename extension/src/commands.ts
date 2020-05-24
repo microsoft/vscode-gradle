@@ -9,7 +9,7 @@ import {
   getTaskExecution,
   queueRestartTask,
 } from './tasks';
-import { getConfigIsTasksExplorerEnabled } from './config';
+import { getIgnoreDaemonStopWarning } from './config';
 import { GradleTasksClient } from './client';
 import { logger } from './logger';
 import {
@@ -20,6 +20,8 @@ import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider
 import { GradleTaskTreeItem } from './views/GradleTaskTreeItem';
 import { GradleTaskProvider } from './tasks/GradleTaskProvider';
 import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
+import { StopDaemonsReply } from './proto/gradle_tasks_pb';
+import { GradleDaemonTreeItem } from './views/GradleDaemonTreeItem';
 
 export const COMMAND_SHOW_TASKS = 'gradle.showTasks';
 export const COMMAND_RUN_TASK = 'gradle.runTask';
@@ -41,6 +43,8 @@ export const COMMAND_CANCELLING_TREE_ITEM_TASK =
 export const COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION =
   'gradle.updateJavaProjectConfiguration';
 export const COMMAND_SHOW_LOGS = 'gradle.showLogs';
+export const COMMAND_STOP_DAEMONS = 'gradle.stopDaemons';
+export const COMMAND_STOP_DAEMON = 'gradle.stopDaemon';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
@@ -191,11 +195,7 @@ function registerRefreshCommand(
       const tasks = await taskProvider.refresh();
       gradleTasksTreeDataProvider.setTaskItems(tasks);
       gradleTasksTreeDataProvider.refresh();
-      vscode.commands.executeCommand(
-        'setContext',
-        'gradle:showTasksExplorer',
-        getConfigIsTasksExplorerEnabled()
-      );
+      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   );
 }
@@ -207,6 +207,63 @@ function registerRefreshDaemonStatusCommand(
     COMMAND_REFRESH_DAEMON_STATUS,
     (): void => {
       gradleDaemonsTreeDataProvider.refresh();
+    }
+  );
+}
+
+async function cancelStopDaemons(): Promise<boolean | undefined> {
+  const ignoreWarning = getIgnoreDaemonStopWarning();
+  if (!ignoreWarning) {
+    const DAEMON_STOP_OPTION_CONFIRM = 'Yes';
+    const result = await vscode.window.showWarningMessage(
+      'Are you sure you want to stop the daemon/s?',
+      { modal: true },
+      DAEMON_STOP_OPTION_CONFIRM
+    );
+    if (result !== DAEMON_STOP_OPTION_CONFIRM) {
+      return true;
+    }
+  }
+}
+
+function registerStopDaemons(client: GradleTasksClient): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_STOP_DAEMONS,
+    async (): Promise<void> => {
+      if (!vscode.workspace.workspaceFolders || (await cancelStopDaemons())) {
+        return;
+      }
+      try {
+        const promises: Promise<
+          StopDaemonsReply
+        >[] = vscode.workspace.workspaceFolders.map((folder) =>
+          client.stopDaemons(folder.uri.fsPath)
+        );
+        const replies = await Promise.all(promises);
+        replies.forEach((reply) => {
+          logger.info(reply.getMessage());
+        });
+      } finally {
+        vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+      }
+    }
+  );
+}
+
+function registerStopDaemon(client: GradleTasksClient): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_STOP_DAEMON,
+    async (treeItem: GradleDaemonTreeItem): Promise<void> => {
+      if (await cancelStopDaemons()) {
+        return;
+      }
+      const pid = treeItem.pid;
+      try {
+        const stopDaemonReply = await client.stopDaemon(pid);
+        logger.info(stopDaemonReply.getMessage());
+      } finally {
+        vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+      }
     }
   );
 }
@@ -306,6 +363,8 @@ export function registerCommands(
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, gradleTasksTreeDataProvider),
     registerRefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider),
+    registerStopDaemons(client),
+    registerStopDaemon(client),
     registerExplorerTreeCommand(gradleTasksTreeDataProvider),
     registerExplorerFlatCommand(gradleTasksTreeDataProvider),
     registerOpenSettingsCommand(),

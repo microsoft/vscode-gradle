@@ -13,12 +13,6 @@ export function getConfigIsAutoDetectionEnabled(
   );
 }
 
-export function getConfigIsTasksExplorerEnabled(): boolean {
-  return vscode.workspace
-    .getConfiguration('gradle')
-    .get<boolean>('enableTasksExplorer', true);
-}
-
 export function getConfigJavaHome(): string | null {
   return vscode.workspace
     .getConfiguration('java')
@@ -53,6 +47,12 @@ export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('debug', false);
+}
+
+export function getIgnoreDaemonStopWarning(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('ignoreDaemonStopWarning', false);
 }
 
 export function getConfigFocusTaskInExplorer(): boolean {

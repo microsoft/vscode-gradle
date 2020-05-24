@@ -1,22 +1,6 @@
 import * as vscode from 'vscode';
 import { GradleTasksClient } from '../client';
 import { GradleDaemonTreeItem } from './GradleDaemonTreeItem';
-import { DAEMON_STATUS_BUSY } from './constants';
-
-function treeItemSortCompareFunc(
-  treeItemA: GradleDaemonTreeItem,
-  treeItemB: GradleDaemonTreeItem
-): number {
-  if (
-    treeItemA.status === DAEMON_STATUS_BUSY &&
-    treeItemB.status === DAEMON_STATUS_BUSY
-  ) {
-    return treeItemA.pidAsInt - treeItemB.pidAsInt;
-  } else if (treeItemA.status === DAEMON_STATUS_BUSY) {
-    return -1;
-  }
-  return treeItemA.pidAsInt - treeItemB.pidAsInt;
-}
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -47,7 +31,7 @@ export class GradleDaemonsTreeDataProvider
       GradleDaemonTreeItem[]
     >[] = vscode.workspace.workspaceFolders.map((folder) =>
       this.client
-        .getStatus(folder.uri.fsPath)
+        .getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status
             .getDaemonInfoList()
@@ -61,6 +45,6 @@ export class GradleDaemonsTreeDataProvider
             )
         )
     );
-    return (await Promise.all(promises)).flat().sort(treeItemSortCompareFunc);
+    return (await Promise.all(promises)).flat();
   }
 }
