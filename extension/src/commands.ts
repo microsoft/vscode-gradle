@@ -18,7 +18,10 @@ import {
 } from './compat';
 import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
 import { GradleTaskTreeItem } from './views/GradleTaskTreeItem';
-import { GradleTaskProvider } from './tasks/GradleTaskProvider';
+import {
+  GradleTaskProvider,
+  invalidateTasksCache,
+} from './tasks/GradleTaskProvider';
 import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
 import { StopDaemonsReply } from './proto/gradle_tasks_pb';
 import { GradleDaemonTreeItem } from './views/GradleDaemonTreeItem';
@@ -45,6 +48,7 @@ export const COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION =
 export const COMMAND_SHOW_LOGS = 'gradle.showLogs';
 export const COMMAND_STOP_DAEMONS = 'gradle.stopDaemons';
 export const COMMAND_STOP_DAEMON = 'gradle.stopDaemon';
+export const COMMAND_LOAD_TASKS = 'gradle.loadTasks';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
@@ -192,12 +196,20 @@ function registerRefreshCommand(
   return vscode.commands.registerCommand(
     COMMAND_REFRESH,
     async (): Promise<void> => {
-      const tasks = await taskProvider.refresh();
-      gradleTasksTreeDataProvider.setTaskItems(tasks);
+      invalidateTasksCache();
+      taskProvider.loadTasks();
       gradleTasksTreeDataProvider.refresh();
       vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   );
+}
+
+function registerLoadTasksCommand(
+  taskProvider: GradleTaskProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_LOAD_TASKS, () => {
+    return taskProvider.loadTasks();
+  });
 }
 
 function registerRefreshDaemonStatusCommand(
@@ -372,6 +384,7 @@ export function registerCommands(
     registerCancellingTreeItemTaskCommand(),
     registerRenderTaskCommand(gradleTasksTreeDataProvider),
     registerUpdateJavaProjectConfigurationCommand(),
-    registerShowLogsCommand()
+    registerShowLogsCommand(),
+    registerLoadTasksCommand(taskProvider)
   );
 }

@@ -17,8 +17,7 @@ export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private collapsed = true;
-  private taskItems: vscode.Task[] = [];
-  private treeItems: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
+  // private treeItems: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
   private iconPathRunning?: IconPath;
   private iconPathIdle?: IconPath;
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
@@ -60,27 +59,28 @@ export class GradleTasksTreeDataProvider
       'gradle:explorerCollapsed',
       collapsed
     );
-    this.buildTreeItems();
+    // this.buildTreeItems();
     this.render();
   }
 
   async refresh(): Promise<void> {
-    this.buildTreeItems();
     this.render();
   }
 
-  buildTreeItems(): void {
+  private async buildTreeItems(): Promise<vscode.TreeItem[]> {
     taskTreeItemMap.clear();
-    if (this.taskItems.length === 0) {
-      this.treeItems = [new NoTasksTreeItem(this.context)];
+    // TODO: does this include the server task?
+    const taskItems = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    if (taskItems.length === 0) {
+      return [new NoTasksTreeItem(this.context)];
     } else {
-      this.treeItems = this.buildItemsTreeFromTasks(this.taskItems);
+      return this.buildItemsTreeFromTasks(taskItems);
     }
   }
 
-  setTaskItems(tasks: vscode.Task[]): void {
-    this.taskItems = tasks;
-  }
+  // setTaskItems(tasks: vscode.Task[]): void {
+  //   this.taskItems = tasks;
+  // }
 
   renderTask(task: vscode.Task): void {
     const treeItem = taskTreeItemMap.get(task.definition.id);
@@ -108,18 +108,7 @@ export class GradleTasksTreeDataProvider
     return null;
   }
 
-  getFlattenedTaskTree(treeItems: vscode.TreeItem[]): GradleTaskTreeItem[] {
-    return treeItems
-      .map((element: vscode.TreeItem) => {
-        if (element instanceof GradleTaskTreeItem) {
-          return element;
-        }
-        return this.getFlattenedTaskTree(this.getChildren(element));
-      })
-      .flat();
-  }
-
-  getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
+  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     if (element instanceof WorkspaceTreeItem) {
       return [...element.projectFolders, ...element.projects];
     }
@@ -135,21 +124,24 @@ export class GradleTasksTreeDataProvider
     ) {
       return [];
     }
-    if (!element && this.treeItems) {
-      return this.treeItems;
+    if (!element) {
+      return await this.buildTreeItems();
     }
     return [];
   }
 
+  // TODO
   findProjectTreeItem(uri: vscode.Uri): ProjectTreeItem | undefined {
-    if (this.treeItems) {
-      return this.treeItems.find((element: vscode.TreeItem) => {
-        return (
-          element instanceof ProjectTreeItem &&
-          element.resourceUri?.fsPath === uri.fsPath
-        );
-      }) as ProjectTreeItem | undefined;
-    }
+    console.log('uri', uri);
+    // if (this.treeItems) {
+    //   return this.treeItems.find((element: vscode.TreeItem) => {
+    //     return (
+    //       element instanceof ProjectTreeItem &&
+    //       element.resourceUri?.fsPath === uri.fsPath
+    //     );
+    //   }) as ProjectTreeItem | undefined;
+    // }
+    return undefined;
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity

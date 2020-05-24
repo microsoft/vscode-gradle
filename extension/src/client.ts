@@ -33,7 +33,7 @@ import { getGradleConfig } from './config';
 import { LoggerStream } from './LoggerSteam';
 import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
 import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
-import { COMMAND_CANCEL_TASK, COMMAND_REFRESH } from './commands';
+import { COMMAND_CANCEL_TASK /*, COMMAND_REFRESH*/ } from './commands';
 import { EventWaiter } from './EventWaiter';
 
 export class GradleTasksClient implements vscode.Disposable {
@@ -48,8 +48,7 @@ export class GradleTasksClient implements vscode.Disposable {
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
   public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
 
-  private readonly _onConnectWaiter = new EventWaiter(this.onConnect);
-  private readonly waitForConnect = this._onConnectWaiter.wait;
+  private readonly waitForConnect = new EventWaiter(this.onConnect).wait;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -396,6 +395,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async stopDaemons(projectFolder: string): Promise<StopDaemonsReply> {
+    await this.waitForConnect();
     const request = new StopDaemonsRequest();
     request.setProjectDir(projectFolder);
     try {
@@ -421,6 +421,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async stopDaemon(pid: string): Promise<StopDaemonsReply> {
+    await this.waitForConnect();
     const request = new StopDaemonRequest();
     request.setPid(pid);
     try {
@@ -498,7 +499,6 @@ export class GradleTasksClient implements vscode.Disposable {
   public dispose(): void {
     this.grpcClient?.close();
     this._onConnect.dispose();
-    this._onConnectWaiter.dispose();
   }
 }
 
@@ -510,7 +510,8 @@ export function registerClient(
   const client = new GradleTasksClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
   client.onConnect(() => {
-    vscode.commands.executeCommand(COMMAND_REFRESH);
+    // TODO: 2 requests are sent if the gradle viewcontainer is open
+    vscode.tasks.fetchTasks({ type: 'gradle' });
   });
   return client;
 }
