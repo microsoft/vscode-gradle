@@ -8,15 +8,13 @@ import * as sinon from 'sinon';
 import * as path from 'path';
 
 import { waitForTasksToLoad } from '../testUtil';
-import {
-  GradleTaskTreeItem,
-  GradleTasksTreeDataProvider,
-} from '../../gradleView';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
 import { Output } from '../../proto/gradle_tasks_pb';
+import { GradleTasksTreeDataProvider } from '../../views/GradleTasksTreeDataProvider';
+import { GradleTaskTreeItem } from '../../views/GradleTaskTreeItem';
+import { COMMAND_RUN_TASK_WITH_ARGS, COMMAND_REFRESH } from '../../commands';
 
 const extensionName = 'richardwillis.vscode-gradle';
-const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 const suiteName = process.env.SUITE_NAME || '(unknown suite)';
 const fixturePath = vscode.Uri.file(
@@ -66,7 +64,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       assert.ok(extension);
       const treeDataProvider = extension!.exports.getTreeProvider();
       const stub = sinon.stub(treeDataProvider, 'refresh');
-      await vscode.commands.executeCommand(refreshCommand);
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       assert.ok(stub.called);
     });
 
@@ -126,7 +124,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           treeDataProvider.getIconPathIdle()!
         );
         await vscode.commands.executeCommand(
-          'gradle.runTaskWithArgs',
+          COMMAND_RUN_TASK_WITH_ARGS,
           treeItem
         );
       });
@@ -160,7 +158,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      await vscode.commands.executeCommand('gradle.refresh');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });
   });

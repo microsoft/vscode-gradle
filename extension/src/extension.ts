@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import { registerExplorer } from './gradleView';
+import { registerGradleViews } from './gradleViews';
 import { registerTaskProvider } from './tasks';
 import { registerServer } from './server';
 import { registerClient } from './client';
@@ -19,7 +19,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   const client = registerClient(server, context);
   const taskProvider = registerTaskProvider(context, client);
   const taskManager = registerTaskManager(context);
-  const { treeDataProvider, treeView } = registerExplorer(context);
+  const {
+    gradleTasksTreeDataProvider,
+    gradleDaemonsTreeDataProvider,
+    gradleTasksTreeView,
+  } = registerGradleViews(context, client);
 
   registerBuildFileWatcher(context, taskProvider, taskManager);
 
@@ -27,12 +31,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     context,
     statusBarItem,
     client,
-    treeDataProvider,
-    treeView,
+    gradleTasksTreeDataProvider,
+    gradleDaemonsTreeDataProvider,
+    gradleTasksTreeView,
     taskProvider
   );
 
-  return new Api(client, taskProvider, treeDataProvider);
+  return new Api(client, taskProvider, gradleTasksTreeDataProvider);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

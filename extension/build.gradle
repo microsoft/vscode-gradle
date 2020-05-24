@@ -111,7 +111,7 @@ task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
-  commandLine 'npm', 'ci'
+  commandLine 'npm', 'install'
 }
 
 task lint(type: CrossPlatformExec) {

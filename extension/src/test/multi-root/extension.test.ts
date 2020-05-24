@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
 import { waitForTasksToLoad } from '../testUtil';
+import { COMMAND_REFRESH } from '../../commands';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
@@ -80,7 +81,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       });
 
       it('should refresh tasks', async () => {
-        await vscode.commands.executeCommand('gradle.refresh');
+        await vscode.commands.executeCommand(COMMAND_REFRESH);
         const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
           ({ name }) => name === 'hello'
         );

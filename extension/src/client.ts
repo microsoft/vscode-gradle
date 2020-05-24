@@ -17,15 +17,19 @@ import {
   CancelRunTasksRequest,
   Environment,
   GradleConfig,
+  GetStatusRequest,
+  GetStatusReply,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
 import { GradleTasksServer } from './server';
 import { logger } from './logger';
-import { removeCancellingTask, GradleTaskDefinition } from './tasks';
+import { removeCancellingTask } from './tasks';
 import { getGradleConfig } from './config';
 import { LoggerStream } from './LoggerSteam';
 import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
+import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
+import { COMMAND_CANCEL_TASK, COMMAND_REFRESH } from './commands';
 
 export class GradleTasksClient implements vscode.Disposable {
   private connectDeadline = 20; // seconds
@@ -209,7 +213,7 @@ export class GradleTasksClient implements vscode.Disposable {
         token: vscode.CancellationToken
       ) => {
         token.onCancellationRequested(() =>
-          vscode.commands.executeCommand('gradle.cancelTask', task)
+          vscode.commands.executeCommand(COMMAND_CANCEL_TASK, task)
         );
 
         const gradleConfig = getGradleConfig();
@@ -351,6 +355,34 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
+  public async getStatus(projectFolder: string): Promise<GetStatusReply> {
+    const gradleConfig = getGradleConfig();
+    const request = new GetStatusRequest();
+    request.setGradleConfig(gradleConfig);
+    request.setProjectDir(projectFolder);
+    try {
+      // TODO: grpcClient might be null!
+      return await new Promise((resolve, reject) => {
+        this.grpcClient!.getStatus(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            getStatusReply: GetStatusReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(getStatusReply);
+            }
+          }
+        );
+      });
+    } catch (err) {
+      logger.error('Error getting status:', err.details || err.message);
+      throw err;
+    }
+  }
+
   private handleGetBuildEnvironment(environment: Environment): void {
     const javaEnv = environment.getJavaEnvironment()!;
     const gradleEnv = environment.getGradleEnvironment()!;
@@ -415,7 +447,7 @@ export function registerClient(
   const client = new GradleTasksClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
   client.onConnect(() => {
-    vscode.commands.executeCommand('gradle.refresh');
+    vscode.commands.executeCommand(COMMAND_REFRESH);
   });
   return client;
 }

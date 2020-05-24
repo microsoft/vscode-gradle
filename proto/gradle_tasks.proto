@@ -8,6 +8,7 @@ package gradletasks;
 
 service GradleTasks {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
+  rpc GetStatus(GetStatusRequest) returns (GetStatusReply) {}
   rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
   rpc CancelGetBuilds(CancelGetBuildsRequest) returns (CancelGetBuildsReply) {}
   rpc CancelRunTask(CancelRunTaskRequest) returns (CancelRunTaskReply) {}
@@ -24,7 +25,7 @@ message GetBuildRequest {
   string project_dir = 1;
   GradleConfig gradle_config = 2;
   bool show_output_colors = 8;
- }
+}
 
 message GetBuildReply {
   oneof kind {
@@ -80,6 +81,27 @@ message CancelRunTaskReply {
 message CancelRunTasksRequest {}
 
 message CancelRunTasksReply { string message = 1; }
+
+message GetStatusRequest {
+  string project_dir = 1;
+  GradleConfig gradle_config = 2;
+}
+
+message GetStatusReply {
+  repeated DaemonInfo daemon_info = 1;
+}
+
+message DaemonInfo {
+  enum DaemonStatus {
+    IDLE = 0;
+    BUSY = 1;
+    STOPPED = 2;
+    STOPPING = 3;
+  }
+  string pid = 1;
+  DaemonStatus status = 2;
+  string info = 3;
+}
 
 message RunTaskReply {
   oneof kind {

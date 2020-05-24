@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradletasks;
 
 import com.github.badsyntax.gradletasks.actions.GradleProjectBuilder;
+import com.github.badsyntax.gradletasks.actions.GradleStatus;
 import com.github.badsyntax.gradletasks.actions.GradleTaskCanceller;
 import com.github.badsyntax.gradletasks.actions.GradleTaskRunner;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
@@ -63,5 +64,18 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
     responseObserver.onNext(
         CancelRunTasksReply.newBuilder().setMessage("Cancel running tasks requested").build());
     responseObserver.onCompleted();
+  }
+
+  @Override
+  public void getStatus(GetStatusRequest req, StreamObserver<GetStatusReply> responseObserver) {
+    try {
+      GradleConnector gradleConnector =
+          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
+      GradleStatus gradleStatus = new GradleStatus(req, responseObserver, gradleConnector);
+      gradleStatus.run();
+    } catch (GradleConnectionException e) {
+      logger.error(e.getMessage());
+      responseObserver.onError(ErrorMessageBuilder.build(e));
+    }
   }
 }
