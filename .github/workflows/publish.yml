@@ -26,8 +26,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           cd npm-package
-          commit=$(git rev-parse HEAD)
-          version="0.0.0-$commit"
+          version="0.0.$GITHUB_RUN_ID"
           echo "Setting package version $version"
           npm --no-git-tag-version version "$version"
           echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
@@ -37,8 +36,7 @@ jobs:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
         run: |
           cd extension
-          commit=$(git rev-parse HEAD)
-          version="0.0.0-$commit"
+          version="0.0.$GITHUB_RUN_ID"
           echo "Setting package version $version"
           npm --no-git-tag-version version "$version"
           npx vsce publish -p "$AZURE_TOKEN"
