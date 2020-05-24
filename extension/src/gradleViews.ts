@@ -1,17 +1,14 @@
 import * as vscode from 'vscode';
 
 import { isGradleTask } from './tasks';
-import {
-  getConfigFocusTaskInExplorer,
-  getConfigIsTasksExplorerEnabled,
-} from './config';
+import { getConfigFocusTaskInExplorer } from './config';
 import { GradleTasksClient } from './client';
 import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
 import {
   GradleTasksTreeDataProvider,
   taskTreeItemMap,
 } from './views/GradleTasksTreeDataProvider';
-import { GradleBookmarkedTasksTreeDataProvider } from './views/GradleBookmarkedTasksTreeDataProvider';
+// import { GradleBookmarkedTasksTreeDataProvider } from './views/GradleBookmarkedTasksTreeDataProvider';
 import { logger } from './logger';
 import { COMMAND_REFRESH } from './commands';
 
@@ -58,26 +55,20 @@ export function registerGradleViews(
       showCollapseAll: false,
     }
   );
-  const gradleBookmarkedTasksTreeView = vscode.window.createTreeView(
-    'gradleBookmarkedTasksView',
-    {
-      treeDataProvider: new GradleBookmarkedTasksTreeDataProvider(context),
-      showCollapseAll: false,
-    }
-  );
+  // const gradleBookmarkedTasksTreeView = vscode.window.createTreeView(
+  //   'gradleBookmarkedTasksView',
+  //   {
+  //     treeDataProvider: new GradleBookmarkedTasksTreeDataProvider(context),
+  //     showCollapseAll: false,
+  //   }
+  // );
   context.subscriptions.push(
     gradleTasksTreeView,
     gradleDaemonsTreeView,
-    gradleBookmarkedTasksTreeView,
+    // TODO: move to extension?
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('gradle.enableTasksExplorer')) {
-          vscode.commands.executeCommand(
-            'setContext',
-            'gradle:showTasksExplorer',
-            getConfigIsTasksExplorerEnabled()
-          );
-        } else if (event.affectsConfiguration('gradle.javaDebug')) {
+        if (event.affectsConfiguration('gradle.javaDebug')) {
           vscode.commands.executeCommand(COMMAND_REFRESH);
         }
       }

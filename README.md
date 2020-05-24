@@ -29,10 +29,10 @@ This extension supports whatever Gradle supports and is language/project agnosti
 This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
-- `gradle.enableTasksExplorer`: Enable an explorer view for Gradle tasks
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
+- `gradle.ignoreDaemonStopWarning`: Ignore the warning message when stopping the Gradle daemon/s
 
 To provide better compatibility with the [Java language support extension](https://github.com/redhat-developer/vscode-java), this extension supports the following settings:
 

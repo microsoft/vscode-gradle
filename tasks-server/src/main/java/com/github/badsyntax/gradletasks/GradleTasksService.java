@@ -1,12 +1,13 @@
 package com.github.badsyntax.gradletasks;
 
+import com.github.badsyntax.gradletasks.actions.GradleDaemonsStatus;
+import com.github.badsyntax.gradletasks.actions.GradleDaemonsStopper;
 import com.github.badsyntax.gradletasks.actions.GradleProjectBuilder;
-import com.github.badsyntax.gradletasks.actions.GradleStatus;
+import com.github.badsyntax.gradletasks.actions.GradleSingleDaemonStopper;
 import com.github.badsyntax.gradletasks.actions.GradleTaskCanceller;
 import com.github.badsyntax.gradletasks.actions.GradleTaskRunner;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
-import com.github.badsyntax.gradletasks.exceptions.GradleStatusException;
 import io.grpc.stub.StreamObserver;
 import org.gradle.tooling.GradleConnector;
 import org.slf4j.Logger;
@@ -68,13 +69,22 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   }
 
   @Override
-  public void getStatus(GetStatusRequest req, StreamObserver<GetStatusReply> responseObserver) {
-    try {
-      GradleStatus gradleStatus = new GradleStatus(req, responseObserver);
-      gradleStatus.run();
-    } catch (GradleStatusException e) {
-      logger.error(e.getMessage());
-      responseObserver.onError(ErrorMessageBuilder.build(e));
-    }
+  public void getDaemonsStatus(
+      GetDaemonsStatusRequest req, StreamObserver<GetDaemonsStatusReply> responseObserver) {
+    GradleDaemonsStatus gradleStatus = new GradleDaemonsStatus(req, responseObserver);
+    gradleStatus.run();
+  }
+
+  @Override
+  public void stopDaemons(
+      StopDaemonsRequest req, StreamObserver<StopDaemonsReply> responseObserver) {
+    GradleDaemonsStopper gradleStatus = new GradleDaemonsStopper(req, responseObserver);
+    gradleStatus.run();
+  }
+
+  @Override
+  public void stopDaemon(StopDaemonRequest req, StreamObserver<StopDaemonReply> responseObserver) {
+    GradleSingleDaemonStopper gradleStatus = new GradleSingleDaemonStopper(req, responseObserver);
+    gradleStatus.run();
   }
 }

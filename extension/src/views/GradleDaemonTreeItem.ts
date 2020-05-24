@@ -30,10 +30,11 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
         path.join('resources', 'dark', iconName)
       ),
     };
+    this.contextValue = this.status.toLowerCase();
   }
 
   get tooltip(): string {
-    return `${this.label}-${this.status}}`;
+    return `${this.status} - ${this.daemonInfo.getInfo()}`;
   }
 
   get status(): string {
@@ -41,10 +42,14 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
   }
 
   get description(): string {
-    return ' - ' + this.status;
+    return this.status;
+  }
+
+  get pid(): string {
+    return this.daemonInfo.getPid();
   }
 
   get pidAsInt(): number {
-    return parseInt(this.daemonInfo.getPid(), 10);
+    return parseInt(this.pid, 10);
   }
 }

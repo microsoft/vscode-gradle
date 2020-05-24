@@ -60,12 +60,7 @@
       "gradleContainerView": [
         {
           "id": "gradleTasksView",
-          "name": "Gradle Tasks",
-          "when": "gradle:showTasksExplorer"
-        },
-        {
-          "id": "gradleBookmarkedTasksView",
-          "name": "Bookmarked Gradle Tasks"
+          "name": "Gradle Tasks"
         },
         {
           "id": "gradleDaemonsView",
@@ -136,6 +131,14 @@
         "title": "Cancel Task"
       },
       {
+        "command": "gradle.stopDaemon",
+        "title": "Stop Daemon",
+        "icon": {
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
+        }
+      },
+      {
         "command": "gradle.cancelTreeItemTask",
         "title": "Cancel Task",
         "icon": {
@@ -184,6 +187,14 @@
         }
       },
       {
+        "command": "gradle.stopDaemons",
+        "title": "Stop Daemons",
+        "icon": {
+          "light": "resources/light/stop-daemons.svg",
+          "dark": "resources/dark/stop-daemons.svg"
+        }
+      },
+      {
         "command": "gradle.openSettings",
         "title": "Open Settings",
         "icon": {
@@ -227,6 +238,10 @@
           "when": "false"
         },
         {
+          "command": "gradle.stopDaemons",
+          "when": "false"
+        },
+        {
           "command": "gradle.openBuildFile",
           "when": "false"
         },
@@ -240,6 +255,10 @@
         },
         {
           "command": "gradle.cancelTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.stopDaemon",
           "when": "false"
         },
         {
@@ -289,9 +308,14 @@
           "group": "navigation@3"
         },
         {
-          "command": "gradle.refreshDaemonStatus",
+          "command": "gradle.stopDaemons",
           "when": "view == gradleDaemonsView",
           "group": "navigation@1"
+        },
+        {
+          "command": "gradle.refreshDaemonStatus",
+          "when": "view == gradleDaemonsView",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -344,6 +368,16 @@
           "command": "gradle.bookmarkTask",
           "when": "view == gradleTasksView",
           "group": "test@5"
+        },
+        {
+          "command": "gradle.stopDaemon",
+          "when": "view == gradleDaemonsView && viewItem =~ /^busy$|^idle$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "gradle.stopDaemon",
+          "when": "view == gradleDaemonsView && viewItem =~ /^busy$|^idle$/",
+          "group": "context@1"
         }
       ],
       "explorer/context": [
@@ -376,17 +410,17 @@
           "scope": "resource",
           "description": "Controls whether Gradle tasks should be automatically detected"
         },
-        "gradle.enableTasksExplorer": {
-          "type": "boolean",
-          "default": true,
-          "scope": "window",
-          "description": "Enable an explorer view for Gradle tasks"
-        },
         "gradle.debug": {
           "type": "boolean",
           "default": false,
           "scope": "window",
           "description": "Show extra debug information in the output panel"
+        },
+        "gradle.ignoreDaemonStopWarning": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "description": "Ignore the warning message when stopping the Gradle daemon/s"
         },
         "gradle.focusTaskInExplorer": {
           "type": "boolean",

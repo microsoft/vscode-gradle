@@ -17,8 +17,12 @@ import {
   CancelRunTasksRequest,
   Environment,
   GradleConfig,
-  GetStatusRequest,
-  GetStatusReply,
+  GetDaemonsStatusReply,
+  GetDaemonsStatusRequest,
+  StopDaemonsReply,
+  StopDaemonsRequest,
+  StopDaemonRequest,
+  StopDaemonReply,
 } from './proto/gradle_tasks_pb';
 
 import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
@@ -30,6 +34,7 @@ import { LoggerStream } from './LoggerSteam';
 import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
 import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
 import { COMMAND_CANCEL_TASK, COMMAND_REFRESH } from './commands';
+import { EventWaiter } from './EventWaiter';
 
 export class GradleTasksClient implements vscode.Disposable {
   private connectDeadline = 20; // seconds
@@ -42,6 +47,9 @@ export class GradleTasksClient implements vscode.Disposable {
   >();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
   public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
+
+  private readonly _onConnectWaiter = new EventWaiter(this.onConnect);
+  private readonly waitForConnect = this._onConnectWaiter.wait;
 
   public constructor(
     private readonly server: GradleTasksServer,
@@ -121,6 +129,7 @@ export class GradleTasksClient implements vscode.Disposable {
         token: vscode.CancellationToken
       ) => {
         progress.report({ message: 'Configure project' });
+        await this.waitForConnect();
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
         const stdOutLoggerStream = new LoggerStream(logger, 'info');
@@ -211,6 +220,7 @@ export class GradleTasksClient implements vscode.Disposable {
         progress: vscode.Progress<{ message?: string }>,
         token: vscode.CancellationToken
       ) => {
+        await this.waitForConnect();
         token.onCancellationRequested(() =>
           vscode.commands.executeCommand(COMMAND_CANCEL_TASK, task)
         );
@@ -265,6 +275,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async cancelRunTask(task: vscode.Task): Promise<void> {
+    await this.waitForConnect();
     const definition = task.definition as GradleTaskDefinition;
     const request = new CancelRunTaskRequest();
     request.setProjectDir(definition.projectFolder);
@@ -300,6 +311,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async cancelRunTasks(): Promise<void> {
+    await this.waitForConnect();
     const request = new CancelRunTasksRequest();
     try {
       const cancelRunTasksReply: CancelRunTasksReply = await new Promise(
@@ -329,6 +341,7 @@ export class GradleTasksClient implements vscode.Disposable {
   }
 
   public async cancelGetBuilds(): Promise<void> {
+    await this.waitForConnect();
     const request = new CancelGetBuildsRequest();
     try {
       const cancelGetBuildsReply: CancelGetBuildsReply = await new Promise(
@@ -354,30 +367,80 @@ export class GradleTasksClient implements vscode.Disposable {
     }
   }
 
-  public async getStatus(projectFolder: string): Promise<GetStatusReply> {
-    const gradleConfig = getGradleConfig();
-    const request = new GetStatusRequest();
-    request.setGradleConfig(gradleConfig);
+  public async getDaemonsStatus(
+    projectFolder: string
+  ): Promise<GetDaemonsStatusReply> {
+    await this.waitForConnect();
+    const request = new GetDaemonsStatusRequest();
     request.setProjectDir(projectFolder);
     try {
-      // TODO: grpcClient might be null!
       return await new Promise((resolve, reject) => {
-        this.grpcClient!.getStatus(
+        this.grpcClient!.getDaemonsStatus(
           request,
           (
             err: grpc.ServiceError | null,
-            getStatusReply: GetStatusReply | undefined
+            getDaemonsStatusReply: GetDaemonsStatusReply | undefined
           ) => {
             if (err) {
               reject(err);
             } else {
-              resolve(getStatusReply);
+              resolve(getDaemonsStatusReply);
             }
           }
         );
       });
     } catch (err) {
       logger.error('Error getting status:', err.details || err.message);
+      throw err;
+    }
+  }
+
+  public async stopDaemons(projectFolder: string): Promise<StopDaemonsReply> {
+    const request = new StopDaemonsRequest();
+    request.setProjectDir(projectFolder);
+    try {
+      return await new Promise((resolve, reject) => {
+        this.grpcClient!.stopDaemons(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            stopDaemonsReply: StopDaemonsReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(stopDaemonsReply);
+            }
+          }
+        );
+      });
+    } catch (err) {
+      logger.error('Error stopping daemons:', err.details || err.message);
+      throw err;
+    }
+  }
+
+  public async stopDaemon(pid: string): Promise<StopDaemonsReply> {
+    const request = new StopDaemonRequest();
+    request.setPid(pid);
+    try {
+      return await new Promise((resolve, reject) => {
+        this.grpcClient!.stopDaemon(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            stopDaemonReply: StopDaemonReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(stopDaemonReply);
+            }
+          }
+        );
+      });
+    } catch (err) {
+      logger.error('Error stopping daemon:', err.details || err.message);
       throw err;
     }
   }
@@ -435,6 +498,7 @@ export class GradleTasksClient implements vscode.Disposable {
   public dispose(): void {
     this.grpcClient?.close();
     this._onConnect.dispose();
+    this._onConnectWaiter.dispose();
   }
 }
 

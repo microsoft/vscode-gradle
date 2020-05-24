@@ -7,11 +7,8 @@ export async function waitForTasksToLoad(
   extensionName: string
 ): Promise<vscode.Task[]> {
   const extension = vscode.extensions.getExtension(extensionName);
-  return new Promise((resolve, reject) => {
-    extension?.exports.waitForLoaded(() => {
-      vscode.tasks.fetchTasks({ type: 'gradle' }).then(resolve, reject);
-    });
-  });
+  await extension?.exports.waitForLoaded();
+  return vscode.tasks.fetchTasks({ type: 'gradle' });
 }
 
 export function createTestRunner(pattern: string) {
