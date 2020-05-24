@@ -1,75 +1,15 @@
 import * as vscode from 'vscode';
-import * as fg from 'fast-glob';
 
-import { GradleTasksClient } from '../client';
-import { getConfigIsAutoDetectionEnabled, getGradleConfig } from '../config';
 import { logger } from '../logger';
-import {
-  GradleProject,
-  GradleTask,
-  GradleBuild,
-} from '../proto/gradle_tasks_pb';
-import { GradleTaskDefinition } from './GradleTaskDefinition';
-import { CustomBuildTaskTerminal } from './CustomBuildTaskTerminal';
-import { COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION } from '../commands';
-import { EventWaiter } from '../EventWaiter';
+import { EventWaiter } from '../events/EventWaiter';
+import { loadTasksForFolders } from './taskUtil';
+import { GradleTasksClient } from '../client/GradleTasksClient';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
 
 export function invalidateTasksCache(): void {
   cachedTasks = emptyTasks;
-}
-
-function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
-  const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
-    onlyFiles: true,
-    cwd: folder.uri.fsPath,
-    deep: 1,
-    absolute: true,
-  });
-  return files[0];
-}
-
-function buildTaskId(
-  projectFolder: string,
-  script: string,
-  project: string
-): string {
-  return projectFolder + script + project;
-}
-
-export function createTaskFromDefinition(
-  definition: GradleTaskDefinition,
-  workspaceFolder: vscode.WorkspaceFolder,
-  projectFolder: vscode.Uri,
-  client: GradleTasksClient
-): vscode.Task {
-  const terminal = new CustomBuildTaskTerminal(
-    workspaceFolder,
-    client,
-    projectFolder.fsPath
-  );
-  const task = new vscode.Task(
-    definition,
-    workspaceFolder,
-    definition.script,
-    'gradle',
-    new vscode.CustomExecution(
-      async (): Promise<vscode.Pseudoterminal> => terminal
-    ),
-    ['$gradle']
-  );
-  task.presentationOptions = {
-    showReuseMessage: false,
-    clear: true,
-    echo: true,
-    focus: true,
-    panel: vscode.TaskPanelKind.Shared,
-    reveal: vscode.TaskRevealKind.Always,
-  };
-  terminal.setTask(task);
-  return task;
 }
 
 export class GradleTaskProvider
@@ -87,8 +27,8 @@ export class GradleTaskProvider
     .event;
   public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
   public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
-
   public readonly waitForTasksLoaded = new EventWaiter(this.onTasksLoaded).wait;
+  private loadTasksPromise?: Promise<vscode.Task[]>;
 
   constructor(private readonly client: GradleTasksClient) {}
 
@@ -105,145 +45,42 @@ export class GradleTaskProvider
     return undefined;
   }
 
-  private async refreshTasks(
-    folders: readonly vscode.WorkspaceFolder[]
-  ): Promise<vscode.Task[]> {
-    const allTasks: vscode.Task[] = [];
-    for (const workspaceFolder of folders) {
-      if (getConfigIsAutoDetectionEnabled(workspaceFolder)) {
-        const buildFile = getGradleBuildFile(workspaceFolder);
-        if (!buildFile) {
-          continue;
-        }
-        const gradleBuild = await this.getGradleBuild(
-          workspaceFolder,
-          vscode.Uri.file(buildFile)
-        );
-        const gradleProject = gradleBuild && gradleBuild.getProject();
-        if (gradleProject) {
-          allTasks.push(
-            ...this.getVSCodeTasksFromGradleProject(
-              workspaceFolder,
-              workspaceFolder.uri,
-              gradleProject
-            )
-          );
-        }
-      }
+  public loadTasks(): Promise<vscode.Task[]> {
+    if (this.loadTasksPromise) {
+      return this.loadTasksPromise;
     }
-    return allTasks;
-  }
-
-  public async loadTasks(): Promise<vscode.Task[]> {
     if (cachedTasks.length) {
-      return cachedTasks;
+      return Promise.resolve(cachedTasks);
     }
     logger.debug('Refreshing tasks');
     this._onDidRefreshStart.fire(null);
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
       cachedTasks = emptyTasks;
-    } else {
-      try {
-        cachedTasks = await this.refreshTasks(folders);
-        logger.info(`Found ${cachedTasks.length} tasks`);
-      } catch (err) {
-        logger.error('Unable to refresh tasks:', err.message);
-        cachedTasks = emptyTasks;
-      }
+      return Promise.resolve(cachedTasks);
     }
-    this._onTasksLoaded.fire(null);
-    this._onDidRefreshStop.fire(null);
-    return cachedTasks;
+    this.loadTasksPromise = loadTasksForFolders(this.client, folders)
+      .then(
+        (tasks) => {
+          cachedTasks = tasks;
+          logger.info(`Found ${cachedTasks.length} tasks`);
+        },
+        (err) => {
+          logger.error('Unable to refresh tasks:', err.message);
+          cachedTasks = emptyTasks;
+        }
+      )
+      .then(() => cachedTasks);
+
+    return this.loadTasksPromise.finally(() => {
+      this._onTasksLoaded.fire(null);
+      this._onDidRefreshStop.fire(null);
+      this.loadTasksPromise = undefined;
+    });
   }
 
   public getTasks(): vscode.Task[] {
     return cachedTasks;
-  }
-
-  private async getGradleBuild(
-    projectFolder: vscode.WorkspaceFolder,
-    buildFile: vscode.Uri
-  ): Promise<GradleBuild | void> {
-    const build = await this.client?.getBuild(
-      projectFolder.uri.fsPath,
-      getGradleConfig()
-    );
-    vscode.commands.executeCommand(
-      COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-      buildFile
-    );
-    return build;
-  }
-
-  private getVSCodeTasksFromGradleProject(
-    workspaceFolder: vscode.WorkspaceFolder,
-    projectFolder: vscode.Uri,
-    gradleProject: GradleProject
-  ): vscode.Task[] {
-    const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
-    const vsCodeTasks = [];
-    try {
-      vsCodeTasks.push(
-        ...gradleTasks.map((gradleTask) =>
-          this.createVSCodeTaskFromGradleTask(
-            gradleTask,
-            workspaceFolder,
-            gradleTask.getRootproject(),
-            gradleTask.getBuildfile(),
-            projectFolder
-          )
-        )
-      );
-    } catch (err) {
-      logger.error(
-        'Unable to generate vscode tasks from gradle tasks:',
-        err.message
-      );
-    }
-    gradleProject.getProjectsList().forEach((project) => {
-      vsCodeTasks.push(
-        ...this.getVSCodeTasksFromGradleProject(
-          workspaceFolder,
-          projectFolder,
-          project
-        )
-      );
-    });
-    return vsCodeTasks;
-  }
-
-  private createVSCodeTaskFromGradleTask(
-    gradleTask: GradleTask,
-    workspaceFolder: vscode.WorkspaceFolder,
-    rootProject: string,
-    buildFile: string,
-    projectFolder: vscode.Uri,
-    args = '',
-    javaDebug = false
-  ): vscode.Task {
-    const taskPath = gradleTask.getPath();
-    const script = taskPath[0] === ':' ? taskPath.substr(1) : taskPath;
-    const definition: GradleTaskDefinition = {
-      type: 'gradle',
-      id: buildTaskId(projectFolder.fsPath, script, gradleTask.getProject()),
-      script,
-      description: gradleTask.getDescription(),
-      group: (gradleTask.getGroup() || 'other').toLowerCase(),
-      project: gradleTask.getProject(),
-      buildFile: buildFile,
-      rootProject,
-      projectFolder: projectFolder.fsPath,
-      workspaceFolder: workspaceFolder.uri.fsPath,
-      args,
-      javaDebug,
-    };
-    return createTaskFromDefinition(
-      definition,
-      workspaceFolder,
-      projectFolder,
-      this.client
-    );
   }
 
   public dispose(): void {

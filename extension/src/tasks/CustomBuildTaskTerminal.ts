@@ -2,16 +2,16 @@ import * as vscode from 'vscode';
 import * as util from 'util';
 import * as getPort from 'get-port';
 
-import { GradleTasksClient } from '../client';
 import { waitOnTcp, isTest } from '../util';
 import { logger } from '../logger';
-import { LoggerStream } from '../LoggerSteam';
+import { LoggerStream } from '../logger/LoggerSteam';
 import { Output } from '../proto/gradle_tasks_pb';
-import { isTaskRunning } from '../tasks';
 import {
   COMMAND_CANCEL_TASK,
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
 } from '../commands';
+import { isTaskRunning } from './taskUtil';
+import { GradleTasksClient } from '../client/GradleTasksClient';
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private writeEmitter = new vscode.EventEmitter<string>();

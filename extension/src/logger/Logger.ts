@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { getConfigIsDebugEnabled } from './config';
-import { isTest } from './util';
+import { isTest } from '../util';
+import { getConfigIsDebugEnabled } from '../config';
 
 export type logType = 'info' | 'warning' | 'error' | 'debug';
 
@@ -61,5 +61,3 @@ export class Logger {
     this.channel = channel;
   }
 }
-
-export const logger = new Logger();

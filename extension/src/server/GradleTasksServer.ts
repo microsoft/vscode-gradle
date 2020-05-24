@@ -1,11 +1,8 @@
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
-
-import { logger } from './logger';
-import { buildGradleServerTask } from './tasks';
-import { isDebuggingServer } from './util';
-
-export const SERVER_TASK_NAME = 'Gradle Tasks Server';
+import { isDebuggingServer } from '../util';
+import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
+import { logger } from '../logger';
 
 export interface ServerOptions {
   host: string;
@@ -114,22 +111,4 @@ export class GradleTasksServer implements vscode.Disposable {
   public getOpts(): ServerOptions {
     return this.opts;
   }
-}
-
-export function registerServer(
-  opts: ServerOptions,
-  context: vscode.ExtensionContext
-): GradleTasksServer {
-  const server = new GradleTasksServer(opts, context);
-  context.subscriptions.push(
-    server,
-    vscode.workspace.onDidChangeConfiguration(
-      (event: vscode.ConfigurationChangeEvent) => {
-        if (event.affectsConfiguration('java.home') && server.isReady()) {
-          server.restart();
-        }
-      }
-    )
-  );
-  return server;
 }

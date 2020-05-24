@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { IconPath } from './types';
 import { JavaDebug } from '../config';
-import { isTaskCancelling, isTaskRunning } from '../tasks';
+import { isTaskRunning, isTaskCancelling } from '../tasks/taskUtil';
 
 function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug): string {
   // A task can be running but in a cancelling state

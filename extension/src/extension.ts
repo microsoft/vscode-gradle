@@ -1,12 +1,11 @@
 import * as vscode from 'vscode';
 
-import { registerGradleViews } from './gradleViews';
-import { registerTaskProvider } from './tasks';
+import { registerGradleViews } from './views';
+import { registerTaskProvider, registerTaskManager } from './tasks';
 import { registerServer } from './server';
 import { registerClient } from './client';
 import { registerCommands } from './commands';
 import { logger } from './logger';
-import { registerTaskManager } from './taskManager';
 import { registerBuildFileWatcher } from './buildFileWatcher';
 import { Api } from './api';
 
