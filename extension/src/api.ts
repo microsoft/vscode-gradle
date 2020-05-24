@@ -48,35 +48,32 @@ export class Api {
     return this.client.cancelRunTask(task);
   }
 
-  private findTask(
+  private async findTask(
     projectFolder: string,
     taskName: string
   ): Promise<vscode.Task> {
-    return new Promise((resolve, reject) => {
-      this.taskProvider.waitForLoaded(async () => {
-        const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-        if (!tasks) {
-          return reject(new Error('Unable to load gradle tasks'));
-        }
-        const task = tasks.find((task) => {
-          const definition = task.definition as GradleTaskDefinition;
-          return (
-            task.name === taskName && definition.projectFolder === projectFolder
-          );
-        });
-        if (!task) {
-          return reject(new Error(`Unable to find task: ${taskName}`));
-        }
-        resolve(task);
-      });
+    await this.taskProvider.waitForTasksLoaded();
+    const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    if (!tasks) {
+      throw new Error('Unable to load gradle tasks');
+    }
+    const task = tasks.find((task) => {
+      const definition = task.definition as GradleTaskDefinition;
+      return (
+        task.name === taskName && definition.projectFolder === projectFolder
+      );
     });
+    if (!task) {
+      throw new Error(`Unable to find task: ${taskName}`);
+    }
+    return task;
   }
 
   public getTreeProvider(): GradleTasksTreeDataProvider {
     return this.treeDataProvider;
   }
 
-  public waitForLoaded(callback: () => void): void {
-    this.taskProvider.waitForLoaded(callback);
+  public waitForLoaded(): Promise<void> {
+    return this.taskProvider.waitForTasksLoaded();
   }
 }
