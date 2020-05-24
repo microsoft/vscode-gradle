@@ -1,4 +1,4 @@
-# VS Code Gradle Tasks - Preview
+# VS Code Gradle Tasks - Preview
 
 This is the preview release of Gradle Tasks. The stable release can be found here: https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle
 
