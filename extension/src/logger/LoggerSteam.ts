@@ -1,5 +1,5 @@
 import * as util from 'util';
-import { logType, Logger } from './logger';
+import { Logger, logType } from './Logger';
 
 export class LoggerStream {
   private buffer = '';

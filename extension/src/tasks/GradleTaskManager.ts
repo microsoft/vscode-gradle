@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { isGradleTask, getRunningGradleTasks } from './tasks';
+import { isGradleTask, getRunningGradleTasks } from './taskUtil';
 
 export class GradleTaskManager implements vscode.Disposable {
   private _onDidStartTask: vscode.EventEmitter<
@@ -35,12 +35,4 @@ export class GradleTaskManager implements vscode.Disposable {
     this._onDidStartTask.dispose();
     this._onDidEndAllTasks.dispose();
   }
-}
-
-export function registerTaskManager(
-  context: vscode.ExtensionContext
-): GradleTaskManager {
-  const taskManager = new GradleTaskManager(context);
-  context.subscriptions.push(taskManager);
-  return taskManager;
 }

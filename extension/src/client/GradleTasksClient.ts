@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as grpc from '@grpc/grpc-js';
+import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
 
 import {
   RunTaskRequest,
@@ -23,18 +24,17 @@ import {
   StopDaemonsRequest,
   StopDaemonRequest,
   StopDaemonReply,
-} from './proto/gradle_tasks_pb';
+} from '../proto/gradle_tasks_pb';
 
-import { GradleTasksClient as GrpcClient } from './proto/gradle_tasks_grpc_pb';
-import { GradleTasksServer } from './server';
-import { logger } from './logger';
-import { removeCancellingTask } from './tasks';
-import { getGradleConfig } from './config';
-import { LoggerStream } from './LoggerSteam';
-import { connectivityState as ConnectivityState } from '@grpc/grpc-js';
-import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
-import { COMMAND_CANCEL_TASK /*, COMMAND_REFRESH*/ } from './commands';
-import { EventWaiter } from './EventWaiter';
+import { GradleTasksClient as GrpcClient } from '../proto/gradle_tasks_grpc_pb';
+import { EventWaiter } from '../events/EventWaiter';
+import { GradleTasksServer } from '../server/GradleTasksServer';
+import { logger } from '../logger';
+import { LoggerStream } from '../logger/LoggerSteam';
+import { COMMAND_CANCEL_TASK } from '../commands';
+import { getGradleConfig } from '../config';
+import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
+import { removeCancellingTask } from '../tasks/taskUtil';
 
 export class GradleTasksClient implements vscode.Disposable {
   private connectDeadline = 20; // seconds
@@ -500,18 +500,4 @@ export class GradleTasksClient implements vscode.Disposable {
     this.grpcClient?.close();
     this._onConnect.dispose();
   }
-}
-
-export function registerClient(
-  server: GradleTasksServer,
-  context: vscode.ExtensionContext
-): GradleTasksClient {
-  const statusBarItem = vscode.window.createStatusBarItem();
-  const client = new GradleTasksClient(server, statusBarItem);
-  context.subscriptions.push(client, statusBarItem);
-  client.onConnect(() => {
-    // TODO: 2 requests are sent if the gradle viewcontainer is open
-    vscode.tasks.fetchTasks({ type: 'gradle' });
-  });
-  return client;
 }

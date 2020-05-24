@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { GradleTasksClient } from '../client';
 import { GradleDaemonTreeItem } from './GradleDaemonTreeItem';
+import { GradleTasksClient } from '../client/GradleTasksClient';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {

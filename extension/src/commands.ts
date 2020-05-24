@@ -2,15 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import {
-  cancelTask,
-  runTask,
-  runTaskWithArgs,
-  getTaskExecution,
-  queueRestartTask,
-} from './tasks';
 import { getIgnoreDaemonStopWarning } from './config';
-import { GradleTasksClient } from './client';
 import { logger } from './logger';
 import {
   isJavaLanguageSupportExtensionActivated,
@@ -25,6 +17,14 @@ import {
 import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
 import { StopDaemonsReply } from './proto/gradle_tasks_pb';
 import { GradleDaemonTreeItem } from './views/GradleDaemonTreeItem';
+import { GradleTasksClient } from './client/GradleTasksClient';
+import {
+  runTask,
+  getTaskExecution,
+  runTaskWithArgs,
+  cancelTask,
+  queueRestartTask,
+} from './tasks/taskUtil';
 
 export const COMMAND_SHOW_TASKS = 'gradle.showTasks';
 export const COMMAND_RUN_TASK = 'gradle.runTask';
