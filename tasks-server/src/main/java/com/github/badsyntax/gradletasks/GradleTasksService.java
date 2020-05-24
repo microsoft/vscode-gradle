@@ -6,6 +6,7 @@ import com.github.badsyntax.gradletasks.actions.GradleTaskCanceller;
 import com.github.badsyntax.gradletasks.actions.GradleTaskRunner;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
 import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradletasks.exceptions.GradleStatusException;
 import io.grpc.stub.StreamObserver;
 import org.gradle.tooling.GradleConnector;
 import org.slf4j.Logger;
@@ -69,11 +70,9 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   @Override
   public void getStatus(GetStatusRequest req, StreamObserver<GetStatusReply> responseObserver) {
     try {
-      GradleConnector gradleConnector =
-          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
-      GradleStatus gradleStatus = new GradleStatus(req, responseObserver, gradleConnector);
+      GradleStatus gradleStatus = new GradleStatus(req, responseObserver);
       gradleStatus.run();
-    } catch (GradleConnectionException e) {
+    } catch (GradleStatusException e) {
       logger.error(e.getMessage());
       responseObserver.onError(ErrorMessageBuilder.build(e));
     }
