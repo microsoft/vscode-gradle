@@ -1,12 +1,51 @@
 name: Publish extension
 on:
+  push:
+    branches:
+      - release/*
   release:
     types: [published]
 
 jobs:
+  publish-beta-extension:
+    name: Publish BETA extension
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.event.action != 'published'
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node 12.16.2
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.16.2
+      - name: Build & prepare extension
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: prepareForBetaRelease
+      - name: Publish types
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd npm-package
+          commit=$(git rev-parse HEAD)
+          version="0.0.0-$commit"
+          echo "Setting package version $version"
+          npm --no-git-tag-version version "$version"
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
+          npm publish
+      - name: Publish extension
+        env:
+          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+        run: |
+          cd extension
+          commit=$(git rev-parse HEAD)
+          version="0.0.0-$commit"
+          echo "Setting package version $version"
+          npm --no-git-tag-version version "$version"
+          npx vsce publish -p "$AZURE_TOKEN"
   publish-extension:
     name: Publish extension
     runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/checkout@v1
       - name: Use Node 12.16.2

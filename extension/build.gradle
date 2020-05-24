@@ -183,8 +183,18 @@ task copyDocs(type: Copy) {
   into "$projectDir"
 }
 
+task prepareBeta(type: CrossPlatformExec) {
+  description 'Prepare the extesion for a BETA release'
+  workingDir file('./beta')
+  commandLine 'node', 'prepare.js'
+}
+
 task prepareForRelease() {
   dependsOn bundle, copyDocs
+}
+
+task prepareForBetaRelease() {
+  dependsOn bundle, copyDocs, prepareBeta
 }
 
 build.finalizedBy buildDev, buildTest
