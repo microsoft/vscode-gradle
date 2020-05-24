@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { GradleTasksClient } from './client';
 import { Output } from './proto/gradle_tasks_pb';
 import { logger } from './logger';
 import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
 import { GradleTaskProvider } from './tasks/GradleTaskProvider';
 import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
+import { GradleTasksClient } from './client/GradleTasksClient';
 
 export interface RunTaskOpts {
   projectFolder: string;

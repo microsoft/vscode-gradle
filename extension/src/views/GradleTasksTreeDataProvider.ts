@@ -8,9 +8,9 @@ import { ProjectTreeItem } from './ProjectTreeItem';
 import { TreeItemWithTasksOrGroups } from './TreeItemWithTasksOrGroups';
 import { GroupTreeItem } from './GroupTreeItem';
 import { JavaDebug, getConfigJavaDebug } from '../config';
-import { isWorkspaceFolder } from '../tasks';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { ICON_LOADING, ICON_GRADLE_TASK } from './constants';
+import { isWorkspaceFolder } from '../util';
 
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 

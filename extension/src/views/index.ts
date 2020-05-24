@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
 
-import { isGradleTask } from './tasks';
-import { getConfigFocusTaskInExplorer } from './config';
-import { GradleTasksClient } from './client';
-import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
+import { getConfigFocusTaskInExplorer } from '../config';
+import { GradleDaemonsTreeDataProvider } from './GradleDaemonsTreeDataProvider';
 import {
   GradleTasksTreeDataProvider,
   taskTreeItemMap,
-} from './views/GradleTasksTreeDataProvider';
-// import { GradleBookmarkedTasksTreeDataProvider } from './views/GradleBookmarkedTasksTreeDataProvider';
-import { logger } from './logger';
-import { COMMAND_REFRESH } from './commands';
+} from './GradleTasksTreeDataProvider';
+// import { GradleBookmarkedTasksTreeDataProvider } from './GradleBookmarkedTasksTreeDataProvider';
+import { logger } from '../logger';
+import { COMMAND_REFRESH } from '../commands';
+import { GradleTasksClient } from '../client/GradleTasksClient';
+import { isGradleTask } from '../tasks/taskUtil';
 
 export async function focusTaskInGradleTasksTree(
   treeView: vscode.TreeView<vscode.TreeItem>,
