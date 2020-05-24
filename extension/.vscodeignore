@@ -22,3 +22,4 @@ build/**
 node_modules
 webpack.config.js
 .snyk
+beta/**

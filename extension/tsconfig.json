@@ -11,6 +11,6 @@
     "allowJs": true, // to support compiling the generated proto js files
     "declaration": true
   },
-  "exclude": ["node_modules", ".vscode-test", "build"],
+  "exclude": ["node_modules", ".vscode-test", "build", "beta"],
   "include": ["./src/**/*"]
 }
