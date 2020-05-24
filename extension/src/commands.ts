@@ -2,10 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from './gradleView';
 import {
   cancelTask,
-  GradleTaskProvider,
   runTask,
   runTaskWithArgs,
   getTaskExecution,
@@ -18,19 +16,44 @@ import {
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
 } from './compat';
+import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
+import { GradleTaskTreeItem } from './views/GradleTaskTreeItem';
+import { GradleTaskProvider } from './tasks/GradleTaskProvider';
+import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
+
+export const COMMAND_SHOW_TASKS = 'gradle.showTasks';
+export const COMMAND_RUN_TASK = 'gradle.runTask';
+export const COMMAND_DEBUG_TASK = 'gradle.debugTask';
+export const COMMAND_RESTART_TASK = 'gradle.restartTask';
+export const COMMAND_RUN_TASK_WITH_ARGS = 'gradle.runTaskWithArgs';
+export const COMMAND_DEBUG_TASK_WITH_ARGS = 'gradle.debugTaskWithArgs';
+export const COMMAND_RENDER_TASK = 'gradle.renderTask';
+export const COMMAND_CANCEL_TASK = 'gradle.cancelTask';
+export const COMMAND_CANCEL_TREE_ITEM_TASK = 'gradle.cancelTreeItemTask';
+export const COMMAND_REFRESH = 'gradle.refresh';
+export const COMMAND_REFRESH_DAEMON_STATUS = 'gradle.refreshDaemonStatus';
+export const COMMAND_OPEN_BUILD_FILE = 'gradle.openBuildFile';
+export const COMMAND_EXPLORER_TREE = 'gradle.explorerTree';
+export const COMMAND_EXPLORER_FLAT = 'gradle.explorerFlat';
+export const COMMAND_OPEN_SETTINGS = 'gradle.openSettings';
+export const COMMAND_CANCELLING_TREE_ITEM_TASK =
+  'gradle.cancellingTreeItemTask';
+export const COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION =
+  'gradle.updateJavaProjectConfiguration';
+export const COMMAND_SHOW_LOGS = 'gradle.showLogs';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
 );
 
 function registerShowTasks(
-  treeDataProvider: GradleTasksTreeDataProvider,
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   treeView: vscode.TreeView<vscode.TreeItem>
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.showTasks',
+    COMMAND_SHOW_TASKS,
     async (uri: vscode.Uri) => {
-      const treeItem = treeDataProvider.findProjectTreeItem(uri);
+      const treeItem = gradleTasksTreeDataProvider.findProjectTreeItem(uri);
       if (treeItem) {
         await treeView.reveal(treeItem, {
           focus: true,
@@ -43,7 +66,7 @@ function registerShowTasks(
 
 function registerRunTaskCommand(client: GradleTasksClient): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.runTask',
+    COMMAND_RUN_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         runTask(treeItem.task, client);
@@ -56,7 +79,7 @@ function registerDebugTaskCommand(
   client: GradleTasksClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.debugTask',
+    COMMAND_DEBUG_TASK,
     async (treeItem: GradleTaskTreeItem, args = '') => {
       if (treeItem && treeItem.task) {
         runTask(treeItem.task, client, args, true);
@@ -67,15 +90,19 @@ function registerDebugTaskCommand(
 
 function registerRestartTaskCommand(
   client: GradleTasksClient,
-  treeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.restartTask',
+    COMMAND_RESTART_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const taskExecution = getTaskExecution(treeItem.task);
         if (taskExecution) {
-          queueRestartTask(client, treeDataProvider, taskExecution.task);
+          queueRestartTask(
+            client,
+            gradleTasksTreeDataProvider,
+            taskExecution.task
+          );
         }
       }
     }
@@ -86,7 +113,7 @@ function registerRunTaskWithArgsCommand(
   client: GradleTasksClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.runTaskWithArgs',
+    COMMAND_RUN_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         runTaskWithArgs(treeItem.task, client, false);
@@ -103,7 +130,7 @@ function registerDebugTaskWithArgsCommand(
   client: GradleTasksClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.debugTaskWithArgs',
+    COMMAND_DEBUG_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         runTaskWithArgs(treeItem.task, client, true);
@@ -117,25 +144,25 @@ function registerDebugTaskWithArgsCommand(
 }
 
 function registerRenderTaskCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.renderTask',
+    COMMAND_RENDER_TASK,
     (task: vscode.Task) => {
-      treeDataProvider.renderTask(task);
+      gradleTasksTreeDataProvider.renderTask(task);
     }
   );
 }
 
 function registerCancelTaskCommand(
   client: GradleTasksClient,
-  treeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.cancelTask',
+    COMMAND_CANCEL_TASK,
     (task: vscode.Task) => {
       try {
-        cancelTask(client, treeDataProvider, task);
+        cancelTask(client, gradleTasksTreeDataProvider, task);
       } catch (e) {
         logger.error('Error cancelling task:', e.message);
       }
@@ -145,10 +172,10 @@ function registerCancelTaskCommand(
 
 function registerCancelTreeItemTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.cancelTreeItemTask',
+    COMMAND_CANCEL_TREE_ITEM_TASK,
     (treeItem) => {
       if (treeItem && treeItem.task) {
-        vscode.commands.executeCommand('gradle.cancelTask', treeItem.task);
+        vscode.commands.executeCommand(COMMAND_CANCEL_TASK, treeItem.task);
       }
     }
   );
@@ -156,14 +183,14 @@ function registerCancelTreeItemTaskCommand(): vscode.Disposable {
 
 function registerRefreshCommand(
   taskProvider: GradleTaskProvider,
-  treeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.refresh',
+    COMMAND_REFRESH,
     async (): Promise<void> => {
       const tasks = await taskProvider.refresh();
-      treeDataProvider.setTaskItems(tasks);
-      treeDataProvider.refresh();
+      gradleTasksTreeDataProvider.setTaskItems(tasks);
+      gradleTasksTreeDataProvider.refresh();
       vscode.commands.executeCommand(
         'setContext',
         'gradle:showTasksExplorer',
@@ -173,24 +200,35 @@ function registerRefreshCommand(
   );
 }
 
-function registerExplorerTreeCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
+function registerRefreshDaemonStatusCommand(
+  gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.explorerTree', () => {
-    treeDataProvider!.setCollapsed(false);
+  return vscode.commands.registerCommand(
+    COMMAND_REFRESH_DAEMON_STATUS,
+    (): void => {
+      gradleDaemonsTreeDataProvider.refresh();
+    }
+  );
+}
+
+function registerExplorerTreeCommand(
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_EXPLORER_TREE, () => {
+    gradleTasksTreeDataProvider!.setCollapsed(false);
   });
 }
 
 function registerExplorerFlatCommand(
-  treeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.explorerFlat', () => {
-    treeDataProvider!.setCollapsed(true);
+  return vscode.commands.registerCommand(COMMAND_EXPLORER_FLAT, () => {
+    gradleTasksTreeDataProvider!.setCollapsed(true);
   });
 }
 
 function registerOpenSettingsCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.openSettings', (): void => {
+  return vscode.commands.registerCommand(COMMAND_OPEN_SETTINGS, (): void => {
     vscode.commands.executeCommand(
       'workbench.action.openSettings',
       `@ext:${packageJson.publisher}.${packageJson.name}`
@@ -200,7 +238,7 @@ function registerOpenSettingsCommand(): vscode.Disposable {
 
 function registerOpenBuildFileCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.openBuildFile',
+    COMMAND_OPEN_BUILD_FILE,
     (taskItem: GradleTaskTreeItem): void => {
       vscode.commands.executeCommand(
         'vscode.open',
@@ -212,7 +250,7 @@ function registerOpenBuildFileCommand(): vscode.Disposable {
 
 function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.cancellingTreeItemTask',
+    COMMAND_CANCELLING_TREE_ITEM_TASK,
     () => {
       vscode.window.showInformationMessage(
         'Gradle task is cancelling, please wait'
@@ -223,7 +261,7 @@ function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
 
 function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'gradle.updateJavaProjectConfiguration',
+    COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
     async (buildFile: vscode.Uri) => {
       if (isJavaLanguageSupportExtensionActivated()) {
         try {
@@ -243,7 +281,7 @@ function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
 }
 
 function registerShowLogsCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand('gradle.showLogs', () => {
+  return vscode.commands.registerCommand(COMMAND_SHOW_LOGS, () => {
     logger.getChannel()?.show();
   });
 }
@@ -252,26 +290,28 @@ export function registerCommands(
   context: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem,
   client: GradleTasksClient,
-  treeDataProvider: GradleTasksTreeDataProvider,
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
   treeView: vscode.TreeView<vscode.TreeItem>,
   taskProvider: GradleTaskProvider
 ): void {
   context.subscriptions.push(
-    registerShowTasks(treeDataProvider, treeView),
+    registerShowTasks(gradleTasksTreeDataProvider, treeView),
     registerRunTaskCommand(client),
     registerDebugTaskCommand(client),
-    registerRestartTaskCommand(client, treeDataProvider),
+    registerRestartTaskCommand(client, gradleTasksTreeDataProvider),
     registerRunTaskWithArgsCommand(client),
     registerDebugTaskWithArgsCommand(client),
-    registerCancelTaskCommand(client, treeDataProvider),
+    registerCancelTaskCommand(client, gradleTasksTreeDataProvider),
     registerCancelTreeItemTaskCommand(),
-    registerRefreshCommand(taskProvider, treeDataProvider),
-    registerExplorerTreeCommand(treeDataProvider),
-    registerExplorerFlatCommand(treeDataProvider),
+    registerRefreshCommand(taskProvider, gradleTasksTreeDataProvider),
+    registerRefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider),
+    registerExplorerTreeCommand(gradleTasksTreeDataProvider),
+    registerExplorerFlatCommand(gradleTasksTreeDataProvider),
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),
-    registerRenderTaskCommand(treeDataProvider),
+    registerRenderTaskCommand(gradleTasksTreeDataProvider),
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand()
   );

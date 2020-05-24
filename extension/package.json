@@ -36,7 +36,8 @@
   ],
   "activationEvents": [
     "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat"
+    "workspaceContains:gradlew.bat",
+    "onView:gradleTasksView"
   ],
   "main": "./dist/extension",
   "contributes": {
@@ -56,11 +57,28 @@
       }
     ],
     "views": {
-      "explorer": [
+      "gradleContainerView": [
         {
-          "id": "gradleTreeView",
+          "id": "gradleTasksView",
           "name": "Gradle Tasks",
           "when": "gradle:showTasksExplorer"
+        },
+        {
+          "id": "gradleBookmarkedTasksView",
+          "name": "Bookmarked Gradle Tasks"
+        },
+        {
+          "id": "gradleDaemonsView",
+          "name": "Gradle Daemons"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gradleContainerView",
+          "title": "Gradle",
+          "icon": "icon.png"
         }
       ]
     },
@@ -72,6 +90,10 @@
           "light": "resources/light/run.svg",
           "dark": "resources/dark/run.svg"
         }
+      },
+      {
+        "command": "gradle.bookmarkTask",
+        "title": "Bookmark Task"
       },
       {
         "command": "gradle.debugTask",
@@ -154,6 +176,14 @@
         }
       },
       {
+        "command": "gradle.refreshDaemonStatus",
+        "title": "Refresh Daemon Status",
+        "icon": {
+          "light": "resources/light/refresh.svg",
+          "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
         "command": "gradle.openSettings",
         "title": "Open Settings",
         "icon": {
@@ -190,6 +220,10 @@
         },
         {
           "command": "gradle.restartTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.refreshDaemonStatus",
           "when": "false"
         },
         {
@@ -236,70 +270,80 @@
       "view/title": [
         {
           "command": "gradle.openSettings",
-          "when": "view == gradleTreeView",
+          "when": "view == gradleTasksView",
           "group": "navigation@0"
         },
         {
           "command": "gradle.explorerFlat",
-          "when": "view == gradleTreeView && !gradle:explorerCollapsed",
+          "when": "view == gradleTasksView && !gradle:explorerCollapsed",
           "group": "navigation@1"
         },
         {
           "command": "gradle.explorerTree",
-          "when": "view == gradleTreeView && gradle:explorerCollapsed",
+          "when": "view == gradleTasksView && gradle:explorerCollapsed",
           "group": "navigation@2"
         },
         {
           "command": "gradle.refresh",
-          "when": "view == gradleTreeView",
+          "when": "view == gradleTasksView",
           "group": "navigation@3"
+        },
+        {
+          "command": "gradle.refreshDaemonStatus",
+          "when": "view == gradleDaemonsView",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "when": "view == gradleTasksView && viewItem =~ /^debugTask$|^task$/",
           "group": "run@0"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "when": "view == gradleTasksView && viewItem =~ /^debugTask$|^task$/",
           "group": "run@1"
         },
         {
           "command": "gradle.debugTask",
-          "when": "view == gradleTreeView && viewItem == debugTask",
+          "when": "view == gradleTasksView && viewItem == debugTask",
           "group": "debug@0"
         },
         {
           "command": "gradle.debugTaskWithArgs",
-          "when": "view == gradleTreeView && viewItem == debugTask",
+          "when": "view == gradleTasksView && viewItem == debugTask",
           "group": "debug@1"
         },
         {
           "command": "gradle.debugTask",
-          "when": "view == gradleTreeView && viewItem == debugTask",
+          "when": "view == gradleTasksView && viewItem == debugTask",
           "group": "inline@0"
         },
         {
           "command": "gradle.runTask",
-          "when": "view == gradleTreeView && viewItem =~ /^debugTask$|^task$/",
+          "when": "view == gradleTasksView && viewItem =~ /^debugTask$|^task$/",
           "group": "inline@1"
         },
         {
           "command": "gradle.restartTask",
-          "when": "view == gradleTreeView && viewItem == runningTask",
+          "when": "view == gradleTasksView && viewItem == runningTask",
           "group": "inline@2"
         },
         {
           "command": "gradle.cancelTreeItemTask",
-          "when": "view == gradleTreeView && viewItem == runningTask",
+          "when": "view == gradleTasksView && viewItem == runningTask",
           "group": "inline@3"
         },
         {
           "command": "gradle.cancellingTreeItemTask",
-          "when": "view == gradleTreeView && viewItem == cancellingTask",
+          "when": "view == gradleTasksView && viewItem == cancellingTask",
           "group": "inline@4"
+        },
+        {
+          "command": "gradle.bookmarkTask",
+          "when": "view == gradleTasksView",
+          "group": "test@5"
         }
       ],
       "explorer/context": [
