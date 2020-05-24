@@ -11,5 +11,5 @@ fs.writeFileSync(
   'utf8'
 );
 
-const readme = fs.readFileSync('./README.md', 'utf8');
-fs.writeFileSync('../README.md', readme, 'utf8');
+fs.copyFileSync('./README.md', '../README.md');
+fs.copyFileSync('./icon.png', '../icon.png');
