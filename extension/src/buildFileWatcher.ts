@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { logger } from './logger';
-import { GradleTaskProvider } from './tasks';
 import { GradleTaskManager } from './taskManager';
+import { GradleTaskProvider } from './tasks/GradleTaskProvider';
+import { COMMAND_REFRESH } from './commands';
 
 type handler = () => void;
 
@@ -50,7 +51,7 @@ export function registerBuildFileWatcher(
 ): BuildFileWatcher {
   const buildFileWatcher = new BuildFileWatcher();
   buildFileWatcher.addHandler(() => {
-    vscode.commands.executeCommand('gradle.refresh');
+    vscode.commands.executeCommand(COMMAND_REFRESH);
   });
 
   taskProvider.onDidRefreshStart(() => buildFileWatcher.stop());
