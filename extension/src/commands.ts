@@ -197,7 +197,7 @@ function registerRefreshCommand(
     COMMAND_REFRESH,
     async (): Promise<void> => {
       invalidateTasksCache();
-      taskProvider.loadTasks();
+      await taskProvider.loadTasks();
       gradleTasksTreeDataProvider.refresh();
       vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
