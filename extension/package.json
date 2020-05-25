@@ -533,6 +533,9 @@
             "description": "Debug JavaExec task when executing"
           }
         }
+      },
+      {
+        "type": "gradleserver"
       }
     ]
   },
