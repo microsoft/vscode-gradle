@@ -1,4 +1,4 @@
-package com.github.badsyntax.gradletasks.actions;
+package com.github.badsyntax.gradletasks.handlers;
 
 import com.github.badsyntax.gradletasks.CancelRunTaskReply;
 import com.github.badsyntax.gradletasks.CancelRunTaskRequest;
@@ -8,22 +8,22 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GradleTaskCanceller {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTaskCanceller.class.getName());
+public class CancelTaskHandler {
+  private static final Logger logger = LoggerFactory.getLogger(CancelTaskHandler.class.getName());
 
   private CancelRunTaskRequest req;
   private StreamObserver<CancelRunTaskReply> responseObserver;
 
-  public GradleTaskCanceller(
+  public CancelTaskHandler(
       CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
 
-  public void cancelRunTask() {
+  public void run() {
     try {
       CancellationHandler.cancelRunTask(
-          GradleTaskRunner.getCancellationKey(req.getProjectDir(), req.getTask()));
+          RunTaskHandler.getCancellationKey(req.getProjectDir(), req.getTask()));
       replyWithCancelledSuccess();
     } catch (GradleCancellationException e) {
       logger.error(e.getMessage());

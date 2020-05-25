@@ -1,41 +1,33 @@
-package com.github.badsyntax.gradletasks.actions;
+package com.github.badsyntax.gradletasks.handlers;
 
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
 import com.github.badsyntax.gradletasks.StopDaemonReply;
 import com.github.badsyntax.gradletasks.StopDaemonRequest;
+import com.github.badsyntax.gradletasks.process.Process;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GradleSingleDaemonStopper {
-  private static final Logger logger =
-      LoggerFactory.getLogger(GradleSingleDaemonStopper.class.getName());
+public class StopDaemonHandler {
+  private static final Logger logger = LoggerFactory.getLogger(StopDaemonHandler.class.getName());
 
   private StopDaemonRequest req;
   private StreamObserver<StopDaemonReply> responseObserver;
 
-  public GradleSingleDaemonStopper(
+  public StopDaemonHandler(
       StopDaemonRequest req, StreamObserver<StopDaemonReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
 
   public void run() {
-    Boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
-    Runtime runtime = Runtime.getRuntime();
     try {
-      if (isWindows) {
-        runtime.exec(String.format("taskkill %s", req.getPid()));
-      } else {
-        runtime.exec(String.format("kill -9 %s", req.getPid()));
-      }
+      Process.kill(req.getPid());
       replyWithSuccess(String.format("Killed daemon with PID %s", req.getPid()));
     } catch (IOException e) {
       logger.error(e.getMessage());
       replyWithError(e);
-    } finally {
-      responseObserver.onCompleted();
     }
   }
 
@@ -45,5 +37,6 @@ public class GradleSingleDaemonStopper {
 
   public void replyWithSuccess(String message) {
     responseObserver.onNext(StopDaemonReply.newBuilder().setMessage(message).build());
+    responseObserver.onCompleted();
   }
 }

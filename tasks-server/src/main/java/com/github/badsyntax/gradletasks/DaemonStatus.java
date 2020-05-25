@@ -1,31 +1,30 @@
 package com.github.badsyntax.gradletasks;
 
 import com.github.badsyntax.gradletasks.exceptions.GradleWrapperException;
-import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class DaemonStatus {
-  private GradleWrapperExecutor gradleWrapper;
+  private GradleWrapper gradleWrapper;
 
   //  56783 IDLE     6.4
   //  39762 STOPPED  (other compatible daemons were started ...)
-  private static Pattern STATUS_REGEX =
+  private static Pattern statusRegex =
       Pattern.compile("^\\s+([0-9]+)\\s+([A-Z]+)\\s+([\\p{ASCII}]+)$");
 
-  public DaemonStatus(GradleWrapperExecutor gradleWrapper) {
+  public DaemonStatus(GradleWrapper gradleWrapper) {
     this.gradleWrapper = gradleWrapper;
   }
 
-  public ArrayList<DaemonInfo> get() throws GradleWrapperException {
+  public synchronized ArrayList<DaemonInfo> get() throws GradleWrapperException {
     ArrayList<DaemonInfo> daemonStatus = new ArrayList<>();
-    BufferedReader statusOutput = gradleWrapper.exec("--status", "--quiet");
-    statusOutput
-        .lines()
+    String processOutput = gradleWrapper.exec("--status", "--quiet");
+    Stream.of(processOutput.split("\n"))
         .forEach(
             line -> {
-              Matcher statusMatcher = STATUS_REGEX.matcher(line);
+              Matcher statusMatcher = statusRegex.matcher(line);
               if (statusMatcher.matches()) {
                 String pid = statusMatcher.group(1);
                 String status = statusMatcher.group(2);

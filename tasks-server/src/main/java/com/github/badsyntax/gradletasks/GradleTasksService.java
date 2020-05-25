@@ -1,46 +1,26 @@
 package com.github.badsyntax.gradletasks;
 
-import com.github.badsyntax.gradletasks.actions.GradleDaemonsStatus;
-import com.github.badsyntax.gradletasks.actions.GradleDaemonsStopper;
-import com.github.badsyntax.gradletasks.actions.GradleProjectBuilder;
-import com.github.badsyntax.gradletasks.actions.GradleSingleDaemonStopper;
-import com.github.badsyntax.gradletasks.actions.GradleTaskCanceller;
-import com.github.badsyntax.gradletasks.actions.GradleTaskRunner;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
-import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradletasks.handlers.CancelTaskHandler;
+import com.github.badsyntax.gradletasks.handlers.GetBuildHandler;
+import com.github.badsyntax.gradletasks.handlers.GetDaemonsStatusHandler;
+import com.github.badsyntax.gradletasks.handlers.RunTaskHandler;
+import com.github.badsyntax.gradletasks.handlers.StopDaemonHandler;
+import com.github.badsyntax.gradletasks.handlers.StopDaemonsHandler;
 import io.grpc.stub.StreamObserver;
-import org.gradle.tooling.GradleConnector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTasksService.class.getName());
 
   @Override
   public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
-    try {
-      GradleConnector gradleConnector =
-          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
-      GradleProjectBuilder projectBuilder =
-          new GradleProjectBuilder(req, responseObserver, gradleConnector);
-      projectBuilder.build();
-    } catch (GradleConnectionException e) {
-      logger.error(e.getMessage());
-      responseObserver.onError(ErrorMessageBuilder.build(e));
-    }
+    GetBuildHandler getBuildHandler = new GetBuildHandler(req, responseObserver);
+    getBuildHandler.run();
   }
 
   @Override
   public void runTask(RunTaskRequest req, StreamObserver<RunTaskReply> responseObserver) {
-    try {
-      GradleConnector gradleConnector =
-          GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
-      GradleTaskRunner taskRunner = new GradleTaskRunner(req, responseObserver, gradleConnector);
-      taskRunner.run();
-    } catch (GradleConnectionException e) {
-      logger.error(e.getMessage());
-      responseObserver.onError(ErrorMessageBuilder.build(e));
-    }
+    RunTaskHandler runTaskHandler = new RunTaskHandler(req, responseObserver);
+    runTaskHandler.run();
   }
 
   @Override
@@ -55,8 +35,8 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   @Override
   public void cancelRunTask(
       CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
-    GradleTaskCanceller gradleTaskCanceller = new GradleTaskCanceller(req, responseObserver);
-    gradleTaskCanceller.cancelRunTask();
+    CancelTaskHandler cancelTaskHandler = new CancelTaskHandler(req, responseObserver);
+    cancelTaskHandler.run();
   }
 
   @Override
@@ -71,20 +51,21 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
   @Override
   public void getDaemonsStatus(
       GetDaemonsStatusRequest req, StreamObserver<GetDaemonsStatusReply> responseObserver) {
-    GradleDaemonsStatus gradleStatus = new GradleDaemonsStatus(req, responseObserver);
-    gradleStatus.run();
+    GetDaemonsStatusHandler getDaemonsStatusHandler =
+        new GetDaemonsStatusHandler(req, responseObserver);
+    getDaemonsStatusHandler.run();
   }
 
   @Override
   public void stopDaemons(
       StopDaemonsRequest req, StreamObserver<StopDaemonsReply> responseObserver) {
-    GradleDaemonsStopper gradleStatus = new GradleDaemonsStopper(req, responseObserver);
-    gradleStatus.run();
+    StopDaemonsHandler stopDaemonsHandler = new StopDaemonsHandler(req, responseObserver);
+    stopDaemonsHandler.run();
   }
 
   @Override
   public void stopDaemon(StopDaemonRequest req, StreamObserver<StopDaemonReply> responseObserver) {
-    GradleSingleDaemonStopper gradleStatus = new GradleSingleDaemonStopper(req, responseObserver);
-    gradleStatus.run();
+    StopDaemonHandler stopDaemonHandler = new StopDaemonHandler(req, responseObserver);
+    stopDaemonHandler.run();
   }
 }
