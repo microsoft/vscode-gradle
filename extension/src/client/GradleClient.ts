@@ -26,15 +26,28 @@ import {
   StopDaemonReply,
 } from '../proto/gradle_pb';
 
+function logBuildEnvironment(environment: Environment): void {
+  const javaEnv = environment.getJavaEnvironment()!;
+  const gradleEnv = environment.getGradleEnvironment()!;
+  logger.info('Java Home:', javaEnv.getJavaHome());
+  logger.info('JVM Args:', javaEnv.getJvmArgsList().join(','));
+  logger.info('Gradle User Home:', gradleEnv.getGradleUserHome());
+  logger.info('Gradle Version:', gradleEnv.getGradleVersion());
+}
+
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
 import { EventWaiter } from '../events/EventWaiter';
 import { GradleServer } from '../server/GradleServer';
 import { logger } from '../logger';
 import { LoggerStream } from '../logger/LoggerSteam';
-import { COMMAND_CANCEL_TASK } from '../commands';
+import {
+  COMMAND_CANCEL_TASK,
+  COMMAND_REFRESH_DAEMON_STATUS,
+} from '../commands';
 import { getGradleConfig } from '../config';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { removeCancellingTask } from '../tasks/taskUtil';
+import { ProgressHandler } from '../progress/ProgressHandler';
 
 export class GradleClient implements vscode.Disposable {
   private connectDeadline = 20; // seconds
@@ -127,7 +140,14 @@ export class GradleClient implements vscode.Disposable {
         progress: vscode.Progress<{ message?: string }>,
         token: vscode.CancellationToken
       ) => {
-        progress.report({ message: 'Configure project' });
+        const progressHandler = new ProgressHandler(
+          progress,
+          'Configure project'
+        );
+        progressHandler.onProgressStart(() => {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        });
+
         await this.waitForConnect();
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
@@ -138,7 +158,6 @@ export class GradleClient implements vscode.Disposable {
         request.setProjectDir(projectFolder);
         request.setGradleConfig(gradleConfig);
         request.setShowOutputColors(showOutputColors);
-
         const getBuildStream = this.grpcClient!.getBuild(request);
         try {
           return await new Promise((resolve, reject) => {
@@ -147,13 +166,9 @@ export class GradleClient implements vscode.Disposable {
               .on('data', (getBuildReply: GetBuildReply) => {
                 switch (getBuildReply.getKindCase()) {
                   case GetBuildReply.KindCase.PROGRESS:
-                    const message = getBuildReply
-                      .getProgress()!
-                      .getMessage()
-                      .trim();
-                    if (message) {
-                      progress.report({ message });
-                    }
+                    progressHandler.report(
+                      getBuildReply.getProgress()!.getMessage().trim()
+                    );
                     break;
                   case GetBuildReply.KindCase.OUTPUT:
                     switch (getBuildReply.getOutput()!.getOutputType()) {
@@ -176,9 +191,7 @@ export class GradleClient implements vscode.Disposable {
                     build = getBuildReply.getGetBuildResult()!.getBuild();
                     break;
                   case GetBuildReply.KindCase.ENVIRONMENT:
-                    this.handleGetBuildEnvironment(
-                      getBuildReply.getEnvironment()!
-                    );
+                    logBuildEnvironment(getBuildReply.getEnvironment()!);
                     break;
                 }
               })
@@ -194,12 +207,13 @@ export class GradleClient implements vscode.Disposable {
           this.statusBarItem.command = 'gradle.showLogs';
           this.statusBarItem.text = '$(issues) Gradle: Build Error';
           this.statusBarItem.show();
+        } finally {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         }
       }
     );
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   public async runTask(
     projectFolder: string,
     task: vscode.Task,
@@ -224,6 +238,11 @@ export class GradleClient implements vscode.Disposable {
           vscode.commands.executeCommand(COMMAND_CANCEL_TASK, task)
         );
 
+        const progressHandler = new ProgressHandler(progress);
+        progressHandler.onProgressStart(() => {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        });
+
         const gradleConfig = getGradleConfig();
         const request = new RunTaskRequest();
         request.setProjectDir(projectFolder);
@@ -241,13 +260,9 @@ export class GradleClient implements vscode.Disposable {
               .on('data', (runTaskReply: RunTaskReply) => {
                 switch (runTaskReply.getKindCase()) {
                   case RunTaskReply.KindCase.PROGRESS:
-                    const message = runTaskReply
-                      .getProgress()!
-                      .getMessage()
-                      .trim();
-                    if (message) {
-                      progress.report({ message });
-                    }
+                    progressHandler.report(
+                      runTaskReply.getProgress()!.getMessage().trim()
+                    );
                     break;
                   case RunTaskReply.KindCase.OUTPUT:
                     if (onOutput) {
@@ -268,6 +283,8 @@ export class GradleClient implements vscode.Disposable {
           logger.info('Completed task:', task.definition.script);
         } catch (err) {
           logger.error('Error running task:', err.details || err.message);
+        } finally {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         }
       }
     );
@@ -306,6 +323,8 @@ export class GradleClient implements vscode.Disposable {
         'Error cancelling running task:',
         err.details || err.message
       );
+    } finally {
+      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   }
 
@@ -368,7 +387,7 @@ export class GradleClient implements vscode.Disposable {
 
   public async getDaemonsStatus(
     projectFolder: string
-  ): Promise<GetDaemonsStatusReply> {
+  ): Promise<GetDaemonsStatusReply | void> {
     await this.waitForConnect();
     const request = new GetDaemonsStatusRequest();
     request.setProjectDir(projectFolder);
@@ -390,11 +409,12 @@ export class GradleClient implements vscode.Disposable {
       });
     } catch (err) {
       logger.error('Error getting status:', err.details || err.message);
-      throw err;
     }
   }
 
-  public async stopDaemons(projectFolder: string): Promise<StopDaemonsReply> {
+  public async stopDaemons(
+    projectFolder: string
+  ): Promise<StopDaemonsReply | void> {
     await this.waitForConnect();
     const request = new StopDaemonsRequest();
     request.setProjectDir(projectFolder);
@@ -416,11 +436,10 @@ export class GradleClient implements vscode.Disposable {
       });
     } catch (err) {
       logger.error('Error stopping daemons:', err.details || err.message);
-      throw err;
     }
   }
 
-  public async stopDaemon(pid: string): Promise<StopDaemonsReply> {
+  public async stopDaemon(pid: string): Promise<StopDaemonsReply | void> {
     await this.waitForConnect();
     const request = new StopDaemonRequest();
     request.setPid(pid);
@@ -442,17 +461,7 @@ export class GradleClient implements vscode.Disposable {
       });
     } catch (err) {
       logger.error('Error stopping daemon:', err.details || err.message);
-      throw err;
     }
-  }
-
-  private handleGetBuildEnvironment(environment: Environment): void {
-    const javaEnv = environment.getJavaEnvironment()!;
-    const gradleEnv = environment.getGradleEnvironment()!;
-    logger.info('Java Home:', javaEnv.getJavaHome());
-    logger.info('JVM Args:', javaEnv.getJvmArgsList().join(','));
-    logger.info('Gradle User Home:', gradleEnv.getGradleUserHome());
-    logger.info('Gradle Version:', gradleEnv.getGradleVersion());
   }
 
   private handleRunTaskCancelled = (

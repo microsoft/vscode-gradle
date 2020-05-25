@@ -2,32 +2,12 @@ import * as vscode from 'vscode';
 
 import { getConfigFocusTaskInExplorer } from '../config';
 import { GradleDaemonsTreeDataProvider } from './GradleDaemonsTreeDataProvider';
-import {
-  GradleTasksTreeDataProvider,
-  taskTreeItemMap,
-} from './GradleTasksTreeDataProvider';
+import { GradleTasksTreeDataProvider } from './GradleTasksTreeDataProvider';
 // import { GradleBookmarkedTasksTreeDataProvider } from './GradleBookmarkedTasksTreeDataProvider';
-import { logger } from '../logger';
 import { COMMAND_REFRESH } from '../commands';
 import { GradleClient } from '../client/GradleClient';
 import { isGradleTask } from '../tasks/taskUtil';
-
-export async function focusTaskInGradleTasksTree(
-  treeView: vscode.TreeView<vscode.TreeItem>,
-  task: vscode.Task
-): Promise<void> {
-  try {
-    const treeItem = taskTreeItemMap.get(task.definition.id);
-    if (treeItem) {
-      await treeView.reveal(treeItem, {
-        focus: true,
-        expand: true,
-      });
-    }
-  } catch (err) {
-    logger.error('Unable to focus task in explorer:', err.message);
-  }
-}
+import { focusTaskInGradleTasksTree } from './viewUtil';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,

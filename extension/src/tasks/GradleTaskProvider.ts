@@ -4,7 +4,6 @@ import { logger } from '../logger';
 import { EventWaiter } from '../events/EventWaiter';
 import { loadTasksForFolders } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
-import { COMMAND_REFRESH_DAEMON_STATUS } from '../commands';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -77,7 +76,6 @@ export class GradleTaskProvider
       this._onTasksLoaded.fire(null);
       this._onDidRefreshStop.fire(null);
       this.loadTasksPromise = undefined;
-      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     });
   }
 

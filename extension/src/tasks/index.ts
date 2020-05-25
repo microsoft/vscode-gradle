@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { GradleTaskProvider } from './GradleTaskProvider';
-import { COMMAND_REFRESH, COMMAND_REFRESH_DAEMON_STATUS } from '../commands';
+import { COMMAND_REFRESH } from '../commands';
 import { isGradleTask, restartQueuedTask } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
 import { GradleTaskManager } from './GradleTaskManager';
@@ -23,13 +23,6 @@ export function registerTaskProvider(
       const { task } = event.execution;
       if (isGradleTask(task)) {
         restartQueuedTask(task);
-        vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-      }
-    }),
-    vscode.tasks.onDidStartTask((event: vscode.TaskEndEvent) => {
-      const { task } = event.execution;
-      if (isGradleTask(task)) {
-        vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
       }
     })
   );
