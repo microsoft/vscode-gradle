@@ -332,7 +332,7 @@ function cloneTask(
     javaDebug,
   };
   return createTaskFromDefinition(
-    definition as GradleTaskDefinition,
+    definition,
     folder,
     vscode.Uri.file(definition.projectFolder),
     client

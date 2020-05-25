@@ -278,7 +278,7 @@ function registerExplorerTreeCommand(
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_EXPLORER_TREE, () => {
-    gradleTasksTreeDataProvider!.setCollapsed(false);
+    gradleTasksTreeDataProvider.setCollapsed(false);
   });
 }
 
@@ -286,7 +286,7 @@ function registerExplorerFlatCommand(
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_EXPLORER_FLAT, () => {
-    gradleTasksTreeDataProvider!.setCollapsed(true);
+    gradleTasksTreeDataProvider.setCollapsed(true);
   });
 }
 
