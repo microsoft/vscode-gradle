@@ -12,7 +12,6 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaDebuggerExtensionActivated,
 } from '../compat';
-import { SERVER_TASK_NAME } from '../server/serverUtil';
 import { getGradleBuildFile } from '../util';
 import { GradleClient } from '../client/GradleClient';
 import { GradleTasksTreeDataProvider } from '../views/GradleTasksTreeDataProvider';
@@ -253,7 +252,7 @@ function isTask(task1: vscode.Task, task2: vscode.Task): boolean {
 }
 
 export function isGradleTask(task: vscode.Task): boolean {
-  return task.definition.type === 'gradle' && task.name !== SERVER_TASK_NAME;
+  return task.definition.type === 'gradle';
 }
 
 export function getRunningGradleTasks(): vscode.Task[] {

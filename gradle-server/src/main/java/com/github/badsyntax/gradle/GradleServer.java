@@ -31,7 +31,7 @@ public class GradleServer {
             new Thread() {
               @Override
               public void run() {
-                logger.error("Shutting down gRPC server since JVM is shutting down");
+                logger.info("Shutting down gRPC server since JVM is shutting down");
                 try {
                   GradleServer.this.stop();
                 } catch (InterruptedException e) {
