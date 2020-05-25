@@ -25,6 +25,7 @@ import {
   cancelTask,
   queueRestartTask,
 } from './tasks/taskUtil';
+import { focusProjectInGradleTasksTree } from './views/viewUtil';
 
 export const COMMAND_SHOW_TASKS = 'gradle.showTasks';
 export const COMMAND_RUN_TASK = 'gradle.runTask';
@@ -61,13 +62,7 @@ function registerShowTasks(
   return vscode.commands.registerCommand(
     COMMAND_SHOW_TASKS,
     async (uri: vscode.Uri) => {
-      const treeItem = gradleTasksTreeDataProvider.findProjectTreeItem(uri);
-      if (treeItem) {
-        await treeView.reveal(treeItem, {
-          focus: true,
-          expand: true,
-        });
-      }
+      focusProjectInGradleTasksTree(treeView, uri);
     }
   );
 }
@@ -243,14 +238,14 @@ function registerStopDaemons(client: GradleClient): vscode.Disposable {
         return;
       }
       try {
-        const promises: Promise<
-          StopDaemonsReply
-        >[] = vscode.workspace.workspaceFolders.map((folder) =>
-          client.stopDaemons(folder.uri.fsPath)
+        const promises: Promise<StopDaemonsReply | void>[] = vscode.workspace.workspaceFolders.map(
+          (folder) => client.stopDaemons(folder.uri.fsPath)
         );
         const replies = await Promise.all(promises);
         replies.forEach((reply) => {
-          logger.info(reply.getMessage());
+          if (reply) {
+            logger.info(reply.getMessage());
+          }
         });
       } finally {
         vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
@@ -269,7 +264,9 @@ function registerStopDaemon(client: GradleClient): vscode.Disposable {
       const pid = treeItem.pid;
       try {
         const stopDaemonReply = await client.stopDaemon(pid);
-        logger.info(stopDaemonReply.getMessage());
+        if (stopDaemonReply) {
+          logger.info(stopDaemonReply.getMessage());
+        }
       } finally {
         vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
       }

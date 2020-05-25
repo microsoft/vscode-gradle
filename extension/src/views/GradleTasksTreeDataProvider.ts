@@ -13,6 +13,19 @@ import { ICON_LOADING, ICON_GRADLE_TASK } from './constants';
 import { isWorkspaceFolder } from '../util';
 
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
+export const workspaceTreeItemMap: Map<string, WorkspaceTreeItem> = new Map();
+export const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
+export const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
+export const workspaceJavaDebugMap: Map<string, JavaDebug> = new Map();
+
+function resetCachedTreeItems(): void {
+  taskTreeItemMap.clear();
+  taskTreeItemMap.clear();
+  workspaceTreeItemMap.clear();
+  projectTreeItemMap.clear();
+  groupTreeItemMap.clear();
+  workspaceJavaDebugMap.clear();
+}
 
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -68,7 +81,7 @@ export class GradleTasksTreeDataProvider
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
-    taskTreeItemMap.clear();
+    resetCachedTreeItems();
     const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     if (tasks.length === 0) {
       return [new NoTasksTreeItem(this.context)];
@@ -129,44 +142,26 @@ export class GradleTasksTreeDataProvider
     return [];
   }
 
-  // TODO
-  findProjectTreeItem(uri: vscode.Uri): ProjectTreeItem | undefined {
-    console.log('uri', uri);
-    // if (this.treeItems) {
-    //   return this.treeItems.find((element: vscode.TreeItem) => {
-    //     return (
-    //       element instanceof ProjectTreeItem &&
-    //       element.resourceUri?.fsPath === uri.fsPath
-    //     );
-    //   }) as ProjectTreeItem | undefined;
-    // }
-    return undefined;
-  }
-
   // eslint-disable-next-line sonarjs/cognitive-complexity
   buildItemsTreeFromTasks(
     tasks: vscode.Task[]
   ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
-    const workspaceTreeItems: Map<string, WorkspaceTreeItem> = new Map();
-    const projectTreeItems: Map<string, ProjectTreeItem> = new Map();
-    const groupTreeItems: Map<string, GroupTreeItem> = new Map();
-    const workspaceJavaDebug: Map<string, JavaDebug> = new Map();
     let workspaceTreeItem = null;
 
     tasks.forEach((task) => {
       const definition = task.definition as GradleTaskDefinition;
       if (isWorkspaceFolder(task.scope) && definition.buildFile) {
-        workspaceTreeItem = workspaceTreeItems.get(task.scope.name);
+        workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
         if (!workspaceTreeItem) {
           workspaceTreeItem = new WorkspaceTreeItem(
             task.scope.name,
             task.scope.uri
           );
-          workspaceTreeItems.set(task.scope.name, workspaceTreeItem);
+          workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
         }
 
-        if (!workspaceJavaDebug.has(task.scope.name)) {
-          workspaceJavaDebug.set(
+        if (!workspaceJavaDebugMap.has(task.scope.name)) {
+          workspaceJavaDebugMap.set(
             task.scope.name,
             getConfigJavaDebug(task.scope as vscode.WorkspaceFolder)
           );
@@ -175,7 +170,7 @@ export class GradleTasksTreeDataProvider
         const projectName = this.collapsed
           ? definition.rootProject
           : definition.project;
-        let projectTreeItem = projectTreeItems.get(projectName);
+        let projectTreeItem = projectTreeItemMap.get(definition.buildFile);
         if (!projectTreeItem) {
           projectTreeItem = new ProjectTreeItem(
             projectName,
@@ -183,7 +178,7 @@ export class GradleTasksTreeDataProvider
             vscode.Uri.file(definition.buildFile)
           );
           workspaceTreeItem.addProject(projectTreeItem);
-          projectTreeItems.set(projectName, projectTreeItem);
+          projectTreeItemMap.set(definition.buildFile, projectTreeItem);
         }
 
         const taskName = definition.script.slice(
@@ -193,7 +188,7 @@ export class GradleTasksTreeDataProvider
 
         if (!this.collapsed) {
           const groupId = definition.group + definition.project;
-          let groupTreeItem = groupTreeItems.get(groupId);
+          let groupTreeItem = groupTreeItemMap.get(groupId);
           if (!groupTreeItem) {
             groupTreeItem = new GroupTreeItem(
               definition.group,
@@ -201,7 +196,7 @@ export class GradleTasksTreeDataProvider
               undefined
             );
             projectTreeItem.addGroup(groupTreeItem);
-            groupTreeItems.set(groupId, groupTreeItem);
+            groupTreeItemMap.set(groupId, groupTreeItem);
           }
           parentTreeItem = groupTreeItem;
         }
@@ -213,7 +208,7 @@ export class GradleTasksTreeDataProvider
           definition.description,
           this.iconPathRunning!,
           this.iconPathIdle!,
-          workspaceJavaDebug.get(task.scope.name)
+          workspaceJavaDebugMap.get(task.scope.name)
         );
 
         taskTreeItemMap.set(task.definition.id, taskTreeItem);
@@ -221,12 +216,12 @@ export class GradleTasksTreeDataProvider
       }
     });
 
-    if (workspaceTreeItems.size === 1) {
+    if (workspaceTreeItemMap.size === 1) {
       return [
-        ...workspaceTreeItems.values().next().value.projectFolders,
-        ...workspaceTreeItems.values().next().value.projects,
+        ...workspaceTreeItemMap.values().next().value.projectFolders,
+        ...workspaceTreeItemMap.values().next().value.projects,
       ];
     }
-    return [...workspaceTreeItems.values()];
+    return [...workspaceTreeItemMap.values()];
   }
 }
