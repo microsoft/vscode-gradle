@@ -1,15 +1,6 @@
 import * as path from 'path';
-import * as vscode from 'vscode';
 import * as Mocha from 'mocha';
 import * as glob from 'glob';
-
-export async function waitForTasksToLoad(
-  extensionName: string
-): Promise<vscode.Task[]> {
-  const extension = vscode.extensions.getExtension(extensionName);
-  await extension?.exports.waitForLoaded();
-  return vscode.tasks.fetchTasks({ type: 'gradle' });
-}
 
 export function createTestRunner(pattern: string) {
   return function run(

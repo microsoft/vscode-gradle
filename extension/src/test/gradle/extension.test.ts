@@ -7,7 +7,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { waitForTasksToLoad } from '../testUtil';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
 import { Output } from '../../proto/gradle_pb';
 import { GradleTasksTreeDataProvider } from '../../views/GradleTasksTreeDataProvider';
@@ -42,10 +41,6 @@ describe(fixtureName, () => {
   describe('tasks', () => {
     afterEach(() => {
       sinon.restore();
-    });
-    beforeEach(async () => {
-      // TODO: we probably dont' need this anymore
-      await waitForTasksToLoad(extensionName);
     });
 
     it('should load gradle tasks', async () => {
