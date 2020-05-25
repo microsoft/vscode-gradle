@@ -9,7 +9,7 @@ import {
 // import { GradleBookmarkedTasksTreeDataProvider } from './GradleBookmarkedTasksTreeDataProvider';
 import { logger } from '../logger';
 import { COMMAND_REFRESH } from '../commands';
-import { GradleTasksClient } from '../client/GradleTasksClient';
+import { GradleClient } from '../client/GradleClient';
 import { isGradleTask } from '../tasks/taskUtil';
 
 export async function focusTaskInGradleTasksTree(
@@ -31,7 +31,7 @@ export async function focusTaskInGradleTasksTree(
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
-  client: GradleTasksClient
+  client: GradleClient
 ): {
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;

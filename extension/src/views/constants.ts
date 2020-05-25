@@ -1,4 +1,4 @@
-import { DaemonInfo } from '../proto/gradle_tasks_pb';
+import { DaemonInfo } from '../proto/gradle_pb';
 
 export const DAEMON_STATUS_BUSY = 'BUSY';
 export const ICON_LOADING = 'loading.svg';

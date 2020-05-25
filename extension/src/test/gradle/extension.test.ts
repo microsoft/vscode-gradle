@@ -9,7 +9,7 @@ import * as path from 'path';
 
 import { waitForTasksToLoad } from '../testUtil';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
-import { Output } from '../../proto/gradle_tasks_pb';
+import { Output } from '../../proto/gradle_pb';
 import { GradleTasksTreeDataProvider } from '../../views/GradleTasksTreeDataProvider';
 import { GradleTaskTreeItem } from '../../views/GradleTaskTreeItem';
 import { COMMAND_RUN_TASK_WITH_ARGS, COMMAND_REFRESH } from '../../commands';

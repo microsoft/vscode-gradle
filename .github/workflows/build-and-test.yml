@@ -24,7 +24,7 @@ jobs:
       - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: tasks-server:build sonarqube -x :test -x extension:test -x npm-package:test
+          arguments: gradle-server:build sonarqube -x :test -x extension:test -x npm-package:test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -74,7 +74,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
       - name: Set permissions
         run: |
-          chmod +x extension/lib/tasks-server
+          chmod +x extension/lib/gradle-server
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Prepare gradle-groovy-custom-build-file

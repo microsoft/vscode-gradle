@@ -1,4 +1,4 @@
 rootProject.name = 'vscode-gradle'
-include('tasks-server')
+include('gradle-server')
 include('extension')
 include('npm-package')

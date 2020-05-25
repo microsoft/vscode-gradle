@@ -18,9 +18,9 @@
       "type": "java",
       "name": "Debug Server",
       "request": "launch",
-      "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
-      "projectName": "tasks-server",
-      "cwd": "${workspaceFolder}/tasks-server",
+      "mainClass": "com.github.badsyntax.gradle.GradleServer",
+      "projectName": "gradle-server",
+      "cwd": "${workspaceFolder}/gradle-server",
       "presentation": {
         "group": "debug",
         "order": 2

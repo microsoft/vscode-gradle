@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { GradleTaskProvider } from './GradleTaskProvider';
 import { COMMAND_REFRESH, COMMAND_REFRESH_DAEMON_STATUS } from '../commands';
 import { isGradleTask, restartQueuedTask } from './taskUtil';
-import { GradleTasksClient } from '../client/GradleTasksClient';
+import { GradleClient } from '../client/GradleClient';
 import { GradleTaskManager } from './GradleTaskManager';
 
 function handleWorkspaceFoldersChange(): void {
@@ -12,7 +12,7 @@ function handleWorkspaceFoldersChange(): void {
 
 export function registerTaskProvider(
   context: vscode.ExtensionContext,
-  client: GradleTasksClient
+  client: GradleClient
 ): GradleTaskProvider {
   const provider = new GradleTaskProvider(client);
   context.subscriptions.push(
