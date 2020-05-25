@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { logger } from '../logger';
 import { EventWaiter } from '../events/EventWaiter';
 import { loadTasksForFolders } from './taskUtil';
-import { GradleTasksClient } from '../client/GradleTasksClient';
+import { GradleClient } from '../client/GradleClient';
 import { COMMAND_REFRESH_DAEMON_STATUS } from '../commands';
 
 let cachedTasks: vscode.Task[] = [];
@@ -31,7 +31,7 @@ export class GradleTaskProvider
   public readonly waitForTasksLoaded = new EventWaiter(this.onTasksLoaded).wait;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  constructor(private readonly client: GradleTasksClient) {}
+  constructor(private readonly client: GradleClient) {}
 
   async provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();

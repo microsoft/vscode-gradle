@@ -21,8 +21,58 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
-task copyPublicApi(type: Copy) {
+task copyViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies views'
+  from file("../extension/out/views")
+  include "*.d.ts"
+  into 'lib/views'
+}
+
+task copyClientTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies client'
+  from file("../extension/out/client")
+  include "*.d.ts"
+  into 'lib/client'
+}
+
+task copyTasksTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies tasks'
+  from file("../extension/out/tasks")
+  include "*.d.ts"
+  into 'lib/tasks'
+}
+
+task copyServerTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies server'
+  from file("../extension/out/server")
+  include "*.d.ts"
+  into 'lib/server'
+}
+
+task copyLoggerTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies logger'
+  from file("../extension/out/logger")
+  include "*.d.ts"
+  into 'lib/logger'
+}
+
+task copyPublicApi(type: Copy) {
+  dependsOn ':extension:buildProd',
+    copyViewTypes,
+    copyClientTypes,
+    copyTasksTypes,
+    copyServerTypes,
+    copyLoggerTypes
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/out")
@@ -34,7 +84,7 @@ task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
-  commandLine 'npm', 'ci'
+  commandLine 'npm', 'install'
 }
 
 task compileTypeScript(type: CrossPlatformExec) {

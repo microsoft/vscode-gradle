@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { GradleConfig } from './proto/gradle_tasks_pb';
+import { GradleConfig } from './proto/gradle_pb';
 
 type AutoDetect = 'on' | 'off';
 

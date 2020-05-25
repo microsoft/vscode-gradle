@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { Output } from './proto/gradle_tasks_pb';
+import { Output } from './proto/gradle_pb';
 import { logger } from './logger';
 import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
 import { GradleTaskProvider } from './tasks/GradleTaskProvider';
 import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
-import { GradleTasksClient } from './client/GradleTasksClient';
+import { GradleClient } from './client/GradleClient';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -25,7 +25,7 @@ export class Api {
   public logger = logger;
 
   constructor(
-    private readonly client: GradleTasksClient,
+    private readonly client: GradleClient,
     private readonly taskProvider: GradleTaskProvider,
     private readonly treeDataProvider: GradleTasksTreeDataProvider
   ) {}

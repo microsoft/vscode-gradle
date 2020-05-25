@@ -5,13 +5,13 @@ import * as getPort from 'get-port';
 import { waitOnTcp, isTest } from '../util';
 import { logger } from '../logger';
 import { LoggerStream } from '../logger/LoggerSteam';
-import { Output } from '../proto/gradle_tasks_pb';
+import { Output } from '../proto/gradle_pb';
 import {
   COMMAND_CANCEL_TASK,
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
 } from '../commands';
 import { isTaskRunning } from './taskUtil';
-import { GradleTasksClient } from '../client/GradleTasksClient';
+import { GradleClient } from '../client/GradleClient';
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private writeEmitter = new vscode.EventEmitter<string>();
@@ -22,7 +22,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly client: GradleTasksClient,
+    private readonly client: GradleClient,
     private readonly projectFolder: string
   ) {}
 
