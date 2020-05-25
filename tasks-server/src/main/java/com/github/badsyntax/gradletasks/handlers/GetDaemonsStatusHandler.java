@@ -1,33 +1,35 @@
-package com.github.badsyntax.gradletasks.actions;
+package com.github.badsyntax.gradletasks.handlers;
 
 import com.github.badsyntax.gradletasks.DaemonInfo;
 import com.github.badsyntax.gradletasks.DaemonStatus;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
 import com.github.badsyntax.gradletasks.GetDaemonsStatusReply;
 import com.github.badsyntax.gradletasks.GetDaemonsStatusRequest;
-import com.github.badsyntax.gradletasks.GradleWrapperExecutor;
+import com.github.badsyntax.gradletasks.GradleWrapper;
 import com.github.badsyntax.gradletasks.exceptions.GradleWrapperException;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GradleDaemonsStatus {
-  private static final Logger logger = LoggerFactory.getLogger(GradleDaemonsStatus.class.getName());
+public class GetDaemonsStatusHandler {
+  private static final Logger logger =
+      LoggerFactory.getLogger(GetDaemonsStatusHandler.class.getName());
 
   private GetDaemonsStatusRequest req;
   private StreamObserver<GetDaemonsStatusReply> responseObserver;
 
-  public GradleDaemonsStatus(
+  public GetDaemonsStatusHandler(
       GetDaemonsStatusRequest req, StreamObserver<GetDaemonsStatusReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
 
-  public void run() {
+  public synchronized void run() {
     File projectRoot = new File(req.getProjectDir());
-    GradleWrapperExecutor gradleWrapper = new GradleWrapperExecutor(projectRoot);
+    GradleWrapper gradleWrapper = new GradleWrapper(projectRoot);
     DaemonStatus daemonStatus = new DaemonStatus(gradleWrapper);
     try {
       ArrayList<DaemonInfo> status = daemonStatus.get();
@@ -35,8 +37,6 @@ public class GradleDaemonsStatus {
     } catch (GradleWrapperException e) {
       logger.error(e.getMessage());
       replyWithError(e);
-    } finally {
-      responseObserver.onCompleted();
     }
   }
 
@@ -44,7 +44,8 @@ public class GradleDaemonsStatus {
     responseObserver.onError(ErrorMessageBuilder.build(e));
   }
 
-  public void replyWithSuccess(ArrayList<DaemonInfo> status) {
+  public void replyWithSuccess(List<DaemonInfo> status) {
     responseObserver.onNext(GetDaemonsStatusReply.newBuilder().addAllDaemonInfo(status).build());
+    responseObserver.onCompleted();
   }
 }

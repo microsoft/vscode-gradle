@@ -45,6 +45,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       sinon.restore();
     });
     beforeEach(async () => {
+      // TODO: we probably dont' need this anymore
       await waitForTasksToLoad(extensionName);
     });
 

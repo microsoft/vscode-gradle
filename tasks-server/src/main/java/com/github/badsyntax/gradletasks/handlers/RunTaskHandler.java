@@ -1,14 +1,16 @@
-package com.github.badsyntax.gradletasks.actions;
+package com.github.badsyntax.gradletasks.handlers;
 
 import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
+import com.github.badsyntax.gradletasks.GradleProjectConnector;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
 import com.github.badsyntax.gradletasks.RunTaskRequest;
 import com.github.badsyntax.gradletasks.RunTaskResult;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
+import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradletasks.exceptions.GradleTaskRunnerException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
@@ -33,21 +35,16 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GradleTaskRunner {
-  private static final Logger logger = LoggerFactory.getLogger(GradleTaskRunner.class.getName());
+public class RunTaskHandler {
+  private static final Logger logger = LoggerFactory.getLogger(RunTaskHandler.class.getName());
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
 
   private RunTaskRequest req;
   private StreamObserver<RunTaskReply> responseObserver;
-  private GradleConnector gradleConnector;
 
-  public GradleTaskRunner(
-      RunTaskRequest req,
-      StreamObserver<RunTaskReply> responseObserver,
-      GradleConnector gradleConnector) {
+  public RunTaskHandler(RunTaskRequest req, StreamObserver<RunTaskReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
-    this.gradleConnector = gradleConnector;
   }
 
   public static String getCancellationKey(String projectDir, String task) {
@@ -55,10 +52,19 @@ public class GradleTaskRunner {
   }
 
   public String getCancellationKey() {
-    return GradleTaskRunner.getCancellationKey(req.getProjectDir(), req.getTask());
+    return RunTaskHandler.getCancellationKey(req.getProjectDir(), req.getTask());
   }
 
   public void run() {
+    GradleConnector gradleConnector;
+    try {
+      gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
+    } catch (GradleConnectionException e) {
+      logger.error(e.getMessage());
+      responseObserver.onError(ErrorMessageBuilder.build(e));
+      return;
+    }
+
     try (ProjectConnection connection = gradleConnector.connect()) {
       runTask(connection);
       replyWithSuccess();
@@ -87,7 +93,7 @@ public class GradleTaskRunner {
 
     ProgressListener progressListener =
         (ProgressEvent event) -> {
-          synchronized (GradleTaskRunner.class) {
+          synchronized (RunTaskHandler.class) {
             replyWithProgress(event);
           }
         };
@@ -102,7 +108,7 @@ public class GradleTaskRunner {
                 new ByteBufferOutputStream() {
                   @Override
                   public void onFlush(byte[] bytes) {
-                    synchronized (GradleTaskRunner.class) {
+                    synchronized (RunTaskHandler.class) {
                       replyWithStandardOutput(bytes);
                     }
                   }
@@ -111,7 +117,7 @@ public class GradleTaskRunner {
                 new ByteBufferOutputStream() {
                   @Override
                   public void onFlush(byte[] bytes) {
-                    synchronized (GradleTaskRunner.class) {
+                    synchronized (RunTaskHandler.class) {
                       replyWithStandardError(bytes);
                     }
                   }

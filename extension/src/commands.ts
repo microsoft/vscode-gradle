@@ -199,7 +199,6 @@ function registerRefreshCommand(
       invalidateTasksCache();
       await taskProvider.loadTasks();
       gradleTasksTreeDataProvider.refresh();
-      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   );
 }
