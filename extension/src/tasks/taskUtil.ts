@@ -1,11 +1,7 @@
 import * as vscode from 'vscode';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
 import { CustomBuildTaskTerminal } from './CustomBuildTaskTerminal';
-import {
-  GradleTask,
-  GradleProject,
-  GradleBuild,
-} from '../proto/gradle_tasks_pb';
+import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { logger } from '../logger';
 import { COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION } from '../commands';
 import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
@@ -18,14 +14,14 @@ import {
 } from '../compat';
 import { SERVER_TASK_NAME } from '../server/serverUtil';
 import { getGradleBuildFile } from '../util';
-import { GradleTasksClient } from '../client/GradleTasksClient';
+import { GradleClient } from '../client/GradleClient';
 import { GradleTasksTreeDataProvider } from '../views/GradleTasksTreeDataProvider';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
 
 export function cancelTask(
-  client: GradleTasksClient,
+  client: GradleClient,
   treeDataProvider: GradleTasksTreeDataProvider,
   task: vscode.Task
 ): void {
@@ -72,7 +68,7 @@ export async function removeCancellingTask(task: vscode.Task): Promise<void> {
 }
 
 export function queueRestartTask(
-  client: GradleTasksClient,
+  client: GradleClient,
   treeDataProvider: GradleTasksTreeDataProvider,
   task: vscode.Task
 ): void {
@@ -95,7 +91,7 @@ export function createTaskFromDefinition(
   definition: GradleTaskDefinition,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri,
-  client: GradleTasksClient
+  client: GradleClient
 ): vscode.Task {
   const terminal = new CustomBuildTaskTerminal(
     workspaceFolder,
@@ -125,7 +121,7 @@ export function createTaskFromDefinition(
 }
 
 function createVSCodeTaskFromGradleTask(
-  client: GradleTasksClient,
+  client: GradleClient,
   gradleTask: GradleTask,
   workspaceFolder: vscode.WorkspaceFolder,
   rootProject: string,
@@ -159,7 +155,7 @@ function createVSCodeTaskFromGradleTask(
 }
 
 function getVSCodeTasksFromGradleProject(
-  client: GradleTasksClient,
+  client: GradleClient,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri,
   gradleProject: GradleProject
@@ -199,7 +195,7 @@ function getVSCodeTasksFromGradleProject(
 }
 
 async function getGradleBuild(
-  client: GradleTasksClient,
+  client: GradleClient,
   projectFolder: vscode.WorkspaceFolder,
   buildFile: vscode.Uri
 ): Promise<GradleBuild | void> {
@@ -215,7 +211,7 @@ async function getGradleBuild(
 }
 
 export async function loadTasksForFolders(
-  client: GradleTasksClient,
+  client: GradleClient,
   folders: readonly vscode.WorkspaceFolder[]
 ): Promise<vscode.Task[]> {
   const allTasks: vscode.Task[] = [];
@@ -272,7 +268,7 @@ export function isTaskRunning(task: vscode.Task): boolean {
 
 export async function runTask(
   task: vscode.Task,
-  client: GradleTasksClient,
+  client: GradleClient,
   args = '',
   debug = false
 ): Promise<void> {
@@ -310,7 +306,7 @@ export async function runTask(
 
 export async function runTaskWithArgs(
   task: vscode.Task,
-  client: GradleTasksClient,
+  client: GradleClient,
   debug = false
 ): Promise<void> {
   const args = await vscode.window.showInputBox({
@@ -327,7 +323,7 @@ export async function runTaskWithArgs(
 function cloneTask(
   task: vscode.Task,
   args: string,
-  client: GradleTasksClient,
+  client: GradleClient,
   javaDebug = false
 ): vscode.Task {
   const folder = task.scope as vscode.WorkspaceFolder;

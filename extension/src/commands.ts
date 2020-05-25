@@ -15,9 +15,9 @@ import {
   invalidateTasksCache,
 } from './tasks/GradleTaskProvider';
 import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
-import { StopDaemonsReply } from './proto/gradle_tasks_pb';
+import { StopDaemonsReply } from './proto/gradle_pb';
 import { GradleDaemonTreeItem } from './views/GradleDaemonTreeItem';
-import { GradleTasksClient } from './client/GradleTasksClient';
+import { GradleClient } from './client/GradleClient';
 import {
   runTask,
   getTaskExecution,
@@ -72,7 +72,7 @@ function registerShowTasks(
   );
 }
 
-function registerRunTaskCommand(client: GradleTasksClient): vscode.Disposable {
+function registerRunTaskCommand(client: GradleClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK,
     (treeItem: GradleTaskTreeItem) => {
@@ -83,9 +83,7 @@ function registerRunTaskCommand(client: GradleTasksClient): vscode.Disposable {
   );
 }
 
-function registerDebugTaskCommand(
-  client: GradleTasksClient
-): vscode.Disposable {
+function registerDebugTaskCommand(client: GradleClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK,
     async (treeItem: GradleTaskTreeItem, args = '') => {
@@ -97,7 +95,7 @@ function registerDebugTaskCommand(
 }
 
 function registerRestartTaskCommand(
-  client: GradleTasksClient,
+  client: GradleClient,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
@@ -118,7 +116,7 @@ function registerRestartTaskCommand(
 }
 
 function registerRunTaskWithArgsCommand(
-  client: GradleTasksClient
+  client: GradleClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK_WITH_ARGS,
@@ -135,7 +133,7 @@ function registerRunTaskWithArgsCommand(
 }
 
 function registerDebugTaskWithArgsCommand(
-  client: GradleTasksClient
+  client: GradleClient
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK_WITH_ARGS,
@@ -163,7 +161,7 @@ function registerRenderTaskCommand(
 }
 
 function registerCancelTaskCommand(
-  client: GradleTasksClient,
+  client: GradleClient,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
@@ -237,7 +235,7 @@ async function cancelStopDaemons(): Promise<boolean | undefined> {
   }
 }
 
-function registerStopDaemons(client: GradleTasksClient): vscode.Disposable {
+function registerStopDaemons(client: GradleClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMONS,
     async (): Promise<void> => {
@@ -261,7 +259,7 @@ function registerStopDaemons(client: GradleTasksClient): vscode.Disposable {
   );
 }
 
-function registerStopDaemon(client: GradleTasksClient): vscode.Disposable {
+function registerStopDaemon(client: GradleClient): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMON,
     async (treeItem: GradleDaemonTreeItem): Promise<void> => {
@@ -357,7 +355,7 @@ function registerShowLogsCommand(): vscode.Disposable {
 export function registerCommands(
   context: vscode.ExtensionContext,
   statusBarItem: vscode.StatusBarItem,
-  client: GradleTasksClient,
+  client: GradleClient,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
   treeView: vscode.TreeView<vscode.TreeItem>,

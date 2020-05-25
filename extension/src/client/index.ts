@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 
 import { COMMAND_LOAD_TASKS } from '../commands';
-import { GradleTasksServer } from '../server/GradleTasksServer';
-import { GradleTasksClient } from './GradleTasksClient';
+import { GradleServer } from '../server/GradleServer';
+import { GradleClient } from './GradleClient';
 
 export function registerClient(
-  server: GradleTasksServer,
+  server: GradleServer,
   context: vscode.ExtensionContext
-): GradleTasksClient {
+): GradleClient {
   const statusBarItem = vscode.window.createStatusBarItem();
-  const client = new GradleTasksClient(server, statusBarItem);
+  const client = new GradleClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
   client.onConnect(() => {
     vscode.commands.executeCommand(COMMAND_LOAD_TASKS);

@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { ServerOptions, GradleTasksServer } from './GradleTasksServer';
+import { ServerOptions, GradleServer } from './GradleServer';
 
 export function registerServer(
   opts: ServerOptions,
   context: vscode.ExtensionContext
-): GradleTasksServer {
-  const server = new GradleTasksServer(opts, context);
+): GradleServer {
+  const server = new GradleServer(opts, context);
   context.subscriptions.push(
     server,
     vscode.workspace.onDidChangeConfiguration(

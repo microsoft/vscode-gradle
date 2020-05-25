@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { DaemonInfo } from '../proto/gradle_tasks_pb';
+import { DaemonInfo } from '../proto/gradle_pb';
 import { DAEMON_ICON_MAP } from './constants';
 
 interface StatusEnumMapByValue {

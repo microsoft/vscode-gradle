@@ -2,7 +2,7 @@ import {
   Output,
   RunTaskRequest,
   CancelRunTaskRequest,
-} from './lib/proto/gradle_tasks_pb';
+} from './lib/proto/gradle_pb';
 import type { Api, RunTaskOpts, CancelTaskOpts } from './lib/api';
 
 export {
