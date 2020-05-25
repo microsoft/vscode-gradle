@@ -36,7 +36,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   close(): void {
     if (this.task && isTaskRunning(this.task)) {
-      vscode.commands.executeCommand(COMMAND_CANCEL_TASK);
+      vscode.commands.executeCommand(COMMAND_CANCEL_TASK, this.task);
     }
   }
 
