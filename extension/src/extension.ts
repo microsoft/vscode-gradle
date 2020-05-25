@@ -36,7 +36,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     taskProvider
   );
 
-  return new Api(client, taskProvider, gradleTasksTreeDataProvider);
+  return new Api(client, gradleTasksTreeDataProvider);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function

@@ -58,7 +58,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
     it('should refresh gradle tasks when command is executed', async () => {
       assert.ok(extension);
-      const treeDataProvider = extension!.exports.getTreeProvider();
+      const treeDataProvider = extension!.exports.getTasksTreeProvider();
       const stub = sinon.stub(treeDataProvider, 'refresh');
       await vscode.commands.executeCommand(COMMAND_REFRESH);
       assert.ok(stub.called);
