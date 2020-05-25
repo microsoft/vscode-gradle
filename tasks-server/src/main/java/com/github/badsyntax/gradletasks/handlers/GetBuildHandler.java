@@ -1,4 +1,4 @@
-package com.github.badsyntax.gradletasks.actions;
+package com.github.badsyntax.gradletasks.handlers;
 
 import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
@@ -10,11 +10,13 @@ import com.github.badsyntax.gradletasks.GetBuildResult;
 import com.github.badsyntax.gradletasks.GradleBuild;
 import com.github.badsyntax.gradletasks.GradleEnvironment;
 import com.github.badsyntax.gradletasks.GradleProject;
+import com.github.badsyntax.gradletasks.GradleProjectConnector;
 import com.github.badsyntax.gradletasks.GradleTask;
 import com.github.badsyntax.gradletasks.JavaEnvironment;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.cancellation.CancellationHandler;
+import com.github.badsyntax.gradletasks.exceptions.GradleConnectionException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
@@ -36,21 +38,15 @@ import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GradleProjectBuilder {
-  private static final Logger logger =
-      LoggerFactory.getLogger(GradleProjectBuilder.class.getName());
+public class GetBuildHandler {
+  private static final Logger logger = LoggerFactory.getLogger(GetBuildHandler.class.getName());
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
-  private GradleConnector gradleConnector;
 
-  public GradleProjectBuilder(
-      GetBuildRequest req,
-      StreamObserver<GetBuildReply> responseObserver,
-      GradleConnector gradleConnector) {
+  public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
-    this.gradleConnector = gradleConnector;
   }
 
   public static String getCancellationKey(String projectDir) {
@@ -58,10 +54,19 @@ public class GradleProjectBuilder {
   }
 
   public String getCancellationKey() {
-    return GradleProjectBuilder.getCancellationKey(req.getProjectDir());
+    return GetBuildHandler.getCancellationKey(req.getProjectDir());
   }
 
-  public void build() {
+  public void run() {
+    GradleConnector gradleConnector;
+    try {
+      gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
+    } catch (GradleConnectionException e) {
+      logger.error(e.getMessage());
+      responseObserver.onError(ErrorMessageBuilder.build(e));
+      return;
+    }
+
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
       org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
@@ -93,7 +98,7 @@ public class GradleProjectBuilder {
 
     ProgressListener progressListener =
         (ProgressEvent event) -> {
-          synchronized (GradleProjectBuilder.class) {
+          synchronized (GetBuildHandler.class) {
             replyWithProgress(event);
           }
         };
@@ -104,7 +109,7 @@ public class GradleProjectBuilder {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (GradleProjectBuilder.class) {
+                synchronized (GetBuildHandler.class) {
                   replyWithStandardOutput(bytes);
                 }
               }
@@ -113,7 +118,7 @@ public class GradleProjectBuilder {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (GradleProjectBuilder.class) {
+                synchronized (GetBuildHandler.class) {
                   replyWithStandardError(bytes);
                 }
               }
