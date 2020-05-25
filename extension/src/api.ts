@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { Output } from './proto/gradle_pb';
 import { logger } from './logger';
 import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
-import { GradleTaskProvider } from './tasks/GradleTaskProvider';
 import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
 import { GradleClient } from './client/GradleClient';
 
@@ -26,8 +25,7 @@ export class Api {
 
   constructor(
     private readonly client: GradleClient,
-    private readonly taskProvider: GradleTaskProvider,
-    private readonly treeDataProvider: GradleTasksTreeDataProvider
+    private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider
   ) {}
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
@@ -52,7 +50,6 @@ export class Api {
     projectFolder: string,
     taskName: string
   ): Promise<vscode.Task> {
-    await this.taskProvider.waitForTasksLoaded();
     const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     if (!tasks) {
       throw new Error('Unable to load gradle tasks');
@@ -69,11 +66,7 @@ export class Api {
     return task;
   }
 
-  public getTreeProvider(): GradleTasksTreeDataProvider {
-    return this.treeDataProvider;
-  }
-
-  public waitForLoaded(): Promise<void> {
-    return this.taskProvider.waitForTasksLoaded();
+  public getTasksTreeProvider(): GradleTasksTreeDataProvider {
+    return this.tasksTreeDataProvider;
   }
 }
