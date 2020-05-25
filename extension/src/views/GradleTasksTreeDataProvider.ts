@@ -69,12 +69,11 @@ export class GradleTasksTreeDataProvider
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
     taskTreeItemMap.clear();
-    // TODO: does this include the server task?
-    const taskItems = await vscode.tasks.fetchTasks({ type: 'gradle' });
-    if (taskItems.length === 0) {
+    const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    if (tasks.length === 0) {
       return [new NoTasksTreeItem(this.context)];
     } else {
-      return this.buildItemsTreeFromTasks(taskItems);
+      return this.buildItemsTreeFromTasks(tasks);
     }
   }
 

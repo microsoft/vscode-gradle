@@ -16,14 +16,13 @@ export function getGradleServerCommand(): string {
 }
 
 export function buildGradleServerTask(
-  taskName: string,
   cwd: string,
   args: string[] = []
 ): vscode.Task {
   const cmd = `"${getGradleServerCommand()}"`;
   logger.debug(`Gradle Tasks Server dir: ${cwd}`);
   logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args.join(' ')}`);
-  const taskType = 'gradle';
+  const taskType = 'gradleserver';
   const definition = {
     type: taskType,
   };
@@ -37,7 +36,7 @@ export function buildGradleServerTask(
   return new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
-    taskName,
+    SERVER_TASK_NAME,
     taskType,
     new vscode.ShellExecution(cmd, args, { cwd, env })
   );
