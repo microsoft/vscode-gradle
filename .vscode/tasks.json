@@ -9,6 +9,24 @@
       "windows": {
         "command": ".\\gradlew.bat"
       },
+      "args": ["build", "-x", "test", "-x", "npm-package:build", "-x", "extension:buildTest"],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Gradle: Build Test",
+      "type": "shell",
+      "problemMatcher": "$tsc-watch",
+      "command": "./gradlew",
+      "windows": {
+        "command": ".\\gradlew.bat"
+      },
       "args": ["build", "-x", "test", "-x", "npm-package:build"],
       "isBackground": true,
       "presentation": {

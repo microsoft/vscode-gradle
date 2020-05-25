@@ -2,8 +2,6 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { waitForTasksToLoad } from '../testUtil';
-
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 
@@ -32,7 +30,7 @@ describe(fixtureName, () => {
     let tasks: vscode.Task[] | undefined;
 
     beforeEach(async () => {
-      tasks = await waitForTasksToLoad(extensionName);
+      tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
     });
 
     it('should load tasks', async () => {

@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { GradleTaskProvider, GradleTaskDefinition } from './tasks';
-import { GradleTasksClient } from './client';
-import { GradleTasksTreeDataProvider } from './gradleView';
-import { Output } from './proto/gradle_tasks_pb';
+import { Output } from './proto/gradle_pb';
 import { logger } from './logger';
+import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
+import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
+import { GradleClient } from './client/GradleClient';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -24,9 +24,8 @@ export class Api {
   public logger = logger;
 
   constructor(
-    private readonly client: GradleTasksClient,
-    private readonly taskProvider: GradleTaskProvider,
-    private readonly treeDataProvider: GradleTasksTreeDataProvider
+    private readonly client: GradleClient,
+    private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider
   ) {}
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
@@ -47,35 +46,27 @@ export class Api {
     return this.client.cancelRunTask(task);
   }
 
-  private findTask(
+  private async findTask(
     projectFolder: string,
     taskName: string
   ): Promise<vscode.Task> {
-    return new Promise((resolve, reject) => {
-      this.taskProvider.waitForLoaded(async () => {
-        const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-        if (!tasks) {
-          return reject(new Error('Unable to load gradle tasks'));
-        }
-        const task = tasks.find((task) => {
-          const definition = task.definition as GradleTaskDefinition;
-          return (
-            task.name === taskName && definition.projectFolder === projectFolder
-          );
-        });
-        if (!task) {
-          return reject(new Error(`Unable to find task: ${taskName}`));
-        }
-        resolve(task);
-      });
+    const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    if (!tasks) {
+      throw new Error('Unable to load gradle tasks');
+    }
+    const task = tasks.find((task) => {
+      const definition = task.definition as GradleTaskDefinition;
+      return (
+        task.name === taskName && definition.projectFolder === projectFolder
+      );
     });
+    if (!task) {
+      throw new Error(`Unable to find task: ${taskName}`);
+    }
+    return task;
   }
 
-  public getTreeProvider(): GradleTasksTreeDataProvider {
-    return this.treeDataProvider;
-  }
-
-  public waitForLoaded(callback: () => void): void {
-    this.taskProvider.waitForLoaded(callback);
+  public getTasksTreeProvider(): GradleTasksTreeDataProvider {
+    return this.tasksTreeDataProvider;
   }
 }

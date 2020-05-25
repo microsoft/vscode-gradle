@@ -111,7 +111,7 @@ task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json')
   outputs.dir('node_modules')
-  commandLine 'npm', 'ci'
+  commandLine 'npm', 'install'
 }
 
 task lint(type: CrossPlatformExec) {
@@ -160,7 +160,7 @@ task buildProd(type: CrossPlatformExec) {
 }
 
 task bundle() {
-  dependsOn ':tasks-server:build', buildProd, ':npm-package:build'
+  dependsOn ':gradle-server:build', buildProd, ':npm-package:build'
   group 'build'
   description 'Bundles the extension files for release'
 }

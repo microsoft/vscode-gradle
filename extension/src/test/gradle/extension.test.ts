@@ -7,16 +7,13 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { waitForTasksToLoad } from '../testUtil';
-import {
-  GradleTaskTreeItem,
-  GradleTasksTreeDataProvider,
-} from '../../gradleView';
 import { Api as ExtensionApi, RunTaskOpts } from '../../api';
-import { Output } from '../../proto/gradle_tasks_pb';
+import { Output } from '../../proto/gradle_pb';
+import { GradleTasksTreeDataProvider } from '../../views/GradleTasksTreeDataProvider';
+import { GradleTaskTreeItem } from '../../views/GradleTaskTreeItem';
+import { COMMAND_RUN_TASK_WITH_ARGS, COMMAND_REFRESH } from '../../commands';
 
 const extensionName = 'richardwillis.vscode-gradle';
-const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 const fixturePath = vscode.Uri.file(
   path.resolve(__dirname, '..', '..', '..', 'test-fixtures', fixtureName)
@@ -45,9 +42,6 @@ describe(fixtureName, () => {
     afterEach(() => {
       sinon.restore();
     });
-    beforeEach(async () => {
-      await waitForTasksToLoad(extensionName);
-    });
 
     it('should load gradle tasks', async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
@@ -63,9 +57,9 @@ describe(fixtureName, () => {
 
     it('should refresh gradle tasks when command is executed', async () => {
       assert.ok(extension);
-      const treeDataProvider = extension!.exports.getTreeProvider();
+      const treeDataProvider = extension!.exports.getTasksTreeProvider();
       const stub = sinon.stub(treeDataProvider, 'refresh');
-      await vscode.commands.executeCommand(refreshCommand);
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       assert.ok(stub.called);
     });
 
@@ -106,8 +100,7 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      const treeDataProvider = extension?.exports
-        .treeDataProvider as GradleTasksTreeDataProvider;
+      const treeDataProvider = extension?.exports.getTasksTreeProvider() as GradleTasksTreeDataProvider;
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
@@ -125,7 +118,7 @@ describe(fixtureName, () => {
           treeDataProvider.getIconPathIdle()!
         );
         await vscode.commands.executeCommand(
-          'gradle.runTaskWithArgs',
+          COMMAND_RUN_TASK_WITH_ARGS,
           treeItem
         );
       });
@@ -159,7 +152,7 @@ describe(fixtureName, () => {
     it('should show command statements in the outputchannel', async () => {
       assert.ok(extension);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      await vscode.commands.executeCommand('gradle.refresh');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
     });
   });
