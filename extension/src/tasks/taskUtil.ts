@@ -103,7 +103,9 @@ export function createTaskFromDefinition(
     definition.script,
     'gradle',
     new vscode.CustomExecution(
-      async (): Promise<vscode.Pseudoterminal> => terminal
+      async (): Promise<vscode.Pseudoterminal> => {
+        return terminal;
+      }
     ),
     ['$gradle']
   );
