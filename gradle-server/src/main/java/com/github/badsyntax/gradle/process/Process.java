@@ -33,7 +33,7 @@ public class Process implements AutoCloseable {
 
   public static synchronized void kill(String pid) throws IOException {
     if (isWindows) {
-      runtime.exec(String.format("taskkill %s", pid));
+      runtime.exec(String.format("taskkill /f /pid %s", pid));
     } else {
       runtime.exec(String.format("kill -9 %s", pid));
     }
