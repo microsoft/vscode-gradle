@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.exceptions.GradleWrapperException;
+import com.github.badsyntax.gradle.exceptions.ProcessException;
 import com.github.badsyntax.gradle.process.Process;
 import com.github.badsyntax.gradle.process.ProcessOutput;
 import java.io.File;
@@ -9,8 +10,8 @@ import java.util.stream.Collectors;
 
 public class GradleWrapper {
   private File projectRoot;
-  private static String GRADLE_WRAPPER_UNIX = "gradlew";
-  private static String GRADLE_WRAPPER_WINDOWS = "gradlew.bat";
+  private static final String GRADLE_WRAPPER_UNIX = "gradlew";
+  private static final String GRADLE_WRAPPER_WINDOWS = "gradlew.bat";
 
   public GradleWrapper(File projectRoot) {
     this.projectRoot = projectRoot;
@@ -34,7 +35,7 @@ public class GradleWrapper {
             String.format("Error running gradle wrapper: %s", stdErrString));
       }
       return stdOutString;
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | ProcessException e) {
       throw new GradleWrapperException(
           String.format("Error running gradle wrapper: %s", e.getMessage()));
     }

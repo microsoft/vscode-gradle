@@ -30,7 +30,6 @@ function resetCachedTreeItems(): void {
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private collapsed = true;
-  // private treeItems: WorkspaceTreeItem[] | NoTasksTreeItem[] | null = null;
   private iconPathRunning?: IconPath;
   private iconPathIdle?: IconPath;
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
@@ -72,7 +71,6 @@ export class GradleTasksTreeDataProvider
       'gradle:explorerCollapsed',
       collapsed
     );
-    // this.buildTreeItems();
     this.render();
   }
 
@@ -90,14 +88,12 @@ export class GradleTasksTreeDataProvider
     }
   }
 
-  // setTaskItems(tasks: vscode.Task[]): void {
-  //   this.taskItems = tasks;
-  // }
-
   renderTask(task: vscode.Task): void {
     const treeItem = taskTreeItemMap.get(task.definition.id);
-    treeItem?.setContext();
-    this.render(treeItem);
+    if (treeItem) {
+      treeItem.setContext();
+      this.render(treeItem);
+    }
   }
 
   render(treeItem: vscode.TreeItem | null = null): void {
@@ -163,7 +159,7 @@ export class GradleTasksTreeDataProvider
         if (!workspaceJavaDebugMap.has(task.scope.name)) {
           workspaceJavaDebugMap.set(
             task.scope.name,
-            getConfigJavaDebug(task.scope as vscode.WorkspaceFolder)
+            getConfigJavaDebug(task.scope)
           );
         }
 

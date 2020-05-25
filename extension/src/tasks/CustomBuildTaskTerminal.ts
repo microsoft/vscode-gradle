@@ -106,7 +106,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         true
       );
       if (javaDebugEnabled) {
-        await this.startJavaDebug(javaDebugPort!);
+        await this.startJavaDebug(javaDebugPort);
       }
       await runTask;
       vscode.commands.executeCommand(

@@ -9,7 +9,6 @@ import com.github.badsyntax.gradle.GradleWrapper;
 import com.github.badsyntax.gradle.exceptions.GradleWrapperException;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,7 @@ public class GetDaemonsStatusHandler {
     GradleWrapper gradleWrapper = new GradleWrapper(projectRoot);
     DaemonStatus daemonStatus = new DaemonStatus(gradleWrapper);
     try {
-      ArrayList<DaemonInfo> status = daemonStatus.get();
+      List<DaemonInfo> status = daemonStatus.get();
       replyWithSuccess(status);
     } catch (GradleWrapperException e) {
       logger.error(e.getMessage());
