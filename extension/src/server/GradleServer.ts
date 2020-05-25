@@ -95,7 +95,7 @@ export class GradleServer implements vscode.Disposable {
             this.start();
           }
         });
-        this.taskExecution?.terminate();
+        this.taskExecution.terminate();
       } else {
         this.start();
       }

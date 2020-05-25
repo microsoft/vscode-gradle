@@ -297,25 +297,23 @@ export class GradleClient implements vscode.Disposable {
     request.setProjectDir(definition.projectFolder);
     request.setTask(definition.script);
     try {
-      const cancelRunTaskReply: CancelRunTaskReply = await new Promise(
-        (resolve, reject) => {
-          this.grpcClient!.cancelRunTask(
-            request,
-            (
-              err: grpc.ServiceError | null,
-              cancelRunTaskReply: CancelRunTaskReply | undefined
-            ) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(cancelRunTaskReply);
-              }
+      const reply: CancelRunTaskReply = await new Promise((resolve, reject) => {
+        this.grpcClient!.cancelRunTask(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            cancelRunTaskReply: CancelRunTaskReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(cancelRunTaskReply);
             }
-          );
-        }
-      );
-      logger.debug(cancelRunTaskReply.getMessage());
-      if (!cancelRunTaskReply.getTaskRunning()) {
+          }
+        );
+      });
+      logger.debug(reply.getMessage());
+      if (!reply.getTaskRunning()) {
         removeCancellingTask(task);
       }
     } catch (err) {
@@ -332,7 +330,7 @@ export class GradleClient implements vscode.Disposable {
     await this.waitForConnect();
     const request = new CancelRunTasksRequest();
     try {
-      const cancelRunTasksReply: CancelRunTasksReply = await new Promise(
+      const reply: CancelRunTasksReply = await new Promise(
         (resolve, reject) => {
           this.grpcClient!.cancelRunTasks(
             request,
@@ -349,7 +347,7 @@ export class GradleClient implements vscode.Disposable {
           );
         }
       );
-      logger.debug(cancelRunTasksReply.getMessage());
+      logger.debug(reply.getMessage());
     } catch (err) {
       logger.error(
         'Error cancelling running tasks:',
@@ -362,7 +360,7 @@ export class GradleClient implements vscode.Disposable {
     await this.waitForConnect();
     const request = new CancelGetBuildsRequest();
     try {
-      const cancelGetBuildsReply: CancelGetBuildsReply = await new Promise(
+      const reply: CancelGetBuildsReply = await new Promise(
         (resolve, reject) => {
           this.grpcClient!.cancelGetBuilds(
             request,
@@ -379,7 +377,7 @@ export class GradleClient implements vscode.Disposable {
           );
         }
       );
-      logger.debug(cancelGetBuildsReply.getMessage());
+      logger.debug(reply.getMessage());
     } catch (err) {
       logger.error('Error cancelling get builds:', err.details || err.message);
     }

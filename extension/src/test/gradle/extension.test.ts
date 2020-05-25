@@ -100,8 +100,7 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      const treeDataProvider = extension?.exports
-        .treeDataProvider as GradleTasksTreeDataProvider;
+      const treeDataProvider = extension?.exports.getTasksTreeProvider() as GradleTasksTreeDataProvider;
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {

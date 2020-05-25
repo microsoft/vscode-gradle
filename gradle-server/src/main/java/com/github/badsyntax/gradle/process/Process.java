@@ -1,5 +1,6 @@
 package com.github.badsyntax.gradle.process;
 
+import com.github.badsyntax.gradle.exceptions.ProcessException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -11,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Process implements AutoCloseable {
-  private static Boolean isWindows =
+  public static final Boolean IS_WINDOWS =
       System.getProperty("os.name").toLowerCase().contains("windows");
   private static Runtime runtime = Runtime.getRuntime();
   private File workingDir;
@@ -32,14 +33,14 @@ public class Process implements AutoCloseable {
   }
 
   public static synchronized void kill(String pid) throws IOException {
-    if (isWindows) {
+    if (Boolean.TRUE.equals(IS_WINDOWS)) {
       runtime.exec(String.format("taskkill /f /pid %s", pid));
     } else {
       runtime.exec(String.format("kill -9 %s", pid));
     }
   }
 
-  public synchronized void exec(String... args) throws IOException {
+  public synchronized void exec(String... args) throws IOException, ProcessException {
     ProcessBuilder processBuilder = new ProcessBuilder(buildCommand(args));
     processBuilder.directory(workingDir);
     java.lang.Process process = processBuilder.start();
@@ -49,10 +50,10 @@ public class Process implements AutoCloseable {
             new BufferedReader(new InputStreamReader(process.getErrorStream())));
   }
 
-  private synchronized List<String> buildCommand(String[] args) {
-    String command = isWindows ? windowsCommand : unixCommand;
+  private synchronized List<String> buildCommand(String[] args) throws ProcessException {
+    String command = Boolean.TRUE.equals(IS_WINDOWS) ? windowsCommand : unixCommand;
     if (command == null) {
-      throw new RuntimeException("No command is set");
+      throw new ProcessException("No command is set");
     }
     Path commandPath = Paths.get(workingDir.getAbsolutePath(), command);
     ArrayList<String> commandList = new ArrayList<>();
