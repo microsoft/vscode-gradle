@@ -34,15 +34,17 @@ export class GradleDaemonsTreeDataProvider
         .getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status
-            .getDaemonInfoList()
-            .map(
-              (daemonInfo) =>
-                new GradleDaemonTreeItem(
-                  this.context,
-                  daemonInfo.getPid(),
-                  daemonInfo
+            ? status
+                .getDaemonInfoList()
+                .map(
+                  (daemonInfo) =>
+                    new GradleDaemonTreeItem(
+                      this.context,
+                      daemonInfo.getPid(),
+                      daemonInfo
+                    )
                 )
-            )
+            : []
         )
     );
     return (await Promise.all(promises)).flat();
