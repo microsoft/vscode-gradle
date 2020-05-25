@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
 import { logger } from '../logger';
-import { EventWaiter } from '../events/EventWaiter';
 import { loadTasksForFolders } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
 
@@ -23,11 +22,8 @@ export class GradleTaskProvider
   private _onDidRefreshStop: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  private readonly onTasksLoaded: vscode.Event<null> = this._onTasksLoaded
-    .event;
   public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
   public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
-  public readonly waitForTasksLoaded = new EventWaiter(this.onTasksLoaded).wait;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
   constructor(private readonly client: GradleClient) {}
