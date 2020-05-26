@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
-import { COMMAND_REFRESH } from '../commands';
 import { GradleTaskManager } from '../tasks/GradleTaskManager';
 import { BuildFileWatcher } from './BuildFileWatcher';
+import { COMMAND_REFRESH } from '../commands/constants';
 
 export function registerBuildFileWatcher(
   context: vscode.ExtensionContext,

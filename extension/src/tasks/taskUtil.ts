@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
-import { CustomBuildTaskTerminal } from './CustomBuildTaskTerminal';
+import { CustomBuildTaskTerminal } from '../terminal/CustomBuildTaskTerminal';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { logger } from '../logger';
-import { COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION } from '../commands';
 import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
 import {
   getJavaLanguageSupportExtension,
@@ -14,19 +13,27 @@ import {
 } from '../compat';
 import { getGradleBuildFile } from '../util';
 import { GradleClient } from '../client/GradleClient';
-import { GradleTasksTreeDataProvider } from '../views/GradleTasksTreeDataProvider';
+import { GradleTasksTreeDataProvider } from '../views/gradleTasks/GradleTasksTreeDataProvider';
+import { COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION } from '../commands/constants';
+import { updateGradleTreeItemStateForTask } from '../views/viewUtil';
+import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
 
 export function cancelTask(
   client: GradleClient,
-  treeDataProvider: GradleTasksTreeDataProvider,
+  gradleTaskstreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
   task: vscode.Task
 ): void {
   if (isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
-    treeDataProvider.renderTask(task);
+    updateGradleTreeItemStateForTask(
+      task,
+      gradleTaskstreeDataProvider,
+      bookmarkedTasksTreeDataProvider
+    );
     client.cancelRunTask(task);
   }
 }
@@ -68,13 +75,19 @@ export async function removeCancellingTask(task: vscode.Task): Promise<void> {
 
 export function queueRestartTask(
   client: GradleClient,
-  treeDataProvider: GradleTasksTreeDataProvider,
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
   task: vscode.Task
 ): void {
   if (isTaskRunning(task)) {
     restartingTasks.set(task.definition.id, task);
     // Once the task is cancelled it's restarted via onDidEndTask
-    cancelTask(client, treeDataProvider, task);
+    cancelTask(
+      client,
+      gradleTasksTreeDataProvider,
+      bookmarkedTasksTreeDataProvider,
+      task
+    );
   }
 }
 
