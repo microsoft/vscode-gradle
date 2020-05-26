@@ -70,7 +70,7 @@ export class GradleTasksTreeDataProvider
   }
 
   public getIconPathIdle(): IconPath | undefined {
-    return this.iconPathRunning;
+    return this.iconPathIdle;
   }
 
   public setCollapsed(collapsed: boolean): void {
