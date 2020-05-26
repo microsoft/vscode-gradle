@@ -2,16 +2,18 @@ import * as vscode from 'vscode';
 import { isGradleTask, getRunningGradleTasks } from './taskUtil';
 
 export class GradleTaskManager implements vscode.Disposable {
-  private _onDidStartTask: vscode.EventEmitter<
+  private readonly _onDidStartTask: vscode.EventEmitter<
     vscode.Task
   > = new vscode.EventEmitter<vscode.Task>();
 
-  private _onDidEndAllTasks: vscode.EventEmitter<
+  private readonly _onDidEndAllTasks: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
 
-  public onDidStartTask: vscode.Event<vscode.Task> = this._onDidStartTask.event;
-  public onDidEndAllTasks: vscode.Event<null> = this._onDidEndAllTasks.event;
+  public readonly onDidStartTask: vscode.Event<vscode.Task> = this
+    ._onDidStartTask.event;
+  public readonly onDidEndAllTasks: vscode.Event<null> = this._onDidEndAllTasks
+    .event;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.context.subscriptions.push(
@@ -31,7 +33,7 @@ export class GradleTaskManager implements vscode.Disposable {
     );
   }
 
-  dispose(): void {
+  public dispose(): void {
     this._onDidStartTask.dispose();
     this._onDidEndAllTasks.dispose();
   }

@@ -144,7 +144,7 @@ function createVSCodeTaskFromGradleTask(
 ): vscode.Task {
   const taskPath = gradleTask.getPath();
   const script = taskPath[0] === ':' ? taskPath.substr(1) : taskPath;
-  const definition: GradleTaskDefinition = {
+  const definition: Required<GradleTaskDefinition> = {
     type: 'gradle',
     id: buildTaskId(projectFolder.fsPath, script, gradleTask.getProject()),
     script,

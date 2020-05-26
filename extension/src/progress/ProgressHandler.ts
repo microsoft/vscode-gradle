@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 
 export class ProgressHandler {
-  private _onProgressStart: vscode.EventEmitter<null> = new vscode.EventEmitter<
+  private readonly _onProgressStart: vscode.EventEmitter<
     null
-  >();
+  > = new vscode.EventEmitter<null>();
   public readonly onProgressStart: vscode.Event<null> = this._onProgressStart
     .event;
 

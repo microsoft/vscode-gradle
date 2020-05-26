@@ -8,7 +8,7 @@ export class LoggerStream {
     private readonly type: logType
   ) {}
 
-  write(bytes: Uint8Array): void {
+  public write(bytes: Uint8Array): void {
     const message = new util.TextDecoder('utf-8').decode(bytes);
     const formattedMessage = this.buffer.length
       ? message
@@ -17,7 +17,7 @@ export class LoggerStream {
     this.logger.append(formattedMessage);
   }
 
-  getBuffer(): string {
+  public getBuffer(): string {
     return this.buffer;
   }
 }

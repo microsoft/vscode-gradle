@@ -4,6 +4,7 @@ import { logger } from '../logger';
 import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
+import { EventWaiter } from '../events/EventWaiter';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -14,22 +15,28 @@ export function invalidateTasksCache(): void {
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
-  private _onTasksLoaded: vscode.EventEmitter<null> = new vscode.EventEmitter<
-    null
-  >();
-  private _onDidRefreshStart: vscode.EventEmitter<
+  private readonly _onDidTasksLoad: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  private _onDidRefreshStop: vscode.EventEmitter<
+  private readonly _onDidRefreshStart: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  public onDidRefreshStart: vscode.Event<null> = this._onDidRefreshStart.event;
-  public onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop.event;
+  private readonly _onDidRefreshStop: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
+
+  public readonly onDidTasksLoad: vscode.Event<null> = this._onDidTasksLoad
+    .event;
+  public readonly onDidRefreshStart: vscode.Event<null> = this
+    ._onDidRefreshStart.event;
+  public readonly onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop
+    .event;
+  public readonly waitForLoad = new EventWaiter(this.onDidTasksLoad).wait;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
   constructor(private readonly client: GradleClient) {}
 
-  provideTasks(): Promise<vscode.Task[] | undefined> {
+  public provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
   }
 
@@ -87,7 +94,7 @@ export class GradleTaskProvider
       .then(() => cachedTasks);
 
     return this.loadTasksPromise.finally(() => {
-      this._onTasksLoaded.fire(null);
+      this._onDidTasksLoad.fire(null);
       this._onDidRefreshStop.fire(null);
       this.loadTasksPromise = undefined;
     });
@@ -98,7 +105,7 @@ export class GradleTaskProvider
   }
 
   public dispose(): void {
-    this._onTasksLoaded.dispose();
+    this._onDidTasksLoad.dispose();
     this._onDidRefreshStart.dispose();
     this._onDidRefreshStop.dispose();
   }
