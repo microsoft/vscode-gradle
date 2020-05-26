@@ -11,6 +11,7 @@ import { JavaDebug, getConfigJavaDebug } from '../config';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { ICON_LOADING, ICON_GRADLE_TASK } from './constants';
 import { isWorkspaceFolder } from '../util';
+import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
 
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 export const workspaceTreeItemMap: Map<string, WorkspaceTreeItem> = new Map();
@@ -19,7 +20,6 @@ export const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
 export const workspaceJavaDebugMap: Map<string, JavaDebug> = new Map();
 
 function resetCachedTreeItems(): void {
-  taskTreeItemMap.clear();
   taskTreeItemMap.clear();
   workspaceTreeItemMap.clear();
   projectTreeItemMap.clear();
@@ -36,7 +36,10 @@ export class GradleTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly taskProvider: GradleTaskProvider
+  ) {
     this.iconPathRunning = {
       light: this.context.asAbsolutePath(
         path.join('resources', 'light', ICON_LOADING)
@@ -80,7 +83,9 @@ export class GradleTasksTreeDataProvider
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
     resetCachedTreeItems();
-    const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+    // using vscode.tasks.fetchTasks({ type: 'gradle' }) is *incredibly slow* which
+    // is why we get them directly from the task provider
+    const tasks = await this.taskProvider.loadTasks();
     if (tasks.length === 0) {
       return [new NoTasksTreeItem(this.context)];
     } else {
