@@ -7,11 +7,9 @@ import { registerClient } from './client';
 import { registerCommands } from './commands';
 import { logger } from './logger';
 import { registerBuildFileWatcher } from './buildFileWatcher';
-import { Api } from './api';
+import { Api } from './api/Api';
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
-  const statusBarItem = vscode.window.createStatusBarItem();
-
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
 
   const server = registerServer({ host: 'localhost' }, context);
@@ -21,6 +19,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   const {
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
+    bookmarkedTasksTreeDataProvider,
     gradleTasksTreeView,
   } = registerGradleViews(context, taskProvider, client);
 
@@ -28,10 +27,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
 
   registerCommands(
     context,
-    statusBarItem,
     client,
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
+    bookmarkedTasksTreeDataProvider,
     gradleTasksTreeView,
     taskProvider
   );

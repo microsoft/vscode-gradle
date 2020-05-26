@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 
-import { COMMAND_LOAD_TASKS } from '../commands';
 import { GradleServer } from '../server/GradleServer';
 import { GradleClient } from './GradleClient';
+import { COMMAND_LOAD_TASKS } from '../commands/constants';
 
 export function registerClient(
   server: GradleServer,

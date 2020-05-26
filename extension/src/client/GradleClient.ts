@@ -40,14 +40,14 @@ import { EventWaiter } from '../events/EventWaiter';
 import { GradleServer } from '../server/GradleServer';
 import { logger } from '../logger';
 import { LoggerStream } from '../logger/LoggerSteam';
-import {
-  COMMAND_CANCEL_TASK,
-  COMMAND_REFRESH_DAEMON_STATUS,
-} from '../commands';
 import { getGradleConfig } from '../config';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { removeCancellingTask } from '../tasks/taskUtil';
 import { ProgressHandler } from '../progress/ProgressHandler';
+import {
+  COMMAND_REFRESH_DAEMON_STATUS,
+  COMMAND_CANCEL_TASK,
+} from '../commands/constants';
 
 export class GradleClient implements vscode.Disposable {
   private connectDeadline = 20; // seconds

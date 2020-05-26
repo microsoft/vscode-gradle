@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 
 import { GradleTaskProvider } from './GradleTaskProvider';
-import { COMMAND_REFRESH } from '../commands';
 import { isGradleTask, restartQueuedTask } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
 import { GradleTaskManager } from './GradleTaskManager';
+import { COMMAND_REFRESH } from '../commands/constants';
 
 function handleWorkspaceFoldersChange(): void {
   vscode.commands.executeCommand(COMMAND_REFRESH);
