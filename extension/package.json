@@ -477,7 +477,6 @@
           "project",
           "buildFile",
           "rootProject",
-          "path",
           "projectFolder",
           "workspaceFolder",
           "args",
@@ -512,10 +511,6 @@
             "type": "string",
             "description": "The root project this task belongs to"
           },
-          "path": {
-            "type": "string",
-            "description": "The full task path"
-          },
           "projectFolder": {
             "type": "string",
             "description": "The gradle project folder path"
@@ -533,6 +528,9 @@
             "description": "Debug JavaExec task when executing"
           }
         }
+      },
+      {
+        "type": "gradleserver"
       }
     ]
   },

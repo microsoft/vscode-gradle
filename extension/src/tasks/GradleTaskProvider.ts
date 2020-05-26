@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 
 import { logger } from '../logger';
-import { loadTasksForFolders } from './taskUtil';
+import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
+import { GradleTaskDefinition } from './GradleTaskDefinition';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -28,20 +29,37 @@ export class GradleTaskProvider
 
   constructor(private readonly client: GradleClient) {}
 
-  async provideTasks(): Promise<vscode.Task[] | undefined> {
+  provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
   }
 
-  // TODO
-  public async resolveTask(/*
-     _task: vscode.Task
-  */): Promise<
-    vscode.Task | undefined
-  > {
-    return undefined;
+  public async resolveTask(
+    _task: vscode.Task
+  ): Promise<vscode.Task | undefined> {
+    const { definition } = _task;
+    const gradleTaskDefinition = definition as GradleTaskDefinition;
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
+      vscode.Uri.file(gradleTaskDefinition.workspaceFolder)
+    );
+    if (!workspaceFolder) {
+      logger.error(
+        'Unable to provide Gradle task. Invalid workspace folder: ',
+        gradleTaskDefinition.workspaceFolder
+      );
+      return undefined;
+    }
+    const projectFolder = vscode.Uri.file(gradleTaskDefinition.projectFolder);
+    return createTaskFromDefinition(
+      gradleTaskDefinition,
+      workspaceFolder,
+      projectFolder,
+      this.client
+    );
   }
 
   public loadTasks(): Promise<vscode.Task[]> {
+    // To accomodate calling loadTasks() on extension activate (when client is connected)
+    // and opening the treeview.
     if (this.loadTasksPromise) {
       return this.loadTasksPromise;
     }
