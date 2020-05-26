@@ -66,6 +66,7 @@ export function registerGradleViews(
     gradleTasksTreeView,
     bookmarkedTasksTreeView,
     gradleDaemonsTreeView,
+    bookmarkedTasksStore,
     // TODO: move to extension?
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
