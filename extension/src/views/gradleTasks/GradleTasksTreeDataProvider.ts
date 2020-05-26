@@ -2,17 +2,18 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { WorkspaceTreeItem } from './WorkspaceTreeItem';
 import { NoTasksTreeItem } from './NoTasksTreeItem';
-import { IconPath } from './types';
+import { IconPath } from '../types';
 import { GradleTaskTreeItem } from './GradleTaskTreeItem';
 import { ProjectTreeItem } from './ProjectTreeItem';
 import { TreeItemWithTasksOrGroups } from './TreeItemWithTasksOrGroups';
 import { GroupTreeItem } from './GroupTreeItem';
-import { JavaDebug, getConfigJavaDebug } from '../config';
-import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
-import { ICON_LOADING, ICON_GRADLE_TASK } from './constants';
-import { isWorkspaceFolder } from '../util';
-import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
+import { JavaDebug, getConfigJavaDebug } from '../../config';
+import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
+import { ICON_LOADING, ICON_GRADLE_TASK } from '../constants';
+import { isWorkspaceFolder } from '../../util';
+import { GradleTaskProvider } from '../../tasks/GradleTaskProvider';
 
+// eslint-disable-next-line sonarjs/no-unused-collection
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 export const workspaceTreeItemMap: Map<string, WorkspaceTreeItem> = new Map();
 export const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
@@ -35,6 +36,12 @@ export class GradleTasksTreeDataProvider
   private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
+
+  private _onDidBuildTreeItems: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
+  public readonly onDidBuildTreeItems: vscode.Event<null> = this
+    ._onDidBuildTreeItems.event;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -68,17 +75,13 @@ export class GradleTasksTreeDataProvider
 
   setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
-    this.context.workspaceState.update('explorerCollapsed', collapsed);
+    this.context.workspaceState.update('gradleTasksCollapsed', collapsed);
     vscode.commands.executeCommand(
       'setContext',
-      'gradle:explorerCollapsed',
+      'gradle:gradleTasksCollapsed',
       collapsed
     );
-    this.render();
-  }
-
-  async refresh(): Promise<void> {
-    this.render();
+    this.refresh();
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
@@ -93,15 +96,7 @@ export class GradleTasksTreeDataProvider
     }
   }
 
-  renderTask(task: vscode.Task): void {
-    const treeItem = taskTreeItemMap.get(task.definition.id);
-    if (treeItem) {
-      treeItem.setContext();
-      this.render(treeItem);
-    }
-  }
-
-  render(treeItem: vscode.TreeItem | null = null): void {
+  refresh(treeItem: vscode.TreeItem | null = null): void {
     this._onDidChangeTreeData.fire(treeItem);
   }
 
@@ -209,13 +204,15 @@ export class GradleTasksTreeDataProvider
           definition.description,
           this.iconPathRunning!,
           this.iconPathIdle!,
-          workspaceJavaDebugMap.get(task.scope.name)
+          workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
         );
 
         taskTreeItemMap.set(task.definition.id, taskTreeItem);
         parentTreeItem.addTask(taskTreeItem);
       }
     });
+
+    this._onDidBuildTreeItems.fire(null);
 
     if (workspaceTreeItemMap.size === 1) {
       return [

@@ -1,14 +1,18 @@
 import * as vscode from 'vscode';
 
 import { getConfigFocusTaskInExplorer } from '../config';
-import { GradleDaemonsTreeDataProvider } from './GradleDaemonsTreeDataProvider';
-import { GradleTasksTreeDataProvider } from './GradleTasksTreeDataProvider';
-// import { GradleBookmarkedTasksTreeDataProvider } from './GradleBookmarkedTasksTreeDataProvider';
-import { COMMAND_REFRESH } from '../commands';
+import { GradleDaemonsTreeDataProvider } from './gradleDaemons/GradleDaemonsTreeDataProvider';
+import { GradleTasksTreeDataProvider } from './gradleTasks/GradleTasksTreeDataProvider';
 import { GradleClient } from '../client/GradleClient';
 import { isGradleTask } from '../tasks/taskUtil';
-import { focusTaskInGradleTasksTree } from './viewUtil';
+import {
+  focusTaskInGradleTasksTree,
+  updateGradleTreeItemStateForTask,
+} from './viewUtil';
 import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
+import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
+import { COMMAND_REFRESH } from '../commands/constants';
+import { BookmarkedTasksStore } from '../stores/BookmarkedTasksStore';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
@@ -17,9 +21,10 @@ export function registerGradleViews(
 ): {
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider;
   gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
 } {
-  const collapsed = context.workspaceState.get('explorerCollapsed', false);
+  const collapsed = context.workspaceState.get('gradleTasksCollapsed', false);
   const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
     context,
     taskProvider
@@ -40,15 +45,24 @@ export function registerGradleViews(
       showCollapseAll: false,
     }
   );
-  // const gradleBookmarkedTasksTreeView = vscode.window.createTreeView(
-  //   'gradleBookmarkedTasksView',
-  //   {
-  //     treeDataProvider: new GradleBookmarkedTasksTreeDataProvider(context),
-  //     showCollapseAll: false,
-  //   }
-  // );
+  const bookmarkedTasksStore = new BookmarkedTasksStore(context);
+  const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
+    bookmarkedTasksStore
+  );
+  const bookmarkedTasksTreeView = vscode.window.createTreeView(
+    'bookmarkedTasksView',
+    {
+      treeDataProvider: bookmarkedTasksTreeDataProvider,
+      showCollapseAll: false,
+    }
+  );
+  gradleTasksTreeDataProvider.onDidBuildTreeItems(() =>
+    bookmarkedTasksTreeDataProvider.refresh()
+  );
+
   context.subscriptions.push(
     gradleTasksTreeView,
+    bookmarkedTasksTreeView,
     gradleDaemonsTreeView,
     // TODO: move to extension?
     vscode.workspace.onDidChangeConfiguration(
@@ -61,7 +75,11 @@ export function registerGradleViews(
     vscode.tasks.onDidStartTask(async (event: vscode.TaskStartEvent) => {
       const { task } = event.execution;
       if (isGradleTask(task)) {
-        gradleTasksTreeDataProvider.renderTask(task);
+        updateGradleTreeItemStateForTask(
+          task,
+          gradleTasksTreeDataProvider,
+          bookmarkedTasksTreeDataProvider
+        );
         if (gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
           await focusTaskInGradleTasksTree(gradleTasksTreeView, task);
         }
@@ -70,13 +88,18 @@ export function registerGradleViews(
     vscode.tasks.onDidEndTask((event: vscode.TaskEndEvent) => {
       const { task } = event.execution;
       if (isGradleTask(task)) {
-        gradleTasksTreeDataProvider.renderTask(task);
+        updateGradleTreeItemStateForTask(
+          task,
+          gradleTasksTreeDataProvider,
+          bookmarkedTasksTreeDataProvider
+        );
       }
     })
   );
   return {
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
+    bookmarkedTasksTreeDataProvider,
     gradleTasksTreeView,
   };
 }

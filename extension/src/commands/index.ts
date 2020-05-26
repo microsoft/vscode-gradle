@@ -2,61 +2,65 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { getIgnoreDaemonStopWarning } from './config';
-import { logger } from './logger';
+import { getIgnoreDaemonStopWarning } from '../config';
+import { logger } from '../logger';
 import {
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
-} from './compat';
-import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
-import { GradleTaskTreeItem } from './views/GradleTaskTreeItem';
+} from '../compat';
+import { GradleTasksTreeDataProvider } from '../views/gradleTasks/GradleTasksTreeDataProvider';
+import { GradleTaskTreeItem } from '../views/gradleTasks/GradleTaskTreeItem';
 import {
   GradleTaskProvider,
   invalidateTasksCache,
-} from './tasks/GradleTaskProvider';
-import { GradleDaemonsTreeDataProvider } from './views/GradleDaemonsTreeDataProvider';
-import { StopDaemonsReply } from './proto/gradle_pb';
-import { GradleDaemonTreeItem } from './views/GradleDaemonTreeItem';
-import { GradleClient } from './client/GradleClient';
+} from '../tasks/GradleTaskProvider';
+import { GradleDaemonsTreeDataProvider } from '../views/gradleDaemons/GradleDaemonsTreeDataProvider';
+import { StopDaemonsReply } from '../proto/gradle_pb';
+import { GradleDaemonTreeItem } from '../views/gradleDaemons/GradleDaemonTreeItem';
+import { GradleClient } from '../client/GradleClient';
 import {
   runTask,
   getTaskExecution,
   runTaskWithArgs,
   cancelTask,
   queueRestartTask,
-} from './tasks/taskUtil';
-import { focusProjectInGradleTasksTree } from './views/viewUtil';
-
-export const COMMAND_SHOW_TASKS = 'gradle.showTasks';
-export const COMMAND_RUN_TASK = 'gradle.runTask';
-export const COMMAND_DEBUG_TASK = 'gradle.debugTask';
-export const COMMAND_RESTART_TASK = 'gradle.restartTask';
-export const COMMAND_RUN_TASK_WITH_ARGS = 'gradle.runTaskWithArgs';
-export const COMMAND_DEBUG_TASK_WITH_ARGS = 'gradle.debugTaskWithArgs';
-export const COMMAND_RENDER_TASK = 'gradle.renderTask';
-export const COMMAND_CANCEL_TASK = 'gradle.cancelTask';
-export const COMMAND_CANCEL_TREE_ITEM_TASK = 'gradle.cancelTreeItemTask';
-export const COMMAND_REFRESH = 'gradle.refresh';
-export const COMMAND_REFRESH_DAEMON_STATUS = 'gradle.refreshDaemonStatus';
-export const COMMAND_OPEN_BUILD_FILE = 'gradle.openBuildFile';
-export const COMMAND_EXPLORER_TREE = 'gradle.explorerTree';
-export const COMMAND_EXPLORER_FLAT = 'gradle.explorerFlat';
-export const COMMAND_OPEN_SETTINGS = 'gradle.openSettings';
-export const COMMAND_CANCELLING_TREE_ITEM_TASK =
-  'gradle.cancellingTreeItemTask';
-export const COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION =
-  'gradle.updateJavaProjectConfiguration';
-export const COMMAND_SHOW_LOGS = 'gradle.showLogs';
-export const COMMAND_STOP_DAEMONS = 'gradle.stopDaemons';
-export const COMMAND_STOP_DAEMON = 'gradle.stopDaemon';
-export const COMMAND_LOAD_TASKS = 'gradle.loadTasks';
+} from '../tasks/taskUtil';
+import {
+  focusProjectInGradleTasksTree,
+  updateGradleTreeItemStateForTask,
+} from '../views/viewUtil';
+import {
+  COMMAND_SHOW_TASKS,
+  COMMAND_RUN_TASK,
+  COMMAND_DEBUG_TASK,
+  COMMAND_RESTART_TASK,
+  COMMAND_RUN_TASK_WITH_ARGS,
+  COMMAND_DEBUG_TASK_WITH_ARGS,
+  COMMAND_RENDER_TASK,
+  COMMAND_CANCEL_TASK,
+  COMMAND_CANCEL_TREE_ITEM_TASK,
+  COMMAND_REFRESH,
+  COMMAND_LOAD_TASKS,
+  COMMAND_REFRESH_DAEMON_STATUS,
+  COMMAND_STOP_DAEMONS,
+  COMMAND_STOP_DAEMON,
+  COMMAND_EXPLORER_TREE,
+  COMMAND_EXPLORER_FLAT,
+  COMMAND_OPEN_SETTINGS,
+  COMMAND_OPEN_BUILD_FILE,
+  COMMAND_CANCELLING_TREE_ITEM_TASK,
+  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
+  COMMAND_SHOW_LOGS,
+  COMMAND_BOOKMARK_TASK,
+  COMMAND_REMOVE_BOOKMARKED_TASK,
+} from './constants';
+import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
 );
 
-function registerShowTasks(
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+function registerShowTasksCommand(
   treeView: vscode.TreeView<vscode.TreeItem>
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
@@ -91,7 +95,8 @@ function registerDebugTaskCommand(client: GradleClient): vscode.Disposable {
 
 function registerRestartTaskCommand(
   client: GradleClient,
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RESTART_TASK,
@@ -102,6 +107,7 @@ function registerRestartTaskCommand(
           queueRestartTask(
             client,
             gradleTasksTreeDataProvider,
+            bookmarkedTasksTreeDataProvider,
             taskExecution.task
           );
         }
@@ -145,25 +151,36 @@ function registerDebugTaskWithArgsCommand(
 }
 
 function registerRenderTaskCommand(
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RENDER_TASK,
     (task: vscode.Task) => {
-      gradleTasksTreeDataProvider.renderTask(task);
+      updateGradleTreeItemStateForTask(
+        task,
+        gradleTasksTreeDataProvider,
+        bookmarkedTasksTreeDataProvider
+      );
     }
   );
 }
 
 function registerCancelTaskCommand(
   client: GradleClient,
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CANCEL_TASK,
     (task: vscode.Task) => {
       try {
-        cancelTask(client, gradleTasksTreeDataProvider, task);
+        cancelTask(
+          client,
+          gradleTasksTreeDataProvider,
+          bookmarkedTasksTreeDataProvider,
+          task
+        );
       } catch (e) {
         logger.error('Error cancelling task:', e.message);
       }
@@ -349,23 +366,61 @@ function registerShowLogsCommand(): vscode.Disposable {
   });
 }
 
+function registerBookmarkTaskCommand(
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_BOOKMARK_TASK,
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        bookmarkedTasksTreeDataProvider
+          .getStore()
+          .addTask(treeItem.task.definition.id);
+      }
+    }
+  );
+}
+
+function registerRemoveBookmarkedTaskCommand(
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_REMOVE_BOOKMARKED_TASK,
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        bookmarkedTasksTreeDataProvider
+          .getStore()
+          .removeTask(treeItem.task.definition.id);
+      }
+    }
+  );
+}
+
 export function registerCommands(
   context: vscode.ExtensionContext,
-  statusBarItem: vscode.StatusBarItem,
   client: GradleClient,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
   treeView: vscode.TreeView<vscode.TreeItem>,
   taskProvider: GradleTaskProvider
 ): void {
   context.subscriptions.push(
-    registerShowTasks(gradleTasksTreeDataProvider, treeView),
+    registerShowTasksCommand(treeView),
     registerRunTaskCommand(client),
     registerDebugTaskCommand(client),
-    registerRestartTaskCommand(client, gradleTasksTreeDataProvider),
+    registerRestartTaskCommand(
+      client,
+      gradleTasksTreeDataProvider,
+      bookmarkedTasksTreeDataProvider
+    ),
     registerRunTaskWithArgsCommand(client),
     registerDebugTaskWithArgsCommand(client),
-    registerCancelTaskCommand(client, gradleTasksTreeDataProvider),
+    registerCancelTaskCommand(
+      client,
+      gradleTasksTreeDataProvider,
+      bookmarkedTasksTreeDataProvider
+    ),
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, gradleTasksTreeDataProvider),
     registerRefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider),
@@ -376,9 +431,14 @@ export function registerCommands(
     registerOpenSettingsCommand(),
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),
-    registerRenderTaskCommand(gradleTasksTreeDataProvider),
+    registerRenderTaskCommand(
+      gradleTasksTreeDataProvider,
+      bookmarkedTasksTreeDataProvider
+    ),
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand(),
-    registerLoadTasksCommand(taskProvider)
+    registerLoadTasksCommand(taskProvider),
+    registerBookmarkTaskCommand(bookmarkedTasksTreeDataProvider),
+    registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider)
   );
 }

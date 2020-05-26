@@ -1,13 +1,7 @@
 import * as vscode from 'vscode';
 import { GradleTaskTreeItem } from './GradleTaskTreeItem';
 import { GroupTreeItem } from './GroupTreeItem';
-
-function treeItemSortCompareFunc(
-  a: vscode.TreeItem,
-  b: vscode.TreeItem
-): number {
-  return a.label!.localeCompare(b.label!);
-}
+import { treeItemSortCompareFunc } from '../viewUtil';
 
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
   private _tasks: GradleTaskTreeItem[] = [];

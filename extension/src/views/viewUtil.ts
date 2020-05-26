@@ -2,8 +2,30 @@ import * as vscode from 'vscode';
 import {
   taskTreeItemMap,
   projectTreeItemMap,
-} from './GradleTasksTreeDataProvider';
+  GradleTasksTreeDataProvider,
+} from './gradleTasks/GradleTasksTreeDataProvider';
 import { logger } from '../logger';
+import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
+
+export function treeItemSortCompareFunc(
+  a: vscode.TreeItem,
+  b: vscode.TreeItem
+): number {
+  return a.label!.localeCompare(b.label!);
+}
+
+export function updateGradleTreeItemStateForTask(
+  task: vscode.Task,
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): void {
+  const treeItem = taskTreeItemMap.get(task.definition.id);
+  if (treeItem) {
+    treeItem.setContext();
+    gradleTasksTreeDataProvider.refresh(treeItem);
+    bookmarkedTasksTreeDataProvider.refresh();
+  }
+}
 
 export async function focusTaskInGradleTasksTree(
   treeView: vscode.TreeView<vscode.TreeItem>,
@@ -13,9 +35,7 @@ export async function focusTaskInGradleTasksTree(
     const treeItem = taskTreeItemMap.get(task.definition.id);
     if (treeItem) {
       await treeView.reveal(treeItem, {
-        focus: true,
         expand: true,
-        select: false,
       });
     }
   } catch (err) {
