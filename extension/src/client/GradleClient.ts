@@ -53,23 +53,24 @@ import {
 export class GradleClient implements vscode.Disposable {
   private readonly connectDeadline = 20; // seconds
   private grpcClient: GrpcClient | null = null;
-  private readonly _onConnect: vscode.EventEmitter<
+  private readonly _onDidConnect: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  private readonly _onConnectFail: vscode.EventEmitter<
+  private readonly _onDidConnectFail: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  public readonly onConnect: vscode.Event<null> = this._onConnect.event;
-  public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
+  public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
+  public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail
+    .event;
 
-  private readonly waitForConnect = new EventWaiter(this.onConnect).wait;
+  private readonly waitForConnect = new EventWaiter(this.onDidConnect).wait;
 
   public constructor(
     private readonly server: GradleServer,
     private readonly statusBarItem: vscode.StatusBarItem
   ) {
-    this.server.onReady(this.handleServerReady);
-    this.server.onStop(this.handleServerStop);
+    this.server.onDidStart(this.handleServerStart);
+    this.server.onDidStop(this.handleServerStop);
     this.server.start();
   }
 
@@ -77,7 +78,7 @@ export class GradleClient implements vscode.Disposable {
     //
   };
 
-  public handleServerReady = (): Thenable<void> => {
+  public handleServerStart = (): Thenable<void> => {
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
@@ -87,11 +88,11 @@ export class GradleClient implements vscode.Disposable {
       (progress: vscode.Progress<{ message?: string }>) => {
         progress.report({ message: 'Connecting' });
         return new Promise((resolve) => {
-          const disposableConnectHandler = this.onConnect(() => {
+          const disposableConnectHandler = this.onDidConnect(() => {
             disposableConnectHandler.dispose();
             resolve();
           });
-          const disposableConnectFailHandler = this.onConnectFail(() => {
+          const disposableConnectFailHandler = this.onDidConnectFail(() => {
             disposableConnectFailHandler.dispose();
             resolve();
           });
@@ -106,7 +107,7 @@ export class GradleClient implements vscode.Disposable {
       this.handleConnectError(err);
     } else {
       logger.info('Gradle client connected to server');
-      this._onConnect.fire(null);
+      this._onDidConnect.fire(null);
     }
   };
 
@@ -145,7 +146,7 @@ export class GradleClient implements vscode.Disposable {
           progress,
           'Configure project'
         );
-        progressHandler.onProgressStart(() => {
+        progressHandler.onDidProgressStart(() => {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });
 
@@ -240,7 +241,7 @@ export class GradleClient implements vscode.Disposable {
         );
 
         const progressHandler = new ProgressHandler(progress);
-        progressHandler.onProgressStart(() => {
+        progressHandler.onDidProgressStart(() => {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });
 
@@ -480,7 +481,7 @@ export class GradleClient implements vscode.Disposable {
   private handleConnectError = (e: Error): void => {
     logger.error('Error connecting to gradle server:', e.message);
     this.grpcClient!.close();
-    this._onConnectFail.fire(null);
+    this._onDidConnectFail.fire(null);
     if (this.server.isReady()) {
       const connectivityState = this.grpcClient!.getChannel().getConnectivityState(
         true
@@ -500,12 +501,12 @@ export class GradleClient implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.handleServerReady();
+      this.handleServerStart();
     }
   }
 
   public dispose(): void {
     this.grpcClient?.close();
-    this._onConnect.dispose();
+    this._onDidConnect.dispose();
   }
 }

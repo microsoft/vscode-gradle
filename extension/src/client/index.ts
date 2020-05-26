@@ -11,7 +11,7 @@ export function registerClient(
   const statusBarItem = vscode.window.createStatusBarItem();
   const client = new GradleClient(server, statusBarItem);
   context.subscriptions.push(client, statusBarItem);
-  client.onConnect(() => {
+  client.onDidConnect(() => {
     vscode.commands.executeCommand(COMMAND_LOAD_TASKS);
   });
   return client;
