@@ -22,7 +22,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
     gradleTasksTreeView,
-  } = registerGradleViews(context, client);
+  } = registerGradleViews(context, taskProvider, client);
 
   registerBuildFileWatcher(context, taskProvider, taskManager);
 

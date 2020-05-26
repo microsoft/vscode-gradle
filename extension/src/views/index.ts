@@ -8,9 +8,11 @@ import { COMMAND_REFRESH } from '../commands';
 import { GradleClient } from '../client/GradleClient';
 import { isGradleTask } from '../tasks/taskUtil';
 import { focusTaskInGradleTasksTree } from './viewUtil';
+import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
+  taskProvider: GradleTaskProvider,
   client: GradleClient
 ): {
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
@@ -18,7 +20,10 @@ export function registerGradleViews(
   gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
 } {
   const collapsed = context.workspaceState.get('explorerCollapsed', false);
-  const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(context);
+  const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
+    context,
+    taskProvider
+  );
   gradleTasksTreeDataProvider.setCollapsed(collapsed);
   const gradleTasksTreeView = vscode.window.createTreeView('gradleTasksView', {
     treeDataProvider: gradleTasksTreeDataProvider,
