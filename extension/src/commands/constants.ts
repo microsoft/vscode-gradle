@@ -23,3 +23,4 @@ export const COMMAND_STOP_DAEMON = 'gradle.stopDaemon';
 export const COMMAND_LOAD_TASKS = 'gradle.loadTasks';
 export const COMMAND_BOOKMARK_TASK = 'gradle.bookmarkTask';
 export const COMMAND_REMOVE_BOOKMARKED_TASK = 'gradle.removeBookmarkedTask';
+export const COMMAND_OPEN_BOOKMARK_HELP = 'gradle.openBookmarkHelp';

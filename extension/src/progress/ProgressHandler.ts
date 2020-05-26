@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 
 export class ProgressHandler {
-  private _onProgressStart: vscode.EventEmitter<null> = new vscode.EventEmitter<
+  private readonly _onDidProgressStart: vscode.EventEmitter<
     null
-  >();
-  public readonly onProgressStart: vscode.Event<null> = this._onProgressStart
-    .event;
+  > = new vscode.EventEmitter<null>();
+  public readonly onDidProgressStart: vscode.Event<null> = this
+    ._onDidProgressStart.event;
 
   public constructor(
     private readonly progress: vscode.Progress<{ message?: string }>,
@@ -19,8 +19,8 @@ export class ProgressHandler {
   public report(message: string): void {
     if (message.trim()) {
       this.progress.report({ message });
-      this._onProgressStart.fire(null);
-      this._onProgressStart.dispose();
+      this._onDidProgressStart.fire(null);
+      this._onDidProgressStart.dispose();
     }
   }
 }

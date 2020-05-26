@@ -10,14 +10,18 @@ export interface ServerOptions {
 
 export class GradleServer implements vscode.Disposable {
   private taskExecution?: vscode.TaskExecution;
-  private _onReady: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private _onStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidStart: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
+  private readonly _onDidStop: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
   private restarting = false;
   private ready = false;
   private port: number | undefined;
 
-  public readonly onReady: vscode.Event<null> = this._onReady.event;
-  public readonly onStop: vscode.Event<null> = this._onStop.event;
+  public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
+  public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
 
   constructor(
     private readonly opts: ServerOptions,
@@ -32,7 +36,7 @@ export class GradleServer implements vscode.Disposable {
             );
             try {
               await waitOnTcp('localhost', this.port!);
-              this.fireOnReady();
+              this.fireOnStart();
             } catch (e) {
               logger.error('Gradle server not started:', e.message);
             }
@@ -44,7 +48,7 @@ export class GradleServer implements vscode.Disposable {
       vscode.tasks.onDidEndTaskProcess((event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this.ready = false;
-          this._onStop.fire(null);
+          this._onDidStop.fire(null);
           if (!this.restarting) {
             logger.info('Gradle server stopped');
             this.taskExecution = undefined;
@@ -58,7 +62,7 @@ export class GradleServer implements vscode.Disposable {
   public async start(): Promise<void> {
     if (isDebuggingServer()) {
       this.port = 8887;
-      this.fireOnReady();
+      this.fireOnStart();
     } else {
       this.port = await getPort();
       const cwd = this.context.asAbsolutePath('lib');
@@ -102,16 +106,16 @@ export class GradleServer implements vscode.Disposable {
     }
   }
 
-  private fireOnReady(): void {
+  private fireOnStart(): void {
     logger.info('Gradle server started');
     this.ready = true;
-    this._onReady.fire(null);
+    this._onDidStart.fire(null);
   }
 
   public dispose(): void {
     this.taskExecution?.terminate();
-    this._onReady.dispose();
-    this._onStop.dispose();
+    this._onDidStart.dispose();
+    this._onDidStop.dispose();
   }
 
   public getPort(): number | undefined {

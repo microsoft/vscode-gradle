@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import { ProjectTreeItem } from './ProjectTreeItem';
 
 export class WorkspaceTreeItem extends vscode.TreeItem {
-  projects: ProjectTreeItem[] = [];
-  projectFolders: WorkspaceTreeItem[] = [];
-  parentTreeItem: WorkspaceTreeItem | null = null;
+  public readonly projects: ProjectTreeItem[] = [];
+  public readonly projectFolders: WorkspaceTreeItem[] = [];
+  public readonly parentTreeItem: WorkspaceTreeItem | null = null;
 
   constructor(name: string, resourceUri: vscode.Uri) {
     super(name, vscode.TreeItemCollapsibleState.Expanded);
@@ -13,11 +13,11 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
     this.iconPath = vscode.ThemeIcon.Folder;
   }
 
-  addProject(project: ProjectTreeItem): void {
+  public addProject(project: ProjectTreeItem): void {
     this.projects.push(project);
   }
 
-  addProjectFolder(projectFolder: WorkspaceTreeItem): void {
+  public addProjectFolder(projectFolder: WorkspaceTreeItem): void {
     this.projectFolders.push(projectFolder);
   }
 }

@@ -25,10 +25,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 
   private readonly javaDebug?: JavaDebug;
 
-  public static STATE_RUNNING = 'runningTask';
-  public static STATE_CANCELLING = 'cancellingTask';
-  public static STATE_IDLE = 'task';
-  public static STATE_DEBUG_IDLE = 'debugTask';
+  public static readonly STATE_RUNNING = 'runningTask';
+  public static readonly STATE_CANCELLING = 'cancellingTask';
+  public static readonly STATE_IDLE = 'task';
+  public static readonly STATE_DEBUG_IDLE = 'debugTask';
 
   constructor(
     parentTreeItem: vscode.TreeItem,
@@ -54,7 +54,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     this.setContext();
   }
 
-  setContext(): void {
+  public setContext(): void {
     this.contextValue = getTreeItemState(this.task, this.javaDebug);
     if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
       this.iconPath = this.iconPathRunning;

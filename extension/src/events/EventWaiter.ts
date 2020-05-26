@@ -11,14 +11,14 @@ export class EventWaiter {
     });
   }
 
-  onEvent = (callback: callback): void => {
+  public onEvent = (callback: callback): void => {
     const disposable = this.event(() => {
       disposable.dispose();
       callback();
     });
   };
 
-  wait = (): Promise<void> => {
+  public wait = (): Promise<void> => {
     if (this.eventRun) {
       return Promise.resolve();
     }
