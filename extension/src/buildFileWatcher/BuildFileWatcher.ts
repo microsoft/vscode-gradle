@@ -5,14 +5,14 @@ type handler = () => void;
 
 export class BuildFileWatcher implements vscode.Disposable {
   private fileSystemWatcher?: vscode.FileSystemWatcher;
-  private buildFileGlob = '**/*.{gradle,gradle.kts}';
-  private handlers: handler[] = [];
+  private readonly buildFileGlob = '**/*.{gradle,gradle.kts}';
+  private readonly handlers: handler[] = [];
 
-  addHandler(handler: handler): void {
+  public addHandler(handler: handler): void {
     this.handlers.push(handler);
   }
 
-  start(): void {
+  public start(): void {
     if (!this.fileSystemWatcher) {
       this.fileSystemWatcher = vscode.workspace.createFileSystemWatcher(
         this.buildFileGlob
@@ -24,18 +24,18 @@ export class BuildFileWatcher implements vscode.Disposable {
     }
   }
 
-  callHandlers = (): void => {
+  public callHandlers = (): void => {
     this.handlers.forEach((handler) => handler());
   };
 
-  stop(): void {
+  public stop(): void {
     if (this.fileSystemWatcher) {
       this.dispose();
       logger.debug('Build file watcher stopped');
     }
   }
 
-  dispose(): void {
+  public dispose(): void {
     this.fileSystemWatcher?.dispose();
     this.fileSystemWatcher = undefined;
   }
