@@ -28,8 +28,9 @@ export async function focusProjectInGradleTasksTree(
   uri: vscode.Uri
 ): Promise<void> {
   try {
-    // It could be the case the view container has not been shown,
-    // and the following would have no effect
+    await vscode.commands.executeCommand(
+      'workbench.view.extension.gradleContainerView'
+    );
     const treeItem = projectTreeItemMap.get(uri.fsPath);
     if (treeItem) {
       await treeView.reveal(treeItem, {

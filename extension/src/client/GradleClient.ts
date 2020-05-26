@@ -206,7 +206,7 @@ export class GradleClient implements vscode.Disposable {
             }`
           );
           this.statusBarItem.command = 'gradle.showLogs';
-          this.statusBarItem.text = '$(issues) Gradle: Build Error';
+          this.statusBarItem.text = '$(warning) Gradle: Build Error';
           this.statusBarItem.show();
         } finally {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);

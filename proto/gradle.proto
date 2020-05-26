@@ -114,6 +114,7 @@ message DaemonInfo {
     BUSY = 1;
     STOPPED = 2;
     STOPPING = 3;
+    CANCELED = 4;
   }
   string pid = 1;
   DaemonStatus status = 2;
