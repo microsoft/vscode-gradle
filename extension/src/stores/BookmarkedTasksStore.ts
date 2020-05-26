@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 
 export class BookmarkedTasksStore {
-  private data = new Set<string>();
+  private readonly data = new Set<string>();
 
-  private _onDidChange: vscode.EventEmitter<null> = new vscode.EventEmitter<
+  private readonly _onDidChange: vscode.EventEmitter<
     null
-  >();
+  > = new vscode.EventEmitter<null>();
   public readonly onDidChange: vscode.Event<null> = this._onDidChange.event;
 
   constructor(private readonly context: vscode.ExtensionContext) {

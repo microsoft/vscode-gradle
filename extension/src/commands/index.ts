@@ -53,6 +53,7 @@ import {
   COMMAND_SHOW_LOGS,
   COMMAND_BOOKMARK_TASK,
   COMMAND_REMOVE_BOOKMARKED_TASK,
+  COMMAND_OPEN_BOOKMARK_HELP,
 } from './constants';
 import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 
@@ -396,6 +397,14 @@ function registerRemoveBookmarkedTaskCommand(
   );
 }
 
+function registerOpenBookmarkHelpCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_OPEN_BOOKMARK_HELP, () => {
+    vscode.window.showInformationMessage(
+      'Bookmark your favourite tasks via the task context menu.'
+    );
+  });
+}
+
 export function registerCommands(
   context: vscode.ExtensionContext,
   client: GradleClient,
@@ -439,6 +448,7 @@ export function registerCommands(
     registerShowLogsCommand(),
     registerLoadTasksCommand(taskProvider),
     registerBookmarkTaskCommand(bookmarkedTasksTreeDataProvider),
-    registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider)
+    registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider),
+    registerOpenBookmarkHelpCommand()
   );
 }

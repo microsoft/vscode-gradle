@@ -47,17 +47,18 @@ import { ProgressHandler } from '../progress/ProgressHandler';
 import {
   COMMAND_REFRESH_DAEMON_STATUS,
   COMMAND_CANCEL_TASK,
+  COMMAND_SHOW_LOGS,
 } from '../commands/constants';
 
 export class GradleClient implements vscode.Disposable {
-  private connectDeadline = 20; // seconds
+  private readonly connectDeadline = 20; // seconds
   private grpcClient: GrpcClient | null = null;
-  private _onConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<
+  private readonly _onConnect: vscode.EventEmitter<
     null
-  >();
-  private _onConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<
+  > = new vscode.EventEmitter<null>();
+  private readonly _onConnectFail: vscode.EventEmitter<
     null
-  >();
+  > = new vscode.EventEmitter<null>();
   public readonly onConnect: vscode.Event<null> = this._onConnect.event;
   public readonly onConnectFail: vscode.Event<null> = this._onConnectFail.event;
 
@@ -204,7 +205,7 @@ export class GradleClient implements vscode.Disposable {
               err.details || err.message
             }`
           );
-          this.statusBarItem.command = 'gradle.showLogs';
+          this.statusBarItem.command = COMMAND_SHOW_LOGS;
           this.statusBarItem.text = '$(warning) Gradle: Build Error';
           this.statusBarItem.show();
         } finally {

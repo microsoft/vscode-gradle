@@ -21,7 +21,7 @@ export interface CancelTaskOpts {
 
 export class Api {
   // To allow the tests to check for task logs
-  public logger = logger;
+  public readonly logger = logger;
 
   constructor(
     private readonly client: GradleClient,

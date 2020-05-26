@@ -14,11 +14,11 @@ import {
 } from '../commands/constants';
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
-  private writeEmitter = new vscode.EventEmitter<string>();
-  public onDidWrite: vscode.Event<string> = this.writeEmitter.event;
-  private closeEmitter = new vscode.EventEmitter<void>();
+  private readonly writeEmitter = new vscode.EventEmitter<string>();
+  public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
+  private readonly closeEmitter = new vscode.EventEmitter<void>();
   private task?: vscode.Task;
-  onDidClose?: vscode.Event<void> = this.closeEmitter.event;
+  public readonly onDidClose?: vscode.Event<void> = this.closeEmitter.event;
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
@@ -30,11 +30,11 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     this.task = task;
   }
 
-  open(): void {
+  public open(): void {
     this.doBuild();
   }
 
-  close(): void {
+  public close(): void {
     if (this.task && isTaskRunning(this.task)) {
       vscode.commands.executeCommand(COMMAND_CANCEL_TASK, this.task);
     }
@@ -118,7 +118,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     }
   }
 
-  handleInput(data: string): void {
+  public handleInput(data: string): void {
     // sigint eg cmd/ctrl+C
     if (data === '\x03') {
       vscode.commands.executeCommand(COMMAND_CANCEL_TASK, this.task);
