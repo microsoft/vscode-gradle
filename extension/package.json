@@ -213,6 +213,14 @@
         }
       },
       {
+        "command": "gradle.openBookmarkHelp",
+        "title": "Bookmark Info",
+        "icon": {
+          "light": "resources/light/help.svg",
+          "dark": "resources/dark/help.svg"
+        }
+      },
+      {
         "command": "gradle.cancellingTreeItemTask",
         "title": "Cancelling Task",
         "icon": {
@@ -292,11 +300,20 @@
           "when": "false"
         },
         {
+          "command": "gradle.openBookmarkHelp",
+          "when": "false"
+        },
+        {
           "command": "gradle.cancellingTreeItemTask",
           "when": "false"
         }
       ],
       "view/title": [
+        {
+          "command": "gradle.openBookmarkHelp",
+          "when": "view == bookmarkedTasksView",
+          "group": "navigation@0"
+        },
         {
           "command": "gradle.openSettings",
           "when": "view == gradleTasksView",

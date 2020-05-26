@@ -8,6 +8,8 @@ import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
 import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { treeItemSortCompareFunc } from '../viewUtil';
 import { BookmarkedTasksStore } from '../../stores/BookmarkedTasksStore';
+import { NoBookmarkedTasksTreeItem } from './NoBookmarkedTasksTreeItem';
+import { GradleTaskProvider } from '../../tasks/GradleTaskProvider';
 
 function buildBookmarkedTreeItem(
   treeItem: GradleTaskTreeItem
@@ -27,11 +29,15 @@ function buildBookmarkedTreeItem(
 
 export class BookmarkedTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly bookmarkedTasksStore: BookmarkedTasksStore) {
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly bookmarkedTasksStore: BookmarkedTasksStore,
+    private readonly gradleTaskProvider: GradleTaskProvider
+  ) {
     this.bookmarkedTasksStore.onDidChange(() => this.refresh());
   }
 
@@ -47,19 +53,27 @@ export class BookmarkedTasksTreeDataProvider
     this._onDidChangeTreeData.fire(treeItem);
   }
 
-  public getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
-    return element
-      ? []
-      : (this.bookmarkedTasksStore
-          .getTasks()
-          .map((taskId) => {
-            const treeItem = taskTreeItemMap.get(taskId);
-            if (treeItem) {
-              return buildBookmarkedTreeItem(treeItem);
-            }
-          })
-          .filter(
-            (taskItem) => taskItem !== undefined
-          ) as GradleTaskTreeItem[]).sort(treeItemSortCompareFunc);
+  public async getChildren(
+    element?: vscode.TreeItem
+  ): Promise<vscode.TreeItem[]> {
+    if (element) {
+      return [];
+    }
+    await this.gradleTaskProvider.waitForLoad();
+    const treeItems = (this.bookmarkedTasksStore
+      .getTasks()
+      .map((taskId) => {
+        const treeItem = taskTreeItemMap.get(taskId);
+        if (treeItem) {
+          return buildBookmarkedTreeItem(treeItem);
+        }
+      })
+      .filter(
+        (taskItem) => taskItem !== undefined
+      ) as GradleTaskTreeItem[]).sort(treeItemSortCompareFunc);
+    if (!treeItems.length) {
+      return [new NoBookmarkedTasksTreeItem(this.context)];
+    }
+    return treeItems;
   }
 }
