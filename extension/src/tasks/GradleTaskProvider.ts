@@ -58,7 +58,8 @@ export class GradleTaskProvider
   }
 
   public loadTasks(): Promise<vscode.Task[]> {
-    // TODO: does this actually work as expected
+    // To accomodate calling loadTasks() on extension activate (when client is connected)
+    // and opening the treeview.
     if (this.loadTasksPromise) {
       return this.loadTasksPromise;
     }
