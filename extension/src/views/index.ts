@@ -12,7 +12,7 @@ import {
 import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
 import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 import { COMMAND_REFRESH } from '../commands/constants';
-import { bookmarkedTasksStore } from '../stores';
+import { BookmarkedTasksStore } from '../stores/BookmarkedTasksStore';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
@@ -45,7 +45,10 @@ export function registerGradleViews(
       showCollapseAll: false,
     }
   );
-  const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider();
+  const bookmarkedTasksStore = new BookmarkedTasksStore(context);
+  const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
+    bookmarkedTasksStore
+  );
   const bookmarkedTasksTreeView = vscode.window.createTreeView(
     'bookmarkedTasksView',
     {
@@ -53,9 +56,10 @@ export function registerGradleViews(
       showCollapseAll: false,
     }
   );
-  bookmarkedTasksStore.onDidChange(() =>
+  gradleTasksTreeDataProvider.onDidBuildTreeItems(() =>
     bookmarkedTasksTreeDataProvider.refresh()
   );
+
   context.subscriptions.push(
     gradleTasksTreeView,
     bookmarkedTasksTreeView,

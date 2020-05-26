@@ -37,6 +37,12 @@ export class GradleTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
+  private _onDidBuildTreeItems: vscode.EventEmitter<
+    null
+  > = new vscode.EventEmitter<null>();
+  public readonly onDidBuildTreeItems: vscode.Event<null> = this
+    ._onDidBuildTreeItems.event;
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly taskProvider: GradleTaskProvider
@@ -205,6 +211,8 @@ export class GradleTasksTreeDataProvider
         parentTreeItem.addTask(taskTreeItem);
       }
     });
+
+    this._onDidBuildTreeItems.fire(null);
 
     if (workspaceTreeItemMap.size === 1) {
       return [
