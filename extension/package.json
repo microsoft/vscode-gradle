@@ -477,7 +477,6 @@
           "project",
           "buildFile",
           "rootProject",
-          "path",
           "projectFolder",
           "workspaceFolder",
           "args",
@@ -511,10 +510,6 @@
           "rootProject": {
             "type": "string",
             "description": "The root project this task belongs to"
-          },
-          "path": {
-            "type": "string",
-            "description": "The full task path"
           },
           "projectFolder": {
             "type": "string",
