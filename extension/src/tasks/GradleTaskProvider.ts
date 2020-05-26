@@ -29,7 +29,7 @@ export class GradleTaskProvider
 
   constructor(private readonly client: GradleClient) {}
 
-  async provideTasks(): Promise<vscode.Task[] | undefined> {
+  provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
   }
 
