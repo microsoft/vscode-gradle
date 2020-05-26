@@ -7,11 +7,14 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { Api as ExtensionApi, RunTaskOpts } from '../../api';
+import { Api as ExtensionApi, RunTaskOpts } from '../../api/Api';
 import { Output } from '../../proto/gradle_pb';
-import { GradleTasksTreeDataProvider } from '../../views/GradleTasksTreeDataProvider';
-import { GradleTaskTreeItem } from '../../views/GradleTaskTreeItem';
-import { COMMAND_RUN_TASK_WITH_ARGS, COMMAND_REFRESH } from '../../commands';
+import { GradleTasksTreeDataProvider } from '../../views/gradleTasks/GradleTasksTreeDataProvider';
+import { GradleTaskTreeItem } from '../../views/gradleTasks/GradleTaskTreeItem';
+import {
+  COMMAND_REFRESH,
+  COMMAND_RUN_TASK_WITH_ARGS,
+} from '../../commands/constants';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';

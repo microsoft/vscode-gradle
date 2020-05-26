@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ICON_WARNING } from './constants';
+import { ICON_WARNING } from '../constants';
 
 export class NoTasksTreeItem extends vscode.TreeItem {
   constructor(context: vscode.ExtensionContext) {

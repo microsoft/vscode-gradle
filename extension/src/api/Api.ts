@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { Output } from './proto/gradle_pb';
-import { logger } from './logger';
-import { GradleTasksTreeDataProvider } from './views/GradleTasksTreeDataProvider';
-import { GradleTaskDefinition } from './tasks/GradleTaskDefinition';
-import { GradleClient } from './client/GradleClient';
+import { Output } from '../proto/gradle_pb';
+import { logger } from '../logger';
+import { GradleTasksTreeDataProvider } from '../views/gradleTasks/GradleTasksTreeDataProvider';
+import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
+import { GradleClient } from '../client/GradleClient';
 
 export interface RunTaskOpts {
   projectFolder: string;

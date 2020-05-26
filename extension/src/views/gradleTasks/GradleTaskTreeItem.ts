@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { IconPath } from './types';
-import { JavaDebug } from '../config';
-import { isTaskRunning, isTaskCancelling } from '../tasks/taskUtil';
+import { IconPath } from '../types';
+import { JavaDebug } from '../../config';
+import { isTaskRunning, isTaskCancelling } from '../../tasks/taskUtil';
 
 function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug): string {
   // A task can be running but in a cancelling state
@@ -20,9 +20,9 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution?: vscode.TaskExecution;
+  public readonly iconPathRunning?: IconPath;
+  public readonly iconPathIdle?: IconPath;
 
-  private readonly iconPathRunning?: IconPath;
-  private readonly iconPathIdle?: IconPath;
   private readonly javaDebug?: JavaDebug;
 
   public static STATE_RUNNING = 'runningTask';
