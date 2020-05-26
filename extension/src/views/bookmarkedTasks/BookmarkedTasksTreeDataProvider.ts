@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { bookmarkedTasksStore } from '../../stores';
 import {
   taskTreeItemMap,
   workspaceJavaDebugMap,
@@ -8,6 +7,7 @@ import {
 import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
 import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { treeItemSortCompareFunc } from '../viewUtil';
+import { BookmarkedTasksStore } from '../../stores/BookmarkedTasksStore';
 
 function buildBookmarkedTreeItem(
   treeItem: GradleTaskTreeItem
@@ -31,6 +31,14 @@ export class BookmarkedTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
+  constructor(private readonly bookmarkedTasksStore: BookmarkedTasksStore) {
+    this.bookmarkedTasksStore.onDidChange(() => this.refresh());
+  }
+
+  public getStore(): BookmarkedTasksStore {
+    return this.bookmarkedTasksStore;
+  }
+
   public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
@@ -42,7 +50,7 @@ export class BookmarkedTasksTreeDataProvider
   public getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
     return element
       ? []
-      : (bookmarkedTasksStore
+      : (this.bookmarkedTasksStore
           .getTasks()
           .map((taskId) => {
             const treeItem = taskTreeItemMap.get(taskId);

@@ -8,12 +8,30 @@ export class BookmarkedTasksStore {
   >();
   public readonly onDidChange: vscode.Event<null> = this._onDidChange.event;
 
-  getTasks(): string[] {
+  constructor(private readonly context: vscode.ExtensionContext) {
+    const bookmarkedTasks = this.context.workspaceState.get(
+      'bookmarkedTasks',
+      []
+    );
+    bookmarkedTasks.forEach((taskId) => this.data.add(taskId));
+  }
+
+  public getTasks(): string[] {
     return Array.from(this.data.values());
   }
 
-  addTask(taskId: string): void {
+  public addTask(taskId: string): void {
     this.data.add(taskId);
+    this.fireOnDidChange();
+  }
+
+  public removeTask(taskId: string): void {
+    this.data.delete(taskId);
+    this.fireOnDidChange();
+  }
+
+  private fireOnDidChange(): void {
+    this.context.workspaceState.update('bookmarkedTasks', this.getTasks());
     this._onDidChange.fire(null);
   }
 }

@@ -97,6 +97,10 @@
         "title": "Bookmark Task"
       },
       {
+        "command": "gradle.removeBookmarkedTask",
+        "title": "Remove Bookmarked Task"
+      },
+      {
         "command": "gradle.debugTask",
         "title": "Debug Task",
         "icon": {
@@ -372,8 +376,13 @@
         },
         {
           "command": "gradle.bookmarkTask",
-          "when": "view == gradleTasksView",
+          "when": "view == gradleTasksView && viewItem =~ /^debugTask$|^task$/",
           "group": "contextGroup3@0"
+        },
+        {
+          "command": "gradle.removeBookmarkedTask",
+          "when": "view == bookmarkedTasksView",
+          "group": "contextGroup4@0"
         },
         {
           "command": "gradle.stopDaemon",
