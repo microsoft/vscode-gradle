@@ -4,8 +4,8 @@ import { GroupTreeItem } from './GroupTreeItem';
 import { treeItemSortCompareFunc } from '../viewUtil';
 
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
-  private _tasks: GradleTaskTreeItem[] = [];
-  private _groups: GroupTreeItem[] = [];
+  private readonly _tasks: GradleTaskTreeItem[] = [];
+  private readonly _groups: GroupTreeItem[] = [];
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly iconPath = vscode.ThemeIcon.Folder;
   public readonly contextValue = 'folder';
@@ -20,19 +20,19 @@ export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
     this.parentTreeItem = parentTreeItem;
   }
 
-  addTask(task: GradleTaskTreeItem): void {
+  public addTask(task: GradleTaskTreeItem): void {
     this._tasks.push(task);
   }
 
-  get tasks(): GradleTaskTreeItem[] {
+  public get tasks(): GradleTaskTreeItem[] {
     return this._tasks.sort(treeItemSortCompareFunc);
   }
 
-  addGroup(group: GroupTreeItem): void {
+  public addGroup(group: GroupTreeItem): void {
     this._groups.push(group);
   }
 
-  get groups(): GroupTreeItem[] {
+  public get groups(): GroupTreeItem[] {
     return this._groups.sort(treeItemSortCompareFunc);
   }
 }

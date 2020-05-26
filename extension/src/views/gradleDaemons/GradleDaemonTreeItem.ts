@@ -33,23 +33,23 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
     this.contextValue = this.status.toLowerCase();
   }
 
-  get tooltip(): string {
+  public get tooltip(): string {
     return `${this.status} - ${this.daemonInfo.getInfo()}`;
   }
 
-  get status(): string {
+  public get status(): string {
     return daemonStatusEnumMapByValue[this.daemonInfo.getStatus()];
   }
 
-  get description(): string {
+  public get description(): string {
     return this.status;
   }
 
-  get pid(): string {
+  public get pid(): string {
     return this.daemonInfo.getPid();
   }
 
-  get pidAsInt(): number {
+  public get pidAsInt(): number {
     return parseInt(this.pid, 10);
   }
 }
