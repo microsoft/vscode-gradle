@@ -54,16 +54,16 @@ export class Api {
     if (!tasks) {
       throw new Error('Unable to load gradle tasks');
     }
-    const task = tasks.find((task) => {
+    const foundTask = tasks.find((task) => {
       const definition = task.definition as GradleTaskDefinition;
       return (
         task.name === taskName && definition.projectFolder === projectFolder
       );
     });
-    if (!task) {
+    if (!foundTask) {
       throw new Error(`Unable to find task: ${taskName}`);
     }
-    return task;
+    return foundTask;
   }
 
   public getTasksTreeProvider(): GradleTasksTreeDataProvider {

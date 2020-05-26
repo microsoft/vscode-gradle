@@ -35,9 +35,7 @@ export async function focusTaskInGradleTasksTree(
     const treeItem = taskTreeItemMap.get(task.definition.id);
     if (treeItem) {
       await treeView.reveal(treeItem, {
-        focus: true,
         expand: true,
-        select: false,
       });
     }
   } catch (err) {

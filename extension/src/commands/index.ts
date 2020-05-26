@@ -52,8 +52,8 @@ import {
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
   COMMAND_SHOW_LOGS,
   COMMAND_BOOKMARK_TASK,
+  COMMAND_REMOVE_BOOKMARKED_TASK,
 } from './constants';
-import { bookmarkedTasksStore } from '../stores';
 import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 
 const packageJson = JSON.parse(
@@ -366,12 +366,31 @@ function registerShowLogsCommand(): vscode.Disposable {
   });
 }
 
-function registerBookmarkTaskCommand(): vscode.Disposable {
+function registerBookmarkTaskCommand(
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_BOOKMARK_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        bookmarkedTasksStore.addTask(treeItem.task.definition.id);
+        bookmarkedTasksTreeDataProvider
+          .getStore()
+          .addTask(treeItem.task.definition.id);
+      }
+    }
+  );
+}
+
+function registerRemoveBookmarkedTaskCommand(
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_REMOVE_BOOKMARKED_TASK,
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        bookmarkedTasksTreeDataProvider
+          .getStore()
+          .removeTask(treeItem.task.definition.id);
       }
     }
   );
@@ -419,6 +438,7 @@ export function registerCommands(
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand(),
     registerLoadTasksCommand(taskProvider),
-    registerBookmarkTaskCommand()
+    registerBookmarkTaskCommand(bookmarkedTasksTreeDataProvider),
+    registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider)
   );
 }
