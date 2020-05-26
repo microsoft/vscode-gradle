@@ -21,8 +21,38 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
-task copyViewTypes(type: Copy) {
+task copyBookmarkedTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies bookmarkedTasks views'
+  from file("../extension/out/views/bookmarkedTasks")
+  include "*.d.ts"
+  into 'lib/views/bookmarkedTasks'
+}
+
+task copyGradleDaemonsViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies gradleDaemons views'
+  from file("../extension/out/views/gradleDaemons")
+  include "*.d.ts"
+  into 'lib/views/gradleDaemons'
+}
+
+task copyGradleTasksViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies gradleTasks views'
+  from file("../extension/out/views/gradleTasks")
+  include "*.d.ts"
+  into 'lib/views/gradleTasks'
+}
+
+task copyViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd',
+    copyBookmarkedTasksViewTypes,
+    copyGradleDaemonsViewTypes,
+    copyGradleTasksViewTypes
   group 'copy'
   description 'Copies views'
   from file("../extension/out/views")
@@ -66,13 +96,23 @@ task copyLoggerTypes(type: Copy) {
   into 'lib/logger'
 }
 
+task copyApiTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies api'
+  from file("../extension/out/api")
+  include "*.d.ts"
+  into 'lib/api'
+}
+
 task copyPublicApi(type: Copy) {
   dependsOn ':extension:buildProd',
     copyViewTypes,
     copyClientTypes,
     copyTasksTypes,
     copyServerTypes,
-    copyLoggerTypes
+    copyLoggerTypes,
+    copyApiTypes
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/out")
