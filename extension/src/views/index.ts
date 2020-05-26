@@ -16,7 +16,7 @@ import { BookmarkedTasksStore } from '../stores/BookmarkedTasksStore';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
-  taskProvider: GradleTaskProvider,
+  gradleTaskProvider: GradleTaskProvider,
   client: GradleClient
 ): {
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
@@ -27,7 +27,7 @@ export function registerGradleViews(
   const collapsed = context.workspaceState.get('gradleTasksCollapsed', false);
   const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
     context,
-    taskProvider
+    gradleTaskProvider
   );
   gradleTasksTreeDataProvider.setCollapsed(collapsed);
   const gradleTasksTreeView = vscode.window.createTreeView('gradleTasksView', {
@@ -47,7 +47,9 @@ export function registerGradleViews(
   );
   const bookmarkedTasksStore = new BookmarkedTasksStore(context);
   const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
-    bookmarkedTasksStore
+    context,
+    bookmarkedTasksStore,
+    gradleTaskProvider
   );
   const bookmarkedTasksTreeView = vscode.window.createTreeView(
     'bookmarkedTasksView',

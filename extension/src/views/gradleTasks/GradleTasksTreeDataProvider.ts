@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { WorkspaceTreeItem } from './WorkspaceTreeItem';
-import { NoTasksTreeItem } from './NoTasksTreeItem';
 import { IconPath } from '../types';
 import { GradleTaskTreeItem } from './GradleTaskTreeItem';
 import { ProjectTreeItem } from './ProjectTreeItem';
@@ -12,6 +11,7 @@ import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { ICON_LOADING, ICON_GRADLE_TASK } from '../constants';
 import { isWorkspaceFolder } from '../../util';
 import { GradleTaskProvider } from '../../tasks/GradleTaskProvider';
+import { NoGradleTasksTreeItem } from './NoGradleTasksTreeItem';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
@@ -33,11 +33,11 @@ export class GradleTasksTreeDataProvider
   private collapsed = true;
   private iconPathRunning?: IconPath;
   private iconPathIdle?: IconPath;
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  private _onDidBuildTreeItems: vscode.EventEmitter<
+  private readonly _onDidBuildTreeItems: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
   public readonly onDidBuildTreeItems: vscode.Event<null> = this
@@ -65,15 +65,15 @@ export class GradleTasksTreeDataProvider
     };
   }
 
-  getIconPathRunning(): IconPath | undefined {
+  public getIconPathRunning(): IconPath | undefined {
     return this.iconPathRunning;
   }
 
-  getIconPathIdle(): IconPath | undefined {
+  public getIconPathIdle(): IconPath | undefined {
     return this.iconPathRunning;
   }
 
-  setCollapsed(collapsed: boolean): void {
+  public setCollapsed(collapsed: boolean): void {
     this.collapsed = collapsed;
     this.context.workspaceState.update('gradleTasksCollapsed', collapsed);
     vscode.commands.executeCommand(
@@ -90,21 +90,21 @@ export class GradleTasksTreeDataProvider
     // is why we get them directly from the task provider
     const tasks = await this.taskProvider.loadTasks();
     if (tasks.length === 0) {
-      return [new NoTasksTreeItem(this.context)];
+      return [new NoGradleTasksTreeItem(this.context)];
     } else {
       return this.buildItemsTreeFromTasks(tasks);
     }
   }
 
-  refresh(treeItem: vscode.TreeItem | null = null): void {
+  public refresh(treeItem: vscode.TreeItem | null = null): void {
     this._onDidChangeTreeData.fire(treeItem);
   }
 
-  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+  public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
-  getParent(element: vscode.TreeItem): vscode.TreeItem | null {
+  public getParent(element: vscode.TreeItem): vscode.TreeItem | null {
     if (
       element instanceof WorkspaceTreeItem ||
       element instanceof ProjectTreeItem ||
@@ -116,7 +116,9 @@ export class GradleTasksTreeDataProvider
     return null;
   }
 
-  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
+  public async getChildren(
+    element?: vscode.TreeItem
+  ): Promise<vscode.TreeItem[]> {
     if (element instanceof WorkspaceTreeItem) {
       return [...element.projectFolders, ...element.projects];
     }
@@ -128,7 +130,7 @@ export class GradleTasksTreeDataProvider
     }
     if (
       element instanceof GradleTaskTreeItem ||
-      element instanceof NoTasksTreeItem
+      element instanceof NoGradleTasksTreeItem
     ) {
       return [];
     }
@@ -139,9 +141,9 @@ export class GradleTasksTreeDataProvider
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
-  buildItemsTreeFromTasks(
+  public buildItemsTreeFromTasks(
     tasks: vscode.Task[]
-  ): WorkspaceTreeItem[] | NoTasksTreeItem[] {
+  ): WorkspaceTreeItem[] | NoGradleTasksTreeItem[] {
     let workspaceTreeItem = null;
 
     tasks.forEach((task) => {
