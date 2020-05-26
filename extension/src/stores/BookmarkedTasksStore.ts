@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export class BookmarkedTasksStore {
+export class BookmarkedTasksStore implements vscode.Disposable {
   private readonly data = new Set<string>();
 
   private readonly _onDidChange: vscode.EventEmitter<
@@ -33,5 +33,9 @@ export class BookmarkedTasksStore {
   private fireOnDidChange(): void {
     this.context.workspaceState.update('bookmarkedTasks', this.getTasks());
     this._onDidChange.fire(null);
+  }
+
+  public dispose(): void {
+    this._onDidChange.dispose();
   }
 }
