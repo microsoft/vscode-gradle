@@ -49,7 +49,7 @@ export function registerGradleViews(
   const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
     context,
     bookmarkedTasksStore,
-    gradleTaskProvider
+    gradleTasksTreeDataProvider
   );
   const bookmarkedTasksTreeView = vscode.window.createTreeView(
     'bookmarkedTasksView',
