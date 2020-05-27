@@ -12,6 +12,7 @@ import { ICON_LOADING, ICON_GRADLE_TASK } from '../constants';
 import { isWorkspaceFolder } from '../../util';
 import { GradleTaskProvider } from '../../tasks/GradleTaskProvider';
 import { NoGradleTasksTreeItem } from './NoGradleTasksTreeItem';
+import { EventWaiter } from '../../events/EventWaiter';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
@@ -42,6 +43,10 @@ export class GradleTasksTreeDataProvider
   > = new vscode.EventEmitter<null>();
   public readonly onDidBuildTreeItems: vscode.Event<null> = this
     ._onDidBuildTreeItems.event;
+
+  public readonly waitForBuildTreeItems = new EventWaiter(
+    this.onDidBuildTreeItems
+  ).wait;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -89,11 +94,12 @@ export class GradleTasksTreeDataProvider
     // using vscode.tasks.fetchTasks({ type: 'gradle' }) is *incredibly slow* which
     // is why we get them directly from the task provider
     const tasks = await this.taskProvider.loadTasks();
-    if (tasks.length === 0) {
-      return [new NoGradleTasksTreeItem(this.context)];
-    } else {
-      return this.buildItemsTreeFromTasks(tasks);
-    }
+    const taskItems =
+      tasks.length === 0
+        ? [new NoGradleTasksTreeItem(this.context)]
+        : this.buildItemsTreeFromTasks(tasks);
+    this._onDidBuildTreeItems.fire(null);
+    return taskItems;
   }
 
   public refresh(treeItem: vscode.TreeItem | null = null): void {
@@ -111,7 +117,7 @@ export class GradleTasksTreeDataProvider
       element instanceof TreeItemWithTasksOrGroups ||
       element instanceof GradleTaskTreeItem
     ) {
-      return element.parentTreeItem;
+      return element.parentTreeItem || null;
     }
     return null;
   }
@@ -213,8 +219,6 @@ export class GradleTasksTreeDataProvider
         parentTreeItem.addTask(taskTreeItem);
       }
     });
-
-    this._onDidBuildTreeItems.fire(null);
 
     if (workspaceTreeItemMap.size === 1) {
       return [

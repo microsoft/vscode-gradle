@@ -398,7 +398,7 @@
         },
         {
           "command": "gradle.removeBookmarkedTask",
-          "when": "view == bookmarkedTasksView",
+          "when": "view == bookmarkedTasksView && viewItem =~ /^debugTask$|^task$/",
           "group": "contextGroup4@0"
         },
         {
