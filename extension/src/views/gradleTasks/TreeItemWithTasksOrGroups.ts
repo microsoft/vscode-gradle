@@ -6,12 +6,12 @@ import { treeItemSortCompareFunc } from '../viewUtil';
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
   private readonly _tasks: GradleTaskTreeItem[] = [];
   private readonly _groups: GroupTreeItem[] = [];
-  public readonly parentTreeItem: vscode.TreeItem;
+  public readonly parentTreeItem?: vscode.TreeItem;
   public readonly iconPath = vscode.ThemeIcon.Folder;
   public readonly contextValue = 'folder';
   constructor(
     name: string,
-    parentTreeItem: vscode.TreeItem,
+    parentTreeItem?: vscode.TreeItem,
     resourceUri?: vscode.Uri,
     collapsibleState = vscode.TreeItemCollapsibleState.Expanded
   ) {

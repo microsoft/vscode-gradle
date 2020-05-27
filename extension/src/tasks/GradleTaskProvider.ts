@@ -4,7 +4,6 @@ import { logger } from '../logger';
 import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
 import { GradleClient } from '../client/GradleClient';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
-import { EventWaiter } from '../events/EventWaiter';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -31,7 +30,6 @@ export class GradleTaskProvider
     ._onDidRefreshStart.event;
   public readonly onDidRefreshStop: vscode.Event<null> = this._onDidRefreshStop
     .event;
-  public readonly waitForLoad = new EventWaiter(this.onDidTasksLoad).wait;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
   constructor(private readonly client: GradleClient) {}
