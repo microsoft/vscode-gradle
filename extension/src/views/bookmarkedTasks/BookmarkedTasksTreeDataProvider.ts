@@ -112,7 +112,9 @@ export class BookmarkedTasksTreeDataProvider
       }
     });
 
-    if (isMultiRoot) {
+    if (!workspaceTreeItemMap.size) {
+      return [];
+    } else if (isMultiRoot) {
       return [...workspaceTreeItemMap.values()];
     } else {
       return [...workspaceTreeItemMap.values().next().value.tasks];

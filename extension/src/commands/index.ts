@@ -208,7 +208,6 @@ function registerRefreshCommand(
     COMMAND_REFRESH,
     async (): Promise<void> => {
       invalidateTasksCache();
-      await taskProvider.loadTasks();
       gradleTasksTreeDataProvider.refresh();
     }
   );
