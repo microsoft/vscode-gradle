@@ -10,11 +10,9 @@ function getRecentTaskTreeItemState(
   gradleTaskTreeItemState: string,
   numTerminals: number
 ): string {
-  if (numTerminals > 0) {
-    return gradleTaskTreeItemState;
-  } else {
-    return `${gradleTaskTreeItemState}WithoutTerminals`;
-  }
+  return numTerminals > 0
+    ? `${gradleTaskTreeItemState}WithTerminals`
+    : gradleTaskTreeItemState;
 }
 
 export class RecentTaskTreeItem extends GradleTaskTreeItem {
@@ -30,20 +28,19 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
   }
 
   public setContext(): void {
-    const taskTerminalsStore = this.taskTerminalsStore.getItem(
-      this.task.definition.id
-    );
+    const definition = this.task.definition as GradleTaskDefinition;
+    const taskTerminalsStore = this.taskTerminalsStore.getItem(definition.id);
     const taskTerminals = Array.from(taskTerminalsStore || []);
     const numTerminals = taskTerminals.filter((terminal) => {
-      return terminal.args === this.task.definition.args;
+      return terminal.args === definition.args;
     }).length;
     const taskName = `${buildTaskName(
-      this.task.definition as GradleTaskDefinition
+      definition as GradleTaskDefinition
     )} (${numTerminals})`;
 
     this.label = taskName;
     this.contextValue = getRecentTaskTreeItemState(
-      getTreeItemState(this.task, this.javaDebug, this.task.definition.args),
+      getTreeItemState(this.task, this.javaDebug, definition.args),
       numTerminals
     );
     this.setIconState();

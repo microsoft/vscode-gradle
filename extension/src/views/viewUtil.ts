@@ -97,7 +97,7 @@ export async function focusProjectInGradleTasksTree(
   }
 }
 
-export function getTreeItemState(
+function getTreeItemRunningState(
   task: vscode.Task,
   javaDebug?: JavaDebug,
   args?: TaskArgs
@@ -112,4 +112,13 @@ export function getTreeItemState(
   return javaDebug && javaDebug.tasks.includes(task.definition.script)
     ? GradleTaskTreeItem.STATE_DEBUG_IDLE
     : GradleTaskTreeItem.STATE_IDLE;
+}
+
+export function getTreeItemState(
+  task: vscode.Task,
+  javaDebug?: JavaDebug,
+  args?: TaskArgs
+): string {
+  const runningState = getTreeItemRunningState(task, javaDebug, args);
+  return args ? `${runningState}WithArgs` : runningState;
 }

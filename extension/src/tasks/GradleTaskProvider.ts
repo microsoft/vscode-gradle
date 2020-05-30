@@ -5,7 +5,6 @@ import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
 import { EventWaiter } from '../events/EventWaiter';
 import { TaskId } from '../stores/types';
-// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -36,8 +35,6 @@ export class GradleTaskProvider
 
   public readonly waitForTasksLoad = new EventWaiter(this.onDidTasksLoad).wait;
 
-  // private readonly taskTerminalsStore: TaskTerminalsStore
-
   public provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
   }
@@ -62,7 +59,6 @@ export class GradleTaskProvider
       gradleTaskDefinition,
       workspaceFolder,
       projectFolder
-      // this.taskTerminalsStore
     );
   }
 
@@ -82,10 +78,7 @@ export class GradleTaskProvider
       cachedTasks = emptyTasks;
       return Promise.resolve(cachedTasks);
     }
-    this.loadTasksPromise = loadTasksForFolders(
-      // this.taskTerminalsStore,
-      folders
-    )
+    this.loadTasksPromise = loadTasksForFolders(folders)
       .then(
         (tasks) => {
           cachedTasks = tasks;

@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { workspaceJavaDebugMap } from '../gradleTasks/GradleTasksTreeDataProvider';
 import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
 import { BookmarkedTasksStore } from '../../stores/BookmarkedTasksStore';
 import { isWorkspaceFolder } from '../../util';
@@ -11,10 +9,15 @@ import { cloneTask } from '../../tasks/taskUtil';
 import { BookmarkedTaskTreeItem } from './BookmarkedTaskTreeItem';
 import { Extension } from '../../extension/Extension';
 import { BookmarkedTasksWorkspaceTreeItem } from './BookmarkedTasksWorkspaceTreeItem';
+import { getConfigJavaDebug, JavaDebug } from '../../config';
 
 const bookmarkedTasksWorkspaceTreeItemMap: Map<
   string,
   BookmarkedTasksWorkspaceTreeItem
+> = new Map();
+export const bookmarkedTasksWorkspaceJavaDebugMap: Map<
+  string,
+  JavaDebug
 > = new Map();
 
 // eslint-disable-next-line sonarjs/no-unused-collection
@@ -28,12 +31,13 @@ function buildTaskTreeItem(
   task: vscode.Task
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
+  const workspaceFolder = task.scope as vscode.WorkspaceFolder;
   const bookmarkedTaskTreeItem = new BookmarkedTaskTreeItem(
     workspaceTreeItem,
     task,
     task.name,
     definition.description,
-    workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
+    bookmarkedTasksWorkspaceJavaDebugMap.get(workspaceFolder.name)
   );
   bookmarkedTaskTreeItem.setContext();
   return bookmarkedTaskTreeItem;
@@ -50,6 +54,13 @@ function buildWorkspaceTreeItem(task: vscode.Task): void {
       bookmarkedTasksWorkspaceTreeItemMap.set(
         task.scope.name,
         workspaceTreeItem
+      );
+    }
+
+    if (!bookmarkedTasksWorkspaceJavaDebugMap.has(task.scope.name)) {
+      bookmarkedTasksWorkspaceJavaDebugMap.set(
+        task.scope.name,
+        getConfigJavaDebug(task.scope)
       );
     }
 
@@ -131,11 +142,10 @@ export class BookmarkedTasksTreeDataProvider
       if (!task) {
         return;
       }
-      const definition = task.definition as GradleTaskDefinition;
       const taskArgs = bookmarkedTasks.get(taskId) || '';
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
-          const bookmarkedTask = cloneTask(task, args, definition.javaDebug);
+          const bookmarkedTask = cloneTask(task, args);
           buildWorkspaceTreeItem(bookmarkedTask);
         });
       }
