@@ -137,7 +137,6 @@ export class Extension {
       this.bookmarkedTasksTreeDataProvider,
       this.recentTasksTreeDataProvider,
       this.gradleTasksTreeView
-      // taskTerminalsStore
     );
   }
 
