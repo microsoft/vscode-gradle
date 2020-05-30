@@ -13,14 +13,14 @@ import { EventWaiter } from '../../events/EventWaiter';
 import { Extension } from '../../extension/Extension';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
-export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
+export const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 export const workspaceTreeItemMap: Map<string, WorkspaceTreeItem> = new Map();
 export const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
 export const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
 export const workspaceJavaDebugMap: Map<string, JavaDebug> = new Map();
 
 function resetCachedTreeItems(): void {
-  taskTreeItemMap.clear();
+  gradleTaskTreeItemMap.clear();
   workspaceTreeItemMap.clear();
   projectTreeItemMap.clear();
   groupTreeItemMap.clear();
@@ -189,7 +189,7 @@ export class GradleTasksTreeDataProvider
         );
         taskTreeItem.setContext();
 
-        taskTreeItemMap.set(task.definition.id, taskTreeItem);
+        gradleTaskTreeItemMap.set(task.definition.id, taskTreeItem);
         parentTreeItem.addTask(taskTreeItem);
       }
     });

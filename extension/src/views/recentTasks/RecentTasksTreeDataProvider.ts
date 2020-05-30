@@ -6,54 +6,71 @@ import { isWorkspaceFolder } from '../../util';
 import { TaskHistoryWorkspaceTreeItem } from './TaskHistoryWorkspaceTreeItem';
 import { RecentTasksStore } from '../../stores/RecentTasksStore';
 import { NoRecentTasksTreeItem } from './NoRecentTasksTreeItem';
-import { cloneTask, buildTaskName } from '../../tasks/taskUtil';
+import { cloneTask } from '../../tasks/taskUtil';
 import { Extension } from '../../extension/Extension';
 import { RecentTasksWorkspaceTreeItem } from './RecentTasksWorkspaceTreeItem';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { RecentTaskTreeItem } from './RecentTaskTreeItem';
-import { TaskTerminalsStore } from '../../stores/TaskTerminalsStore';
+import {
+  TaskTerminalsStore,
+  TaskWithTerminal,
+} from '../../stores/TaskTerminalsStore';
+
+const recentTasksWorkspaceTreeItemMap: Map<
+  string,
+  RecentTasksWorkspaceTreeItem
+> = new Map();
+
+// eslint-disable-next-line sonarjs/no-unused-collection
+export const recentTasksTreeItemMap: Map<
+  string,
+  RecentTaskTreeItem
+> = new Map();
 
 function buildTaskTreeItem(
   workspaceTreeItem: RecentTasksWorkspaceTreeItem,
   task: vscode.Task,
-  taskLabel: string,
-  numTerminals: number
-): GradleTaskTreeItem {
+  taskTerminalsStore: TaskTerminalsStore
+): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
   const recentTaskTreeItem = new RecentTaskTreeItem(
     workspaceTreeItem,
     task,
-    taskLabel,
+    '',
     definition.description,
     workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder)),
-    numTerminals
+    taskTerminalsStore
   );
   recentTaskTreeItem.setContext();
   return recentTaskTreeItem;
 }
 
 function buildWorkspaceTreeItem(
-  workspaceTreeItemMap: Map<string, RecentTasksWorkspaceTreeItem>,
   task: vscode.Task,
-  taskLabel: string,
-  numTerminals: number
+  taskTerminalsStore: TaskTerminalsStore
 ): void {
-  if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
-    let workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
+  const definition = task.definition as GradleTaskDefinition;
+  if (isWorkspaceFolder(task.scope) && definition.buildFile) {
+    let workspaceTreeItem = recentTasksWorkspaceTreeItemMap.get(
+      task.scope.name
+    );
     if (!workspaceTreeItem) {
       workspaceTreeItem = new RecentTasksWorkspaceTreeItem(task.scope.name);
-      workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
+      recentTasksWorkspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
     }
 
-    const bookmarkedTaskTreeItem = buildTaskTreeItem(
+    const recentTaskTreeItem = buildTaskTreeItem(
       workspaceTreeItem,
       task,
-      taskLabel,
-      numTerminals
+      taskTerminalsStore
+    );
+    recentTasksTreeItemMap.set(
+      definition.id + definition.args,
+      recentTaskTreeItem
     );
 
-    workspaceTreeItem.addTask(bookmarkedTaskTreeItem);
+    workspaceTreeItem.addTask(recentTaskTreeItem);
   }
 }
 
@@ -68,9 +85,28 @@ export class RecentTasksTreeDataProvider
     private readonly recentTasksStore: RecentTasksStore,
     private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
-    // this.recentTasksStore.onDidChange(() => this.refresh());
-    this.taskTerminalsStore.onDidChange(() => this.refresh());
+    this.recentTasksStore.onDidChange(() => this.refresh());
+    this.taskTerminalsStore.onDidChange(this.handleTerminalsStoreChange);
   }
+
+  private handleTerminalsStoreChange = (
+    terminals: Set<TaskWithTerminal> | null
+  ): void => {
+    if (terminals) {
+      const taskId = Array.from(this.taskTerminalsStore.getData().keys()).find(
+        (key) => this.taskTerminalsStore.getItem(key) === terminals
+      );
+      if (taskId) {
+        const treeItem = recentTasksTreeItemMap.get(taskId);
+        if (treeItem) {
+          treeItem.setContext();
+          this.refresh(treeItem);
+          return;
+        }
+      }
+    }
+    this.refresh();
+  };
 
   public getStore(): RecentTasksStore {
     return this.recentTasksStore;
@@ -109,16 +145,14 @@ export class RecentTasksTreeDataProvider
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
+    recentTasksWorkspaceTreeItemMap.clear();
+    recentTasksTreeItemMap.clear();
+
     const { workspaceFolders } = vscode.workspace;
     if (!workspaceFolders) {
       return [];
     }
     const isMultiRoot = workspaceFolders.length > 1;
-    const workspaceTreeItemMap: Map<
-      string,
-      RecentTasksWorkspaceTreeItem
-    > = new Map();
-
     const { gradleTaskProvider } = Extension.getInstance();
     await gradleTaskProvider.waitForTasksLoad();
 
@@ -130,120 +164,21 @@ export class RecentTasksTreeDataProvider
       }
       const definition = task.definition as GradleTaskDefinition;
       const taskArgs = recentTasks.get(taskId) || '';
-      const taskTerminalsSet = this.taskTerminalsStore.getItem(definition.id);
-      if (!taskTerminalsSet) {
-        return;
-      }
-      const taskTerminals = Array.from(taskTerminalsSet);
+
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const recentTask = cloneTask(task, args, definition.javaDebug);
-          const numTerminals = taskTerminals.filter((terminal) => {
-            return terminal.args === args;
-          }).length;
-          const taskName = `${buildTaskName(
-            recentTask.definition as GradleTaskDefinition
-          )} (${numTerminals})`;
-          buildWorkspaceTreeItem(
-            workspaceTreeItemMap,
-            recentTask,
-            taskName,
-            numTerminals
-          );
+          buildWorkspaceTreeItem(recentTask, this.taskTerminalsStore);
         });
       }
     });
 
-    if (!workspaceTreeItemMap.size) {
+    if (!recentTasksWorkspaceTreeItemMap.size) {
       return [];
     } else if (isMultiRoot) {
-      return [...workspaceTreeItemMap.values()];
+      return [...recentTasksWorkspaceTreeItemMap.values()];
     } else {
-      return [...workspaceTreeItemMap.values().next().value.tasks];
+      return [...recentTasksWorkspaceTreeItemMap.values().next().value.tasks];
     }
   }
-
-  // // eslint-disable-next-line sonarjs/cognitive-complexity
-  // private async buildTreeItems2(): Promise<vscode.TreeItem[]> {
-  //   const { workspaceFolders } = vscode.workspace;
-  //   if (!workspaceFolders) {
-  //     return [];
-  //   }
-  //   const recentTasks = this.recentTasksStore.get();
-
-  //   const isMultiRoot = workspaceFolders.length > 1;
-  //   const workspaceTreeItemMap: Map<
-  //     string,
-  //     TaskHistoryWorkspaceTreeItem
-  //   > = new Map();
-
-  //   // For performance reasons, we find the associated task via the taskTreeItemMap,
-  //   // so we need to wait for the treeItems to be built first
-  //   // TODO: make this a decorator
-  //   await this.gradleTasksTreeDataProvider.waitForBuildTreeItems();
-
-  //   if (taskTreeItemMap.size === 0) {
-  //     return [];
-  //   }
-
-  //   recentTasks.forEach((definition) => {
-  //     const treeItem = taskTreeItemMap.get(definition.id);
-  //     if (!treeItem) {
-  //       return;
-  //     }
-  //     const { task } = treeItem;
-  //     if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
-  //       let workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
-  //       if (!workspaceTreeItem) {
-  //         workspaceTreeItem = new TaskHistoryWorkspaceTreeItem(task.scope.name);
-  //         workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
-  //       }
-
-  //       const tasksWithTerminals: TaskWithTerminal[] = this.taskTerminalsStore.getList(
-  //         definition.id
-  //       );
-
-  //       const taskWithTerminalsGroupedbyArgs = tasksWithTerminals.reduce(
-  //         (previousValue: TaskByArgsGroup, currentValue: TaskWithTerminal) => {
-  //           const key = currentValue.definition.args || '';
-  //           if (!previousValue[key]) {
-  //             previousValue[key] = [];
-  //           }
-  //           previousValue[key].push(currentValue.terminal);
-  //           return previousValue;
-  //         },
-  //         {}
-  //       );
-  //       Object.keys(taskWithTerminalsGroupedbyArgs).forEach((argKey) => {
-  //         const terminals = taskWithTerminalsGroupedbyArgs[argKey];
-  //         const argLabel = argKey ? ` ${argKey} ` : ' ';
-  //         const label = `${task.name}${argLabel}(${terminals.length})`;
-  //         const recentTaskTreeItem = new GradleTaskTreeItem(
-  //           workspaceTreeItem!,
-  //           cloneTask(
-  //             task,
-  //             definition.args,
-  //             this.client,
-  //             this.taskTerminalsStore,
-  //             definition.javaDebug
-  //           ),
-  //           label,
-  //           definition.description,
-  //           this.iconPathRunning!,
-  //           this.iconPathIdle!,
-  //           workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
-  //         );
-  //         workspaceTreeItem!.addTask(recentTaskTreeItem);
-  //       });
-  //     }
-  //   });
-
-  //   if (!workspaceTreeItemMap.size) {
-  //     return [];
-  //   } else if (isMultiRoot) {
-  //     return [...workspaceTreeItemMap.values()];
-  //   } else {
-  //     return [...workspaceTreeItemMap.values().next().value.tasks];
-  //   }
-  // }
 }

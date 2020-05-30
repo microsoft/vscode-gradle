@@ -15,6 +15,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public static readonly STATE_IDLE = 'task';
   public static readonly STATE_DEBUG_IDLE = 'debugTask';
 
+  public static stateRunningRegex = new RegExp(
+    `^${GradleTaskTreeItem.STATE_RUNNING}`
+  );
+
   constructor(
     parentTreeItem: vscode.TreeItem,
     task: vscode.Task,
@@ -41,7 +45,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
 
   protected setIconState(): void {
     const { iconPathRunning, iconPathIdle } = Extension.getInstance().icons;
-    if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
+    if (
+      this.contextValue &&
+      GradleTaskTreeItem.stateRunningRegex.test(this.contextValue)
+    ) {
       this.iconPath = iconPathRunning;
     } else {
       this.iconPath = iconPathIdle;

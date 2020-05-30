@@ -5,24 +5,26 @@ export class StoreSet<K, V> extends Store<K, Set<V>> {
     let set = this.getItem(key);
     if (!set) {
       set = new Set<V>();
-      this.setItem(key, set);
+      this.setItem(key, set, false);
     }
-    set.add(value);
-    if (fireOnDidChange) {
-      this.fireOnDidChange();
+    if (!set.has(value)) {
+      set.add(value);
+      if (fireOnDidChange) {
+        this.fireOnDidChange(set);
+      }
     }
   }
 
   public removeEntry(key: K, value: V, fireOnDidChange = true): void {
     const set = this.getItem(key);
-    if (set) {
+    if (set && set.has(value)) {
       set.delete(value);
       if (set.size === 0) {
-        this.removeItem(key);
+        this.removeItem(key, false);
       }
-    }
-    if (fireOnDidChange) {
-      this.fireOnDidChange();
+      if (fireOnDidChange) {
+        this.fireOnDidChange(set);
+      }
     }
   }
 }

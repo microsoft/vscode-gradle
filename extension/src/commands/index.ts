@@ -453,7 +453,6 @@ function registerCloseTaskTerminals(): vscode.Disposable {
           Array.from(terminalsStore).forEach((taskWithTerminal) =>
             taskWithTerminal.terminal.dispose()
           );
-          taskTerminalsStore.fireOnDidChange();
         }
       }
     }

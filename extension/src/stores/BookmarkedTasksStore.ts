@@ -38,6 +38,6 @@ export class BookmarkedTasksStore extends TaskStore {
       this.getData()
     );
     this.context.workspaceState.update('bookmarkedTasks', workspaceStateTasks);
-    super.fireOnDidChange();
+    super.fireOnDidChange(null);
   }
 }
