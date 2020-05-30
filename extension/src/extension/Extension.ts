@@ -149,12 +149,12 @@ export class Extension {
 
   private handleTaskEvents(): void {
     this.gradleTaskManager.onDidStartTask(async (task: vscode.Task) => {
-      const definition = task.definition as GradleTaskDefinition;
-      this.recentTasksStore.addEntry(definition.id, definition.args);
-      await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
       if (this.gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
         await focusTaskInGradleTasksTree(this.gradleTasksTreeView, task);
       }
+      const definition = task.definition as GradleTaskDefinition;
+      this.recentTasksStore.addEntry(definition.id, definition.args);
+      await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     });
     this.gradleTaskManager.onDidEndTask(async (task: vscode.Task) => {
       await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
@@ -196,7 +196,7 @@ export class Extension {
       ),
       vscode.window.onDidCloseTerminal((terminal: vscode.Terminal) => {
         this.taskTerminalsStore.removeTerminal(terminal);
-        this.taskTerminalsStore.fireOnDidChange();
+        this.taskTerminalsStore.fireOnDidChange(null);
       })
     );
   }

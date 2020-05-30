@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
+import { debounce } from '../decorators/decorators';
 
-export abstract class EventedStore implements vscode.Disposable {
-  private readonly _onDidChange: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
-  public readonly onDidChange: vscode.Event<null> = this._onDidChange.event;
+export abstract class EventedStore<V> implements vscode.Disposable {
+  private readonly _onDidChange: vscode.EventEmitter<V | null> = new vscode.EventEmitter<
+    V
+  >();
+  public readonly onDidChange: vscode.Event<V | null> = this._onDidChange.event;
 
-  public fireOnDidChange(): void {
-    this._onDidChange.fire(null);
+  @debounce(0)
+  public fireOnDidChange(value: V | null): void {
+    this._onDidChange.fire(value);
   }
 
   public dispose(): void {

@@ -12,6 +12,17 @@ import { BookmarkedTaskTreeItem } from './BookmarkedTaskTreeItem';
 import { Extension } from '../../extension/Extension';
 import { BookmarkedTasksWorkspaceTreeItem } from './BookmarkedTasksWorkspaceTreeItem';
 
+const bookmarkedTasksWorkspaceTreeItemMap: Map<
+  string,
+  BookmarkedTasksWorkspaceTreeItem
+> = new Map();
+
+// eslint-disable-next-line sonarjs/no-unused-collection
+export const bookmarkedTasksTreeItemMap: Map<
+  string,
+  BookmarkedTaskTreeItem
+> = new Map();
+
 function buildTaskTreeItem(
   workspaceTreeItem: BookmarkedTasksWorkspaceTreeItem,
   task: vscode.Task
@@ -28,18 +39,25 @@ function buildTaskTreeItem(
   return bookmarkedTaskTreeItem;
 }
 
-function buildWorkspaceTreeItem(
-  workspaceTreeItemMap: Map<string, BookmarkedTasksWorkspaceTreeItem>,
-  task: vscode.Task
-): void {
-  if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
-    let workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
+function buildWorkspaceTreeItem(task: vscode.Task): void {
+  const definition = task.definition as GradleTaskDefinition;
+  if (isWorkspaceFolder(task.scope) && definition.buildFile) {
+    let workspaceTreeItem = bookmarkedTasksWorkspaceTreeItemMap.get(
+      task.scope.name
+    );
     if (!workspaceTreeItem) {
       workspaceTreeItem = new BookmarkedTasksWorkspaceTreeItem(task.scope.name);
-      workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
+      bookmarkedTasksWorkspaceTreeItemMap.set(
+        task.scope.name,
+        workspaceTreeItem
+      );
     }
 
     const bookmarkedTaskTreeItem = buildTaskTreeItem(workspaceTreeItem, task);
+    bookmarkedTasksTreeItemMap.set(
+      definition.id + definition.args,
+      bookmarkedTaskTreeItem
+    );
 
     workspaceTreeItem.addTask(bookmarkedTaskTreeItem);
   }
@@ -95,15 +113,14 @@ export class BookmarkedTasksTreeDataProvider
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
+    bookmarkedTasksTreeItemMap.clear();
+    bookmarkedTasksWorkspaceTreeItemMap.clear();
+
     const { workspaceFolders } = vscode.workspace;
     if (!workspaceFolders) {
       return [];
     }
     const isMultiRoot = workspaceFolders.length > 1;
-    const workspaceTreeItemMap: Map<
-      string,
-      BookmarkedTasksWorkspaceTreeItem
-    > = new Map();
 
     const { gradleTaskProvider } = Extension.getInstance();
     await gradleTaskProvider.waitForTasksLoad();
@@ -119,17 +136,19 @@ export class BookmarkedTasksTreeDataProvider
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const bookmarkedTask = cloneTask(task, args, definition.javaDebug);
-          buildWorkspaceTreeItem(workspaceTreeItemMap, bookmarkedTask);
+          buildWorkspaceTreeItem(bookmarkedTask);
         });
       }
     });
 
-    if (!workspaceTreeItemMap.size) {
+    if (!bookmarkedTasksWorkspaceTreeItemMap.size) {
       return [];
     } else if (isMultiRoot) {
-      return [...workspaceTreeItemMap.values()];
+      return [...bookmarkedTasksWorkspaceTreeItemMap.values()];
     } else {
-      return [...workspaceTreeItemMap.values().next().value.tasks];
+      return [
+        ...bookmarkedTasksWorkspaceTreeItemMap.values().next().value.tasks,
+      ];
     }
   }
 }

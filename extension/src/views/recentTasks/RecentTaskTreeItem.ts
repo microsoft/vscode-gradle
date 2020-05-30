@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
 import { getTreeItemState } from '../viewUtil';
 import { JavaDebug } from '../../config';
+import { TaskTerminalsStore } from '../../stores/TaskTerminalsStore';
+import { buildTaskName } from '../../tasks/taskUtil';
+import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 
 function getRecentTaskTreeItemState(
   gradleTaskTreeItemState: string,
@@ -9,29 +12,39 @@ function getRecentTaskTreeItemState(
 ): string {
   if (numTerminals > 0) {
     return gradleTaskTreeItemState;
+  } else {
+    return `${gradleTaskTreeItemState}WithoutTerminals`;
   }
-  // A task can only have no terminals if it's IDLE
-  // TODO: handle debug tasks
-  return RecentTaskTreeItem.STATE_IDLE_WITHOUT_TERMINALS;
 }
 
 export class RecentTaskTreeItem extends GradleTaskTreeItem {
-  public static readonly STATE_IDLE_WITHOUT_TERMINALS = 'taskWithoutTerminals';
   constructor(
     parentTreeItem: vscode.TreeItem,
     task: vscode.Task,
     label: string,
     description: string,
     javaDebug: JavaDebug = { tasks: [] },
-    private readonly numTerminals: number
+    private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
     super(parentTreeItem, task, label, description, javaDebug);
   }
 
   public setContext(): void {
+    const taskTerminalsStore = this.taskTerminalsStore.getItem(
+      this.task.definition.id
+    );
+    const taskTerminals = Array.from(taskTerminalsStore || []);
+    const numTerminals = taskTerminals.filter((terminal) => {
+      return terminal.args === this.task.definition.args;
+    }).length;
+    const taskName = `${buildTaskName(
+      this.task.definition as GradleTaskDefinition
+    )} (${numTerminals})`;
+
+    this.label = taskName;
     this.contextValue = getRecentTaskTreeItemState(
       getTreeItemState(this.task, this.javaDebug, this.task.definition.args),
-      this.numTerminals
+      numTerminals
     );
     this.setIconState();
   }
