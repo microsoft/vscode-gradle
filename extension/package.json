@@ -69,6 +69,10 @@
           "name": "Bookmarked Tasks"
         },
         {
+          "id": "recentTasksView",
+          "name": "Recent Tasks"
+        },
+        {
           "id": "gradleDaemonsView",
           "name": "Gradle Daemons"
         }
@@ -97,6 +101,10 @@
         "title": "Bookmark Task"
       },
       {
+        "command": "gradle.bookmarkTaskWithArgs",
+        "title": "Bookmark Task With Args"
+      },
+      {
         "command": "gradle.removeBookmarkedTask",
         "title": "Remove Bookmarked Task"
       },
@@ -114,6 +122,22 @@
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
+        }
+      },
+      {
+        "command": "gradle.showTaskTerminal",
+        "title": "Show Terminal",
+        "icon": {
+          "light": "resources/light/console.svg",
+          "dark": "resources/dark/console.svg"
+        }
+      },
+      {
+        "command": "gradle.closeTaskTerminals",
+        "title": "Close Terminal/s",
+        "icon": {
+          "light": "resources/light/close-all.svg",
+          "dark": "resources/dark/close-all.svg"
         }
       },
       {
@@ -252,6 +276,14 @@
           "when": "false"
         },
         {
+          "command": "gradle.showTaskTerminal",
+          "when": "false"
+        },
+        {
+          "command": "gradle.closeTaskTerminals",
+          "when": "false"
+        },
+        {
           "command": "gradle.refreshDaemonStatus",
           "when": "false"
         },
@@ -306,6 +338,14 @@
         {
           "command": "gradle.cancellingTreeItemTask",
           "when": "false"
+        },
+        {
+          "command": "gradle.bookmarkTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.bookmarkTaskWithArgs",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -343,58 +383,78 @@
           "command": "gradle.refreshDaemonStatus",
           "when": "view == gradleDaemonsView",
           "group": "navigation@2"
+        },
+        {
+          "command": "gradle.closeTaskTerminals",
+          "when": "view == recentTasksView",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
           "group": "contextGroup1@0"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
           "group": "contextGroup1@1"
         },
         {
           "command": "gradle.debugTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == debugTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == debugTask",
           "group": "contextGroup2@0"
         },
         {
           "command": "gradle.debugTaskWithArgs",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == debugTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == debugTask",
           "group": "contextGroup2@1"
         },
         {
           "command": "gradle.debugTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == debugTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == debugTask",
           "group": "inline@0"
         },
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
           "group": "inline@1"
         },
         {
           "command": "gradle.restartTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == runningTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == runningTask",
           "group": "inline@2"
         },
         {
+          "command": "gradle.showTaskTerminal",
+          "when": "view == recentTasksView",
+          "group": "inline@0"
+        },
+        {
+          "command": "gradle.closeTaskTerminals",
+          "when": "view == recentTasksView",
+          "group": "inline@1"
+        },
+        {
           "command": "gradle.cancelTreeItemTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == runningTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == runningTask",
           "group": "inline@3"
         },
         {
           "command": "gradle.cancellingTreeItemTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$/ && viewItem == cancellingTask",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem == cancellingTask",
           "group": "inline@4"
         },
         {
           "command": "gradle.bookmarkTask",
-          "when": "view == gradleTasksView && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
           "group": "contextGroup3@0"
+        },
+        {
+          "command": "gradle.bookmarkTaskWithArgs",
+          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "group": "contextGroup3@1"
         },
         {
           "command": "gradle.removeBookmarkedTask",

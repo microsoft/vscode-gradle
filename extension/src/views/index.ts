@@ -3,25 +3,27 @@ import * as vscode from 'vscode';
 import { getConfigFocusTaskInExplorer } from '../config';
 import { GradleDaemonsTreeDataProvider } from './gradleDaemons/GradleDaemonsTreeDataProvider';
 import { GradleTasksTreeDataProvider } from './gradleTasks/GradleTasksTreeDataProvider';
-import { GradleClient } from '../client/GradleClient';
 import { isGradleTask } from '../tasks/taskUtil';
-import {
-  focusTaskInGradleTasksTree,
-  updateGradleTreeItemStateForTask,
-} from './viewUtil';
+import { focusTaskInGradleTasksTree } from './viewUtil';
 import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
 import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-import { COMMAND_REFRESH } from '../commands/constants';
+import { COMMAND_REFRESH, COMMAND_RENDER_TASK } from '../commands/constants';
 import { BookmarkedTasksStore } from '../stores/BookmarkedTasksStore';
+// import { RecentTasksStore } from '../stores/RecentTasksStore';
+// import { RecentTasksTreeDataProvider } from './recentTasks/RecentTasksTreeDataProvider';
+// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 
 export function registerGradleViews(
   context: vscode.ExtensionContext,
   gradleTaskProvider: GradleTaskProvider,
-  client: GradleClient
+  bookmarkedTasksStore: BookmarkedTasksStore
+  // recentTasksStore: RecentTasksStore
+  // taskTerminalsStore: TaskTerminalsStore
 ): {
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider;
+  // recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
   gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
 } {
   const collapsed = context.workspaceState.get('gradleTasksCollapsed', false);
@@ -35,8 +37,7 @@ export function registerGradleViews(
     showCollapseAll: true,
   });
   const gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
-    context,
-    client
+    context
   );
   const gradleDaemonsTreeView = vscode.window.createTreeView(
     'gradleDaemonsView',
@@ -45,7 +46,6 @@ export function registerGradleViews(
       showCollapseAll: false,
     }
   );
-  const bookmarkedTasksStore = new BookmarkedTasksStore(context);
   const bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
     context,
     bookmarkedTasksStore,
@@ -62,11 +62,24 @@ export function registerGradleViews(
     bookmarkedTasksTreeDataProvider.refresh()
   );
 
+  // const recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
+  //   context,
+  //   client,
+  //   recentTasksStore,
+  //   taskTerminalsStore,
+  //   gradleTasksTreeDataProvider
+  // );
+  // const recentTasksTreeView = vscode.window.createTreeView('recentTasksView', {
+  //   treeDataProvider: recentTasksTreeDataProvider,
+  //   showCollapseAll: false,
+  // });
+
   context.subscriptions.push(
     gradleTasksTreeView,
     bookmarkedTasksTreeView,
+    // recentTasksTreeView,
     gradleDaemonsTreeView,
-    bookmarkedTasksStore,
+
     // TODO: move to extension?
     vscode.workspace.onDidChangeConfiguration(
       (event: vscode.ConfigurationChangeEvent) => {
@@ -78,11 +91,7 @@ export function registerGradleViews(
     vscode.tasks.onDidStartTask(async (event: vscode.TaskStartEvent) => {
       const { task } = event.execution;
       if (isGradleTask(task)) {
-        updateGradleTreeItemStateForTask(
-          task,
-          gradleTasksTreeDataProvider,
-          bookmarkedTasksTreeDataProvider
-        );
+        vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
         if (gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
           await focusTaskInGradleTasksTree(gradleTasksTreeView, task);
         }
@@ -91,11 +100,7 @@ export function registerGradleViews(
     vscode.tasks.onDidEndTask((event: vscode.TaskEndEvent) => {
       const { task } = event.execution;
       if (isGradleTask(task)) {
-        updateGradleTreeItemStateForTask(
-          task,
-          gradleTasksTreeDataProvider,
-          bookmarkedTasksTreeDataProvider
-        );
+        vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
       }
     })
   );
@@ -103,6 +108,7 @@ export function registerGradleViews(
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
     bookmarkedTasksTreeDataProvider,
+    // recentTasksTreeDataProvider,
     gradleTasksTreeView,
   };
 }
