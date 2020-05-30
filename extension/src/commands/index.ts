@@ -53,12 +53,8 @@ import {
   COMMAND_BOOKMARK_TASK_WITH_ARGS,
   COMMAND_SHOW_TASK_TERMINAL,
   COMMAND_CLOSE_TASK_TERMINALS,
-  // COMMAND_SHOW_TASK_TERMINAL,
-  // COMMAND_CLOSE_TASK_TERMINALS,
 } from './constants';
 import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-// import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
-// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { getTaskArgs } from '../input';
 import { Extension } from '../extension/Extension';
@@ -80,24 +76,22 @@ function registerShowTasksCommand(
 }
 
 function registerRunTaskCommand(): vscode.Disposable {
-  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTask(treeItem.task /*, taskTerminalsStore*/);
+        runTask(treeItem.task);
       }
     }
   );
 }
 
 function registerDebugTaskCommand(): vscode.Disposable {
-  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK,
     async (treeItem: GradleTaskTreeItem, args = '') => {
       if (treeItem && treeItem.task) {
-        runTask(treeItem.task /*, taskTerminalsStore*/, args, true);
+        runTask(treeItem.task, args, true);
       }
     }
   );
@@ -118,12 +112,11 @@ function registerRestartTaskCommand(): vscode.Disposable {
 }
 
 function registerRunTaskWithArgsCommand(): vscode.Disposable {
-  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTaskWithArgs(treeItem.task /*, taskTerminalsStore*/, false);
+        runTaskWithArgs(treeItem.task, false);
       } else {
         logger.error(
           'Unable to run task with args. TreeItem or TreeItem task not found.'
@@ -134,12 +127,11 @@ function registerRunTaskWithArgsCommand(): vscode.Disposable {
 }
 
 function registerDebugTaskWithArgsCommand(): vscode.Disposable {
-  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTaskWithArgs(treeItem.task /*, taskTerminalsStore*/, true);
+        runTaskWithArgs(treeItem.task, true);
       } else {
         logger.error(
           'Unable to debug task with args. TreeItem or TreeItem task not found.'
@@ -366,7 +358,9 @@ function registerBookmarkTaskCommand(
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
-        bookmarkedTasksTreeDataProvider.getStore().addEntry(definition.id, '');
+        bookmarkedTasksTreeDataProvider
+          .getStore()
+          .addEntry(definition.id, definition.args);
       }
     }
   );
@@ -446,13 +440,14 @@ function registerCloseTaskTerminals(): vscode.Disposable {
     (treeItem: GradleTaskTreeItem) => {
       const taskTerminalsStore = Extension.getInstance().taskTerminalsStore;
       if (treeItem && treeItem.task) {
-        const terminalsStore = taskTerminalsStore.getItem(
-          treeItem.task.definition.id
-        );
+        const definition = treeItem.task.definition as GradleTaskDefinition;
+        const terminalsStore = taskTerminalsStore.getItem(definition.id);
         if (terminalsStore) {
-          Array.from(terminalsStore).forEach((taskWithTerminal) =>
-            taskWithTerminal.terminal.dispose()
-          );
+          Array.from(terminalsStore).forEach((taskWithTerminal) => {
+            if (taskWithTerminal.args === definition.args) {
+              taskWithTerminal.terminal.dispose();
+            }
+          });
         }
       }
     }
@@ -466,7 +461,6 @@ export function registerCommands(
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
   recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
   gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>
-  // taskTerminalsStore: TaskTerminalsStore
 ): void {
   context.subscriptions.push(
     registerShowTasksCommand(gradleTasksTreeView),
