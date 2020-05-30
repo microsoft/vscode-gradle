@@ -18,7 +18,9 @@ export function registerBuildFileWatcher(
   taskProvider.onDidRefreshStop(() => buildFileWatcher.start());
 
   taskManager.onDidEndAllTasks(() => buildFileWatcher.start());
-  taskManager.onDidStartTask(() => buildFileWatcher.stop());
+  taskManager.onDidStartTask(() => {
+    buildFileWatcher.stop();
+  });
 
   context.subscriptions.push(buildFileWatcher);
   return buildFileWatcher;

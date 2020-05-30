@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
     "module": "commonjs",
     "target": "es6",
     "outDir": "out",
-    "lib": ["es6", "es2018.promise", "es2019.array"],
+    "lib": ["ES6", "ES2018.promise", "ES2019.array"],
     "sourceMap": true,
     "strict": true,
     "rootDir": "src",

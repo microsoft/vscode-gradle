@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 
 import { logger } from '../logger';
 import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
-import { GradleClient } from '../client/GradleClient';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
+// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -32,7 +32,8 @@ export class GradleTaskProvider
     .event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  constructor(private readonly client: GradleClient) {}
+  // constructor() {}
+  // private readonly taskTerminalsStore: TaskTerminalsStore
 
   public provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
@@ -57,8 +58,8 @@ export class GradleTaskProvider
     return createTaskFromDefinition(
       gradleTaskDefinition,
       workspaceFolder,
-      projectFolder,
-      this.client
+      projectFolder
+      // this.taskTerminalsStore
     );
   }
 
@@ -78,7 +79,10 @@ export class GradleTaskProvider
       cachedTasks = emptyTasks;
       return Promise.resolve(cachedTasks);
     }
-    this.loadTasksPromise = loadTasksForFolders(this.client, folders)
+    this.loadTasksPromise = loadTasksForFolders(
+      // this.taskTerminalsStore,
+      folders
+    )
       .then(
         (tasks) => {
           cachedTasks = tasks;
