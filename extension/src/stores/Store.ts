@@ -1,6 +1,6 @@
-import { BaseStore } from './BaseStore';
+import { EventedStore } from './EventedStore';
 
-export abstract class StoreMap<K, V> extends BaseStore {
+export abstract class Store<K, V> extends EventedStore {
   private readonly data = new Map<K, V>();
 
   public getItem(key: K): V | void {

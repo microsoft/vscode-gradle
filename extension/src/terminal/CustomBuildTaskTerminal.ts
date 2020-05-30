@@ -7,11 +7,11 @@ import { logger } from '../logger';
 import { LoggerStream } from '../logger/LoggerSteam';
 import { Output } from '../proto/gradle_pb';
 import { isTaskRunning } from '../tasks/taskUtil';
-import { GradleClient } from '../client/GradleClient';
 import {
   COMMAND_CANCEL_TASK,
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
 } from '../commands/constants';
+import { Extension } from '../extension/Extension';
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
@@ -90,7 +90,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
-      const runTask = GradleClient.getInstance().runTask(
+      const runTask = Extension.getInstance().client.runTask(
         this.projectFolder,
         this.task!,
         args,

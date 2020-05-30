@@ -15,7 +15,7 @@ module.exports = () => {
       __dirname: false,
     },
     entry: {
-      extension: './src/extension.ts',
+      extension: './src/index.ts',
     },
     output: {
       filename: '[name].js',

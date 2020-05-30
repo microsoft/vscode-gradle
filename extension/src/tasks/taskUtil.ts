@@ -12,14 +12,13 @@ import {
   isJavaDebuggerExtensionActivated,
 } from '../compat';
 import { getGradleBuildFile } from '../util';
-import { GradleClient } from '../client/GradleClient';
 import {
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
   COMMAND_RENDER_TASK,
 } from '../commands/constants';
 import { getTaskArgs } from '../input';
 import { TaskArgs } from '../stores/types';
-// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
+import { Extension } from '../extension/Extension';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -61,7 +60,7 @@ export function cancelTask(task: vscode.Task): void {
   if (isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
     vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
-    GradleClient.getInstance().cancelRunTask(task);
+    Extension.getInstance().client.cancelRunTask(task);
   }
 }
 
@@ -111,7 +110,7 @@ export async function removeCancellingTask(task: vscode.Task): Promise<void> {
 export function queueRestartTask(task: vscode.Task): void {
   if (isTaskRunning(task)) {
     restartingTasks.set(task.definition.id, task);
-    // Once the task is cancelled it's restarted via onDidEndTask
+    // Once the task is cancelled it will restart via onDidEndTask
     cancelTask(task);
   }
 }
@@ -124,34 +123,37 @@ export function buildTaskId(
   return projectFolder + script + project;
 }
 
+export function buildTaskName(definition: GradleTaskDefinition): string {
+  const argsLabel = definition.args ? ` ${definition.args}` : '';
+  return `${definition.script}${argsLabel}`;
+}
+
 export function createTaskFromDefinition(
-  definition: GradleTaskDefinition,
+  definition: Required<GradleTaskDefinition>,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri
-  // taskTerminalsStore: TaskTerminalsStore
 ): vscode.Task {
+  const { taskTerminalsStore } = Extension.getInstance();
   const terminal = new CustomBuildTaskTerminal(
     workspaceFolder,
     projectFolder.fsPath
   );
-  const argsLabel = definition.args ? ` ${definition.args}` : '';
-  const taskName = `${definition.script}${argsLabel}`;
   const task = new vscode.Task(
     definition,
     workspaceFolder,
-    taskName,
+    buildTaskName(definition),
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {
-        // const disposable = vscode.window.onDidOpenTerminal(
-        //   (openedTerminal: vscode.Terminal) => {
-        //     disposable.dispose();
-        //     taskTerminalsStore.add(definition.id, {
-        //       terminal: openedTerminal,
-        //       definition,
-        //     });
-        //   }
-        // );
+        const disposable = vscode.window.onDidOpenTerminal(
+          (openedTerminal: vscode.Terminal) => {
+            disposable.dispose();
+            taskTerminalsStore.addEntry(definition.id, {
+              terminal: openedTerminal,
+              args: definition.args,
+            });
+          }
+        );
         return terminal;
       }
     ),
@@ -170,7 +172,6 @@ export function createTaskFromDefinition(
 }
 
 function createVSCodeTaskFromGradleTask(
-  // taskTerminalsStore: TaskTerminalsStore,
   gradleTask: GradleTask,
   workspaceFolder: vscode.WorkspaceFolder,
   rootProject: string,
@@ -195,16 +196,10 @@ function createVSCodeTaskFromGradleTask(
     args,
     javaDebug,
   };
-  return createTaskFromDefinition(
-    definition,
-    workspaceFolder,
-    projectFolder
-    // taskTerminalsStore
-  );
+  return createTaskFromDefinition(definition, workspaceFolder, projectFolder);
 }
 
 function getVSCodeTasksFromGradleProject(
-  // taskTerminalsStore: TaskTerminalsStore,
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri,
   gradleProject: GradleProject
@@ -215,7 +210,6 @@ function getVSCodeTasksFromGradleProject(
     vsCodeTasks.push(
       ...gradleTasks.map((gradleTask) =>
         createVSCodeTaskFromGradleTask(
-          // taskTerminalsStore,
           gradleTask,
           workspaceFolder,
           gradleTask.getRootproject(),
@@ -233,7 +227,6 @@ function getVSCodeTasksFromGradleProject(
   gradleProject.getProjectsList().forEach((project) => {
     vsCodeTasks.push(
       ...getVSCodeTasksFromGradleProject(
-        // taskTerminalsStore,
         workspaceFolder,
         projectFolder,
         project
@@ -247,7 +240,7 @@ async function getGradleBuild(
   projectFolder: vscode.WorkspaceFolder,
   buildFile: vscode.Uri
 ): Promise<GradleBuild | void> {
-  const build = await GradleClient.getInstance().getBuild(
+  const build = await Extension.getInstance().client.getBuild(
     projectFolder.uri.fsPath,
     getGradleConfig()
   );
@@ -259,7 +252,6 @@ async function getGradleBuild(
 }
 
 export async function loadTasksForFolders(
-  // taskTerminalsStore: TaskTerminalsStore,
   folders: readonly vscode.WorkspaceFolder[]
 ): Promise<vscode.Task[]> {
   const allTasks: vscode.Task[] = [];
@@ -277,7 +269,6 @@ export async function loadTasksForFolders(
       if (gradleProject) {
         allTasks.push(
           ...getVSCodeTasksFromGradleProject(
-            // taskTerminalsStore,
             workspaceFolder,
             workspaceFolder.uri,
             gradleProject
@@ -291,7 +282,6 @@ export async function loadTasksForFolders(
 
 export async function runTask(
   task: vscode.Task,
-  // taskTerminalsStore: TaskTerminalsStore,
   args = '',
   debug = false
 ): Promise<void> {
@@ -334,7 +324,6 @@ export async function runTask(
 
 export async function runTaskWithArgs(
   task: vscode.Task,
-  // taskTerminalsStore: TaskTerminalsStore,
   debug = false
 ): Promise<void> {
   const args = await getTaskArgs();
@@ -348,11 +337,10 @@ export async function runTaskWithArgs(
 export function cloneTask(
   task: vscode.Task,
   args: string,
-  // taskTerminalsStore: TaskTerminalsStore,
   javaDebug = false
 ): vscode.Task {
   const folder = task.scope as vscode.WorkspaceFolder;
-  const definition: GradleTaskDefinition = {
+  const definition: Required<GradleTaskDefinition> = {
     ...(task.definition as GradleTaskDefinition),
     args,
     javaDebug,
@@ -361,6 +349,5 @@ export function cloneTask(
     definition,
     folder,
     vscode.Uri.file(definition.projectFolder)
-    // taskTerminalsStore
   );
 }

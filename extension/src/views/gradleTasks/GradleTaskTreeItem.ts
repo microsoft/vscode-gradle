@@ -1,14 +1,12 @@
 import * as vscode from 'vscode';
-import { IconPath } from '../types';
 import { JavaDebug } from '../../config';
 import { getTreeItemState } from '../viewUtil';
+import { Extension } from '../../extension/Extension';
 
 export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution?: vscode.TaskExecution;
-  public readonly iconPathRunning?: IconPath;
-  public readonly iconPathIdle?: IconPath;
 
   protected readonly javaDebug?: JavaDebug;
 
@@ -22,8 +20,6 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     task: vscode.Task,
     label: string,
     description: string,
-    iconPathRunning: IconPath,
-    iconPathIdle: IconPath,
     javaDebug?: JavaDebug
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
@@ -36,9 +32,6 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     this.parentTreeItem = parentTreeItem;
     this.task = task;
     this.javaDebug = javaDebug;
-    this.iconPathRunning = iconPathRunning;
-    this.iconPathIdle = iconPathIdle;
-    this.setContext();
   }
 
   public setContext(): void {
@@ -47,10 +40,11 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   }
 
   protected setIconState(): void {
+    const { iconPathRunning, iconPathIdle } = Extension.getInstance().icons;
     if (this.contextValue === GradleTaskTreeItem.STATE_RUNNING) {
-      this.iconPath = this.iconPathRunning;
+      this.iconPath = iconPathRunning;
     } else {
-      this.iconPath = this.iconPathIdle;
+      this.iconPath = iconPathIdle;
     }
   }
 }

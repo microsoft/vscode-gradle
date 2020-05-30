@@ -1,18 +1,16 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { WorkspaceTreeItem } from './WorkspaceTreeItem';
-import { IconPath } from '../types';
 import { GradleTaskTreeItem } from './GradleTaskTreeItem';
 import { ProjectTreeItem } from './ProjectTreeItem';
 import { TreeItemWithTasksOrGroups } from './TreeItemWithTasksOrGroups';
 import { GroupTreeItem } from './GroupTreeItem';
 import { JavaDebug, getConfigJavaDebug } from '../../config';
 import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
-import { ICON_LOADING, ICON_GRADLE_TASK } from '../constants';
 import { isWorkspaceFolder } from '../../util';
-import { GradleTaskProvider } from '../../tasks/GradleTaskProvider';
 import { NoGradleTasksTreeItem } from './NoGradleTasksTreeItem';
 import { EventWaiter } from '../../events/EventWaiter';
+import { Extension } from '../../extension/Extension';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
 export const taskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
@@ -32,8 +30,7 @@ function resetCachedTreeItems(): void {
 export class GradleTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private collapsed = true;
-  private iconPathRunning?: IconPath;
-  private iconPathIdle?: IconPath;
+
   private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
@@ -48,34 +45,12 @@ export class GradleTasksTreeDataProvider
     this.onDidBuildTreeItems
   ).wait;
 
-  constructor(
-    private readonly context: vscode.ExtensionContext,
-    private readonly taskProvider: GradleTaskProvider
-  ) {
-    this.iconPathRunning = {
-      light: this.context.asAbsolutePath(
-        path.join('resources', 'light', ICON_LOADING)
-      ),
-      dark: this.context.asAbsolutePath(
-        path.join('resources', 'dark', ICON_LOADING)
-      ),
-    };
-    this.iconPathIdle = {
-      light: this.context.asAbsolutePath(
-        path.join('resources', 'light', ICON_GRADLE_TASK)
-      ),
-      dark: this.context.asAbsolutePath(
-        path.join('resources', 'dark', ICON_GRADLE_TASK)
-      ),
-    };
-  }
-
-  public getIconPathRunning(): IconPath | undefined {
-    return this.iconPathRunning;
-  }
-
-  public getIconPathIdle(): IconPath | undefined {
-    return this.iconPathIdle;
+  constructor(private readonly context: vscode.ExtensionContext) {
+    const collapsed = this.context.workspaceState.get(
+      'gradleTasksCollapsed',
+      false
+    );
+    this.setCollapsed(collapsed);
   }
 
   public setCollapsed(collapsed: boolean): void {
@@ -93,7 +68,7 @@ export class GradleTasksTreeDataProvider
     resetCachedTreeItems();
     // using vscode.tasks.fetchTasks({ type: 'gradle' }) is *incredibly slow* which
     // is why we get them directly from the task provider
-    const tasks = await this.taskProvider.loadTasks();
+    const tasks = await Extension.getInstance().gradleTaskProvider.loadTasks();
     const taskItems =
       tasks.length === 0
         ? [new NoGradleTasksTreeItem(this.context)]
@@ -210,10 +185,9 @@ export class GradleTasksTreeDataProvider
           task,
           taskName,
           definition.description,
-          this.iconPathRunning!,
-          this.iconPathIdle!,
           workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
         );
+        taskTreeItem.setContext();
 
         taskTreeItemMap.set(task.definition.id, taskTreeItem);
         parentTreeItem.addTask(taskTreeItem);
