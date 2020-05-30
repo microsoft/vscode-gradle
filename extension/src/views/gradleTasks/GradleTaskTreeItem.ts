@@ -44,7 +44,10 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   }
 
   protected setIconState(): void {
-    const { iconPathRunning, iconPathIdle } = Extension.getInstance().icons;
+    const {
+      iconPathRunning,
+      iconPathIdle,
+    } = Extension.getInstance().getIcons();
     if (
       this.contextValue &&
       GradleTaskTreeItem.stateRunningRegex.test(this.contextValue)

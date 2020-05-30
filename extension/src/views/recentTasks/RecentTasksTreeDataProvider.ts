@@ -153,7 +153,7 @@ export class RecentTasksTreeDataProvider
       return [];
     }
     const isMultiRoot = workspaceFolders.length > 1;
-    const { gradleTaskProvider } = Extension.getInstance();
+    const gradleTaskProvider = Extension.getInstance().getGradleTaskProvider();
     await gradleTaskProvider.waitForTasksLoad();
 
     const recentTasks = this.recentTasksStore.getData();

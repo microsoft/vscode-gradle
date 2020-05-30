@@ -90,20 +90,22 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
-      const runTask = Extension.getInstance().client.runTask(
-        this.projectFolder,
-        this.task!,
-        args,
-        '',
-        javaDebugPort,
-        (output: Output): void => {
-          this.handleOutput(output.getOutputBytes_asU8());
-          if (isTest()) {
-            stdOutLoggerStream.write(output.getOutputBytes_asU8());
-          }
-        },
-        true
-      );
+      const runTask = Extension.getInstance()
+        .getClient()
+        .runTask(
+          this.projectFolder,
+          this.task!,
+          args,
+          '',
+          javaDebugPort,
+          (output: Output): void => {
+            this.handleOutput(output.getOutputBytes_asU8());
+            if (isTest()) {
+              stdOutLoggerStream.write(output.getOutputBytes_asU8());
+            }
+          },
+          true
+        );
       if (javaDebugEnabled) {
         await this.startJavaDebug(javaDebugPort);
       }

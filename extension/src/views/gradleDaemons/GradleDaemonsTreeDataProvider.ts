@@ -33,7 +33,8 @@ export class GradleDaemonsTreeDataProvider
       GradleDaemonTreeItem[]
     >[] = vscode.workspace.workspaceFolders.map((folder) =>
       Extension.getInstance()
-        .client.getDaemonsStatus(folder.uri.fsPath)
+        .getClient()
+        .getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status
             ? status
