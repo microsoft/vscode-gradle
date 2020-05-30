@@ -60,7 +60,7 @@ export function cancelTask(task: vscode.Task): void {
   if (isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
     vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
-    Extension.getInstance().client.cancelRunTask(task);
+    Extension.getInstance().getClient().cancelRunTask(task);
   }
 }
 
@@ -133,7 +133,7 @@ export function createTaskFromDefinition(
   workspaceFolder: vscode.WorkspaceFolder,
   projectFolder: vscode.Uri
 ): vscode.Task {
-  const { taskTerminalsStore } = Extension.getInstance();
+  const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
   const terminal = new CustomBuildTaskTerminal(
     workspaceFolder,
     projectFolder.fsPath
@@ -240,10 +240,9 @@ async function getGradleBuild(
   projectFolder: vscode.WorkspaceFolder,
   buildFile: vscode.Uri
 ): Promise<GradleBuild | void> {
-  const build = await Extension.getInstance().client.getBuild(
-    projectFolder.uri.fsPath,
-    getGradleConfig()
-  );
+  const build = await Extension.getInstance()
+    .getClient()
+    .getBuild(projectFolder.uri.fsPath, getGradleConfig());
   vscode.commands.executeCommand(
     COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
     buildFile

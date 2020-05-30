@@ -11,11 +11,6 @@ import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
 import { Icons } from '../icons/Icons';
 import { GradleDaemonsTreeDataProvider } from '../views/gradleDaemons/GradleDaemonsTreeDataProvider';
 import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-import {
-  COMMAND_LOAD_TASKS,
-  COMMAND_REFRESH,
-  COMMAND_RENDER_TASK,
-} from '../commands/constants';
 import { GradleTaskManager } from '../tasks/GradleTaskManager';
 import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 import { BuildFileWatcher } from '../buildFileWatcher/BuildFileWatcher';
@@ -23,6 +18,17 @@ import { getConfigFocusTaskInExplorer } from '../config';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
 import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
+import {
+  GRADLE_TASKS_VIEW,
+  BOOKMARKED_TASKS_VIEW,
+  GRADLE_DAEMONS_VIEW,
+  RECENT_TASKS_VIEW,
+} from '../views/constants';
+import {
+  COMMAND_LOAD_TASKS,
+  COMMAND_REFRESH,
+  COMMAND_RENDER_TASK,
+} from '../commands/constants';
 
 export class Extension {
   private static instance: Extension;
@@ -30,23 +36,23 @@ export class Extension {
     return Extension.instance;
   }
 
-  public readonly client: GradleClient;
-  public readonly server: GradleServer;
-  public readonly bookmarkedTasksStore: BookmarkedTasksStore;
-  public readonly recentTasksStore: RecentTasksStore;
-  public readonly taskTerminalsStore: TaskTerminalsStore;
-  public readonly gradleTaskProvider: GradleTaskProvider;
-  public readonly gradleTaskManager: GradleTaskManager;
-  public readonly icons: Icons;
-  public readonly buildFileWatcher: BuildFileWatcher;
-  public readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
-  public readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
-  public readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
-  public readonly bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider;
-  public readonly bookmarkedTasksTreeView: vscode.TreeView<vscode.TreeItem>;
-  public readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
-  public readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
-  public readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
+  private readonly client: GradleClient;
+  private readonly server: GradleServer;
+  private readonly bookmarkedTasksStore: BookmarkedTasksStore;
+  private readonly recentTasksStore: RecentTasksStore;
+  private readonly taskTerminalsStore: TaskTerminalsStore;
+  private readonly gradleTaskProvider: GradleTaskProvider;
+  private readonly gradleTaskManager: GradleTaskManager;
+  private readonly icons: Icons;
+  private readonly buildFileWatcher: BuildFileWatcher;
+  private readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
+  private readonly bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider;
+  private readonly bookmarkedTasksTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
+  private readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
@@ -63,7 +69,7 @@ export class Extension {
     this.gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       this.context
     );
-    this.gradleTasksTreeView = vscode.window.createTreeView('gradleTasksView', {
+    this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
       treeDataProvider: this.gradleTasksTreeDataProvider,
       showCollapseAll: true,
     });
@@ -71,7 +77,7 @@ export class Extension {
       this.context
     );
     this.gradleDaemonsTreeView = vscode.window.createTreeView(
-      'gradleDaemonsView',
+      GRADLE_DAEMONS_VIEW,
       {
         treeDataProvider: this.gradleDaemonsTreeDataProvider,
         showCollapseAll: false,
@@ -82,7 +88,7 @@ export class Extension {
       this.bookmarkedTasksStore
     );
     this.bookmarkedTasksTreeView = vscode.window.createTreeView(
-      'bookmarkedTasksView',
+      BOOKMARKED_TASKS_VIEW,
       {
         treeDataProvider: this.bookmarkedTasksTreeDataProvider,
         showCollapseAll: false,
@@ -94,7 +100,7 @@ export class Extension {
       this.recentTasksStore,
       this.taskTerminalsStore
     );
-    this.recentTasksTreeView = vscode.window.createTreeView('recentTasksView', {
+    this.recentTasksTreeView = vscode.window.createTreeView(RECENT_TASKS_VIEW, {
       treeDataProvider: this.recentTasksTreeDataProvider,
       showCollapseAll: false,
     });
@@ -173,9 +179,7 @@ export class Extension {
     this.gradleTaskManager.onDidEndAllTasks(() =>
       this.buildFileWatcher.start()
     );
-    this.gradleTaskManager.onDidStartTask(() => {
-      this.buildFileWatcher.stop();
-    });
+    this.gradleTaskManager.onDidStartTask(() => this.buildFileWatcher.stop());
   }
 
   private handleEditorEvents(): void {
@@ -202,5 +206,21 @@ export class Extension {
 
   public getApi(): Api {
     return new Api(this.client, this.gradleTasksTreeDataProvider!);
+  }
+
+  public getGradleTaskProvider(): GradleTaskProvider {
+    return this.gradleTaskProvider;
+  }
+
+  public getClient(): GradleClient {
+    return this.client;
+  }
+
+  public getTaskTerminalsStore(): TaskTerminalsStore {
+    return this.taskTerminalsStore;
+  }
+
+  public getIcons(): Icons {
+    return this.icons;
   }
 }

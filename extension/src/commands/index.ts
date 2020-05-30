@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import { getIgnoreDaemonStopWarning } from '../config';
 import { logger } from '../logger';
@@ -60,9 +58,7 @@ import { getTaskArgs } from '../input';
 import { Extension } from '../extension/Extension';
 import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
 
-const packageJson = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '../package.json')).toString()
-);
+const EXTENSION_NAME = 'richardwillis.vscode-gradle';
 
 function registerShowTasksCommand(
   treeView: vscode.TreeView<vscode.TreeItem>
@@ -190,7 +186,7 @@ function registerRefreshCommand(
     COMMAND_REFRESH,
     async (): Promise<void> => {
       invalidateTasksCache();
-      await Extension.getInstance().gradleTaskProvider.loadTasks();
+      await Extension.getInstance().getGradleTaskProvider().loadTasks();
       gradleTasksTreeDataProvider.refresh();
     }
   );
@@ -198,7 +194,7 @@ function registerRefreshCommand(
 
 function registerLoadTasksCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_LOAD_TASKS, () => {
-    return Extension.getInstance().gradleTaskProvider.loadTasks();
+    return Extension.getInstance().getGradleTaskProvider().loadTasks();
   });
 }
 
@@ -238,7 +234,7 @@ function registerStopDaemons(): vscode.Disposable {
       try {
         const promises: Promise<StopDaemonsReply | void>[] = vscode.workspace.workspaceFolders.map(
           (folder) =>
-            Extension.getInstance().client.stopDaemons(folder.uri.fsPath)
+            Extension.getInstance().getClient().stopDaemons(folder.uri.fsPath)
         );
         const replies = await Promise.all(promises);
         replies.forEach((reply) => {
@@ -262,9 +258,9 @@ function registerStopDaemon(): vscode.Disposable {
       }
       const pid = treeItem.pid;
       try {
-        const stopDaemonReply = await Extension.getInstance().client.stopDaemon(
-          pid
-        );
+        const stopDaemonReply = await Extension.getInstance()
+          .getClient()
+          .stopDaemon(pid);
         if (stopDaemonReply) {
           logger.info(stopDaemonReply.getMessage());
         }
@@ -295,7 +291,7 @@ function registerOpenSettingsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_OPEN_SETTINGS, (): void => {
     vscode.commands.executeCommand(
       'workbench.action.openSettings',
-      `@ext:${packageJson.publisher}.${packageJson.name}`
+      `@ext:${EXTENSION_NAME}`
     );
   });
 }
@@ -415,9 +411,9 @@ function registerShowTaskTerminalCommand(): vscode.Disposable {
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
-        const terminalsSet = Extension.getInstance().taskTerminalsStore.getItem(
-          definition.id
-        );
+        const terminalsSet = Extension.getInstance()
+          .getTaskTerminalsStore()
+          .getItem(definition.id);
         if (terminalsSet) {
           const terminals = Array.from(terminalsSet).filter(
             (taskWithTerminal) => {
@@ -438,7 +434,7 @@ function registerCloseTaskTerminals(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CLOSE_TASK_TERMINALS,
     (treeItem: GradleTaskTreeItem) => {
-      const taskTerminalsStore = Extension.getInstance().taskTerminalsStore;
+      const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         const terminalsStore = taskTerminalsStore.getItem(definition.id);

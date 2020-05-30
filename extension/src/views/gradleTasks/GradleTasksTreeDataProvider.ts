@@ -68,7 +68,9 @@ export class GradleTasksTreeDataProvider
     resetCachedTreeItems();
     // using vscode.tasks.fetchTasks({ type: 'gradle' }) is *incredibly slow* which
     // is why we get them directly from the task provider
-    const tasks = await Extension.getInstance().gradleTaskProvider.loadTasks();
+    const tasks = await Extension.getInstance()
+      .getGradleTaskProvider()
+      .loadTasks();
     const taskItems =
       tasks.length === 0
         ? [new NoGradleTasksTreeItem(this.context)]
