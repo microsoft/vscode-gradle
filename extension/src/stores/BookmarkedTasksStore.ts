@@ -19,10 +19,6 @@ const toWorkspaceStateTasks = (
 };
 
 export class BookmarkedTasksStore extends TaskStore {
-  private static instance: BookmarkedTasksStore;
-  public static getInstance(): BookmarkedTasksStore {
-    return BookmarkedTasksStore.instance;
-  }
   constructor(private readonly context: vscode.ExtensionContext) {
     super();
     const bookmarkedTasks = this.context.workspaceState.get(
@@ -35,10 +31,9 @@ export class BookmarkedTasksStore extends TaskStore {
     Object.keys(bookmarkedTasks).forEach((taskId: TaskId) => {
       this.setItem(taskId, new Set(bookmarkedTasks[taskId]), false);
     });
-    BookmarkedTasksStore.instance = this;
   }
 
-  protected fireOnDidChange(): void {
+  public fireOnDidChange(): void {
     const workspaceStateTasks: WorkspaceStateTasks = toWorkspaceStateTasks(
       this.getData()
     );

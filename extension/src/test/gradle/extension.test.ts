@@ -9,7 +9,6 @@ import * as path from 'path';
 
 import { Api as ExtensionApi, RunTaskOpts } from '../../api/Api';
 import { Output } from '../../proto/gradle_pb';
-import { GradleTasksTreeDataProvider } from '../../views/gradleTasks/GradleTasksTreeDataProvider';
 import { GradleTaskTreeItem } from '../../views/gradleTasks/GradleTaskTreeItem';
 import {
   COMMAND_REFRESH,
@@ -103,7 +102,6 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      const treeDataProvider = extension?.exports.getTasksTreeProvider() as GradleTasksTreeDataProvider;
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
@@ -116,9 +114,7 @@ describe(fixtureName, () => {
           new vscode.TreeItem('parentTreeItem'),
           task!,
           task!.name,
-          task!.definition.description,
-          treeDataProvider.getIconPathRunning()!,
-          treeDataProvider.getIconPathIdle()!
+          task!.definition.description
         );
         await vscode.commands.executeCommand(
           COMMAND_RUN_TASK_WITH_ARGS,

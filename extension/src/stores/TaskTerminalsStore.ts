@@ -1,29 +1,24 @@
-// /* eslint-disable @typescript-eslint/no-explicit-any */
-// import * as vscode from 'vscode';
-// import { StoreMap } from './StoreMap';
-// import { taskId } from './types';
-// import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
+import * as vscode from 'vscode';
+import { StoreSet } from './StoreSet';
+import { TaskId, TaskArgs } from './types';
 
-// export interface TaskWithTerminal {
-//   terminal: vscode.Terminal;
-//   definition: GradleTaskDefinition;
-// }
+export interface TaskWithTerminal {
+  terminal: vscode.Terminal;
+  args: TaskArgs;
+}
 
-// export class TaskTerminalsStore extends StoreMap<
-//   taskId,
-//   Set<TaskWithTerminal>
-// > {
-//   public add(taskId: taskId, taskWithTerminal: TaskWithTerminal): void {
-//     let set = this.get(taskId);
-//     if (!set) {
-//       set = new Set<TaskWithTerminal>();
-//       this.set(taskId, set);
-//     }
-//     set.add(taskWithTerminal);
-//   }
-
-//   public getList(key: string): TaskWithTerminal[] {
-//     const data = super.get(key);
-//     return data ? Array.from(data.values()) : [];
-//   }
-// }
+export class TaskTerminalsStore extends StoreSet<TaskId, TaskWithTerminal> {
+  removeTerminal(terminal: vscode.Terminal): void {
+    Array.from(this.getData().keys()).forEach((key) => {
+      const itemSet = this.getItem(key);
+      if (itemSet) {
+        Array.from(itemSet).forEach((taskWithTerminal) => {
+          if (taskWithTerminal.terminal === terminal) {
+            itemSet.delete(taskWithTerminal);
+          }
+        });
+      }
+    });
+    // Don't call fireOnDidChange() here as there could be many terminals being closed/removed
+  }
+}

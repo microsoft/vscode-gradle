@@ -393,12 +393,12 @@
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task.*$/",
           "group": "contextGroup1@0"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task.*$/",
           "group": "contextGroup1@1"
         },
         {
@@ -418,7 +418,7 @@
         },
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^bookmarkedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task.*$/",
           "group": "inline@1"
         },
         {
@@ -428,7 +428,7 @@
         },
         {
           "command": "gradle.showTaskTerminal",
-          "when": "view == recentTasksView",
+          "when": "view == recentTasksView && viewItem != taskWithoutTerminals",
           "group": "inline@0"
         },
         {
@@ -448,12 +448,12 @@
         },
         {
           "command": "gradle.bookmarkTask",
-          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task.*$/",
           "group": "contextGroup3@0"
         },
         {
           "command": "gradle.bookmarkTaskWithArgs",
-          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task$/",
+          "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask$|^task.*$/",
           "group": "contextGroup3@1"
         },
         {
