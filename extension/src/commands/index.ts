@@ -54,8 +54,15 @@ import {
   COMMAND_BOOKMARK_TASK,
   COMMAND_REMOVE_BOOKMARKED_TASK,
   COMMAND_OPEN_BOOKMARK_HELP,
+  COMMAND_BOOKMARK_TASK_WITH_ARGS,
+  // COMMAND_SHOW_TASK_TERMINAL,
+  // COMMAND_CLOSE_TASK_TERMINALS,
 } from './constants';
 import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
+// import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
+// import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
+import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
+import { getTaskArgs } from '../input';
 
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../package.json')).toString()
@@ -72,59 +79,51 @@ function registerShowTasksCommand(
   );
 }
 
-function registerRunTaskCommand(client: GradleClient): vscode.Disposable {
+function registerRunTaskCommand(): vscode.Disposable {
+  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTask(treeItem.task, client);
+        runTask(treeItem.task /*, taskTerminalsStore*/);
       }
     }
   );
 }
 
-function registerDebugTaskCommand(client: GradleClient): vscode.Disposable {
+function registerDebugTaskCommand(): vscode.Disposable {
+  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK,
     async (treeItem: GradleTaskTreeItem, args = '') => {
       if (treeItem && treeItem.task) {
-        runTask(treeItem.task, client, args, true);
+        runTask(treeItem.task /*, taskTerminalsStore*/, args, true);
       }
     }
   );
 }
 
-function registerRestartTaskCommand(
-  client: GradleClient,
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
-): vscode.Disposable {
+function registerRestartTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RESTART_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const taskExecution = getTaskExecution(treeItem.task);
         if (taskExecution) {
-          queueRestartTask(
-            client,
-            gradleTasksTreeDataProvider,
-            bookmarkedTasksTreeDataProvider,
-            taskExecution.task
-          );
+          queueRestartTask(taskExecution.task);
         }
       }
     }
   );
 }
 
-function registerRunTaskWithArgsCommand(
-  client: GradleClient
-): vscode.Disposable {
+function registerRunTaskWithArgsCommand(): vscode.Disposable {
+  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_RUN_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTaskWithArgs(treeItem.task, client, false);
+        runTaskWithArgs(treeItem.task /*, taskTerminalsStore*/, false);
       } else {
         logger.error(
           'Unable to run task with args. TreeItem or TreeItem task not found.'
@@ -134,14 +133,13 @@ function registerRunTaskWithArgsCommand(
   );
 }
 
-function registerDebugTaskWithArgsCommand(
-  client: GradleClient
-): vscode.Disposable {
+function registerDebugTaskWithArgsCommand(): vscode.Disposable {
+  // taskTerminalsStore: TaskTerminalsStore
   return vscode.commands.registerCommand(
     COMMAND_DEBUG_TASK_WITH_ARGS,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        runTaskWithArgs(treeItem.task, client, true);
+        runTaskWithArgs(treeItem.task /*, taskTerminalsStore*/, true);
       } else {
         logger.error(
           'Unable to debug task with args. TreeItem or TreeItem task not found.'
@@ -154,6 +152,7 @@ function registerDebugTaskWithArgsCommand(
 function registerRenderTaskCommand(
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+  // recentTasksTreeDataProvider: RecentTasksTreeDataProvider
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_RENDER_TASK,
@@ -162,26 +161,18 @@ function registerRenderTaskCommand(
         task,
         gradleTasksTreeDataProvider,
         bookmarkedTasksTreeDataProvider
+        // recentTasksTreeDataProvider
       );
     }
   );
 }
 
-function registerCancelTaskCommand(
-  client: GradleClient,
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
-): vscode.Disposable {
+function registerCancelTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CANCEL_TASK,
     (task: vscode.Task) => {
       try {
-        cancelTask(
-          client,
-          gradleTasksTreeDataProvider,
-          bookmarkedTasksTreeDataProvider,
-          task
-        );
+        cancelTask(task);
       } catch (e) {
         logger.error('Error cancelling task:', e.message);
       }
@@ -248,7 +239,7 @@ async function cancelStopDaemons(): Promise<boolean | undefined> {
   }
 }
 
-function registerStopDaemons(client: GradleClient): vscode.Disposable {
+function registerStopDaemons(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMONS,
     async (): Promise<void> => {
@@ -257,7 +248,7 @@ function registerStopDaemons(client: GradleClient): vscode.Disposable {
       }
       try {
         const promises: Promise<StopDaemonsReply | void>[] = vscode.workspace.workspaceFolders.map(
-          (folder) => client.stopDaemons(folder.uri.fsPath)
+          (folder) => GradleClient.getInstance().stopDaemons(folder.uri.fsPath)
         );
         const replies = await Promise.all(promises);
         replies.forEach((reply) => {
@@ -272,7 +263,7 @@ function registerStopDaemons(client: GradleClient): vscode.Disposable {
   );
 }
 
-function registerStopDaemon(client: GradleClient): vscode.Disposable {
+function registerStopDaemon(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMON,
     async (treeItem: GradleDaemonTreeItem): Promise<void> => {
@@ -281,7 +272,9 @@ function registerStopDaemon(client: GradleClient): vscode.Disposable {
       }
       const pid = treeItem.pid;
       try {
-        const stopDaemonReply = await client.stopDaemon(pid);
+        const stopDaemonReply = await GradleClient.getInstance().stopDaemon(
+          pid
+        );
         if (stopDaemonReply) {
           logger.info(stopDaemonReply.getMessage());
         }
@@ -374,9 +367,27 @@ function registerBookmarkTaskCommand(
     COMMAND_BOOKMARK_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
-        bookmarkedTasksTreeDataProvider
-          .getStore()
-          .addTask(treeItem.task.definition.id);
+        const definition = treeItem.task.definition as GradleTaskDefinition;
+        bookmarkedTasksTreeDataProvider.getStore().addEntry(definition.id, '');
+      }
+    }
+  );
+}
+
+function registerBookmarkTaskWithArgsCommand(
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_BOOKMARK_TASK_WITH_ARGS,
+    async (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        const args = await getTaskArgs();
+        if (args) {
+          const definition = treeItem.task.definition as GradleTaskDefinition;
+          bookmarkedTasksTreeDataProvider
+            .getStore()
+            .addEntry(definition.id, args);
+        }
       }
     }
   );
@@ -389,9 +400,10 @@ function registerRemoveBookmarkedTaskCommand(
     COMMAND_REMOVE_BOOKMARKED_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
+        const definition = treeItem.task.definition as GradleTaskDefinition;
         bookmarkedTasksTreeDataProvider
           .getStore()
-          .removeTask(treeItem.task.definition.id);
+          .removeEntry(definition.id, definition.args);
       }
     }
   );
@@ -405,36 +417,68 @@ function registerOpenBookmarkHelpCommand(): vscode.Disposable {
   });
 }
 
+// function registerShowTaskTerminalCommand(
+//   taskTerminalsStore: TaskTerminalsStore
+// ): vscode.Disposable {
+//   return vscode.commands.registerCommand(
+//     COMMAND_SHOW_TASK_TERMINAL,
+//     (treeItem: GradleTaskTreeItem) => {
+//       if (treeItem && treeItem.task) {
+//         const terminals = taskTerminalsStore.getList(
+//           treeItem.task.definition.id
+//         );
+//         const mostRecentTaskWithTerminal = terminals.pop();
+//         if (mostRecentTaskWithTerminal) {
+//           mostRecentTaskWithTerminal.terminal.show();
+//         }
+//       }
+//     }
+//   );
+// }
+
+// function registerCloseTaskTerminals(
+//   taskTerminalsStore: TaskTerminalsStore
+// ): vscode.Disposable {
+//   return vscode.commands.registerCommand(
+//     COMMAND_CLOSE_TASK_TERMINALS,
+//     (treeItem: GradleTaskTreeItem) => {
+//       if (treeItem && treeItem.task) {
+//         const taskWithTerminals = taskTerminalsStore.get(
+//           treeItem.task.definition.id
+//         );
+//         if (taskWithTerminals) {
+//           taskWithTerminals.forEach((taskWithTerminal) =>
+//             taskWithTerminal.terminal.dispose()
+//           );
+//         }
+//       }
+//     }
+//   );
+// }
+
 export function registerCommands(
   context: vscode.ExtensionContext,
-  client: GradleClient,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
-  treeView: vscode.TreeView<vscode.TreeItem>,
+  // recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
+  gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>,
   taskProvider: GradleTaskProvider
+  // taskTerminalsStore: TaskTerminalsStore
 ): void {
   context.subscriptions.push(
-    registerShowTasksCommand(treeView),
-    registerRunTaskCommand(client),
-    registerDebugTaskCommand(client),
-    registerRestartTaskCommand(
-      client,
-      gradleTasksTreeDataProvider,
-      bookmarkedTasksTreeDataProvider
-    ),
-    registerRunTaskWithArgsCommand(client),
-    registerDebugTaskWithArgsCommand(client),
-    registerCancelTaskCommand(
-      client,
-      gradleTasksTreeDataProvider,
-      bookmarkedTasksTreeDataProvider
-    ),
+    registerShowTasksCommand(gradleTasksTreeView),
+    registerRunTaskCommand(/*, taskTerminalsStore*/),
+    registerDebugTaskCommand(/*, taskTerminalsStore*/),
+    registerRestartTaskCommand(),
+    registerRunTaskWithArgsCommand(/*, taskTerminalsStore*/),
+    registerDebugTaskWithArgsCommand(/*, taskTerminalsStore*/),
+    registerCancelTaskCommand(),
     registerCancelTreeItemTaskCommand(),
     registerRefreshCommand(taskProvider, gradleTasksTreeDataProvider),
     registerRefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider),
-    registerStopDaemons(client),
-    registerStopDaemon(client),
+    registerStopDaemons(),
+    registerStopDaemon(),
     registerExplorerTreeCommand(gradleTasksTreeDataProvider),
     registerExplorerFlatCommand(gradleTasksTreeDataProvider),
     registerOpenSettingsCommand(),
@@ -443,12 +487,16 @@ export function registerCommands(
     registerRenderTaskCommand(
       gradleTasksTreeDataProvider,
       bookmarkedTasksTreeDataProvider
+      // recentTasksTreeDataProvider
     ),
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand(),
     registerLoadTasksCommand(taskProvider),
     registerBookmarkTaskCommand(bookmarkedTasksTreeDataProvider),
+    registerBookmarkTaskWithArgsCommand(bookmarkedTasksTreeDataProvider),
     registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider),
     registerOpenBookmarkHelpCommand()
+    // registerShowTaskTerminalCommand(taskTerminalsStore),
+    // registerCloseTaskTerminals(taskTerminalsStore)
   );
 }

@@ -6,6 +6,11 @@ import {
 } from './gradleTasks/GradleTasksTreeDataProvider';
 import { logger } from '../logger';
 import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
+import { JavaDebug } from '../config';
+import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
+import { GradleTaskTreeItem } from './gradleTasks/GradleTaskTreeItem';
+import { TaskArgs } from '../stores/types';
+// import { RecentTasksTreeDataProvider } from './recentTasks/RecentTasksTreeDataProvider';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -18,13 +23,15 @@ export function updateGradleTreeItemStateForTask(
   task: vscode.Task,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
+  // recentTasksTreeDataProvider: RecentTasksTreeDataProvider
 ): void {
   const treeItem = taskTreeItemMap.get(task.definition.id);
   if (treeItem) {
     treeItem.setContext();
     gradleTasksTreeDataProvider.refresh(treeItem);
-    bookmarkedTasksTreeDataProvider.refresh();
+    // recentTasksTreeDataProvider.refresh();
   }
+  bookmarkedTasksTreeDataProvider.refresh();
 }
 
 export async function focusTaskInGradleTasksTree(
@@ -62,4 +69,21 @@ export async function focusProjectInGradleTasksTree(
   } catch (err) {
     logger.error('Unable to focus project in explorer:', err.message);
   }
+}
+
+export function getTreeItemState(
+  task: vscode.Task,
+  javaDebug?: JavaDebug,
+  args?: TaskArgs
+): string {
+  // A task can be running but in a cancelling state
+  if (isTaskCancelling(task, args)) {
+    return GradleTaskTreeItem.STATE_CANCELLING;
+  }
+  if (isTaskRunning(task, args)) {
+    return GradleTaskTreeItem.STATE_RUNNING;
+  }
+  return javaDebug && javaDebug.tasks.includes(task.definition.script)
+    ? GradleTaskTreeItem.STATE_DEBUG_IDLE
+    : GradleTaskTreeItem.STATE_IDLE;
 }

@@ -8,31 +8,49 @@ import { registerCommands } from './commands';
 import { logger } from './logger';
 import { registerBuildFileWatcher } from './buildFileWatcher';
 import { Api } from './api/Api';
+import { registerStores } from './stores';
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
 
   const server = registerServer({ host: 'localhost' }, context);
   const client = registerClient(server, context);
-  const taskProvider = registerTaskProvider(context, client);
-  const taskManager = registerTaskManager(context);
+  const {
+    bookmarkedTasksStore,
+    recentTasksStore,
+    // taskTerminalsStore,
+  } = registerStores(context);
+  const taskProvider = registerTaskProvider(
+    context
+    // taskTerminalsStore
+  );
+
   const {
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
     bookmarkedTasksTreeDataProvider,
+    // recentTasksTreeDataProvider,
     gradleTasksTreeView,
-  } = registerGradleViews(context, taskProvider, client);
+  } = registerGradleViews(
+    context,
+    taskProvider,
+    bookmarkedTasksStore
+    // recentTasksStore,
+    // taskTerminalsStore
+  );
+  const taskManager = registerTaskManager(context, recentTasksStore);
 
   registerBuildFileWatcher(context, taskProvider, taskManager);
 
   registerCommands(
     context,
-    client,
     gradleTasksTreeDataProvider,
     gradleDaemonsTreeDataProvider,
     bookmarkedTasksTreeDataProvider,
+    // recentTasksTreeDataProvider,
     gradleTasksTreeView,
     taskProvider
+    // taskTerminalsStore
   );
 
   return new Api(client, gradleTasksTreeDataProvider);

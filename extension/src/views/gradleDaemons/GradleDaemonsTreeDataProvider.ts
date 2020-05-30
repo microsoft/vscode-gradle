@@ -11,10 +11,7 @@ export class GradleDaemonsTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(
-    private readonly context: vscode.ExtensionContext,
-    private readonly client: GradleClient
-  ) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -35,7 +32,7 @@ export class GradleDaemonsTreeDataProvider
     const promises: Promise<
       GradleDaemonTreeItem[]
     >[] = vscode.workspace.workspaceFolders.map((folder) =>
-      this.client
+      GradleClient.getInstance()
         .getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status

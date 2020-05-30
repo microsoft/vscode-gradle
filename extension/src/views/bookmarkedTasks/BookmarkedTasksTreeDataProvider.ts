@@ -6,11 +6,53 @@ import {
   GradleTasksTreeDataProvider,
 } from '../gradleTasks/GradleTasksTreeDataProvider';
 import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
-import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { BookmarkedTasksStore } from '../../stores/BookmarkedTasksStore';
 import { isWorkspaceFolder } from '../../util';
 import { BookmarkedWorkspaceTreeItem } from './BookmarkedWorkspaceTreeItem';
 import { NoBookmarkedTasksTreeItem } from './NoBookmarkedTasksTreeItem';
+import { TaskId, TaskArgs } from '../../stores/types';
+import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
+import { cloneTask } from '../../tasks/taskUtil';
+import { BookmarkedTaskTreeItem } from './BookmarkedTaskTreeItem';
+
+function buildTaskTreeItem(
+  workspaceTreeItem: BookmarkedWorkspaceTreeItem,
+  treeItem: GradleTaskTreeItem,
+  task: vscode.Task
+): GradleTaskTreeItem {
+  const definition = task.definition as GradleTaskDefinition;
+  return new BookmarkedTaskTreeItem(
+    workspaceTreeItem,
+    task,
+    task.name,
+    definition.description,
+    treeItem.iconPathRunning!,
+    treeItem.iconPathIdle!,
+    workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
+  );
+}
+
+function buildWorkspaceTreeItem(
+  workspaceTreeItemMap: Map<string, BookmarkedWorkspaceTreeItem>,
+  treeItem: GradleTaskTreeItem,
+  task: vscode.Task
+): void {
+  if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
+    let workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
+    if (!workspaceTreeItem) {
+      workspaceTreeItem = new BookmarkedWorkspaceTreeItem(task.scope.name);
+      workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
+    }
+
+    const bookmarkedTaskTreeItem = buildTaskTreeItem(
+      workspaceTreeItem,
+      treeItem,
+      task
+    );
+
+    workspaceTreeItem.addTask(bookmarkedTaskTreeItem);
+  }
+}
 
 export class BookmarkedTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -67,8 +109,6 @@ export class BookmarkedTasksTreeDataProvider
     if (!workspaceFolders) {
       return [];
     }
-    const bookmarkedTaskIds = this.bookmarkedTasksStore.getTasks();
-
     const isMultiRoot = workspaceFolders.length > 1;
     const workspaceTreeItemMap: Map<
       string,
@@ -78,37 +118,26 @@ export class BookmarkedTasksTreeDataProvider
     // For performance reasons, we find the associated task via the taskTreeItemMap,
     // so we need to wait for the treeItems to be built first
     await this.gradleTasksTreeDataProvider.waitForBuildTreeItems();
-
     if (taskTreeItemMap.size === 0) {
       return [];
     }
 
-    bookmarkedTaskIds.forEach((bookmarkedTaskId) => {
-      const treeItem = taskTreeItemMap.get(bookmarkedTaskId);
+    const bookmarkedTasks = this.bookmarkedTasksStore.getData();
+    Array.from(bookmarkedTasks.keys()).forEach((taskId: TaskId) => {
+      const treeItem = taskTreeItemMap.get(taskId);
       if (!treeItem) {
         return;
       }
-      const task = treeItem.task;
-      const definition = task.definition as GradleTaskDefinition;
-
-      if (isWorkspaceFolder(task.scope) && task.definition.buildFile) {
-        let workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
-        if (!workspaceTreeItem) {
-          workspaceTreeItem = new BookmarkedWorkspaceTreeItem(task.scope.name);
-          workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
-        }
-
-        const label = definition.project + ':' + treeItem.label;
-        const bookmarkedTaskTreeItem = new GradleTaskTreeItem(
-          workspaceTreeItem,
-          task,
-          label,
-          definition.description,
-          treeItem.iconPathRunning!,
-          treeItem.iconPathIdle!,
-          workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
-        );
-        workspaceTreeItem.addTask(bookmarkedTaskTreeItem);
+      const taskArgs = bookmarkedTasks.get(taskId) || '';
+      if (taskArgs) {
+        Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
+          const task = cloneTask(
+            treeItem.task,
+            args,
+            treeItem.task.definition.javaDebug
+          );
+          buildWorkspaceTreeItem(workspaceTreeItemMap, treeItem, task);
+        });
       }
     });
 

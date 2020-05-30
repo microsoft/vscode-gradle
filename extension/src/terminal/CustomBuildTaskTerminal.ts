@@ -22,7 +22,6 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly client: GradleClient,
     private readonly projectFolder: string
   ) {}
 
@@ -91,7 +90,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
-      const runTask = this.client.runTask(
+      const runTask = GradleClient.getInstance().runTask(
         this.projectFolder,
         this.task!,
         args,
