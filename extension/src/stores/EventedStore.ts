@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 
-export abstract class BaseStore implements vscode.Disposable {
+export abstract class EventedStore implements vscode.Disposable {
   private readonly _onDidChange: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
   public readonly onDidChange: vscode.Event<null> = this._onDidChange.event;
 
-  protected fireOnDidChange(): void {
+  public fireOnDidChange(): void {
     this._onDidChange.fire(null);
   }
 

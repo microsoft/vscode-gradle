@@ -51,11 +51,6 @@ import {
 } from '../commands/constants';
 
 export class GradleClient implements vscode.Disposable {
-  private static instance: GradleClient;
-  public static getInstance(): GradleClient {
-    return GradleClient.instance;
-  }
-
   private readonly connectDeadline = 20; // seconds
   private grpcClient: GrpcClient | null = null;
   private readonly _onDidConnect: vscode.EventEmitter<
@@ -77,8 +72,6 @@ export class GradleClient implements vscode.Disposable {
     this.server.onDidStart(this.handleServerStart);
     this.server.onDidStop(this.handleServerStop);
     this.server.start();
-
-    GradleClient.instance = this;
   }
 
   private handleServerStop = (): void => {

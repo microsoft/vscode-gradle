@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { GradleDaemonTreeItem } from './GradleDaemonTreeItem';
-import { GradleClient } from '../../client/GradleClient';
 import { Deferred } from '../../async/Deferred';
+import { Extension } from '../../extension/Extension';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -32,8 +32,8 @@ export class GradleDaemonsTreeDataProvider
     const promises: Promise<
       GradleDaemonTreeItem[]
     >[] = vscode.workspace.workspaceFolders.map((folder) =>
-      GradleClient.getInstance()
-        .getDaemonsStatus(folder.uri.fsPath)
+      Extension.getInstance()
+        .client.getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status
             ? status

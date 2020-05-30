@@ -3,6 +3,8 @@ import * as vscode from 'vscode';
 import { logger } from '../logger';
 import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
 import { GradleTaskDefinition } from './GradleTaskDefinition';
+import { EventWaiter } from '../events/EventWaiter';
+import { TaskId } from '../stores/types';
 // import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
 
 let cachedTasks: vscode.Task[] = [];
@@ -32,7 +34,8 @@ export class GradleTaskProvider
     .event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  // constructor() {}
+  public readonly waitForTasksLoad = new EventWaiter(this.onDidTasksLoad).wait;
+
   // private readonly taskTerminalsStore: TaskTerminalsStore
 
   public provideTasks(): Promise<vscode.Task[] | undefined> {
@@ -104,6 +107,12 @@ export class GradleTaskProvider
 
   public getTasks(): vscode.Task[] {
     return cachedTasks;
+  }
+
+  public findByTaskId(taskId: TaskId): vscode.Task | void {
+    return cachedTasks.find((task: vscode.Task) => {
+      return task.definition.id === taskId;
+    });
   }
 
   public dispose(): void {

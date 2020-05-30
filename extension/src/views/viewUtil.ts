@@ -10,7 +10,7 @@ import { JavaDebug } from '../config';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 import { GradleTaskTreeItem } from './gradleTasks/GradleTaskTreeItem';
 import { TaskArgs } from '../stores/types';
-// import { RecentTasksTreeDataProvider } from './recentTasks/RecentTasksTreeDataProvider';
+import { RecentTasksTreeDataProvider } from './recentTasks/RecentTasksTreeDataProvider';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -22,16 +22,16 @@ export function treeItemSortCompareFunc(
 export function updateGradleTreeItemStateForTask(
   task: vscode.Task,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider
-  // recentTasksTreeDataProvider: RecentTasksTreeDataProvider
+  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
+  recentTasksTreeDataProvider: RecentTasksTreeDataProvider
 ): void {
   const treeItem = taskTreeItemMap.get(task.definition.id);
   if (treeItem) {
     treeItem.setContext();
     gradleTasksTreeDataProvider.refresh(treeItem);
-    // recentTasksTreeDataProvider.refresh();
+    bookmarkedTasksTreeDataProvider.refresh();
+    recentTasksTreeDataProvider.refresh();
   }
-  bookmarkedTasksTreeDataProvider.refresh();
 }
 
 export async function focusTaskInGradleTasksTree(
