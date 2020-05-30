@@ -19,6 +19,5 @@ export class TaskTerminalsStore extends StoreSet<TaskId, TaskWithTerminal> {
         });
       }
     });
-    // Don't call fireOnDidChange() here as there could be many terminals being closed/removed
   }
 }

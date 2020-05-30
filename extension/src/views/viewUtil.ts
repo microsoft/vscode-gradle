@@ -1,16 +1,23 @@
 import * as vscode from 'vscode';
 import {
-  taskTreeItemMap,
+  gradleTaskTreeItemMap,
   projectTreeItemMap,
   GradleTasksTreeDataProvider,
 } from './gradleTasks/GradleTasksTreeDataProvider';
 import { logger } from '../logger';
-import { BookmarkedTasksTreeDataProvider } from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
+import {
+  BookmarkedTasksTreeDataProvider,
+  bookmarkedTasksTreeItemMap,
+} from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
 import { JavaDebug } from '../config';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 import { GradleTaskTreeItem } from './gradleTasks/GradleTaskTreeItem';
 import { TaskArgs } from '../stores/types';
-import { RecentTasksTreeDataProvider } from './recentTasks/RecentTasksTreeDataProvider';
+import {
+  RecentTasksTreeDataProvider,
+  recentTasksTreeItemMap,
+} from './recentTasks/RecentTasksTreeDataProvider';
+import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -23,14 +30,33 @@ export function updateGradleTreeItemStateForTask(
   task: vscode.Task,
   gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
   bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
-  recentTasksTreeDataProvider: RecentTasksTreeDataProvider
+  recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
+  updateAll = true
 ): void {
-  const treeItem = taskTreeItemMap.get(task.definition.id);
-  if (treeItem) {
-    treeItem.setContext();
-    gradleTasksTreeDataProvider.refresh(treeItem);
-    bookmarkedTasksTreeDataProvider.refresh();
-    recentTasksTreeDataProvider.refresh();
+  const definition = task.definition as GradleTaskDefinition;
+  const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
+  if (gradleTaskTreeItem && gradleTaskTreeItem.task === task) {
+    gradleTaskTreeItem.setContext();
+    gradleTasksTreeDataProvider.refresh(gradleTaskTreeItem);
+  }
+
+  const bookmarkedTaskTreeItem = bookmarkedTasksTreeItemMap.get(
+    definition.id + definition.args
+  );
+  if (
+    bookmarkedTaskTreeItem &&
+    (updateAll || bookmarkedTaskTreeItem.task === task)
+  ) {
+    bookmarkedTaskTreeItem.setContext();
+    bookmarkedTasksTreeDataProvider.refresh(bookmarkedTaskTreeItem);
+  }
+
+  const recentTaskTreeItem = recentTasksTreeItemMap.get(
+    definition.id + definition.args
+  );
+  if (recentTaskTreeItem && (updateAll || recentTaskTreeItem.task === task)) {
+    recentTaskTreeItem.setContext();
+    recentTasksTreeDataProvider.refresh(recentTaskTreeItem);
   }
 }
 
@@ -39,7 +65,7 @@ export async function focusTaskInGradleTasksTree(
   task: vscode.Task
 ): Promise<void> {
   try {
-    const treeItem = taskTreeItemMap.get(task.definition.id);
+    const treeItem = gradleTaskTreeItemMap.get(task.definition.id);
     if (treeItem) {
       await treeView.reveal(treeItem, {
         expand: true,
