@@ -8,6 +8,11 @@ export const ICON_DAEMON_IDLE = 'circle-outline.svg';
 export const ICON_DAEMON_STOPPED = 'close.svg';
 export const ICON_WARNING = 'warning.svg';
 
+export const GRADLE_TASKS_VIEW = 'gradleTasksView';
+export const GRADLE_DAEMONS_VIEW = 'gradleDaemonsView';
+export const BOOKMARKED_TASKS_VIEW = 'bookmarkedTasksView';
+export const RECENT_TASKS_VIEW = 'recentTasksView';
+
 export const DAEMON_ICON_MAP = {
   [DaemonInfo.DaemonStatus.BUSY]: ICON_DAEMON_BUSY,
   [DaemonInfo.DaemonStatus.IDLE]: ICON_DAEMON_IDLE,
