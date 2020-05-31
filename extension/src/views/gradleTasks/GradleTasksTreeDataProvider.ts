@@ -189,7 +189,8 @@ export class GradleTasksTreeDataProvider
           parentTreeItem,
           task,
           taskName,
-          definition.description,
+          definition.description || taskName,
+          '',
           workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
         );
         taskTreeItem.setContext();

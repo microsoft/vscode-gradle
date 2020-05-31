@@ -8,13 +8,14 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;
   public readonly parentTreeItem: vscode.TreeItem;
   public readonly execution?: vscode.TaskExecution;
-
+  protected readonly gradleTaskDescription?: string;
   protected readonly javaDebug?: JavaDebug;
 
   constructor(
     parentTreeItem: vscode.TreeItem,
     task: vscode.Task,
     label: string,
+    tooltip: string,
     description: string,
     javaDebug?: JavaDebug
   ) {
@@ -24,7 +25,8 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
       command: 'gradle.openBuildFile',
       arguments: [this],
     };
-    this.tooltip = description || label;
+    this.description = description;
+    this.tooltip = tooltip;
     this.parentTreeItem = parentTreeItem;
     this.task = task;
     this.javaDebug = javaDebug;

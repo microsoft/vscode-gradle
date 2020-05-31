@@ -5,11 +5,7 @@ import {
   RecentTaskTreeItem,
   NoRecentTasksTreeItem,
 } from '.';
-import {
-  TaskTerminalsStore,
-  RecentTasksStore,
-  TaskWithTerminal,
-} from '../../stores';
+import { TaskTerminalsStore, RecentTasksStore } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
 import { workspaceJavaDebugMap, GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
@@ -37,7 +33,7 @@ function buildTaskTreeItem(
   const recentTaskTreeItem = new RecentTaskTreeItem(
     workspaceTreeItem,
     task,
-    '',
+    task.name,
     definition.description,
     workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder)),
     taskTerminalsStore
@@ -90,7 +86,7 @@ export class RecentTasksTreeDataProvider
   }
 
   private handleTerminalsStoreChange = (
-    terminals: Set<TaskWithTerminal> | null
+    terminals: Set<vscode.Terminal> | null
   ): void => {
     if (terminals) {
       const taskId = Array.from(this.taskTerminalsStore.getData().keys()).find(

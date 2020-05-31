@@ -391,16 +391,12 @@ function registerShowTaskTerminalCommand(): vscode.Disposable {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         const terminalsSet = Extension.getInstance()
           .getTaskTerminalsStore()
-          .getItem(definition.id);
+          .getItem(definition.id + definition.args);
         if (terminalsSet) {
-          const terminals = Array.from(terminalsSet).filter(
-            (taskWithTerminal) => {
-              return taskWithTerminal.args === definition.args;
-            }
-          );
-          const mostRecentTaskWithTerminal = terminals.pop();
-          if (mostRecentTaskWithTerminal) {
-            mostRecentTaskWithTerminal.terminal.show();
+          const terminals = Array.from(terminalsSet);
+          const mostRecentTerminal = terminals.pop();
+          if (mostRecentTerminal) {
+            mostRecentTerminal.show();
           }
         }
       }
@@ -415,12 +411,12 @@ function registerCloseTaskTerminalsCommand(): vscode.Disposable {
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
-        const terminalsStore = taskTerminalsStore.getItem(definition.id);
-        if (terminalsStore) {
-          Array.from(terminalsStore).forEach((taskWithTerminal) => {
-            if (taskWithTerminal.args === definition.args) {
-              taskWithTerminal.terminal.dispose();
-            }
+        const terminalsSet = taskTerminalsStore.getItem(
+          definition.id + definition.args
+        );
+        if (terminalsSet) {
+          Array.from(terminalsSet).forEach((terminal) => {
+            terminal.dispose();
           });
         }
       }
@@ -434,11 +430,9 @@ function registerCloseAllTaskTerminalsCommand(): vscode.Disposable {
     () => {
       const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
       Array.from(taskTerminalsStore.getData().keys()).forEach((key) => {
-        const terminalsStore = taskTerminalsStore.getItem(key);
-        if (terminalsStore) {
-          Array.from(terminalsStore).forEach((taskWithTerminal) =>
-            taskWithTerminal.terminal.dispose()
-          );
+        const terminalsSet = taskTerminalsStore.getItem(key);
+        if (terminalsSet) {
+          Array.from(terminalsSet).forEach((terminal) => terminal.dispose());
         }
       });
       taskTerminalsStore.clear();
@@ -448,7 +442,6 @@ function registerCloseAllTaskTerminalsCommand(): vscode.Disposable {
 
 function registerClearAllRecentTasksCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, () => {
-    Extension.getInstance().getTaskTerminalsStore().clear(false);
     Extension.getInstance().getRecentTasksStore().clear();
   });
 }
