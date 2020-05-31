@@ -27,3 +27,8 @@ export const COMMAND_REMOVE_BOOKMARKED_TASK = 'gradle.removeBookmarkedTask';
 export const COMMAND_OPEN_BOOKMARK_HELP = 'gradle.openBookmarkHelp';
 export const COMMAND_SHOW_TASK_TERMINAL = 'gradle.showTaskTerminal';
 export const COMMAND_CLOSE_TASK_TERMINALS = 'gradle.closeTaskTerminals';
+export const COMMAND_CLOSE_ALL_TASK_TERMINALS = 'gradle.closeAllTaskTerminals';
+export const COMMAND_CLEAR_ALL_RECENT_TASKS = 'gradle.clearAllRecentTasks';
+export const COMMAND_REMOVE_RECENT_TASK = 'gradle.removeRecentTask';
+export const COMMAND_CLEAR_ALL_BOOKMARKED_TASKS =
+  'gradle.clearAllBookmarkedTasks';

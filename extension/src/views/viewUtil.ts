@@ -126,7 +126,6 @@ function getTreeItemRunningState(
   javaDebug?: JavaDebug,
   args?: TaskArgs
 ): string {
-  // A task can be running but in a cancelling state
   if (isTaskCancelling(task, args)) {
     return TASK_STATE_CANCELLING;
   }
