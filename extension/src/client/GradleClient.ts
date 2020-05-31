@@ -38,7 +38,7 @@ import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
 import { getGradleConfig } from '../config';
 import { GradleTaskDefinition } from '../tasks';
-import { removeCancellingTask } from '../tasks/taskUtil';
+import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -287,6 +287,7 @@ export class GradleClient implements vscode.Disposable {
           logger.error('Error running task:', err.details || err.message);
         } finally {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+          restartQueuedTask(task);
         }
       }
     );

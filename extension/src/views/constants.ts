@@ -8,6 +8,7 @@ export const ICON_DAEMON_IDLE = 'circle-outline.svg';
 export const ICON_DAEMON_STOPPED = 'close.svg';
 export const ICON_WARNING = 'warning.svg';
 
+export const GRADLE_CONTAINER_VIEW = 'gradleContainerView';
 export const GRADLE_TASKS_VIEW = 'gradleTasksView';
 export const GRADLE_DAEMONS_VIEW = 'gradleDaemonsView';
 export const BOOKMARKED_TASKS_VIEW = 'bookmarkedTasksView';

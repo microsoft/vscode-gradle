@@ -56,10 +56,10 @@ export function isTaskRunning(task: vscode.Task, args?: TaskArgs): boolean {
   return getTaskExecution(task, args) !== undefined;
 }
 
-export function cancelTask(task: vscode.Task): void {
+export async function cancelTask(task: vscode.Task): Promise<void> {
   if (isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
-    vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
+    await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     Extension.getInstance().getClient().cancelRunTask(task);
   }
 }

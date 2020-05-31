@@ -1,12 +1,10 @@
 import * as vscode from 'vscode';
 
 import {
-  focusProjectInGradleTasksTree,
   GradleTaskTreeItem,
   GradleTasksTreeDataProvider,
   BookmarkedTasksTreeDataProvider,
   RecentTasksTreeDataProvider,
-  updateGradleTreeItemStateForTask,
   GradleDaemonsTreeDataProvider,
   GradleDaemonTreeItem,
 } from '../views';
@@ -56,6 +54,10 @@ import {
   COMMAND_SHOW_TASK_TERMINAL,
   COMMAND_CLOSE_TASK_TERMINALS,
 } from './constants';
+import {
+  focusProjectInGradleTasksTree,
+  updateGradleTreeItemStateForTask,
+} from '../views/viewUtil';
 
 const EXTENSION_NAME = 'richardwillis.vscode-gradle';
 
