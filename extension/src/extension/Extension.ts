@@ -150,14 +150,7 @@ export class Extension {
   }
 
   private registerCommands(): void {
-    registerCommands(
-      this.context,
-      this.gradleTasksTreeDataProvider,
-      this.gradleDaemonsTreeDataProvider,
-      this.bookmarkedTasksTreeDataProvider,
-      this.recentTasksTreeDataProvider,
-      this.gradleTasksTreeView
-    );
+    registerCommands(this.context);
   }
 
   private loadTasks(): void {
@@ -169,7 +162,7 @@ export class Extension {
   private handleTaskEvents(): void {
     this.gradleTaskManager.onDidStartTask(async (task: vscode.Task) => {
       if (this.gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
-        await focusTaskInGradleTasksTree(this.gradleTasksTreeView, task);
+        await focusTaskInGradleTasksTree(task);
       }
       const definition = task.definition as GradleTaskDefinition;
       this.recentTasksStore.addEntry(definition.id, definition.args);
@@ -242,6 +235,26 @@ export class Extension {
 
   public getBookmarkedTasksStore(): BookmarkedTasksStore {
     return this.bookmarkedTasksStore;
+  }
+
+  public getGradleTasksTreeDataProvider(): GradleTasksTreeDataProvider {
+    return this.gradleTasksTreeDataProvider;
+  }
+
+  public getBookmarkedTasksTreeDataProvider(): BookmarkedTasksTreeDataProvider {
+    return this.bookmarkedTasksTreeDataProvider;
+  }
+
+  public getRecentTasksTreeDataProvider(): RecentTasksTreeDataProvider {
+    return this.recentTasksTreeDataProvider;
+  }
+
+  public getGradleTasksTreeView(): vscode.TreeView<vscode.TreeItem> {
+    return this.gradleTasksTreeView;
+  }
+
+  public getGradleDaemonsTreeDataProvider(): GradleDaemonsTreeDataProvider {
+    return this.gradleDaemonsTreeDataProvider;
   }
 
   public getIcons(): Icons {

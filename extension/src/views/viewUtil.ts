@@ -7,9 +7,6 @@ import {
   GRADLE_CONTAINER_VIEW,
 } from './constants';
 import {
-  GradleTasksTreeDataProvider,
-  BookmarkedTasksTreeDataProvider,
-  RecentTasksTreeDataProvider,
   gradleTaskTreeItemMap,
   bookmarkedTasksTreeItemMap,
   recentTasksTreeItemMap,
@@ -21,6 +18,7 @@ import { JavaDebug } from '../config';
 import { TaskArgs } from '../stores/types';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 import { GradleTaskTreeItem } from './gradleTasks';
+import { Extension } from '../extension';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -52,36 +50,33 @@ export function getTreeItemForTask(
   return null;
 }
 
-export function updateGradleTreeItemStateForTask(
-  task: vscode.Task,
-  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-  bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider,
-  recentTasksTreeDataProvider: RecentTasksTreeDataProvider
-): void {
+export function updateGradleTreeItemStateForTask(task: vscode.Task): void {
   const definition = task.definition as GradleTaskDefinition;
   const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
+  const extension = Extension.getInstance();
   if (gradleTaskTreeItem) {
     gradleTaskTreeItem?.setContext();
-    gradleTasksTreeDataProvider.refresh(gradleTaskTreeItem);
+    extension.getGradleTasksTreeDataProvider().refresh(gradleTaskTreeItem);
   }
   const bookmarkTaskTreeItem = bookmarkedTasksTreeItemMap.get(
     definition.id + definition.args
   );
   if (bookmarkTaskTreeItem) {
     bookmarkTaskTreeItem.setContext();
-    bookmarkedTasksTreeDataProvider.refresh(bookmarkTaskTreeItem);
+    extension
+      .getBookmarkedTasksTreeDataProvider()
+      .refresh(bookmarkTaskTreeItem);
   }
   const recentTaskTreeItem = recentTasksTreeItemMap.get(
     definition.id + definition.args
   );
   if (recentTaskTreeItem) {
     recentTaskTreeItem.setContext();
-    recentTasksTreeDataProvider.refresh(recentTaskTreeItem);
+    extension.getRecentTasksTreeDataProvider().refresh(recentTaskTreeItem);
   }
 }
 
 export async function focusTaskInGradleTasksTree(
-  treeView: vscode.TreeView<vscode.TreeItem>,
   task: vscode.Task
 ): Promise<void> {
   try {
@@ -90,9 +85,11 @@ export async function focusTaskInGradleTasksTree(
     if (treeItem === null || treeItem.constructor === GradleTaskTreeItem) {
       const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
       if (gradleTaskTreeItem) {
-        await treeView.reveal(gradleTaskTreeItem, {
-          expand: true,
-        });
+        await Extension.getInstance()
+          .getGradleTasksTreeView()
+          .reveal(gradleTaskTreeItem, {
+            expand: true,
+          });
       }
     }
   } catch (err) {
@@ -101,7 +98,6 @@ export async function focusTaskInGradleTasksTree(
 }
 
 export async function focusProjectInGradleTasksTree(
-  treeView: vscode.TreeView<vscode.TreeItem>,
   uri: vscode.Uri
 ): Promise<void> {
   try {
@@ -110,7 +106,7 @@ export async function focusProjectInGradleTasksTree(
     );
     const treeItem = projectTreeItemMap.get(uri.fsPath);
     if (treeItem) {
-      await treeView.reveal(treeItem, {
+      await Extension.getInstance().getGradleTasksTreeView().reveal(treeItem, {
         focus: true,
         expand: true,
         select: true,
