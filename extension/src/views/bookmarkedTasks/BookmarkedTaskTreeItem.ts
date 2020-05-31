@@ -1,5 +1,4 @@
-import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
-import { getTreeItemState } from '../viewUtil';
+import { GradleTaskTreeItem, getTreeItemState } from '..';
 
 export class BookmarkedTaskTreeItem extends GradleTaskTreeItem {
   public setContext(): void {

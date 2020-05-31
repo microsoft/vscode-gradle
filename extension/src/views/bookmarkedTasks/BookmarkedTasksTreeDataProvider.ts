@@ -1,15 +1,17 @@
 import * as vscode from 'vscode';
-import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
-import { BookmarkedTasksStore } from '../../stores/BookmarkedTasksStore';
+import {
+  BookmarkedTasksWorkspaceTreeItem,
+  BookmarkedTaskTreeItem,
+  NoBookmarkedTasksTreeItem,
+} from '.';
+import { JavaDebug, getConfigJavaDebug } from '../../config';
+import { GradleTaskTreeItem } from '..';
+import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import { NoBookmarkedTasksTreeItem } from './NoBookmarkedTasksTreeItem';
+import { BookmarkedTasksStore } from '../../stores';
+import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
 import { cloneTask } from '../../tasks/taskUtil';
-import { BookmarkedTaskTreeItem } from './BookmarkedTaskTreeItem';
-import { Extension } from '../../extension/Extension';
-import { BookmarkedTasksWorkspaceTreeItem } from './BookmarkedTasksWorkspaceTreeItem';
-import { getConfigJavaDebug, JavaDebug } from '../../config';
 
 const bookmarkedTasksWorkspaceTreeItemMap: Map<
   string,

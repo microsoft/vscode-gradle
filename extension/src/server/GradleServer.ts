@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
-import { isDebuggingServer } from '../util';
 import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
+import { isDebuggingServer } from '../util';
 import { logger } from '../logger';
 
 export interface ServerOptions {
@@ -57,6 +57,7 @@ export class GradleServer implements vscode.Disposable {
       const task = buildGradleServerTask(cwd, [String(this.port)]);
       logger.debug('Starting server');
       this.taskExecution = await vscode.tasks.executeTask(task);
+      console.log('foo');
     }
   }
 

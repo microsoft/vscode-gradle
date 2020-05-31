@@ -1,23 +1,24 @@
 import * as vscode from 'vscode';
 import {
-  gradleTaskTreeItemMap,
-  projectTreeItemMap,
+  TASK_STATE_CANCELLING,
+  TASK_STATE_RUNNING,
+  TASK_STATE_DEBUG_IDLE,
+  TASK_STATE_IDLE,
+} from './constants';
+import {
   GradleTasksTreeDataProvider,
-} from './gradleTasks/GradleTasksTreeDataProvider';
-import { logger } from '../logger';
-import {
   BookmarkedTasksTreeDataProvider,
-  bookmarkedTasksTreeItemMap,
-} from './bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-import { JavaDebug } from '../config';
-import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
-import { GradleTaskTreeItem } from './gradleTasks/GradleTaskTreeItem';
-import { TaskArgs } from '../stores/types';
-import {
   RecentTasksTreeDataProvider,
+  gradleTaskTreeItemMap,
+  bookmarkedTasksTreeItemMap,
   recentTasksTreeItemMap,
-} from './recentTasks/RecentTasksTreeDataProvider';
-import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
+  projectTreeItemMap,
+} from '.';
+import { GradleTaskDefinition } from '../tasks';
+import { logger } from '../logger';
+import { JavaDebug } from '../config';
+import { TaskArgs } from '../stores/types';
+import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -104,14 +105,14 @@ function getTreeItemRunningState(
 ): string {
   // A task can be running but in a cancelling state
   if (isTaskCancelling(task, args)) {
-    return GradleTaskTreeItem.STATE_CANCELLING;
+    return TASK_STATE_CANCELLING;
   }
   if (isTaskRunning(task, args)) {
-    return GradleTaskTreeItem.STATE_RUNNING;
+    return TASK_STATE_RUNNING;
   }
   return javaDebug && javaDebug.tasks.includes(task.definition.script)
-    ? GradleTaskTreeItem.STATE_DEBUG_IDLE
-    : GradleTaskTreeItem.STATE_IDLE;
+    ? TASK_STATE_DEBUG_IDLE
+    : TASK_STATE_IDLE;
 }
 
 export function getTreeItemState(

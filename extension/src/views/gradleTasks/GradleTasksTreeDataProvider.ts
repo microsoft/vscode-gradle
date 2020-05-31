@@ -1,16 +1,19 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { WorkspaceTreeItem } from './WorkspaceTreeItem';
-import { GradleTaskTreeItem } from './GradleTaskTreeItem';
-import { ProjectTreeItem } from './ProjectTreeItem';
-import { TreeItemWithTasksOrGroups } from './TreeItemWithTasksOrGroups';
-import { GroupTreeItem } from './GroupTreeItem';
+import {
+  GradleTaskTreeItem,
+  WorkspaceTreeItem,
+  ProjectTreeItem,
+  GroupTreeItem,
+  NoGradleTasksTreeItem,
+  TreeItemWithTasksOrGroups,
+} from '..';
+
 import { JavaDebug, getConfigJavaDebug } from '../../config';
-import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
+import { EventWaiter } from '../../events';
+import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import { NoGradleTasksTreeItem } from './NoGradleTasksTreeItem';
-import { EventWaiter } from '../../events/EventWaiter';
-import { Extension } from '../../extension/Extension';
+import { Extension } from '../../extension';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
 export const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();

@@ -13,6 +13,13 @@ export const GRADLE_DAEMONS_VIEW = 'gradleDaemonsView';
 export const BOOKMARKED_TASKS_VIEW = 'bookmarkedTasksView';
 export const RECENT_TASKS_VIEW = 'recentTasksView';
 
+export const TASK_STATE_RUNNING = 'runningTask';
+export const TASK_STATE_CANCELLING = 'cancellingTask';
+export const TASK_STATE_IDLE = 'task';
+export const TASK_STATE_DEBUG_IDLE = 'debugTask';
+
+export const TASK_STATE_RUNNING_REGEX = new RegExp(`^${TASK_STATE_RUNNING}`);
+
 export const DAEMON_ICON_MAP = {
   [DaemonInfo.DaemonStatus.BUSY]: ICON_DAEMON_BUSY,
   [DaemonInfo.DaemonStatus.IDLE]: ICON_DAEMON_IDLE,
