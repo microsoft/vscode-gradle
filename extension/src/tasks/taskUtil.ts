@@ -284,7 +284,8 @@ export async function runTask(
   args = '',
   debug = false
 ): Promise<void> {
-  if (isTaskRunning(task)) {
+  if (isTaskRunning(task, args)) {
+    logger.warning('Unable to run task, task is already running:', task.name);
     return;
   }
   if (debug) {
@@ -309,12 +310,7 @@ export async function runTask(
     }
   }
   if (debug || args) {
-    const debugTask = cloneTask(
-      task,
-      args,
-      /*, taskTerminalsStore*/
-      debug
-    );
+    const debugTask = cloneTask(task, args, debug);
     vscode.tasks.executeTask(debugTask);
   } else {
     vscode.tasks.executeTask(task);
@@ -327,7 +323,7 @@ export async function runTaskWithArgs(
 ): Promise<void> {
   const args = await getTaskArgs();
   if (args !== undefined) {
-    runTask(task /*, taskTerminalsStore*/, args, debug);
+    runTask(task, args, debug);
   } else {
     logger.error('Args not supplied');
   }

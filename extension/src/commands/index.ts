@@ -53,6 +53,10 @@ import {
   COMMAND_BOOKMARK_TASK_WITH_ARGS,
   COMMAND_SHOW_TASK_TERMINAL,
   COMMAND_CLOSE_TASK_TERMINALS,
+  COMMAND_CLOSE_ALL_TASK_TERMINALS,
+  COMMAND_CLEAR_ALL_RECENT_TASKS,
+  COMMAND_REMOVE_RECENT_TASK,
+  COMMAND_CLEAR_ALL_BOOKMARKED_TASKS,
 } from './constants';
 import {
   focusProjectInGradleTasksTree,
@@ -431,13 +435,13 @@ function registerShowTaskTerminalCommand(): vscode.Disposable {
   );
 }
 
-function registerCloseTaskTerminals(): vscode.Disposable {
+function registerCloseTaskTerminalsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CLOSE_TASK_TERMINALS,
     (treeItem: GradleTaskTreeItem) => {
-      const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
+        const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
         const terminalsStore = taskTerminalsStore.getItem(definition.id);
         if (terminalsStore) {
           Array.from(terminalsStore).forEach((taskWithTerminal) => {
@@ -446,6 +450,56 @@ function registerCloseTaskTerminals(): vscode.Disposable {
             }
           });
         }
+      }
+    }
+  );
+}
+
+function registerCloseAllTaskTerminalsCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_CLOSE_ALL_TASK_TERMINALS,
+    () => {
+      const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
+      Array.from(taskTerminalsStore.getData().keys()).forEach((key) => {
+        const terminalsStore = taskTerminalsStore.getItem(key);
+        if (terminalsStore) {
+          Array.from(terminalsStore).forEach((taskWithTerminal) =>
+            taskWithTerminal.terminal.dispose()
+          );
+        }
+      });
+      taskTerminalsStore.clear();
+    }
+  );
+}
+
+function registerClearAllRecentTasksCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, () => {
+    const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
+    taskTerminalsStore.clear(false);
+    const recentTasksStore = Extension.getInstance().getRecentTasksStore();
+    recentTasksStore.clear();
+  });
+}
+
+function registerClearAllBookmarkedTasksCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_CLEAR_ALL_BOOKMARKED_TASKS,
+    () => {
+      const bookmarkedTasksStore = Extension.getInstance().getBookmarkedTasksStore();
+      bookmarkedTasksStore.clear();
+    }
+  );
+}
+
+function registerRemoveRecentTaskCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(
+    COMMAND_REMOVE_RECENT_TASK,
+    (treeItem: GradleTaskTreeItem) => {
+      if (treeItem && treeItem.task) {
+        const definition = treeItem.task.definition as GradleTaskDefinition;
+        const recentTasksStore = Extension.getInstance().getRecentTasksStore();
+        recentTasksStore.removeItem(definition.id + definition.args);
       }
     }
   );
@@ -490,6 +544,10 @@ export function registerCommands(
     registerRemoveBookmarkedTaskCommand(bookmarkedTasksTreeDataProvider),
     registerOpenBookmarkHelpCommand(),
     registerShowTaskTerminalCommand(),
-    registerCloseTaskTerminals()
+    registerCloseTaskTerminalsCommand(),
+    registerCloseAllTaskTerminalsCommand(),
+    registerClearAllRecentTasksCommand(),
+    registerClearAllBookmarkedTasksCommand(),
+    registerRemoveRecentTaskCommand()
   );
 }
