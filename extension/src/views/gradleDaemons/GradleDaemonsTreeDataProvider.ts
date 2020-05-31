@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { GradleDaemonTreeItem } from './GradleDaemonTreeItem';
-import { GradleClient } from '../../client/GradleClient';
-import { Deferred } from '../../async/Deferred';
+import { Deferred } from '../../async';
+import { GradleDaemonTreeItem } from '.';
+import { Extension } from '../../extension';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -11,10 +11,7 @@ export class GradleDaemonsTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(
-    private readonly context: vscode.ExtensionContext,
-    private readonly client: GradleClient
-  ) {}
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -35,7 +32,8 @@ export class GradleDaemonsTreeDataProvider
     const promises: Promise<
       GradleDaemonTreeItem[]
     >[] = vscode.workspace.workspaceFolders.map((folder) =>
-      this.client
+      Extension.getInstance()
+        .getClient()
         .getDaemonsStatus(folder.uri.fsPath)
         .then((status) =>
           status

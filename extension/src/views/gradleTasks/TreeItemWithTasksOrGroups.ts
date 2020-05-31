@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { GradleTaskTreeItem } from './GradleTaskTreeItem';
-import { GroupTreeItem } from './GroupTreeItem';
+import { GradleTaskTreeItem } from '.';
+import { GroupTreeItem } from '..';
 import { treeItemSortCompareFunc } from '../viewUtil';
 
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {

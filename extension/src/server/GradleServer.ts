@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as getPort from 'get-port';
-import { isDebuggingServer, isProcessRunning, waitOnTcp } from '../util';
 import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
+import { isProcessRunning, waitOnTcp, isDebuggingServer } from '../util';
 import { logger } from '../logger';
 
 export interface ServerOptions {

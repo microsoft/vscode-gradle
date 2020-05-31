@@ -1,41 +1,43 @@
 import * as vscode from 'vscode';
+import { TaskArgs, TaskId } from './types';
+import { TaskStore } from '.';
 
-export class BookmarkedTasksStore implements vscode.Disposable {
-  private readonly data = new Set<string>();
+interface WorkspaceStateTasks {
+  [key: string]: TaskArgs[];
+}
 
-  private readonly _onDidChange: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
-  public readonly onDidChange: vscode.Event<null> = this._onDidChange.event;
+const toWorkspaceStateTasks = (
+  map: Map<TaskId, Set<TaskArgs>>
+): WorkspaceStateTasks => {
+  return Array.from(map.keys()).reduce(
+    (workspaceStateTasks: WorkspaceStateTasks, key: string) => {
+      workspaceStateTasks[key] = Array.from(map.get(key)!.values());
+      return workspaceStateTasks;
+    },
+    {}
+  );
+};
 
+export class BookmarkedTasksStore extends TaskStore {
   constructor(private readonly context: vscode.ExtensionContext) {
+    super();
     const bookmarkedTasks = this.context.workspaceState.get(
       'bookmarkedTasks',
-      []
+      {}
+    ) as WorkspaceStateTasks;
+    if (Array.isArray(bookmarkedTasks)) {
+      return;
+    }
+    Object.keys(bookmarkedTasks).forEach((taskId: TaskId) => {
+      this.setItem(taskId, new Set(bookmarkedTasks[taskId]), false);
+    });
+  }
+
+  public fireOnDidChange(): void {
+    const workspaceStateTasks: WorkspaceStateTasks = toWorkspaceStateTasks(
+      this.getData()
     );
-    bookmarkedTasks.forEach((taskId) => this.data.add(taskId));
-  }
-
-  public getTasks(): string[] {
-    return Array.from(this.data.values());
-  }
-
-  public addTask(taskId: string): void {
-    this.data.add(taskId);
-    this.fireOnDidChange();
-  }
-
-  public removeTask(taskId: string): void {
-    this.data.delete(taskId);
-    this.fireOnDidChange();
-  }
-
-  private fireOnDidChange(): void {
-    this.context.workspaceState.update('bookmarkedTasks', this.getTasks());
-    this._onDidChange.fire(null);
-  }
-
-  public dispose(): void {
-    this._onDidChange.dispose();
+    this.context.workspaceState.update('bookmarkedTasks', workspaceStateTasks);
+    super.fireOnDidChange(null);
   }
 }

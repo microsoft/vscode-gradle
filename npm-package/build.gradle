@@ -21,6 +21,24 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
+task copyStoreTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies stores types'
+  from file("../extension/out/stores")
+  include "*.d.ts"
+  into 'lib/stores'
+}
+
+task copyRecentTasksViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies recentTasks views'
+  from file("../extension/out/views/recentTasks")
+  include "*.d.ts"
+  into 'lib/views/recentTasks'
+}
+
 task copyBookmarkedTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
@@ -52,7 +70,8 @@ task copyViewTypes(type: Copy) {
   dependsOn ':extension:buildProd',
     copyBookmarkedTasksViewTypes,
     copyGradleDaemonsViewTypes,
-    copyGradleTasksViewTypes
+    copyGradleTasksViewTypes,
+    copyRecentTasksViewTypes
   group 'copy'
   description 'Copies views'
   from file("../extension/out/views")
@@ -107,6 +126,7 @@ task copyApiTypes(type: Copy) {
 
 task copyPublicApi(type: Copy) {
   dependsOn ':extension:buildProd',
+    copyStoreTypes,
     copyViewTypes,
     copyClientTypes,
     copyTasksTypes,

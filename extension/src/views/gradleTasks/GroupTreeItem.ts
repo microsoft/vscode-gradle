@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TreeItemWithTasksOrGroups } from './TreeItemWithTasksOrGroups';
+import { TreeItemWithTasksOrGroups } from '.';
 
 export class GroupTreeItem extends TreeItemWithTasksOrGroups {
   constructor(

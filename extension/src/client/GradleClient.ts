@@ -26,6 +26,20 @@ import {
   StopDaemonReply,
 } from '../proto/gradle_pb';
 
+import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
+import {
+  COMMAND_REFRESH_DAEMON_STATUS,
+  COMMAND_CANCEL_TASK,
+  COMMAND_SHOW_LOGS,
+} from '../commands/constants';
+import { logger, LoggerStream } from '../logger';
+import { EventWaiter } from '../events';
+import { GradleServer } from '../server';
+import { ProgressHandler } from '../progress';
+import { getGradleConfig } from '../config';
+import { GradleTaskDefinition } from '../tasks';
+import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
+
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
   const gradleEnv = environment.getGradleEnvironment()!;
@@ -34,21 +48,6 @@ function logBuildEnvironment(environment: Environment): void {
   logger.info('Gradle User Home:', gradleEnv.getGradleUserHome());
   logger.info('Gradle Version:', gradleEnv.getGradleVersion());
 }
-
-import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
-import { EventWaiter } from '../events/EventWaiter';
-import { GradleServer } from '../server/GradleServer';
-import { logger } from '../logger';
-import { LoggerStream } from '../logger/LoggerSteam';
-import { getGradleConfig } from '../config';
-import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
-import { removeCancellingTask } from '../tasks/taskUtil';
-import { ProgressHandler } from '../progress/ProgressHandler';
-import {
-  COMMAND_REFRESH_DAEMON_STATUS,
-  COMMAND_CANCEL_TASK,
-  COMMAND_SHOW_LOGS,
-} from '../commands/constants';
 
 export class GradleClient implements vscode.Disposable {
   private readonly connectDeadline = 20; // seconds
@@ -287,6 +286,7 @@ export class GradleClient implements vscode.Disposable {
           logger.error('Error running task:', err.details || err.message);
         } finally {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+          restartQueuedTask(task);
         }
       }
     );

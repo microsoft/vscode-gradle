@@ -7,14 +7,13 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { Api as ExtensionApi, RunTaskOpts } from '../../api/Api';
 import { Output } from '../../proto/gradle_pb';
-import { GradleTasksTreeDataProvider } from '../../views/gradleTasks/GradleTasksTreeDataProvider';
-import { GradleTaskTreeItem } from '../../views/gradleTasks/GradleTaskTreeItem';
 import {
   COMMAND_REFRESH,
   COMMAND_RUN_TASK_WITH_ARGS,
 } from '../../commands/constants';
+import { GradleTaskTreeItem } from '../../views';
+import { RunTaskOpts, Api as ExtensionApi } from '../../api';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
@@ -103,7 +102,6 @@ describe(fixtureName, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      const treeDataProvider = extension?.exports.getTasksTreeProvider() as GradleTasksTreeDataProvider;
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
@@ -114,11 +112,10 @@ describe(fixtureName, () => {
         });
         const treeItem = new GradleTaskTreeItem(
           new vscode.TreeItem('parentTreeItem'),
-          task!,
-          task!.name,
-          task!.definition.description,
-          treeDataProvider.getIconPathRunning()!,
-          treeDataProvider.getIconPathIdle()!
+          task,
+          task.name,
+          '',
+          task.definition.description
         );
         await vscode.commands.executeCommand(
           COMMAND_RUN_TASK_WITH_ARGS,

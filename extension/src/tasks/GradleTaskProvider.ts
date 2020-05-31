@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-
+import { EventWaiter } from '../events';
+import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
-import { GradleClient } from '../client/GradleClient';
-import { GradleTaskDefinition } from './GradleTaskDefinition';
+import { createTaskFromDefinition, loadTasksForFolders } from './taskUtil';
+import { TaskId } from '../stores/types';
 
 let cachedTasks: vscode.Task[] = [];
 const emptyTasks: vscode.Task[] = [];
@@ -32,7 +32,7 @@ export class GradleTaskProvider
     .event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  constructor(private readonly client: GradleClient) {}
+  public readonly waitForTasksLoad = new EventWaiter(this.onDidTasksLoad).wait;
 
   public provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
@@ -57,8 +57,7 @@ export class GradleTaskProvider
     return createTaskFromDefinition(
       gradleTaskDefinition,
       workspaceFolder,
-      projectFolder,
-      this.client
+      projectFolder
     );
   }
 
@@ -78,7 +77,7 @@ export class GradleTaskProvider
       cachedTasks = emptyTasks;
       return Promise.resolve(cachedTasks);
     }
-    this.loadTasksPromise = loadTasksForFolders(this.client, folders)
+    this.loadTasksPromise = loadTasksForFolders(folders)
       .then(
         (tasks) => {
           cachedTasks = tasks;
@@ -100,6 +99,12 @@ export class GradleTaskProvider
 
   public getTasks(): vscode.Task[] {
     return cachedTasks;
+  }
+
+  public findByTaskId(taskId: TaskId): vscode.Task | void {
+    return cachedTasks.find((task: vscode.Task) => {
+      return task.definition.id === taskId;
+    });
   }
 
   public dispose(): void {

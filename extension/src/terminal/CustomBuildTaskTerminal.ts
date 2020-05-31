@@ -1,17 +1,15 @@
 import * as vscode from 'vscode';
 import * as util from 'util';
 import * as getPort from 'get-port';
-
-import { waitOnTcp, isTest } from '../util';
-import { logger } from '../logger';
-import { LoggerStream } from '../logger/LoggerSteam';
-import { Output } from '../proto/gradle_pb';
 import { isTaskRunning } from '../tasks/taskUtil';
-import { GradleClient } from '../client/GradleClient';
 import {
   COMMAND_CANCEL_TASK,
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
 } from '../commands/constants';
+import { waitOnTcp, isTest } from '../util';
+import { logger, LoggerStream } from '../logger';
+import { Extension } from '../extension';
+import { Output } from '../proto/gradle_pb';
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
@@ -22,7 +20,6 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly client: GradleClient,
     private readonly projectFolder: string
   ) {}
 
@@ -91,20 +88,22 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
-      const runTask = this.client.runTask(
-        this.projectFolder,
-        this.task!,
-        args,
-        '',
-        javaDebugPort,
-        (output: Output): void => {
-          this.handleOutput(output.getOutputBytes_asU8());
-          if (isTest()) {
-            stdOutLoggerStream.write(output.getOutputBytes_asU8());
-          }
-        },
-        true
-      );
+      const runTask = Extension.getInstance()
+        .getClient()
+        .runTask(
+          this.projectFolder,
+          this.task!,
+          args,
+          '',
+          javaDebugPort,
+          (output: Output): void => {
+            this.handleOutput(output.getOutputBytes_asU8());
+            if (isTest()) {
+              stdOutLoggerStream.write(output.getOutputBytes_asU8());
+            }
+          },
+          true
+        );
       if (javaDebugEnabled) {
         await this.startJavaDebug(javaDebugPort);
       }
