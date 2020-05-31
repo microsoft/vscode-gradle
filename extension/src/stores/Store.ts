@@ -11,6 +11,13 @@ export abstract class Store<K, V> extends EventedStore<V> {
     return this.data;
   }
 
+  public clear(fireOnDidChange = true): void {
+    this.data.clear();
+    if (fireOnDidChange) {
+      this.fireOnDidChange(null);
+    }
+  }
+
   public setItem(key: K, value: V, fireOnDidChange = true): void {
     if (!this.data.has(key)) {
       this.data.set(key, value);

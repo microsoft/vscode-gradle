@@ -71,7 +71,7 @@ export class Extension {
     this.bookmarkedTasksStore = new BookmarkedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
-    this.gradleTaskProvider = new GradleTaskProvider(/*, taskTerminalsStore*/);
+    this.gradleTaskProvider = new GradleTaskProvider();
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
       this.gradleTaskProvider
@@ -234,6 +234,14 @@ export class Extension {
 
   public getTaskTerminalsStore(): TaskTerminalsStore {
     return this.taskTerminalsStore;
+  }
+
+  public getRecentTasksStore(): RecentTasksStore {
+    return this.recentTasksStore;
+  }
+
+  public getBookmarkedTasksStore(): BookmarkedTasksStore {
+    return this.bookmarkedTasksStore;
   }
 
   public getIcons(): Icons {
