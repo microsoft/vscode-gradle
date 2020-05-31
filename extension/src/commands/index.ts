@@ -145,9 +145,9 @@ function registerRenderTaskCommand(): vscode.Disposable {
 function registerCancelTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CANCEL_TASK,
-    (task: vscode.Task) => {
+    async (task: vscode.Task) => {
       try {
-        cancelTask(task);
+        await cancelTask(task);
       } catch (e) {
         logger.error('Error cancelling task:', e.message);
       }

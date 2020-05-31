@@ -112,10 +112,10 @@ describe(fixtureName, () => {
         });
         const treeItem = new GradleTaskTreeItem(
           new vscode.TreeItem('parentTreeItem'),
-          task!,
-          task!.name,
+          task,
+          task.name,
           '',
-          task!.definition.description
+          task.definition.description
         );
         await vscode.commands.executeCommand(
           COMMAND_RUN_TASK_WITH_ARGS,
