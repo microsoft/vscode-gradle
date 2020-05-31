@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { JavaDebug } from '../../config';
-import { getTreeItemState } from '..';
 import { Extension } from '../../extension';
 import { TASK_STATE_RUNNING_REGEX } from '../constants';
+import { getTreeItemState } from '../viewUtil';
 
 export class GradleTaskTreeItem extends vscode.TreeItem {
   public readonly task: vscode.Task;

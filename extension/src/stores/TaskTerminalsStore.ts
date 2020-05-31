@@ -19,5 +19,6 @@ export class TaskTerminalsStore extends StoreSet<TaskId, TaskWithTerminal> {
         });
       }
     });
+    this.fireOnDidChange(null);
   }
 }

@@ -413,7 +413,7 @@
         },
         {
           "command": "gradle.showTaskTerminal",
-          "when": "view == recentTasksView && viewItem =~ /^debugTaskWithTerminals.*$|^taskWithTerminals.*$|^runningTaskWithTerminals.*$/",
+          "when": "view == recentTasksView && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$/",
           "group": "inline@0"
         },
         {
