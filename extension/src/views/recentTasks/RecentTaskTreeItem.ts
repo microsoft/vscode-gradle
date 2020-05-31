@@ -3,7 +3,6 @@ import { GradleTaskTreeItem } from '..';
 import { JavaDebug } from '../../config';
 import { TaskTerminalsStore } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
-import { buildTaskName } from '../../tasks/taskUtil';
 import { getTreeItemState } from '../viewUtil';
 
 function getRecentTaskTreeItemState(
@@ -24,21 +23,21 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     javaDebug: JavaDebug = { tasks: [] },
     private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
-    super(parentTreeItem, task, label, description, javaDebug);
+    super(parentTreeItem, task, label, description || label, '', javaDebug);
   }
 
   public setContext(): void {
     const definition = this.task.definition as GradleTaskDefinition;
-    const taskTerminalsStore = this.taskTerminalsStore.getItem(definition.id);
-    const taskTerminals = Array.from(taskTerminalsStore || []);
-    const numTerminals = taskTerminals.filter((terminal) => {
-      return terminal.args === definition.args;
-    }).length;
-    const taskName = `${buildTaskName(
-      definition as GradleTaskDefinition
-    )} (${numTerminals})`;
-
-    this.label = taskName;
+    this.tooltip =
+      (definition.args ? `(args: ${definition.args}) ` : '') +
+      (definition.description || this.label);
+    const taskTerminalsStore = this.taskTerminalsStore.getItem(
+      definition.id + definition.args
+    );
+    const numTerminals = taskTerminalsStore ? taskTerminalsStore.size : 0;
+    this.description = `(${numTerminals})`;
+    // const taskName = `${buildTaskName(definition)} (${numTerminals})`;
+    // this.label = taskName;
     this.contextValue = getRecentTaskTreeItemState(
       getTreeItemState(this.task, this.javaDebug, definition.args),
       numTerminals

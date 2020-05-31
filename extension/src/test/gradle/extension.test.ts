@@ -115,6 +115,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           new vscode.TreeItem('parentTreeItem'),
           task!,
           task!.name,
+          '',
           task!.definition.description
         );
         await vscode.commands.executeCommand(

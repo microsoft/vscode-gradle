@@ -38,7 +38,8 @@ function buildTaskTreeItem(
     workspaceTreeItem,
     task,
     task.name,
-    definition.description,
+    definition.description || task.name,
+    '',
     bookmarkedTasksWorkspaceJavaDebugMap.get(workspaceFolder.name)
   );
   bookmarkedTaskTreeItem.setContext();
