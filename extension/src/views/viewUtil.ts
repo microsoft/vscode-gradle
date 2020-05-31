@@ -55,7 +55,7 @@ export function updateGradleTreeItemStateForTask(task: vscode.Task): void {
   const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
   const extension = Extension.getInstance();
   if (gradleTaskTreeItem) {
-    gradleTaskTreeItem?.setContext();
+    gradleTaskTreeItem.setContext();
     extension.getGradleTasksTreeDataProvider().refresh(gradleTaskTreeItem);
   }
   const bookmarkTaskTreeItem = bookmarkedTasksTreeItemMap.get(
