@@ -104,6 +104,7 @@ export async function removeCancellingTask(task: vscode.Task): Promise<void> {
   const cancellingTask = getCancellingTask(task);
   if (cancellingTask) {
     cancellingTasks.delete(cancellingTask.definition.id);
+    await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
   }
 }
 
@@ -148,10 +149,10 @@ export function createTaskFromDefinition(
         const disposable = vscode.window.onDidOpenTerminal(
           (openedTerminal: vscode.Terminal) => {
             disposable.dispose();
-            taskTerminalsStore.addEntry(definition.id, {
-              terminal: openedTerminal,
-              args: definition.args,
-            });
+            taskTerminalsStore.addEntry(
+              definition.id + definition.args,
+              openedTerminal
+            );
           }
         );
         return terminal;

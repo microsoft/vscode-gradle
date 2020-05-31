@@ -1,6 +1,5 @@
 import { DaemonInfo } from '../proto/gradle_pb';
 
-export const DAEMON_STATUS_BUSY = 'BUSY';
 export const ICON_LOADING = 'loading.svg';
 export const ICON_GRADLE_TASK = 'script.svg';
 export const ICON_DAEMON_BUSY = 'circle-filled.svg';
