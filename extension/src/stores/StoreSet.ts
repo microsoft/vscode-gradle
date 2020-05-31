@@ -1,4 +1,4 @@
-import { Store } from './Store';
+import { Store } from '.';
 
 export class StoreSet<K, V> extends Store<K, Set<V>> {
   public addEntry(key: K, value: V, fireOnDidChange = true): void {

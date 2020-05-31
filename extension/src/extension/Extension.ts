@@ -1,23 +1,29 @@
 import * as vscode from 'vscode';
 import { logger } from '../logger';
 import { registerCommands } from '../commands';
-import { Api } from '../api/Api';
-import { GradleClient } from '../client/GradleClient';
-import { GradleTasksTreeDataProvider } from '../views/gradleTasks/GradleTasksTreeDataProvider';
-import { GradleServer } from '../server/GradleServer';
-import { BookmarkedTasksStore } from '../stores/BookmarkedTasksStore';
-import { RecentTasksStore } from '../stores/RecentTasksStore';
-import { GradleTaskProvider } from '../tasks/GradleTaskProvider';
-import { Icons } from '../icons/Icons';
-import { GradleDaemonsTreeDataProvider } from '../views/gradleDaemons/GradleDaemonsTreeDataProvider';
-import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-import { GradleTaskManager } from '../tasks/GradleTaskManager';
-import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
-import { BuildFileWatcher } from '../buildFileWatcher/BuildFileWatcher';
+import { Api } from '../api';
+import { GradleClient } from '../client';
+import { GradleServer } from '../server';
+import { Icons } from '../icons';
 import { getConfigFocusTaskInExplorer } from '../config';
-import { focusTaskInGradleTasksTree } from '../views/viewUtil';
-import { TaskTerminalsStore } from '../stores/TaskTerminalsStore';
-import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
+import {
+  GradleDaemonsTreeDataProvider,
+  BookmarkedTasksTreeDataProvider,
+  RecentTasksTreeDataProvider,
+  GradleTasksTreeDataProvider,
+  focusTaskInGradleTasksTree,
+} from '../views';
+import {
+  BookmarkedTasksStore,
+  RecentTasksStore,
+  TaskTerminalsStore,
+} from '../stores';
+import {
+  GradleTaskProvider,
+  GradleTaskManager,
+  GradleTaskDefinition,
+} from '../tasks';
+import { BuildFileWatcher } from '../buildFileWatcher';
 import {
   GRADLE_TASKS_VIEW,
   BOOKMARKED_TASKS_VIEW,
@@ -25,9 +31,9 @@ import {
   RECENT_TASKS_VIEW,
 } from '../views/constants';
 import {
-  COMMAND_LOAD_TASKS,
   COMMAND_REFRESH,
   COMMAND_RENDER_TASK,
+  COMMAND_LOAD_TASKS,
 } from '../commands/constants';
 
 export class Extension {
@@ -42,6 +48,7 @@ export class Extension {
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
   private readonly gradleTaskProvider: GradleTaskProvider;
+  private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
   private readonly icons: Icons;
   private readonly buildFileWatcher: BuildFileWatcher;
@@ -53,6 +60,7 @@ export class Extension {
   private readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
   private readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
+  private readonly api: Api;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
@@ -64,6 +72,10 @@ export class Extension {
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
     this.gradleTaskProvider = new GradleTaskProvider(/*, taskTerminalsStore*/);
+    this.taskProvider = vscode.tasks.registerTaskProvider(
+      'gradle',
+      this.gradleTaskProvider
+    );
     this.icons = new Icons(context);
 
     this.gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
@@ -107,6 +119,7 @@ export class Extension {
 
     this.gradleTaskManager = new GradleTaskManager(context);
     this.buildFileWatcher = new BuildFileWatcher();
+    this.api = new Api(this.client, this.gradleTasksTreeDataProvider);
 
     this.storeSubscriptions();
     this.registerCommands();
@@ -126,6 +139,7 @@ export class Extension {
       this.recentTasksStore,
       this.taskTerminalsStore,
       this.gradleTaskProvider,
+      this.taskProvider,
       this.gradleTaskManager,
       this.buildFileWatcher,
       this.gradleDaemonsTreeView,
@@ -205,7 +219,7 @@ export class Extension {
   }
 
   public getApi(): Api {
-    return new Api(this.client, this.gradleTasksTreeDataProvider!);
+    return this.api;
   }
 
   public getGradleTaskProvider(): GradleTaskProvider {

@@ -1,28 +1,32 @@
 import * as vscode from 'vscode';
 
-import { getIgnoreDaemonStopWarning } from '../config';
+import {
+  focusProjectInGradleTasksTree,
+  GradleTaskTreeItem,
+  GradleTasksTreeDataProvider,
+  BookmarkedTasksTreeDataProvider,
+  RecentTasksTreeDataProvider,
+  updateGradleTreeItemStateForTask,
+  GradleDaemonsTreeDataProvider,
+  GradleDaemonTreeItem,
+} from '../views';
+import {
+  runTask,
+  getTaskExecution,
+  queueRestartTask,
+  runTaskWithArgs,
+  cancelTask,
+} from '../tasks/taskUtil';
 import { logger } from '../logger';
+import { invalidateTasksCache, GradleTaskDefinition } from '../tasks';
+import { Extension } from '../extension';
+import { getIgnoreDaemonStopWarning } from '../config';
+import { StopDaemonsReply } from '../proto/gradle_pb';
 import {
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
 } from '../compat';
-import { GradleTasksTreeDataProvider } from '../views/gradleTasks/GradleTasksTreeDataProvider';
-import { GradleTaskTreeItem } from '../views/gradleTasks/GradleTaskTreeItem';
-import { invalidateTasksCache } from '../tasks/GradleTaskProvider';
-import { GradleDaemonsTreeDataProvider } from '../views/gradleDaemons/GradleDaemonsTreeDataProvider';
-import { StopDaemonsReply } from '../proto/gradle_pb';
-import { GradleDaemonTreeItem } from '../views/gradleDaemons/GradleDaemonTreeItem';
-import {
-  runTask,
-  getTaskExecution,
-  runTaskWithArgs,
-  cancelTask,
-  queueRestartTask,
-} from '../tasks/taskUtil';
-import {
-  focusProjectInGradleTasksTree,
-  updateGradleTreeItemStateForTask,
-} from '../views/viewUtil';
+import { getTaskArgs } from '../input';
 import {
   COMMAND_SHOW_TASKS,
   COMMAND_RUN_TASK,
@@ -52,11 +56,6 @@ import {
   COMMAND_SHOW_TASK_TERMINAL,
   COMMAND_CLOSE_TASK_TERMINALS,
 } from './constants';
-import { BookmarkedTasksTreeDataProvider } from '../views/bookmarkedTasks/BookmarkedTasksTreeDataProvider';
-import { GradleTaskDefinition } from '../tasks/GradleTaskDefinition';
-import { getTaskArgs } from '../input';
-import { Extension } from '../extension/Extension';
-import { RecentTasksTreeDataProvider } from '../views/recentTasks/RecentTasksTreeDataProvider';
 
 const EXTENSION_NAME = 'richardwillis.vscode-gradle';
 

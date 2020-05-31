@@ -1,4 +1,4 @@
-import { EventedStore } from './EventedStore';
+import { EventedStore } from '.';
 
 export abstract class Store<K, V> extends EventedStore<V> {
   private readonly data = new Map<K, V>();

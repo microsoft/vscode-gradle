@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
-
+import { EventWaiter } from '../events';
+import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import { loadTasksForFolders, createTaskFromDefinition } from './taskUtil';
-import { GradleTaskDefinition } from './GradleTaskDefinition';
-import { EventWaiter } from '../events/EventWaiter';
+import { createTaskFromDefinition, loadTasksForFolders } from './taskUtil';
 import { TaskId } from '../stores/types';
 
 let cachedTasks: vscode.Task[] = [];

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { NoTasksTreeItem } from '../NoTasksTreeItem';
+import { NoTasksTreeItem } from '..';
 import { COMMAND_SHOW_LOGS } from '../../commands/constants';
 
 export class NoGradleTasksTreeItem extends NoTasksTreeItem {

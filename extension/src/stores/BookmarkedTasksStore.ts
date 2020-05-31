@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { TaskStore } from './TaskStore';
 import { TaskArgs, TaskId } from './types';
+import { TaskStore } from '.';
 
 interface WorkspaceStateTasks {
   [key: string]: TaskArgs[];

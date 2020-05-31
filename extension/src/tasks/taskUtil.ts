@@ -1,9 +1,16 @@
 import * as vscode from 'vscode';
-import { GradleTaskDefinition } from './GradleTaskDefinition';
-import { CustomBuildTaskTerminal } from '../terminal/CustomBuildTaskTerminal';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
+import { TaskArgs } from '../stores/types';
+import {
+  COMMAND_RENDER_TASK,
+  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
+} from '../commands/constants';
+import { Extension } from '../extension';
+import { GradleTaskDefinition } from '.';
+import { CustomBuildTaskTerminal } from '../terminal';
 import { logger } from '../logger';
 import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
+import { getGradleBuildFile } from '../util';
 import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,
@@ -11,14 +18,7 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaDebuggerExtensionActivated,
 } from '../compat';
-import { getGradleBuildFile } from '../util';
-import {
-  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-  COMMAND_RENDER_TASK,
-} from '../commands/constants';
 import { getTaskArgs } from '../input';
-import { TaskArgs } from '../stores/types';
-import { Extension } from '../extension/Extension';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
