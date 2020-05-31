@@ -11,7 +11,6 @@ import {
   BookmarkedTasksTreeDataProvider,
   RecentTasksTreeDataProvider,
   GradleTasksTreeDataProvider,
-  focusTaskInGradleTasksTree,
 } from '../views';
 import {
   BookmarkedTasksStore,
@@ -35,6 +34,7 @@ import {
   COMMAND_RENDER_TASK,
   COMMAND_LOAD_TASKS,
 } from '../commands/constants';
+import { focusTaskInGradleTasksTree } from '../views/viewUtil';
 
 export class Extension {
   private static instance: Extension;
@@ -213,7 +213,9 @@ export class Extension {
       ),
       vscode.window.onDidCloseTerminal((terminal: vscode.Terminal) => {
         this.taskTerminalsStore.removeTerminal(terminal);
-        this.taskTerminalsStore.fireOnDidChange(null);
+      }),
+      vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        vscode.commands.executeCommand(COMMAND_REFRESH);
       })
     );
   }

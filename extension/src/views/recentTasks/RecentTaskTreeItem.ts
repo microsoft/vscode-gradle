@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { GradleTaskTreeItem, getTreeItemState } from '..';
+import { GradleTaskTreeItem } from '..';
 import { JavaDebug } from '../../config';
 import { TaskTerminalsStore } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
 import { buildTaskName } from '../../tasks/taskUtil';
+import { getTreeItemState } from '../viewUtil';
 
 function getRecentTaskTreeItemState(
   gradleTaskTreeItemState: string,
