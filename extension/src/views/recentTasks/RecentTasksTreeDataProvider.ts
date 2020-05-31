@@ -1,21 +1,21 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { workspaceJavaDebugMap } from '../gradleTasks/GradleTasksTreeDataProvider';
-import { GradleTaskTreeItem } from '../gradleTasks/GradleTaskTreeItem';
-import { isWorkspaceFolder } from '../../util';
-import { TaskHistoryWorkspaceTreeItem } from './TaskHistoryWorkspaceTreeItem';
-import { RecentTasksStore } from '../../stores/RecentTasksStore';
-import { NoRecentTasksTreeItem } from './NoRecentTasksTreeItem';
-import { cloneTask } from '../../tasks/taskUtil';
-import { Extension } from '../../extension/Extension';
-import { RecentTasksWorkspaceTreeItem } from './RecentTasksWorkspaceTreeItem';
-import { TaskId, TaskArgs } from '../../stores/types';
-import { GradleTaskDefinition } from '../../tasks/GradleTaskDefinition';
-import { RecentTaskTreeItem } from './RecentTaskTreeItem';
+import {
+  RecentTasksWorkspaceTreeItem,
+  RecentTaskTreeItem,
+  NoRecentTasksTreeItem,
+} from '.';
 import {
   TaskTerminalsStore,
+  RecentTasksStore,
   TaskWithTerminal,
-} from '../../stores/TaskTerminalsStore';
+} from '../../stores';
+import { GradleTaskDefinition } from '../../tasks';
+import { workspaceJavaDebugMap, GradleTaskTreeItem } from '..';
+import { isWorkspaceFolder } from '../../util';
+import { Extension } from '../../extension';
+import { TaskId, TaskArgs } from '../../stores/types';
+import { cloneTask } from '../../tasks/taskUtil';
 
 const recentTasksWorkspaceTreeItemMap: Map<
   string,
@@ -130,7 +130,7 @@ export class RecentTasksTreeDataProvider
   public async getChildren(
     element?: vscode.TreeItem
   ): Promise<vscode.TreeItem[]> {
-    if (element instanceof TaskHistoryWorkspaceTreeItem) {
+    if (element instanceof RecentTasksWorkspaceTreeItem) {
       return [...element.tasks];
     }
     if (!element) {

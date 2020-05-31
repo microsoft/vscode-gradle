@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProjectTreeItem } from './ProjectTreeItem';
+import { ProjectTreeItem } from '.';
 
 export class WorkspaceTreeItem extends vscode.TreeItem {
   public readonly projects: ProjectTreeItem[] = [];

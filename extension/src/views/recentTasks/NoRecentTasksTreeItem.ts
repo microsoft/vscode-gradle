@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { NoTasksTreeItem } from '../NoTasksTreeItem';
+import { NoTasksTreeItem } from '..';
 import { COMMAND_OPEN_BOOKMARK_HELP } from '../../commands/constants';
 
 export class NoRecentTasksTreeItem extends NoTasksTreeItem {

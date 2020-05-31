@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { StoreSet } from './StoreSet';
-import { TaskId, TaskArgs } from './types';
+import { TaskArgs, TaskId } from './types';
+import { StoreSet } from '.';
 
 export interface TaskWithTerminal {
   terminal: vscode.Terminal;
