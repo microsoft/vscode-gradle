@@ -40,16 +40,16 @@ import {
   COMMAND_CANCELLING_TREE_ITEM_TASK,
   COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
   COMMAND_SHOW_LOGS,
-  COMMAND_BOOKMARK_TASK,
-  COMMAND_REMOVE_BOOKMARKED_TASK,
-  COMMAND_OPEN_BOOKMARK_HELP,
-  COMMAND_BOOKMARK_TASK_WITH_ARGS,
+  COMMAND_PIN_TASK,
+  COMMAND_REMOVE_PINNED_TASK,
+  COMMAND_OPEN_PIN_HELP,
+  COMMAND_PIN_TASK_WITH_ARGS,
   COMMAND_SHOW_TASK_TERMINAL,
   COMMAND_CLOSE_TASK_TERMINALS,
   COMMAND_CLOSE_ALL_TASK_TERMINALS,
   COMMAND_CLEAR_ALL_RECENT_TASKS,
   COMMAND_REMOVE_RECENT_TASK,
-  COMMAND_CLEAR_ALL_BOOKMARKED_TASKS,
+  COMMAND_CLEAR_ALL_PINNED_TASKS,
 } from './constants';
 import {
   focusProjectInGradleTasksTree,
@@ -327,14 +327,14 @@ function registerShowLogsCommand(): vscode.Disposable {
   });
 }
 
-function registerBookmarkTaskCommand(): vscode.Disposable {
+function registerPinTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    COMMAND_BOOKMARK_TASK,
+    COMMAND_PIN_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         Extension.getInstance()
-          .getBookmarkedTasksTreeDataProvider()
+          .getPinnedTasksTreeDataProvider()
           .getStore()
           .addEntry(definition.id, definition.args);
       }
@@ -342,16 +342,16 @@ function registerBookmarkTaskCommand(): vscode.Disposable {
   );
 }
 
-function registerBookmarkTaskWithArgsCommand(): vscode.Disposable {
+function registerPinTaskWithArgsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    COMMAND_BOOKMARK_TASK_WITH_ARGS,
+    COMMAND_PIN_TASK_WITH_ARGS,
     async (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const args = await getTaskArgs();
         if (args) {
           const definition = treeItem.task.definition as GradleTaskDefinition;
           Extension.getInstance()
-            .getBookmarkedTasksTreeDataProvider()
+            .getPinnedTasksTreeDataProvider()
             .getStore()
             .addEntry(definition.id, args);
         }
@@ -360,14 +360,14 @@ function registerBookmarkTaskWithArgsCommand(): vscode.Disposable {
   );
 }
 
-function registerRemoveBookmarkedTaskCommand(): vscode.Disposable {
+function registerRemovePinnedTaskCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
-    COMMAND_REMOVE_BOOKMARKED_TASK,
+    COMMAND_REMOVE_PINNED_TASK,
     (treeItem: GradleTaskTreeItem) => {
       if (treeItem && treeItem.task) {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         Extension.getInstance()
-          .getBookmarkedTasksTreeDataProvider()
+          .getPinnedTasksTreeDataProvider()
           .getStore()
           .removeEntry(definition.id, definition.args);
       }
@@ -375,10 +375,10 @@ function registerRemoveBookmarkedTaskCommand(): vscode.Disposable {
   );
 }
 
-function registerOpenBookmarkHelpCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(COMMAND_OPEN_BOOKMARK_HELP, () => {
+function registerOpenPinHelpCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_OPEN_PIN_HELP, () => {
     vscode.window.showInformationMessage(
-      'Bookmark your favourite tasks via the task context menu.'
+      'Pin your favourite tasks via the task context menu.'
     );
   });
 }
@@ -446,13 +446,10 @@ function registerClearAllRecentTasksCommand(): vscode.Disposable {
   });
 }
 
-function registerClearAllBookmarkedTasksCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(
-    COMMAND_CLEAR_ALL_BOOKMARKED_TASKS,
-    () => {
-      Extension.getInstance().getBookmarkedTasksStore().clear();
-    }
-  );
+function registerClearAllPinnedTasksCommand(): vscode.Disposable {
+  return vscode.commands.registerCommand(COMMAND_CLEAR_ALL_PINNED_TASKS, () => {
+    Extension.getInstance().getPinnedTasksStore().clear();
+  });
 }
 
 function registerRemoveRecentTaskCommand(): vscode.Disposable {
@@ -463,7 +460,7 @@ function registerRemoveRecentTaskCommand(): vscode.Disposable {
         const definition = treeItem.task.definition as GradleTaskDefinition;
         Extension.getInstance()
           .getRecentTasksStore()
-          .removeItem(definition.id + definition.args);
+          .removeEntry(definition.id, definition.args);
       }
     }
   );
@@ -492,15 +489,15 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand(),
     registerLoadTasksCommand(),
-    registerBookmarkTaskCommand(),
-    registerBookmarkTaskWithArgsCommand(),
-    registerRemoveBookmarkedTaskCommand(),
-    registerOpenBookmarkHelpCommand(),
+    registerPinTaskCommand(),
+    registerPinTaskWithArgsCommand(),
+    registerRemovePinnedTaskCommand(),
+    registerOpenPinHelpCommand(),
     registerShowTaskTerminalCommand(),
     registerCloseTaskTerminalsCommand(),
     registerCloseAllTaskTerminalsCommand(),
     registerClearAllRecentTasksCommand(),
-    registerClearAllBookmarkedTasksCommand(),
+    registerClearAllPinnedTasksCommand(),
     registerRemoveRecentTaskCommand()
   );
 }

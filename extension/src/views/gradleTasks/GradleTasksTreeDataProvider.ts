@@ -151,13 +151,10 @@ export class GradleTasksTreeDataProvider
           );
         }
 
-        const projectName = this.collapsed
-          ? definition.rootProject
-          : definition.project;
         let projectTreeItem = projectTreeItemMap.get(definition.buildFile);
         if (!projectTreeItem) {
           projectTreeItem = new ProjectTreeItem(
-            projectName,
+            definition.project,
             workspaceTreeItem,
             vscode.Uri.file(definition.buildFile)
           );

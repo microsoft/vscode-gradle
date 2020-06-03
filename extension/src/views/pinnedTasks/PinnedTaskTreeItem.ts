@@ -2,7 +2,7 @@ import { GradleTaskTreeItem } from '..';
 import { getTreeItemState } from '../viewUtil';
 import { GradleTaskDefinition } from '../../tasks';
 
-export class BookmarkedTaskTreeItem extends GradleTaskTreeItem {
+export class PinnedTaskTreeItem extends GradleTaskTreeItem {
   public setContext(): void {
     const definition = this.task.definition as GradleTaskDefinition;
     // Update the state of this treeItem when the args match, to prevent showing a running state

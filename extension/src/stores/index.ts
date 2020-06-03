@@ -2,6 +2,6 @@ export * from './EventedStore';
 export * from './Store';
 export * from './StoreSet';
 export * from './TaskStore';
-export * from './BookmarkedTasksStore';
+export * from './PinnedTasksStore';
 export * from './RecentTasksStore';
 export * from './TaskTerminalsStore';

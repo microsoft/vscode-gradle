@@ -8,12 +8,12 @@ import { Icons } from '../icons';
 import { getConfigFocusTaskInExplorer } from '../config';
 import {
   GradleDaemonsTreeDataProvider,
-  BookmarkedTasksTreeDataProvider,
+  PinnedTasksTreeDataProvider,
   RecentTasksTreeDataProvider,
   GradleTasksTreeDataProvider,
 } from '../views';
 import {
-  BookmarkedTasksStore,
+  PinnedTasksStore,
   RecentTasksStore,
   TaskTerminalsStore,
 } from '../stores';
@@ -25,7 +25,7 @@ import {
 import { BuildFileWatcher } from '../buildFileWatcher';
 import {
   GRADLE_TASKS_VIEW,
-  BOOKMARKED_TASKS_VIEW,
+  PINNED_TASKS_VIEW,
   GRADLE_DAEMONS_VIEW,
   RECENT_TASKS_VIEW,
 } from '../views/constants';
@@ -44,7 +44,7 @@ export class Extension {
 
   private readonly client: GradleClient;
   private readonly server: GradleServer;
-  private readonly bookmarkedTasksStore: BookmarkedTasksStore;
+  private readonly pinnedTasksStore: PinnedTasksStore;
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
   private readonly gradleTaskProvider: GradleTaskProvider;
@@ -55,8 +55,8 @@ export class Extension {
   private readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
-  private readonly bookmarkedTasksTreeDataProvider: BookmarkedTasksTreeDataProvider;
-  private readonly bookmarkedTasksTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider;
+  private readonly pinnedTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
   private readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
@@ -68,7 +68,7 @@ export class Extension {
 
     this.server = new GradleServer({ host: 'localhost' }, context);
     this.client = new GradleClient(this.server, statusBarItem);
-    this.bookmarkedTasksStore = new BookmarkedTasksStore(context);
+    this.pinnedTasksStore = new PinnedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
     this.gradleTaskProvider = new GradleTaskProvider();
@@ -95,17 +95,14 @@ export class Extension {
         showCollapseAll: false,
       }
     );
-    this.bookmarkedTasksTreeDataProvider = new BookmarkedTasksTreeDataProvider(
+    this.pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
       this.context,
-      this.bookmarkedTasksStore
+      this.pinnedTasksStore
     );
-    this.bookmarkedTasksTreeView = vscode.window.createTreeView(
-      BOOKMARKED_TASKS_VIEW,
-      {
-        treeDataProvider: this.bookmarkedTasksTreeDataProvider,
-        showCollapseAll: false,
-      }
-    );
+    this.pinnedTasksTreeView = vscode.window.createTreeView(PINNED_TASKS_VIEW, {
+      treeDataProvider: this.pinnedTasksTreeDataProvider,
+      showCollapseAll: false,
+    });
 
     this.recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       this.context,
@@ -135,7 +132,7 @@ export class Extension {
     this.context.subscriptions.push(
       this.client,
       this.server,
-      this.bookmarkedTasksStore,
+      this.pinnedTasksStore,
       this.recentTasksStore,
       this.taskTerminalsStore,
       this.gradleTaskProvider,
@@ -144,7 +141,7 @@ export class Extension {
       this.buildFileWatcher,
       this.gradleDaemonsTreeView,
       this.gradleTasksTreeView,
-      this.bookmarkedTasksTreeView,
+      this.pinnedTasksTreeView,
       this.recentTasksTreeView
     );
   }
@@ -233,16 +230,16 @@ export class Extension {
     return this.recentTasksStore;
   }
 
-  public getBookmarkedTasksStore(): BookmarkedTasksStore {
-    return this.bookmarkedTasksStore;
+  public getPinnedTasksStore(): PinnedTasksStore {
+    return this.pinnedTasksStore;
   }
 
   public getGradleTasksTreeDataProvider(): GradleTasksTreeDataProvider {
     return this.gradleTasksTreeDataProvider;
   }
 
-  public getBookmarkedTasksTreeDataProvider(): BookmarkedTasksTreeDataProvider {
-    return this.bookmarkedTasksTreeDataProvider;
+  public getPinnedTasksTreeDataProvider(): PinnedTasksTreeDataProvider {
+    return this.pinnedTasksTreeDataProvider;
   }
 
   public getRecentTasksTreeDataProvider(): RecentTasksTreeDataProvider {

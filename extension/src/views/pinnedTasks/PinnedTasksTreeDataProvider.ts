@@ -1,83 +1,80 @@
 import * as vscode from 'vscode';
 import {
-  BookmarkedTasksWorkspaceTreeItem,
-  BookmarkedTaskTreeItem,
-  NoBookmarkedTasksTreeItem,
+  PinnedTasksWorkspaceTreeItem,
+  PinnedTaskTreeItem,
+  NoPinnedTasksTreeItem,
 } from '.';
 import { JavaDebug, getConfigJavaDebug } from '../../config';
 import { GradleTaskTreeItem } from '..';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import { BookmarkedTasksStore } from '../../stores';
+import { PinnedTasksStore } from '../../stores';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask } from '../../tasks/taskUtil';
 
-const bookmarkedTasksWorkspaceTreeItemMap: Map<
+const pinnedTasksWorkspaceTreeItemMap: Map<
   string,
-  BookmarkedTasksWorkspaceTreeItem
+  PinnedTasksWorkspaceTreeItem
 > = new Map();
-export const bookmarkedTasksWorkspaceJavaDebugMap: Map<
+export const pinnedTasksWorkspaceJavaDebugMap: Map<
   string,
   JavaDebug
 > = new Map();
 
 // eslint-disable-next-line sonarjs/no-unused-collection
-export const bookmarkedTasksTreeItemMap: Map<
+export const pinnedTasksTreeItemMap: Map<
   string,
-  BookmarkedTaskTreeItem
+  PinnedTaskTreeItem
 > = new Map();
 
 function buildTaskTreeItem(
-  workspaceTreeItem: BookmarkedTasksWorkspaceTreeItem,
+  workspaceTreeItem: PinnedTasksWorkspaceTreeItem,
   task: vscode.Task
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
   const workspaceFolder = task.scope as vscode.WorkspaceFolder;
-  const bookmarkedTaskTreeItem = new BookmarkedTaskTreeItem(
+  const pinnedTaskTreeItem = new PinnedTaskTreeItem(
     workspaceTreeItem,
     task,
     task.name,
     definition.description || task.name,
     '',
-    bookmarkedTasksWorkspaceJavaDebugMap.get(workspaceFolder.name)
+    pinnedTasksWorkspaceJavaDebugMap.get(workspaceFolder.name)
   );
-  bookmarkedTaskTreeItem.setContext();
-  return bookmarkedTaskTreeItem;
+  pinnedTaskTreeItem.setContext();
+  return pinnedTaskTreeItem;
 }
 
 function buildWorkspaceTreeItem(task: vscode.Task): void {
   const definition = task.definition as GradleTaskDefinition;
   if (isWorkspaceFolder(task.scope) && definition.buildFile) {
-    let workspaceTreeItem = bookmarkedTasksWorkspaceTreeItemMap.get(
+    let workspaceTreeItem = pinnedTasksWorkspaceTreeItemMap.get(
       task.scope.name
     );
     if (!workspaceTreeItem) {
-      workspaceTreeItem = new BookmarkedTasksWorkspaceTreeItem(task.scope.name);
-      bookmarkedTasksWorkspaceTreeItemMap.set(
-        task.scope.name,
-        workspaceTreeItem
-      );
+      workspaceTreeItem = new PinnedTasksWorkspaceTreeItem(task.scope.name);
+      pinnedTasksWorkspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
     }
 
-    if (!bookmarkedTasksWorkspaceJavaDebugMap.has(task.scope.name)) {
-      bookmarkedTasksWorkspaceJavaDebugMap.set(
+    if (!pinnedTasksWorkspaceJavaDebugMap.has(task.scope.name)) {
+      pinnedTasksWorkspaceJavaDebugMap.set(
         task.scope.name,
         getConfigJavaDebug(task.scope)
       );
     }
 
-    const bookmarkedTaskTreeItem = buildTaskTreeItem(workspaceTreeItem, task);
-    bookmarkedTasksTreeItemMap.set(
+    const pinnedTaskTreeItem = buildTaskTreeItem(workspaceTreeItem, task);
+    pinnedTasksTreeItemMap.set(
       definition.id + definition.args,
-      bookmarkedTaskTreeItem
+      pinnedTaskTreeItem
     );
 
-    workspaceTreeItem.addTask(bookmarkedTaskTreeItem);
+    workspaceTreeItem.addTask(pinnedTaskTreeItem);
   }
 }
 
-export class BookmarkedTasksTreeDataProvider
+export class PinnedTasksTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
@@ -85,13 +82,13 @@ export class BookmarkedTasksTreeDataProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly bookmarkedTasksStore: BookmarkedTasksStore
+    private readonly pinnedTasksStore: PinnedTasksStore
   ) {
-    this.bookmarkedTasksStore.onDidChange(() => this.refresh());
+    this.pinnedTasksStore.onDidChange(() => this.refresh());
   }
 
-  public getStore(): BookmarkedTasksStore {
-    return this.bookmarkedTasksStore;
+  public getStore(): PinnedTasksStore {
+    return this.pinnedTasksStore;
   }
 
   public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -112,13 +109,13 @@ export class BookmarkedTasksTreeDataProvider
   public async getChildren(
     element?: vscode.TreeItem
   ): Promise<vscode.TreeItem[]> {
-    if (element instanceof BookmarkedTasksWorkspaceTreeItem) {
+    if (element instanceof PinnedTasksWorkspaceTreeItem) {
       return [...element.tasks];
     }
     if (!element) {
       const treeItems = await this.buildTreeItems();
       if (!treeItems.length) {
-        return [new NoBookmarkedTasksTreeItem(this.context)];
+        return [new NoPinnedTasksTreeItem(this.context)];
       } else {
         return treeItems;
       }
@@ -127,8 +124,8 @@ export class BookmarkedTasksTreeDataProvider
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
-    bookmarkedTasksTreeItemMap.clear();
-    bookmarkedTasksWorkspaceTreeItemMap.clear();
+    pinnedTasksTreeItemMap.clear();
+    pinnedTasksWorkspaceTreeItemMap.clear();
 
     const { workspaceFolders } = vscode.workspace;
     if (!workspaceFolders) {
@@ -139,29 +136,27 @@ export class BookmarkedTasksTreeDataProvider
     const gradleTaskProvider = Extension.getInstance().getGradleTaskProvider();
     await gradleTaskProvider.waitForTasksLoad();
 
-    const bookmarkedTasks = this.bookmarkedTasksStore.getData();
-    Array.from(bookmarkedTasks.keys()).forEach((taskId: TaskId) => {
+    const pinnedTasks = this.pinnedTasksStore.getData();
+    Array.from(pinnedTasks.keys()).forEach((taskId: TaskId) => {
       const task = gradleTaskProvider.findByTaskId(taskId);
       if (!task) {
         return;
       }
-      const taskArgs = bookmarkedTasks.get(taskId) || '';
+      const taskArgs = pinnedTasks.get(taskId) || '';
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
-          const bookmarkedTask = cloneTask(task, args);
-          buildWorkspaceTreeItem(bookmarkedTask);
+          const pinnedTask = cloneTask(task, args);
+          buildWorkspaceTreeItem(pinnedTask);
         });
       }
     });
 
-    if (!bookmarkedTasksWorkspaceTreeItemMap.size) {
+    if (!pinnedTasksWorkspaceTreeItemMap.size) {
       return [];
     } else if (isMultiRoot) {
-      return [...bookmarkedTasksWorkspaceTreeItemMap.values()];
+      return [...pinnedTasksWorkspaceTreeItemMap.values()];
     } else {
-      return [
-        ...bookmarkedTasksWorkspaceTreeItemMap.values().next().value.tasks,
-      ];
+      return [...pinnedTasksWorkspaceTreeItemMap.values().next().value.tasks];
     }
   }
 }
