@@ -39,13 +39,13 @@ task copyRecentTasksViewTypes(type: Copy) {
   into 'lib/views/recentTasks'
 }
 
-task copyBookmarkedTasksViewTypes(type: Copy) {
+task copyPinnedTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
-  description 'Copies bookmarkedTasks views'
-  from file("../extension/out/views/bookmarkedTasks")
+  description 'Copies pinnedTasks views'
+  from file("../extension/out/views/pinnedTasks")
   include "*.d.ts"
-  into 'lib/views/bookmarkedTasks'
+  into 'lib/views/pinnedTasks'
 }
 
 task copyGradleDaemonsViewTypes(type: Copy) {
@@ -68,7 +68,7 @@ task copyGradleTasksViewTypes(type: Copy) {
 
 task copyViewTypes(type: Copy) {
   dependsOn ':extension:buildProd',
-    copyBookmarkedTasksViewTypes,
+    copyPinnedTasksViewTypes,
     copyGradleDaemonsViewTypes,
     copyGradleTasksViewTypes,
     copyRecentTasksViewTypes
@@ -142,8 +142,9 @@ task copyPublicApi(type: Copy) {
 
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
-  inputs.file('package-lock.json')
-  outputs.dir('node_modules')
+  inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
+  outputs.dir("$buildDir/node_modules")
+  outputs.cacheIf { true }
   commandLine 'npm', 'install'
 }
 
