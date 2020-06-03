@@ -564,11 +564,11 @@
           "scope": "window",
           "description": "Show extra debug information in the output panel"
         },
-        "gradle.ignoreDaemonStopWarning": {
+        "gradle.disableConfirmations": {
           "type": "boolean",
           "default": false,
           "scope": "window",
-          "description": "Ignore the warning message when stopping the Gradle daemon/s"
+          "description": "Disable the warning confirm messages when performing batch actions"
         },
         "gradle.focusTaskInExplorer": {
           "type": "boolean",

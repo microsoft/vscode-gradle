@@ -11,13 +11,12 @@ import {
 import { logger } from '../logger';
 import { invalidateTasksCache, GradleTaskDefinition } from '../tasks';
 import { Extension } from '../extension';
-import { getIgnoreDaemonStopWarning } from '../config';
 import { StopDaemonsReply } from '../proto/gradle_pb';
 import {
   isJavaLanguageSupportExtensionActivated,
   JAVA_CONFIGURATION_UPDATE_COMMAND,
 } from '../compat';
-import { getTaskArgs } from '../input';
+import { getTaskArgs, confirmModal } from '../input';
 import {
   COMMAND_SHOW_TASKS,
   COMMAND_RUN_TASK,
@@ -192,26 +191,14 @@ function registerRefreshDaemonStatusCommand(): vscode.Disposable {
   );
 }
 
-async function cancelStopDaemons(): Promise<boolean | undefined> {
-  const ignoreWarning = getIgnoreDaemonStopWarning();
-  if (!ignoreWarning) {
-    const DAEMON_STOP_OPTION_CONFIRM = 'Yes';
-    const result = await vscode.window.showWarningMessage(
-      'Are you sure you want to stop the daemon/s?',
-      { modal: true },
-      DAEMON_STOP_OPTION_CONFIRM
-    );
-    if (result !== DAEMON_STOP_OPTION_CONFIRM) {
-      return true;
-    }
-  }
-}
-
 function registerStopDaemons(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMONS,
     async (): Promise<void> => {
-      if (!vscode.workspace.workspaceFolders || (await cancelStopDaemons())) {
+      if (
+        !vscode.workspace.workspaceFolders ||
+        !(await confirmModal('Are you sure you want to stop the daemons?'))
+      ) {
         return;
       }
       try {
@@ -236,7 +223,7 @@ function registerStopDaemon(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_STOP_DAEMON,
     async (treeItem: GradleDaemonTreeItem): Promise<void> => {
-      if (await cancelStopDaemons()) {
+      if (!(await confirmModal('Are you sure you want to stop the daemon?'))) {
         return;
       }
       const pid = treeItem.pid;
@@ -427,29 +414,54 @@ function registerCloseTaskTerminalsCommand(): vscode.Disposable {
 function registerCloseAllTaskTerminalsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(
     COMMAND_CLOSE_ALL_TASK_TERMINALS,
-    () => {
+    async () => {
       const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
-      Array.from(taskTerminalsStore.getData().keys()).forEach((key) => {
-        const terminalsSet = taskTerminalsStore.getItem(key);
-        if (terminalsSet) {
-          Array.from(terminalsSet).forEach((terminal) => terminal.dispose());
-        }
-      });
-      taskTerminalsStore.clear();
+      if (
+        taskTerminalsStore.getData().size &&
+        (await confirmModal(
+          'Are you sure you want to close all task terminals?'
+        ))
+      ) {
+        Array.from(taskTerminalsStore.getData().keys()).forEach((key) => {
+          const terminalsSet = taskTerminalsStore.getItem(key);
+          if (terminalsSet) {
+            Array.from(terminalsSet).forEach((terminal) => terminal.dispose());
+          }
+        });
+        taskTerminalsStore.clear();
+      }
     }
   );
 }
 
 function registerClearAllRecentTasksCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, () => {
-    Extension.getInstance().getRecentTasksStore().clear();
-  });
+  return vscode.commands.registerCommand(
+    COMMAND_CLEAR_ALL_RECENT_TASKS,
+    async () => {
+      const recentTasksStore = Extension.getInstance().getRecentTasksStore();
+      if (
+        recentTasksStore.getData().size &&
+        (await confirmModal('Are you sure you want to clear the recent tasks?'))
+      ) {
+        recentTasksStore.clear();
+      }
+    }
+  );
 }
 
 function registerClearAllPinnedTasksCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(COMMAND_CLEAR_ALL_PINNED_TASKS, () => {
-    Extension.getInstance().getPinnedTasksStore().clear();
-  });
+  return vscode.commands.registerCommand(
+    COMMAND_CLEAR_ALL_PINNED_TASKS,
+    async () => {
+      const pinnedTasksStore = Extension.getInstance().getPinnedTasksStore();
+      if (
+        pinnedTasksStore.getData().size &&
+        (await confirmModal('Are you sure you want to clear the pinned tasks?'))
+      ) {
+        pinnedTasksStore.clear();
+      }
+    }
+  );
 }
 
 function registerRemoveRecentTaskCommand(): vscode.Disposable {
