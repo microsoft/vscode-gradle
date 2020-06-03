@@ -109,8 +109,9 @@ task copyProtoTs(type: Copy) {
 
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
-  inputs.file('package-lock.json')
-  outputs.dir('node_modules')
+  inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
+  outputs.dir("$buildDir/node_modules")
+  outputs.cacheIf { true }
   commandLine 'npm', 'install'
 }
 
@@ -129,10 +130,11 @@ task buildDev(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds development version TypeScript source files'
+  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('dist')
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
-  inputs.file('tsconfig.json')
+  outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:dev'
 }
 
@@ -141,10 +143,12 @@ task buildTest(type: CrossPlatformExec) {
   group 'build'
   description 'Builds TypeScript test source files'
   buildDir = 'out'
+  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir(buildDir)
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
-  inputs.file('tsconfig.json')
+  outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:test'
 }
 
@@ -153,9 +157,11 @@ task buildProd(type: CrossPlatformExec) {
   group 'build'
   description 'Builds production version TypeScript source files'
   buildDir = 'dist'
+  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir("$buildDir")
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
+  outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:prod'
 }
 
