@@ -143,7 +143,7 @@ task copyPublicApi(type: Copy) {
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
-  outputs.dir("$buildDir/node_modules")
+  outputs.dir('node_modules')
   outputs.cacheIf { true }
   commandLine 'npm', 'install'
 }
