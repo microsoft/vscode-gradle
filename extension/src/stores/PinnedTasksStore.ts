@@ -18,18 +18,18 @@ const toWorkspaceStateTasks = (
   );
 };
 
-export class BookmarkedTasksStore extends TaskStore {
+export class PinnedTasksStore extends TaskStore {
   constructor(private readonly context: vscode.ExtensionContext) {
     super();
-    const bookmarkedTasks = this.context.workspaceState.get(
-      'bookmarkedTasks',
+    const pinnedTasks = this.context.workspaceState.get(
+      'pinnedTasks',
       {}
     ) as WorkspaceStateTasks;
-    if (Array.isArray(bookmarkedTasks)) {
+    if (Array.isArray(pinnedTasks)) {
       return;
     }
-    Object.keys(bookmarkedTasks).forEach((taskId: TaskId) => {
-      this.setItem(taskId, new Set(bookmarkedTasks[taskId]), false);
+    Object.keys(pinnedTasks).forEach((taskId: TaskId) => {
+      this.setItem(taskId, new Set(pinnedTasks[taskId]), false);
     });
   }
 
@@ -37,7 +37,7 @@ export class BookmarkedTasksStore extends TaskStore {
     const workspaceStateTasks: WorkspaceStateTasks = toWorkspaceStateTasks(
       this.getData()
     );
-    this.context.workspaceState.update('bookmarkedTasks', workspaceStateTasks);
+    this.context.workspaceState.update('pinnedTasks', workspaceStateTasks);
     super.fireOnDidChange(null);
   }
 }

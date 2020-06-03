@@ -10,7 +10,7 @@ export const ICON_WARNING = 'warning.svg';
 export const GRADLE_CONTAINER_VIEW = 'gradleContainerView';
 export const GRADLE_TASKS_VIEW = 'gradleTasksView';
 export const GRADLE_DAEMONS_VIEW = 'gradleDaemonsView';
-export const BOOKMARKED_TASKS_VIEW = 'bookmarkedTasksView';
+export const PINNED_TASKS_VIEW = 'pinnedTasksView';
 export const RECENT_TASKS_VIEW = 'recentTasksView';
 
 export const TASK_STATE_RUNNING = 'runningTask';
