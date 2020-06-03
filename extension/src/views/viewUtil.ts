@@ -8,7 +8,7 @@ import {
 } from './constants';
 import {
   gradleTaskTreeItemMap,
-  bookmarkedTasksTreeItemMap,
+  pinnedTasksTreeItemMap,
   recentTasksTreeItemMap,
   projectTreeItemMap,
 } from '.';
@@ -27,6 +27,23 @@ export function treeItemSortCompareFunc(
   return a.label!.localeCompare(b.label!);
 }
 
+export function gradleTaskTreeItemSortCompareFunc(
+  a: GradleTaskTreeItem,
+  b: GradleTaskTreeItem
+): number {
+  const definitionA = a.task.definition as GradleTaskDefinition;
+  const definitionB = b.task.definition as GradleTaskDefinition;
+  const isRootProjectTaskA = definitionA.project === definitionA.rootProject;
+  const isRootProjectTaskB = definitionB.project === definitionB.rootProject;
+  if (isRootProjectTaskA && !isRootProjectTaskB) {
+    return -1;
+  }
+  if (isRootProjectTaskB && !isRootProjectTaskA) {
+    return 1;
+  }
+  return treeItemSortCompareFunc(a, b);
+}
+
 export function getTreeItemForTask(
   task: vscode.Task
 ): GradleTaskTreeItem | null {
@@ -35,11 +52,11 @@ export function getTreeItemForTask(
   if (gradleTaskTreeItem && gradleTaskTreeItem.task === task) {
     return gradleTaskTreeItem;
   }
-  const bookmarkedTaskTreeItem = bookmarkedTasksTreeItemMap.get(
+  const pinnedTaskTreeItem = pinnedTasksTreeItemMap.get(
     definition.id + definition.args
   );
-  if (bookmarkedTaskTreeItem && bookmarkedTaskTreeItem.task === task) {
-    return bookmarkedTaskTreeItem;
+  if (pinnedTaskTreeItem && pinnedTaskTreeItem.task === task) {
+    return pinnedTaskTreeItem;
   }
   const recentTaskTreeItem = recentTasksTreeItemMap.get(
     definition.id + definition.args
@@ -58,14 +75,12 @@ export function updateGradleTreeItemStateForTask(task: vscode.Task): void {
     gradleTaskTreeItem.setContext();
     extension.getGradleTasksTreeDataProvider().refresh(gradleTaskTreeItem);
   }
-  const bookmarkTaskTreeItem = bookmarkedTasksTreeItemMap.get(
+  const pinTaskTreeItem = pinnedTasksTreeItemMap.get(
     definition.id + definition.args
   );
-  if (bookmarkTaskTreeItem) {
-    bookmarkTaskTreeItem.setContext();
-    extension
-      .getBookmarkedTasksTreeDataProvider()
-      .refresh(bookmarkTaskTreeItem);
+  if (pinTaskTreeItem) {
+    pinTaskTreeItem.setContext();
+    extension.getPinnedTasksTreeDataProvider().refresh(pinTaskTreeItem);
   }
   const recentTaskTreeItem = recentTasksTreeItemMap.get(
     definition.id + definition.args

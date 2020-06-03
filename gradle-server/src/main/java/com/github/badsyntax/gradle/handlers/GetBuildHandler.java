@@ -70,7 +70,7 @@ public class GetBuildHandler {
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
       org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
-      replyWithProject(getProjectData(gradleProject));
+      replyWithProject(getProjectData(gradleProject, gradleProject));
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (BuildException
@@ -131,11 +131,15 @@ public class GetBuildHandler {
     return projectBuilder.get();
   }
 
-  private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject) {
+  private GradleProject getProjectData(
+      org.gradle.tooling.model.GradleProject gradleProject,
+      org.gradle.tooling.model.GradleProject rootGradleProject) {
     GradleProject.Builder project =
         GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
     gradleProject.getChildren().stream()
-        .forEach(childGradleProject -> project.addProjects(getProjectData(childGradleProject)));
+        .forEach(
+            childGradleProject ->
+                project.addProjects(getProjectData(childGradleProject, rootGradleProject)));
     gradleProject.getTasks().stream()
         .forEach(
             task -> {
@@ -146,7 +150,7 @@ public class GetBuildHandler {
                       .setPath(task.getPath())
                       .setBuildFile(
                           task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
-                      .setRootProject(gradleProject.getName());
+                      .setRootProject(rootGradleProject.getName());
               if (task.getDescription() != null) {
                 gradleTask.setDescription(task.getDescription());
               }

@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
 import { GradleTaskTreeItem } from '.';
 import { GroupTreeItem } from '..';
-import { treeItemSortCompareFunc } from '../viewUtil';
+import {
+  treeItemSortCompareFunc,
+  gradleTaskTreeItemSortCompareFunc,
+} from '../viewUtil';
 
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
   private readonly _tasks: GradleTaskTreeItem[] = [];
@@ -25,7 +28,7 @@ export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
   }
 
   public get tasks(): GradleTaskTreeItem[] {
-    return this._tasks.sort(treeItemSortCompareFunc);
+    return this._tasks.sort(gradleTaskTreeItemSortCompareFunc);
   }
 
   public addGroup(group: GroupTreeItem): void {
