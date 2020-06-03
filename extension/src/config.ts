@@ -49,10 +49,10 @@ export function getConfigIsDebugEnabled(): boolean {
     .get<boolean>('debug', false);
 }
 
-export function getIgnoreDaemonStopWarning(): boolean {
+export function getDisableConfirmations(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
-    .get<boolean>('ignoreDaemonStopWarning', false);
+    .get<boolean>('disableConfirmations', false);
 }
 
 export function getConfigFocusTaskInExplorer(): boolean {
