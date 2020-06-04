@@ -148,13 +148,4 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       assert.ok(hasMessage);
     });
   });
-
-  describe('logging', () => {
-    it('should show command statements in the outputchannel', async () => {
-      assert.ok(extension);
-      const spy = sinon.spy(extension.exports.logger, 'append');
-      await vscode.commands.executeCommand(COMMAND_REFRESH);
-      assert.ok(spy.calledWith(sinon.match('CONFIGURE SUCCESSFUL')));
-    });
-  });
 });
