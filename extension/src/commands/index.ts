@@ -170,7 +170,6 @@ function registerRefreshCommand(): vscode.Disposable {
     COMMAND_REFRESH,
     async (): Promise<void> => {
       invalidateTasksCache();
-      await Extension.getInstance().getGradleTaskProvider().loadTasks();
       Extension.getInstance().getGradleTasksTreeDataProvider().refresh();
     }
   );
