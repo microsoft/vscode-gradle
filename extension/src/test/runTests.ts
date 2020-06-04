@@ -29,7 +29,34 @@ async function runTestsWithGradle(
       ],
       extensionTestsEnv: {
         FIXTURE_NAME: fixture,
+        SUITE_NAME: 'Run tests with Gradle',
         VSCODE_TEST: 'true',
+      },
+    });
+  }
+}
+
+async function runNetworkTestsWithGradle(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
+  const fixtures = ['gradle-groovy-custom-build-file'];
+  for (const fixture of fixtures) {
+    await runTests({
+      vscodeExecutablePath,
+      extensionDevelopmentPath,
+      extensionTestsPath: path.resolve(__dirname, 'gradle'),
+      launchArgs: [
+        path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+        '--disable-extensions',
+        `--user-data-dir=${userDir}`,
+      ],
+      extensionTestsEnv: {
+        FIXTURE_NAME: fixture,
+        VSCODE_TEST: 'true',
+        SUITE_NAME: 'Run network tests with Gradle',
+        // eslint-disable-next-line @typescript-eslint/camelcase
+        http_proxy: 'http://0.0.0.0',
       },
     });
   }
@@ -50,6 +77,7 @@ function runTestsWithoutGradle(
     ],
     extensionTestsEnv: {
       VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run tests without Gradle',
     },
   });
 }
@@ -73,6 +101,7 @@ function runTestsWithMultiRoot(
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-root',
       VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run tests with multi-root vscode project',
     },
   });
 }
@@ -93,6 +122,7 @@ function runTestsWithMultiProject(
     extensionTestsEnv: {
       FIXTURE_NAME: 'multi-project',
       VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run tests with Gradle multi-project',
     },
   });
 }
@@ -109,6 +139,7 @@ async function main(): Promise<void> {
 
   try {
     await runTestsWithGradle(vscodeExecutablePath, tmpDir);
+    await runNetworkTestsWithGradle(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiRoot(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiProject(vscodeExecutablePath, tmpDir);
     await runTestsWithoutGradle(vscodeExecutablePath, tmpDir);

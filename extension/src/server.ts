@@ -3,18 +3,9 @@ import * as getPort from 'get-port';
 
 import { logger } from './logger';
 import { buildGradleServerTask } from './tasks';
-import { isDebuggingServer, waitOnTcp } from './util';
+import { isDebuggingServer } from './util';
 
 export const SERVER_TASK_NAME = 'Gradle Tasks Server';
-
-function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === 'EPERM';
-  }
-}
 
 export interface ServerOptions {
   host: string;
@@ -38,19 +29,7 @@ export class GradleTasksServer implements vscode.Disposable {
     context.subscriptions.push(
       vscode.tasks.onDidStartTaskProcess(async (event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
-          if (isProcessRunning(event.processId)) {
-            logger.debug(
-              'Gradle server process started, waiting for server to start'
-            );
-            try {
-              await waitOnTcp('localhost', this.port!);
-              this.fireOnReady();
-            } catch (e) {
-              logger.error('Gradle server not started:', e.message);
-            }
-          } else {
-            logger.error('Gradle server processes not started');
-          }
+          this.fireOnReady();
         }
       }),
       vscode.tasks.onDidEndTaskProcess((event) => {

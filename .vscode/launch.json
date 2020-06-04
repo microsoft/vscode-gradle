@@ -48,7 +48,8 @@
       "runtimeExecutable": "${execPath}",
       "env": {
         "FIXTURE_NAME": "gradle-groovy-default-build-file",
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests with Gradle"
       },
       "args": [
         "--disable-extensions",
@@ -72,7 +73,8 @@
       "runtimeExecutable": "${execPath}",
       "env": {
         "FIXTURE_NAME": "gradle-kotlin-default-build-file",
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests with Gradle"
       },
       "args": [
         "--disable-extensions",
@@ -96,7 +98,8 @@
       "runtimeExecutable": "${execPath}",
       "env": {
         "FIXTURE_NAME": "gradle-groovy-custom-build-file",
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests with Gradle"
       },
       "args": [
         "--disable-extensions",
@@ -119,7 +122,8 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests without Gradle"
       },
       "args": [
         "--disable-extensions",
@@ -143,7 +147,8 @@
       "runtimeExecutable": "${execPath}",
       "env": {
         "FIXTURE_NAME": "multi-root-workspace",
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests with multi-root vscode project"
       },
       "args": [
         "--disable-extensions",
@@ -166,7 +171,8 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "env": {
-        "VSCODE_TEST": "true"
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run tests with Gradle multi-project"
       },
       "args": [
         "--disable-extensions",
@@ -182,7 +188,33 @@
       "presentation": {
         "group": "test"
       }
-    }
+    },
+    {
+      "name": "Test: Network",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "env": {
+        "FIXTURE_NAME": "gradle-groovy-default-build-file",
+        "VSCODE_TEST": "true",
+        "http_proxy": "http://0.0.0.0",
+        "SUITE_NAME": "Run network tests with Gradle"
+      },
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/test/**/*.js"
+      ],
+      "preLaunchTask": "Gradle: Build",
+      "presentation": {
+        "group": "test"
+      }
+    },
   ],
   "compounds": [
     {
