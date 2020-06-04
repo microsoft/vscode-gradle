@@ -25,15 +25,12 @@ import java.util.HashSet;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildCancelledException;
-import org.gradle.tooling.BuildException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
-import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressEvent;
 import org.gradle.tooling.events.ProgressListener;
-import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,12 +70,10 @@ public class GetBuildHandler {
       replyWithProject(getProjectData(gradleProject, gradleProject));
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
-    } catch (BuildException
-        | ServiceCreationException
-        | UnsupportedVersionException
-        | UnsupportedBuildArgumentException
+    } catch (ServiceCreationException
         | IOException
-        | IllegalStateException e) {
+        | IllegalStateException
+        | org.gradle.tooling.GradleConnectionException e) {
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {

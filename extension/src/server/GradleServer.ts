@@ -76,21 +76,22 @@ export class GradleServer implements vscode.Disposable {
   }
 
   public restart(): void {
+    if (this.restarting) {
+      return;
+    }
     logger.info('Restarting gradle server');
-    if (!this.restarting) {
-      if (this.taskExecution) {
-        this.restarting = true;
-        const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
-          if (event.execution.task.name === SERVER_TASK_NAME) {
-            this.restarting = false;
-            disposable.dispose();
-            this.start();
-          }
-        });
-        this.taskExecution.terminate();
-      } else {
-        this.start();
-      }
+    if (this.taskExecution) {
+      this.restarting = true;
+      const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
+        if (event.execution.task.name === SERVER_TASK_NAME) {
+          this.restarting = false;
+          disposable.dispose();
+          this.start();
+        }
+      });
+      this.taskExecution.terminate();
+    } else {
+      this.start();
     }
   }
 

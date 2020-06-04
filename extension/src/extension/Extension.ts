@@ -22,7 +22,6 @@ import {
   GradleTaskManager,
   GradleTaskDefinition,
 } from '../tasks';
-import { BuildFileWatcher } from '../buildFileWatcher';
 import {
   GRADLE_TASKS_VIEW,
   PINNED_TASKS_VIEW,
@@ -35,6 +34,7 @@ import {
   COMMAND_LOAD_TASKS,
 } from '../commands/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
+import { GracefulFileWatcher } from '../watcher';
 
 export class Extension {
   private static instance: Extension;
@@ -51,7 +51,8 @@ export class Extension {
   private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
   private readonly icons: Icons;
-  private readonly buildFileWatcher: BuildFileWatcher;
+  private readonly buildFileWatcher: GracefulFileWatcher;
+  private readonly gradleWrapperWatcher: GracefulFileWatcher;
   private readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
@@ -115,7 +116,16 @@ export class Extension {
     });
 
     this.gradleTaskManager = new GradleTaskManager(context);
-    this.buildFileWatcher = new BuildFileWatcher();
+    this.buildFileWatcher = new GracefulFileWatcher(
+      '**/*.{gradle,gradle.kts}',
+      this.gradleTaskProvider,
+      this.gradleTaskManager
+    );
+    this.gradleWrapperWatcher = new GracefulFileWatcher(
+      '**/gradle/wrapper/gradle-wrapper.properties',
+      this.gradleTaskProvider,
+      this.gradleTaskManager
+    );
     this.api = new Api(this.client, this.gradleTasksTreeDataProvider);
 
     this.storeSubscriptions();
@@ -139,6 +149,7 @@ export class Extension {
       this.taskProvider,
       this.gradleTaskManager,
       this.buildFileWatcher,
+      this.gradleWrapperWatcher,
       this.gradleDaemonsTreeView,
       this.gradleTasksTreeView,
       this.pinnedTasksTreeView,
@@ -151,9 +162,9 @@ export class Extension {
   }
 
   private loadTasks(): void {
-    this.client.onDidConnect(() => {
-      vscode.commands.executeCommand(COMMAND_LOAD_TASKS);
-    });
+    this.client.onDidConnect(() =>
+      vscode.commands.executeCommand(COMMAND_LOAD_TASKS)
+    );
   }
 
   private handleTaskEvents(): void {
@@ -171,19 +182,19 @@ export class Extension {
   }
 
   private handleWatchEvents(): void {
-    this.buildFileWatcher.addHandler(() => {
+    this.buildFileWatcher.onDidChange((uri: vscode.Uri) => {
+      logger.debug('Build file changed:', uri.fsPath);
       vscode.commands.executeCommand(COMMAND_REFRESH);
     });
-    this.gradleTaskProvider.onDidRefreshStart(() =>
-      this.buildFileWatcher.stop()
-    );
-    this.gradleTaskProvider.onDidRefreshStop(() =>
-      this.buildFileWatcher.start()
-    );
-    this.gradleTaskManager.onDidEndAllTasks(() =>
-      this.buildFileWatcher.start()
-    );
-    this.gradleTaskManager.onDidStartTask(() => this.buildFileWatcher.stop());
+    this.gradleWrapperWatcher.onDidChange((uri: vscode.Uri) => {
+      logger.debug('Gradle wrapper properties changed:', uri.fsPath);
+      this.client.close();
+      const disposable = this.client.onDidConnect(() => {
+        disposable.dispose();
+        vscode.commands.executeCommand(COMMAND_REFRESH);
+      });
+      this.server.restart();
+    });
   }
 
   private handleEditorEvents(): void {
