@@ -90,7 +90,7 @@ export class GradleTasksClient implements vscode.Disposable {
       this.grpcClient = new GrpcClient(
         `localhost:${this.server.getPort()}`,
         grpc.credentials.createInsecure(),
-        { 'grpc.enable_http_proxy': 1 }
+        { 'grpc.enable_http_proxy': 0 }
       );
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
