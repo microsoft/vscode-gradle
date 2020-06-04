@@ -475,7 +475,7 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@grpc/grpc-js": "^1.0.4",
+    "@grpc/grpc-js": "^1.0.5",
     "@types/fs-extra": "^9.0.0",
     "@types/glob": "^7.1.1",
     "@types/google-protobuf": "^3.7.2",
@@ -492,6 +492,7 @@
     "fast-glob": "^3.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",
+    "google-auth-library": "^6.0.1",
     "google-protobuf": "^3.11.4",
     "grpc-tools": "^1.9.0",
     "mocha": "^7.1.2",

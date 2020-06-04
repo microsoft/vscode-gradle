@@ -18,11 +18,12 @@ import { Output } from '../../proto/gradle_tasks_pb';
 const extensionName = 'richardwillis.vscode-gradle';
 const refreshCommand = 'gradle.refresh';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
+const suiteName = process.env.SUITE_NAME || '(unknown suite)';
 const fixturePath = vscode.Uri.file(
   path.resolve(__dirname, '..', '..', '..', 'test-fixtures', fixtureName)
 );
 
-describe(fixtureName, () => {
+describe(`${suiteName} - ${fixtureName}`, () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extension: vscode.Extension<any> | undefined;
 

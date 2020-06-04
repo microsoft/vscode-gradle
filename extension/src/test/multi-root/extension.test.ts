@@ -6,8 +6,9 @@ import { waitForTasksToLoad } from '../testUtil';
 
 const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
+const suiteName = process.env.SUITE_NAME || '(unknown suite)';
 
-describe(fixtureName, () => {
+describe(`${suiteName} - ${fixtureName}`, () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extension: vscode.Extension<any> | undefined;
 
