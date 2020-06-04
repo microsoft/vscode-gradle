@@ -197,7 +197,7 @@
       "env": {
         "FIXTURE_NAME": "gradle-groovy-default-build-file",
         "VSCODE_TEST": "true",
-        "HTTP_PROXY": "http://192.168.1.10",
+        "http_proxy": "http://0.0.0.0",
         "SUITE_NAME": "Run network tests with Gradle"
       },
       "args": [
