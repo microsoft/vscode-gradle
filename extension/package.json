@@ -498,7 +498,7 @@
     "mocha": "^7.2.0",
     "prettier": "^2.0.4",
     "sinon": "^9.0.2",
-    "snyk": "^1.335.0",
+    "snyk": "^1.336.0",
     "ts-loader": "^7.0.5",
     "ts-protoc-gen": "^0.12.0",
     "typescript": "^3.9.2",
