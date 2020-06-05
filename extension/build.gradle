@@ -6,7 +6,6 @@ def docsFiles = [
   "LICENSE.md",
   "ARCHITECTURE.md",
   "CONTRIBUTING.md",
-  "FEATURES.md",
   "CHANGELOG.md"
 ]
 
