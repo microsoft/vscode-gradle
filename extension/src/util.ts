@@ -49,15 +49,6 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
   return tryConnect(host, port, Date.now());
 }
 
-export function isProcessRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === 'EPERM';
-  }
-}
-
 export function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
   const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
     onlyFiles: true,
