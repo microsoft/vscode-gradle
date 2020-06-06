@@ -66,14 +66,18 @@ describe(`${suiteName} - ${fixtureName}`, () => {
         assert.ok(task);
 
         const spy = sinon.spy(extension.exports.logger, 'append');
-        await new Promise((resolve) => {
+        await new Promise(async (resolve) => {
           const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {
               disposable.dispose();
               resolve();
             }
           });
-          vscode.tasks.executeTask(task!);
+          try {
+            await vscode.tasks.executeTask(task!);
+          } catch (e) {
+            console.error('There was an error starting the task:', e.message);
+          }
         });
         assert.ok(spy.calledWith(sinon.match('Hello, World!')));
       });

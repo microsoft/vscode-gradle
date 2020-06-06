@@ -83,7 +83,11 @@ describe(`${suiteName} - ${fixtureName}`, () => {
             resolve();
           }
         });
-        await vscode.tasks.executeTask(task!);
+        try {
+          await vscode.tasks.executeTask(task!);
+        } catch (e) {
+          console.error('There was an error starting the task:', e.message);
+        }
       });
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(

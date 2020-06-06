@@ -90,11 +90,15 @@ export function getRestartingTask(task: vscode.Task): vscode.Task | void {
   return restartingTasks.get(task.definition.id);
 }
 
-export function restartQueuedTask(task: vscode.Task): void {
+export async function restartQueuedTask(task: vscode.Task): Promise<void> {
   const restartingTask = getRestartingTask(task);
   if (restartingTask) {
     restartingTasks.delete(restartingTask.definition.id);
-    vscode.tasks.executeTask(restartingTask);
+    try {
+      await vscode.tasks.executeTask(restartingTask);
+    } catch (e) {
+      logger.error('There was an error starting the task:', e.message);
+    }
   }
 }
 
@@ -304,11 +308,15 @@ export async function runTask(
       return;
     }
   }
-  if (debug || args) {
-    const debugTask = cloneTask(task, args, debug);
-    vscode.tasks.executeTask(debugTask);
-  } else {
-    vscode.tasks.executeTask(task);
+  try {
+    if (debug || args) {
+      const debugTask = cloneTask(task, args, debug);
+      await vscode.tasks.executeTask(debugTask);
+    } else {
+      await vscode.tasks.executeTask(task);
+    }
+  } catch (e) {
+    logger.error('There was an error starting the task:', e.message);
   }
 }
 
