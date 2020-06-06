@@ -43,14 +43,18 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       const task = tasks!.find(({ name }) => name === 'hello');
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
-      await new Promise((resolve) => {
+      await new Promise(async (resolve) => {
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
             disposable.dispose();
             resolve();
           }
         });
-        vscode.tasks.executeTask(task!);
+        try {
+          await vscode.tasks.executeTask(task!);
+        } catch (e) {
+          console.error('There was an error starting the task:', e.message);
+        }
       });
       assert.ok(spy.calledWith(sinon.match('Hello, World!')));
     });
@@ -65,7 +69,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
       // eslint-disable-next-line sonarjs/no-identical-functions
-      await new Promise((resolve) => {
+      await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -73,7 +77,11 @@ describe(`${suiteName} - ${fixtureName}`, () => {
             resolve();
           }
         });
-        vscode.tasks.executeTask(task!);
+        try {
+          await vscode.tasks.executeTask(task!);
+        } catch (e) {
+          console.error('There was an error starting the task:', e.message);
+        }
       });
       assert.ok(spy.calledWith(sinon.match('Hello, World! SubSubProject')));
     });
