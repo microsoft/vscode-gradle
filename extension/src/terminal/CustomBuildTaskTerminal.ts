@@ -2,10 +2,7 @@ import * as vscode from 'vscode';
 import * as util from 'util';
 import * as getPort from 'get-port';
 import { isTaskRunning } from '../tasks/taskUtil';
-import {
-  COMMAND_CANCEL_TASK,
-  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-} from '../commands/constants';
+import { COMMAND_CANCEL_TASK } from '../commands/constants';
 import { waitOnTcp, isTest } from '../util';
 import { logger, LoggerStream } from '../logger';
 import { Extension } from '../extension';
@@ -108,10 +105,6 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
         await this.startJavaDebug(javaDebugPort);
       }
       await runTask;
-      vscode.commands.executeCommand(
-        COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-        vscode.Uri.file(this.task!.definition.buildFile)
-      );
     } finally {
       this.closeEmitter.fire();
     }
