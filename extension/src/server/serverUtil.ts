@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { logger } from '../logger';
 import { getConfigJavaHome } from '../config';
 
-export const SERVER_TASK_NAME = 'Gradle Tasks Server';
+export const SERVER_TASK_NAME = 'Gradle Server';
 
 export function getGradleServerCommand(): string {
   const platform = process.platform;
@@ -20,8 +20,8 @@ export function buildGradleServerTask(
   args: string[] = []
 ): vscode.Task {
   const cmd = `"${getGradleServerCommand()}"`;
-  logger.debug(`Gradle Tasks Server dir: ${cwd}`);
-  logger.debug(`Gradle Tasks Server cmd: ${cmd} ${args.join(' ')}`);
+  logger.debug(`Gradle Server dir: ${cwd}`);
+  logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
   const taskType = 'gradleserver';
   const definition = {
     type: taskType,
