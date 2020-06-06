@@ -1,10 +1,7 @@
 import * as vscode from 'vscode';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
-import {
-  COMMAND_RENDER_TASK,
-  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-} from '../commands/constants';
+import { COMMAND_RENDER_TASK } from '../commands/constants';
 import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
 import { CustomBuildTaskTerminal } from '../terminal';
@@ -17,6 +14,7 @@ import {
   JAVA_LANGUAGE_EXTENSION_ID,
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaDebuggerExtensionActivated,
+  isJavaLanguageSupportExtensionActivated,
 } from '../compat';
 import { getTaskArgs } from '../input';
 
@@ -238,17 +236,11 @@ function getVSCodeTasksFromGradleProject(
 }
 
 async function getGradleBuild(
-  projectFolder: vscode.WorkspaceFolder,
-  buildFile: vscode.Uri
+  projectFolder: vscode.WorkspaceFolder
 ): Promise<GradleBuild | void> {
-  const build = await Extension.getInstance()
+  return Extension.getInstance()
     .getClient()
     .getBuild(projectFolder.uri.fsPath, getGradleConfig());
-  vscode.commands.executeCommand(
-    COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-    buildFile
-  );
-  return build;
 }
 
 export async function loadTasksForFolders(
@@ -261,10 +253,7 @@ export async function loadTasksForFolders(
       if (!buildFile) {
         continue;
       }
-      const gradleBuild = await getGradleBuild(
-        workspaceFolder,
-        vscode.Uri.file(buildFile)
-      );
+      const gradleBuild = await getGradleBuild(workspaceFolder);
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
         allTasks.push(
@@ -306,6 +295,11 @@ export async function runTask(
     } else if (!isJavaDebuggerExtensionActivated()) {
       vscode.window.showErrorMessage(
         'The Java Debugger extension is not activated.'
+      );
+      return;
+    } else if (!isJavaLanguageSupportExtensionActivated()) {
+      vscode.window.showErrorMessage(
+        'The Java Language Support extension is not activated.'
       );
       return;
     }

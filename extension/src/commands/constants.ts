@@ -15,8 +15,6 @@ export const COMMAND_EXPLORER_FLAT = 'gradle.explorerFlat';
 export const COMMAND_OPEN_SETTINGS = 'gradle.openSettings';
 export const COMMAND_CANCELLING_TREE_ITEM_TASK =
   'gradle.cancellingTreeItemTask';
-export const COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION =
-  'gradle.updateJavaProjectConfiguration';
 export const COMMAND_SHOW_LOGS = 'gradle.showLogs';
 export const COMMAND_STOP_DAEMONS = 'gradle.stopDaemons';
 export const COMMAND_STOP_DAEMON = 'gradle.stopDaemon';

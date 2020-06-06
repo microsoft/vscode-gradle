@@ -12,10 +12,6 @@ import { logger } from '../logger';
 import { invalidateTasksCache, GradleTaskDefinition } from '../tasks';
 import { Extension } from '../extension';
 import { StopDaemonsReply } from '../proto/gradle_pb';
-import {
-  isJavaLanguageSupportExtensionActivated,
-  JAVA_CONFIGURATION_UPDATE_COMMAND,
-} from '../compat';
 import { getTaskArgs, confirmModal } from '../input';
 import {
   COMMAND_SHOW_TASKS,
@@ -37,7 +33,6 @@ import {
   COMMAND_OPEN_SETTINGS,
   COMMAND_OPEN_BUILD_FILE,
   COMMAND_CANCELLING_TREE_ITEM_TASK,
-  COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
   COMMAND_SHOW_LOGS,
   COMMAND_PIN_TASK,
   COMMAND_REMOVE_PINNED_TASK,
@@ -286,27 +281,6 @@ function registerCancellingTreeItemTaskCommand(): vscode.Disposable {
   );
 }
 
-function registerUpdateJavaProjectConfigurationCommand(): vscode.Disposable {
-  return vscode.commands.registerCommand(
-    COMMAND_UPDATE_JAVA_PROJECT_CONFIGURATION,
-    async (buildFile: vscode.Uri) => {
-      if (isJavaLanguageSupportExtensionActivated()) {
-        try {
-          await vscode.commands.executeCommand(
-            JAVA_CONFIGURATION_UPDATE_COMMAND,
-            buildFile
-          );
-        } catch (err) {
-          logger.error(
-            'Unable to update Java project configuration:',
-            err.message
-          );
-        }
-      }
-    }
-  );
-}
-
 function registerShowLogsCommand(): vscode.Disposable {
   return vscode.commands.registerCommand(COMMAND_SHOW_LOGS, () => {
     logger.getChannel()?.show();
@@ -497,7 +471,6 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     registerOpenBuildFileCommand(),
     registerCancellingTreeItemTaskCommand(),
     registerRenderTaskCommand(),
-    registerUpdateJavaProjectConfigurationCommand(),
     registerShowLogsCommand(),
     registerLoadTasksCommand(),
     registerPinTaskCommand(),
