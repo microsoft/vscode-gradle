@@ -56,7 +56,11 @@ export class GradleServer implements vscode.Disposable {
       const cwd = this.context.asAbsolutePath('lib');
       const task = buildGradleServerTask(cwd, [String(this.port)]);
       logger.debug('Starting server');
-      this.taskExecution = await vscode.tasks.executeTask(task);
+      try {
+        this.taskExecution = await vscode.tasks.executeTask(task);
+      } catch (e) {
+        logger.error('There was an error starting the server:', e.message);
+      }
     }
   }
 
