@@ -37,7 +37,7 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
     return `${this.status} - ${this.daemonInfo.getInfo()}`;
   }
 
-  public get status(): string {
+  private get status(): string {
     return daemonStatusEnumMapByValue[this.daemonInfo.getStatus()];
   }
 
@@ -47,9 +47,5 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
 
   public get pid(): string {
     return this.daemonInfo.getPid();
-  }
-
-  public get pidAsInt(): number {
-    return parseInt(this.pid, 10);
   }
 }
