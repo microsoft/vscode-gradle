@@ -24,11 +24,12 @@ import {
 } from '../../commands';
 import { logger } from '../../logger';
 import { getSuiteName } from '../testUtil';
-
-interface IconPath {
-  light: string;
-  dark: string;
-}
+import { IconPath } from '../../icons';
+import {
+  ICON_DAEMON_STOPPED,
+  ICON_DAEMON_BUSY,
+  ICON_DAEMON_IDLE,
+} from '../../views/constants';
 
 const mockContext: any = {
   subscriptions: [],
@@ -70,8 +71,6 @@ const mockOutputChannel = {
   dispose: sinon.spy(),
 };
 
-logger.setLoggingChannel(mockOutputChannel);
-
 describe(getSuiteName('Gradle daemons'), () => {
   beforeEach(() => {
     const gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
@@ -85,6 +84,8 @@ describe(getSuiteName('Gradle daemons'), () => {
     sinon
       .stub(vscode.workspace, 'workspaceFolders')
       .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+    logger.reset();
+    logger.setLoggingChannel(mockOutputChannel);
   });
 
   afterEach(() => {
@@ -144,11 +145,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const busyIconPath = treeItemBusy.iconPath as IconPath;
     assert.equal(
       busyIconPath.dark,
-      path.join('resources', 'dark', 'circle-filled.svg')
+      path.join('resources', 'dark', ICON_DAEMON_BUSY)
     );
     assert.equal(
       busyIconPath.light,
-      path.join('resources', 'light', 'circle-filled.svg')
+      path.join('resources', 'light', ICON_DAEMON_BUSY)
     );
 
     const treeItemIdle = children[1];
@@ -163,11 +164,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const idleIconPath = treeItemIdle.iconPath as IconPath;
     assert.equal(
       idleIconPath.dark,
-      path.join('resources', 'dark', 'circle-outline.svg')
+      path.join('resources', 'dark', ICON_DAEMON_IDLE)
     );
     assert.equal(
       idleIconPath.light,
-      path.join('resources', 'light', 'circle-outline.svg')
+      path.join('resources', 'light', ICON_DAEMON_IDLE)
     );
 
     const treeItemStopped = children[2];
@@ -185,11 +186,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const stoppedIconPath = treeItemStopped.iconPath as IconPath;
     assert.equal(
       stoppedIconPath.dark,
-      path.join('resources', 'dark', 'close.svg')
+      path.join('resources', 'dark', ICON_DAEMON_STOPPED)
     );
     assert.equal(
       stoppedIconPath.light,
-      path.join('resources', 'light', 'close.svg')
+      path.join('resources', 'light', ICON_DAEMON_STOPPED)
     );
   });
 

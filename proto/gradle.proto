@@ -140,10 +140,9 @@ message GradleConfig {
 message GradleBuild { GradleProject project = 1; }
 
 message GradleProject {
-  string name = 1;
-  bool is_root = 2;
-  repeated GradleTask tasks = 3;
-  repeated GradleProject projects = 4;
+  bool is_root = 1;
+  repeated GradleTask tasks = 2;
+  repeated GradleProject projects = 3;
 }
 
 message GradleTask {
