@@ -9,6 +9,7 @@ export const COMMAND_STOP_DAEMONS = 'gradle.stopDaemons';
 export async function stopDaemonsCommand(): Promise<void> {
   if (
     !vscode.workspace.workspaceFolders ||
+    !vscode.workspace.workspaceFolders.length ||
     !(await confirmModal('Are you sure you want to stop the daemons?'))
   ) {
     return;

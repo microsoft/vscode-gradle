@@ -2,6 +2,8 @@ import * as path from 'path';
 import * as Mocha from 'mocha';
 import * as glob from 'glob';
 
+export const EXTENSION_NAME = 'richardwillis.vscode-gradle';
+
 export function createTestRunner(pattern: string) {
   return function run(
     testsRoot: string,
@@ -34,4 +36,10 @@ export function createTestRunner(pattern: string) {
       }
     });
   };
+}
+
+export function getSuiteName(subSuiteName: string): string {
+  const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
+  const suiteName = process.env.SUITE_NAME || '(unknown suite)';
+  return `${suiteName} - ${subSuiteName} - ${fixtureName}`;
 }
