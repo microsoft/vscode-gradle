@@ -14,7 +14,6 @@ export class GradleDaemonsTreeDataProvider
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   public refresh(): void {
-    this.cancelDeferred?.resolve(this.treeItems);
     this._onDidChangeTreeData.fire(null);
   }
 
@@ -28,6 +27,7 @@ export class GradleDaemonsTreeDataProvider
     if (element || !vscode.workspace.workspaceFolders?.length) {
       return [];
     }
+    this.cancelDeferred?.resolve(this.treeItems);
     this.cancelDeferred = new Deferred();
     const promises: Promise<
       GradleDaemonTreeItem[]
