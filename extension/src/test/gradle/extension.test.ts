@@ -1,6 +1,3 @@
-// Note vscode is launch with webpack compiled files and the test with
-// typescript compiled files, which is why we can't mock files directly.
-
 import * as util from 'util';
 import * as assert from 'assert';
 import * as vscode from 'vscode';
@@ -8,26 +5,22 @@ import * as sinon from 'sinon';
 import * as path from 'path';
 
 import { Output } from '../../proto/gradle_pb';
-import {
-  COMMAND_REFRESH,
-  COMMAND_RUN_TASK_WITH_ARGS,
-} from '../../commands/constants';
 import { GradleTaskTreeItem } from '../../views';
 import { RunTaskOpts, Api as ExtensionApi } from '../../api';
+import { COMMAND_REFRESH, COMMAND_RUN_TASK_WITH_ARGS } from '../../commands';
+import { getSuiteName, EXTENSION_NAME } from '../testUtil';
 
-const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
-const suiteName = process.env.SUITE_NAME || '(unknown suite)';
 const fixturePath = vscode.Uri.file(
   path.resolve(__dirname, '..', '..', '..', 'test-fixtures', fixtureName)
 );
 
-describe(`${suiteName} - ${fixtureName}`, () => {
+describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extension: vscode.Extension<any> | undefined;
 
   before(() => {
-    extension = vscode.extensions.getExtension(extensionName);
+    extension = vscode.extensions.getExtension(EXTENSION_NAME);
   });
 
   it('should be present', () => {
@@ -41,7 +34,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
     }
   });
 
-  describe('tasks', () => {
+  describe('Task provider', () => {
     afterEach(() => {
       sinon.restore();
     });
@@ -131,7 +124,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
     });
   });
 
-  describe('extension api', () => {
+  describe('Extension api', () => {
     it('should run a task using the extension api', async () => {
       const api = extension!.exports as ExtensionApi;
       let hasMessage = false;

@@ -27,11 +27,6 @@ import {
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
-import {
-  COMMAND_REFRESH_DAEMON_STATUS,
-  COMMAND_CANCEL_TASK,
-  COMMAND_SHOW_LOGS,
-} from '../commands/constants';
 import { logger, LoggerStream } from '../logger';
 import { EventWaiter } from '../events';
 import { GradleServer } from '../server';
@@ -39,6 +34,11 @@ import { ProgressHandler } from '../progress';
 import { getGradleConfig } from '../config';
 import { GradleTaskDefinition } from '../tasks';
 import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
+import {
+  COMMAND_REFRESH_DAEMON_STATUS,
+  COMMAND_SHOW_LOGS,
+  COMMAND_CANCEL_TASK,
+} from '../commands';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -440,7 +440,7 @@ export class GradleClient implements vscode.Disposable {
     }
   }
 
-  public async stopDaemon(pid: string): Promise<StopDaemonsReply | void> {
+  public async stopDaemon(pid: string): Promise<StopDaemonReply | void> {
     await this.waitForConnect();
     const request = new StopDaemonRequest();
     request.setPid(pid);

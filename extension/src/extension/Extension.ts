@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { logger } from '../logger';
-import { registerCommands } from '../commands';
+import { registerCommands } from '../commands/register';
 import { Api } from '../api';
 import { GradleClient } from '../client';
 import { GradleServer } from '../server';
@@ -28,13 +28,13 @@ import {
   GRADLE_DAEMONS_VIEW,
   RECENT_TASKS_VIEW,
 } from '../views/constants';
-import {
-  COMMAND_REFRESH,
-  COMMAND_RENDER_TASK,
-  COMMAND_LOAD_TASKS,
-} from '../commands/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
 import { GracefulFileWatcher } from '../watcher';
+import {
+  COMMAND_LOAD_TASKS,
+  COMMAND_RENDER_TASK,
+  COMMAND_REFRESH,
+} from '../commands';
 
 export class Extension {
   private static instance: Extension;

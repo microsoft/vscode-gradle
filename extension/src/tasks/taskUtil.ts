@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
-import { COMMAND_RENDER_TASK } from '../commands/constants';
 import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
 import { CustomBuildTaskTerminal } from '../terminal';
@@ -17,6 +16,7 @@ import {
   isJavaLanguageSupportExtensionActivated,
 } from '../compat';
 import { getTaskArgs } from '../input';
+import { COMMAND_RENDER_TASK } from '../commands';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();

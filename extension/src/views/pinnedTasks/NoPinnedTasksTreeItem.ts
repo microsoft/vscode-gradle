@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { NoTasksTreeItem } from '..';
-import { COMMAND_OPEN_PIN_HELP } from '../../commands/constants';
+import { COMMAND_OPEN_PIN_HELP } from '../../commands';
 
 export class NoPinnedTasksTreeItem extends NoTasksTreeItem {
   constructor(context: vscode.ExtensionContext) {

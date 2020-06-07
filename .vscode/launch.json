@@ -59,7 +59,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -84,7 +84,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -109,7 +109,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -133,7 +133,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -158,7 +158,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -182,7 +182,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",
       "presentation": {
@@ -208,7 +208,7 @@
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
