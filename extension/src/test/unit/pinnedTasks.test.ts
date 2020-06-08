@@ -15,7 +15,7 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
-  assertWorkspaceTreeItem,
+  assertFolderTreeItem,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -32,7 +32,13 @@ import {
 import { PinnedTasksStore } from '../../stores';
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
-import { ICON_WARNING, ICON_GRADLE_TASK } from '../../views/constants';
+import {
+  ICON_WARNING,
+  ICON_GRADLE_TASK,
+  TREE_ITEM_STATE_NO_TASKS,
+  TREE_ITEM_STATE_FOLDER,
+  TREE_ITEM_STATE_TASK_IDLE,
+} from '../../views/constants';
 import {
   pinTaskCommand,
   pinTaskWithArgsCommand,
@@ -84,7 +90,7 @@ describe(getSuiteName('Pinned tasks'), () => {
     const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext
     );
-    const gradleTaskProvder = new GradleTaskProvider();
+    const gradleTaskProvider = new GradleTaskProvider();
     const pinnedTasksStore = new PinnedTasksStore(mockContext);
     const pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
       mockContext,
@@ -96,7 +102,7 @@ describe(getSuiteName('Pinned tasks'), () => {
     mockExtension.getPinnedTasksTreeDataProvider.returns(
       pinnedTasksTreeDataProvider
     );
-    mockExtension.getGradleTaskProvider.returns(gradleTaskProvder);
+    mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
     mockExtension.getPinnedTasksStore.returns(pinnedTasksStore);
     mockExtension.getGradleTasksTreeDataProvider.returns(
       gradleTasksTreeDataProvider
@@ -131,7 +137,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           childTreeItem instanceof NoPinnedTasksTreeItem,
           'Tree item is not an instance of NoPinnedTasksTreeItem'
         );
-        assert.equal(childTreeItem.contextValue, 'notasks');
+        assert.equal(childTreeItem.contextValue, TREE_ITEM_STATE_NO_TASKS);
         assert.equal(childTreeItem.label, 'No pinned tasks');
         const iconPath = childTreeItem.iconPath as IconPath;
         assert.equal(
@@ -180,7 +186,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(pinnedTaskTreeItem.contextValue, 'task');
+        assert.equal(
+          pinnedTaskTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE
+        );
         assert.equal(pinnedTaskTreeItem.description, '');
         assert.equal(pinnedTaskTreeItem.label, mockTaskDefinition1.script);
         assert.equal(
@@ -201,8 +210,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should build a pinned task treeitem with args', async () => {
@@ -222,7 +232,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(pinnedTaskTreeItem.contextValue, 'taskWithArgs');
+        assert.equal(
+          pinnedTaskTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE + 'WithArgs'
+        );
         assert.equal(pinnedTaskTreeItem.description, '');
         assert.equal(
           pinnedTaskTreeItem.label,
@@ -246,8 +259,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should build a pinned task treeitem with args when pinning an existing pinned task', async () => {
@@ -288,7 +302,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskWithArgsTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(pinnedTaskWithArgsTreeItem.contextValue, 'taskWithArgs');
+        assert.equal(
+          pinnedTaskWithArgsTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE + 'WithArgs'
+        );
         assert.equal(pinnedTaskWithArgsTreeItem.description, '');
         assert.equal(
           pinnedTaskWithArgsTreeItem.label,
@@ -302,8 +319,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskWithArgsTreeItem.task.definition.id,
           mockTaskDefinition1.id
         );
-        const workspaceTreeItem = pinnedTaskWithArgsTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskWithArgsTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should remove a pinned task', async () => {
@@ -388,7 +406,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           workspaceTreeItem instanceof WorkspaceTreeItem,
           'Workspace tree item is not a WorkspaceTreeItem'
         );
-        const projectItem = workspaceTreeItem.projects[0] as ProjectTreeItem;
+        const projectItem = workspaceTreeItem.projects[0];
         assert.ok(
           projectItem instanceof ProjectTreeItem,
           'Project item is not a ProjectTreeItem'
@@ -413,7 +431,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTasksWorkspaceTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
         );
-        assert.equal(pinnedTasksWorkspaceTreeItem.contextValue, 'folder');
+        assert.equal(
+          pinnedTasksWorkspaceTreeItem.contextValue,
+          TREE_ITEM_STATE_FOLDER
+        );
         assert.equal(
           pinnedTasksWorkspaceTreeItem.label,
           mockWorkspaceFolder1.name
@@ -426,7 +447,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(pinnedTaskTreeItem.contextValue, 'task');
+        assert.equal(
+          pinnedTaskTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE
+        );
         assert.equal(pinnedTaskTreeItem.description, '');
         assert.equal(pinnedTaskTreeItem.label, mockTaskDefinition1.script);
         assert.equal(

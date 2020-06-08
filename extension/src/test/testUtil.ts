@@ -7,7 +7,7 @@ import * as sinon from 'sinon';
 import * as assert from 'assert';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleTask } from '../proto/gradle_pb';
-import { TreeItemWithTasksOrGroups } from '../views';
+import { TREE_ITEM_STATE_FOLDER } from '../views/constants';
 
 export const EXTENSION_NAME = 'richardwillis.vscode-gradle';
 
@@ -108,6 +108,7 @@ export function buildMockClient(): any {
     getDaemonsStatus: sinon.stub(),
     stopDaemon: sinon.stub(),
     stopDaemons: sinon.stub(),
+    cancelRunTask: sinon.stub(),
   };
 }
 
@@ -172,18 +173,13 @@ export function buildMockGradleTask(
   return gradleTask;
 }
 
-export function assertWorkspaceTreeItem(
-  workspaceTreeItem: TreeItemWithTasksOrGroups,
+export function assertFolderTreeItem(
+  workspaceTreeItem: vscode.TreeItem,
   workspaceFolder: vscode.WorkspaceFolder
 ): void {
-  assert.ok(
-    workspaceTreeItem && workspaceTreeItem instanceof TreeItemWithTasksOrGroups,
-    'WorkspaceTreeItem is not a TreeItemWithTasksOrGroups'
-  );
-  assert.equal(workspaceTreeItem.contextValue, 'folder');
+  assert.ok(workspaceTreeItem);
+  assert.equal(workspaceTreeItem.contextValue, TREE_ITEM_STATE_FOLDER);
   assert.equal(workspaceTreeItem.label, workspaceFolder.name);
   assert.equal(workspaceTreeItem.iconPath, vscode.ThemeIcon.Folder);
-  assert.equal(workspaceTreeItem.parentTreeItem, undefined);
   assert.equal(workspaceTreeItem.resourceUri, undefined);
-  assert.ok(workspaceTreeItem.tasks.length > 0);
 }
