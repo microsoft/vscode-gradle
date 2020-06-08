@@ -235,7 +235,7 @@
         "${workspaceFolder}/extension/dist/**/*.js",
         "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
