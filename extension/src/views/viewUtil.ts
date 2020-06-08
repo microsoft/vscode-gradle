@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import {
-  TASK_STATE_CANCELLING,
-  TASK_STATE_RUNNING,
-  TASK_STATE_DEBUG_IDLE,
-  TASK_STATE_IDLE,
   GRADLE_CONTAINER_VIEW,
+  TREE_ITEM_STATE_TASK_CANCELLING,
+  TREE_ITEM_STATE_TASK_RUNNING,
+  TREE_ITEM_STATE_TASK_DEBUG_IDLE,
+  TREE_ITEM_STATE_TASK_IDLE,
 } from './constants';
 import {
   gradleTaskTreeItemMap,
@@ -138,14 +138,14 @@ function getTreeItemRunningState(
   args?: TaskArgs
 ): string {
   if (isTaskCancelling(task, args)) {
-    return TASK_STATE_CANCELLING;
+    return TREE_ITEM_STATE_TASK_CANCELLING;
   }
   if (isTaskRunning(task, args)) {
-    return TASK_STATE_RUNNING;
+    return TREE_ITEM_STATE_TASK_RUNNING;
   }
   return javaDebug && javaDebug.tasks.includes(task.definition.script)
-    ? TASK_STATE_DEBUG_IDLE
-    : TASK_STATE_IDLE;
+    ? TREE_ITEM_STATE_TASK_DEBUG_IDLE
+    : TREE_ITEM_STATE_TASK_IDLE;
 }
 
 export function getTreeItemState(

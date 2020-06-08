@@ -27,7 +27,13 @@ import { GradleTaskProvider } from '../../tasks';
 import { RecentTasksStore, TaskTerminalsStore } from '../../stores';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import { IconPath, Icons } from '../../icons';
-import { ICON_WARNING, ICON_GRADLE_TASK } from '../../views/constants';
+import {
+  ICON_WARNING,
+  ICON_GRADLE_TASK,
+  TREE_ITEM_STATE_NO_TASKS,
+  TREE_ITEM_STATE_FOLDER,
+  TREE_ITEM_STATE_TASK_IDLE,
+} from '../../views/constants';
 import {
   clearAllRecentTasksCommand,
   closeAllTaskTerminalsCommand,
@@ -76,7 +82,7 @@ mockGradleBuild.setProject(mockGradleProject);
 describe(getSuiteName('Recent tasks'), () => {
   beforeEach(() => {
     const icons = new Icons(mockContext);
-    const gradleTaskProvder = new GradleTaskProvider();
+    const gradleTaskProvider = new GradleTaskProvider();
     const recentTasksStore = new RecentTasksStore();
     const taskTerminalsStore = new TaskTerminalsStore();
     const recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
@@ -91,7 +97,7 @@ describe(getSuiteName('Recent tasks'), () => {
       recentTasksTreeDataProvider
     );
     mockExtension.getRecentTasksStore.returns(recentTasksStore);
-    mockExtension.getGradleTaskProvider.returns(gradleTaskProvder);
+    mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
     mockExtension.getTaskTerminalsStore.returns(taskTerminalsStore);
     mockExtension.getIcons.returns(icons);
 
@@ -124,7 +130,7 @@ describe(getSuiteName('Recent tasks'), () => {
           childTreeItem instanceof NoRecentTasksTreeItem,
           'Tree item is not an instance of NoRecentTasksTreeItem'
         );
-        assert.equal(childTreeItem.contextValue, 'notasks');
+        assert.equal(childTreeItem.contextValue, TREE_ITEM_STATE_NO_TASKS);
         assert.equal(childTreeItem.label, 'No recent tasks');
         const iconPath = childTreeItem.iconPath as IconPath;
         assert.equal(
@@ -157,7 +163,10 @@ describe(getSuiteName('Recent tasks'), () => {
           recentTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(recentTaskTreeItem.contextValue, 'task');
+        assert.equal(
+          recentTaskTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE
+        );
         assert.equal(recentTaskTreeItem.description, '(0)');
         assert.equal(recentTaskTreeItem.label, mockTaskDefinition1.script);
         assert.equal(
@@ -183,7 +192,7 @@ describe(getSuiteName('Recent tasks'), () => {
           workspaceTreeItem,
           'parentTreeItem must reference a WorkSpace tree item'
         );
-        assert.equal(workspaceTreeItem.contextValue, 'folder');
+        assert.equal(workspaceTreeItem.contextValue, TREE_ITEM_STATE_FOLDER);
         assert.equal(workspaceTreeItem.label, mockWorkspaceFolder1.name);
         assert.equal(workspaceTreeItem.iconPath.id, 'folder');
         assert.equal(workspaceTreeItem.parentTreeItem, undefined);
@@ -208,7 +217,10 @@ describe(getSuiteName('Recent tasks'), () => {
           recentTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(recentTaskTreeItem.contextValue, 'taskWithTerminals');
+        assert.equal(
+          recentTaskTreeItem.contextValue,
+          TREE_ITEM_STATE_TASK_IDLE + 'WithTerminals'
+        );
         assert.equal(recentTaskTreeItem.description, '(1)');
         assert.equal(recentTaskTreeItem.label, mockTaskDefinition1.script);
         assert.equal(
@@ -301,7 +313,7 @@ describe(getSuiteName('Recent tasks'), () => {
       assertWorkspaceTreeItem(workspaceTreeItem1, mockWorkspaceFolder1);
 
       const workspaceTask1 = workspaceTreeItem1.tasks[0];
-      assert.equal(workspaceTask1.contextValue, 'task');
+      assert.equal(workspaceTask1.contextValue, TREE_ITEM_STATE_TASK_IDLE);
       assert.equal(workspaceTask1.description, '(0)');
       assert.equal(workspaceTask1.label, mockTaskDefinition1.script);
       assert.equal(workspaceTask1.task.definition.id, mockTaskDefinition1.id);
@@ -314,7 +326,10 @@ describe(getSuiteName('Recent tasks'), () => {
       assertWorkspaceTreeItem(workspaceTreeItem2, mockWorkspaceFolder2);
 
       const workspaceTask2 = workspaceTreeItem2.tasks[0];
-      assert.equal(workspaceTask2.contextValue, 'taskWithArgs');
+      assert.equal(
+        workspaceTask2.contextValue,
+        TREE_ITEM_STATE_TASK_IDLE + 'WithArgs'
+      );
       assert.equal(workspaceTask2.description, '(0)');
       assert.equal(
         workspaceTask2.label,
@@ -358,7 +373,10 @@ describe(getSuiteName('Recent tasks'), () => {
         recentTaskTreeItemBefore instanceof RecentTaskTreeItem,
         'Task is not a RecentTaskTreeItem'
       );
-      assert.equal(recentTaskTreeItemBefore.contextValue, 'taskWithTerminals');
+      assert.equal(
+        recentTaskTreeItemBefore.contextValue,
+        TREE_ITEM_STATE_TASK_IDLE + 'WithTerminals'
+      );
       assert.equal(recentTaskTreeItemBefore.description, '(2)');
 
       const showWarningMessageStub = (sinon.stub(
@@ -384,7 +402,10 @@ describe(getSuiteName('Recent tasks'), () => {
         recentTaskTreeItemBeforeAfter instanceof RecentTaskTreeItem,
         'Task is not a RecentTaskTreeItem'
       );
-      assert.equal(recentTaskTreeItemBeforeAfter.contextValue, 'task');
+      assert.equal(
+        recentTaskTreeItemBeforeAfter.contextValue,
+        TREE_ITEM_STATE_TASK_IDLE
+      );
       assert.equal(recentTaskTreeItemBeforeAfter.description, '(0)');
     });
 
