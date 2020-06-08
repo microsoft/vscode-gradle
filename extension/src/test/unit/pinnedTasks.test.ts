@@ -15,7 +15,7 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
-  assertWorkspaceTreeItem,
+  assertFolderTreeItem,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -210,8 +210,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should build a pinned task treeitem with args', async () => {
@@ -258,8 +259,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should build a pinned task treeitem with args when pinning an existing pinned task', async () => {
@@ -317,8 +319,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTaskWithArgsTreeItem.task.definition.id,
           mockTaskDefinition1.id
         );
-        const workspaceTreeItem = pinnedTaskWithArgsTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const groupTreeItem = pinnedTaskWithArgsTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
+        assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should remove a pinned task', async () => {
@@ -403,7 +406,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           workspaceTreeItem instanceof WorkspaceTreeItem,
           'Workspace tree item is not a WorkspaceTreeItem'
         );
-        const projectItem = workspaceTreeItem.projects[0] as ProjectTreeItem;
+        const projectItem = workspaceTreeItem.projects[0];
         assert.ok(
           projectItem instanceof ProjectTreeItem,
           'Project item is not a ProjectTreeItem'

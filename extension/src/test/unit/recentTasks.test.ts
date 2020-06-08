@@ -16,12 +16,13 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
-  assertWorkspaceTreeItem,
+  assertFolderTreeItem,
 } from '../testUtil';
 import {
   RecentTasksTreeDataProvider,
   NoRecentTasksTreeItem,
   RecentTaskTreeItem,
+  RecentTasksWorkspaceTreeItem,
 } from '../../views';
 import { GradleTaskProvider } from '../../tasks';
 import { RecentTasksStore, TaskTerminalsStore } from '../../stores';
@@ -212,7 +213,7 @@ describe(getSuiteName('Recent tasks'), () => {
           .getRecentTasksTreeDataProvider()
           .getChildren();
         assert.equal(children.length, 1);
-        const recentTaskTreeItem = children[0];
+        const recentTaskTreeItem = children[0] as RecentTaskTreeItem;
         assert.equal(
           recentTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
@@ -242,8 +243,13 @@ describe(getSuiteName('Recent tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem;
-        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksWorkspaceTreeItem;
+        assert.ok(
+          workspaceTreeItem instanceof RecentTasksWorkspaceTreeItem,
+          'Tree item is not RecentTasksWorkspaceTreeItem'
+        );
+        assertFolderTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
+        assert.ok(workspaceTreeItem.tasks.length);
       });
 
       it('should clear all recent tasks', async () => {
@@ -310,7 +316,7 @@ describe(getSuiteName('Recent tasks'), () => {
         workspaceTreeItem1.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
       );
-      assertWorkspaceTreeItem(workspaceTreeItem1, mockWorkspaceFolder1);
+      assertFolderTreeItem(workspaceTreeItem1, mockWorkspaceFolder1);
 
       const workspaceTask1 = workspaceTreeItem1.tasks[0];
       assert.equal(workspaceTask1.contextValue, TREE_ITEM_STATE_TASK_IDLE);
@@ -323,7 +329,7 @@ describe(getSuiteName('Recent tasks'), () => {
         workspaceTreeItem2.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
       );
-      assertWorkspaceTreeItem(workspaceTreeItem2, mockWorkspaceFolder2);
+      assertFolderTreeItem(workspaceTreeItem2, mockWorkspaceFolder2);
 
       const workspaceTask2 = workspaceTreeItem2.tasks[0];
       assert.equal(
