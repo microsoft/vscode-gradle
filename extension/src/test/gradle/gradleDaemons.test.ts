@@ -23,7 +23,15 @@ import {
   stopDaemonsCommand,
 } from '../../commands';
 import { logger } from '../../logger';
-import { getSuiteName } from '../testUtil';
+import {
+  getSuiteName,
+  resetObjectStubs,
+  buildMockOutputChannel,
+  buildMockWorkspaceFolder,
+  buildMockClient,
+  buildMockExtension,
+  buildMockContext,
+} from '../testUtil';
 import { IconPath } from '../../icons';
 import {
   ICON_DAEMON_STOPPED,
@@ -31,45 +39,23 @@ import {
   ICON_DAEMON_IDLE,
 } from '../../views/constants';
 
-const mockContext: any = {
-  subscriptions: [],
-  asAbsolutePath(relativePath: string) {
-    return relativePath;
-  },
-};
+const mockContext = buildMockContext();
+const mockClient = buildMockClient();
+const mockExtension = buildMockExtension();
 
-const mockClient = {
-  getDaemonsStatus: sinon.stub(),
-  stopDaemon: sinon.stub(),
-  stopDaemons: sinon.stub(),
-};
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
+  0,
+  'folder1',
+  'folder name 1'
+);
 
-const mockExtension = {
-  getClient: sinon.stub(),
-  getGradleDaemonsTreeDataProvider: sinon.stub(),
-};
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
+  1,
+  'folder2',
+  'folder name 2'
+);
 
-const mockWorkspaceFolder1: vscode.WorkspaceFolder = {
-  index: 0,
-  uri: vscode.Uri.file('folder1'),
-  name: 'folder name 1',
-};
-
-const mockWorkspaceFolder2: vscode.WorkspaceFolder = {
-  index: 1,
-  uri: vscode.Uri.file('folder2'),
-  name: 'folder name 2',
-};
-
-const mockOutputChannel = {
-  name: 'Mock Output Channel',
-  append: sinon.spy(),
-  appendLine: sinon.spy(),
-  clear: sinon.spy(),
-  show: sinon.spy(),
-  hide: sinon.spy(),
-  dispose: sinon.spy(),
-};
+const mockOutputChannel = buildMockOutputChannel();
 
 describe(getSuiteName('Gradle daemons'), () => {
   beforeEach(() => {
@@ -89,11 +75,7 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   afterEach(() => {
-    Object.values(mockOutputChannel).forEach((value: any) => {
-      if (value.isSinonProxy) {
-        value.resetHistory();
-      }
-    });
+    resetObjectStubs(mockOutputChannel);
     sinon.restore();
   });
 
