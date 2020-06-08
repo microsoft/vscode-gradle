@@ -185,5 +185,5 @@ export function assertWorkspaceTreeItem(
   assert.equal(workspaceTreeItem.iconPath, vscode.ThemeIcon.Folder);
   assert.equal(workspaceTreeItem.parentTreeItem, undefined);
   assert.equal(workspaceTreeItem.resourceUri, undefined);
-  assert.equal(workspaceTreeItem.tasks.length, 1);
+  assert.ok(workspaceTreeItem.tasks.length > 0);
 }
