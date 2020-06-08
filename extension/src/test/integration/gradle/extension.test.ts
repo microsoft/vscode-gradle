@@ -4,15 +4,15 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 
-import { Output } from '../../proto/gradle_pb';
-import { GradleTaskTreeItem } from '../../views';
-import { RunTaskOpts, Api as ExtensionApi } from '../../api';
-import { COMMAND_REFRESH, COMMAND_RUN_TASK_WITH_ARGS } from '../../commands';
-import { getSuiteName, EXTENSION_NAME } from '../testUtil';
+import { Output } from '../../../proto/gradle_pb';
+import { GradleTaskTreeItem } from '../../../views';
+import { RunTaskOpts, Api as ExtensionApi } from '../../../api';
+import { COMMAND_REFRESH, COMMAND_RUN_TASK_WITH_ARGS } from '../../../commands';
+import { getSuiteName, EXTENSION_NAME } from '../../testUtil';
 
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 const fixturePath = vscode.Uri.file(
-  path.resolve(__dirname, '..', '..', '..', 'test-fixtures', fixtureName)
+  path.resolve(__dirname, '../../../../test-fixtures', fixtureName)
 );
 
 describe(getSuiteName('Extension'), () => {

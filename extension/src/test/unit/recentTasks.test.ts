@@ -16,6 +16,7 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
+  assertWorkspaceTreeItem,
 } from '../testUtil';
 import {
   RecentTasksTreeDataProvider,
@@ -230,16 +231,7 @@ describe(getSuiteName('Recent tasks'), () => {
         );
 
         const workspaceTreeItem = recentTaskTreeItem.parentTreeItem;
-        assert.ok(
-          workspaceTreeItem,
-          'parentTreeItem must reference a WorkSpace tree item'
-        );
-        assert.equal(workspaceTreeItem.contextValue, 'folder');
-        assert.equal(workspaceTreeItem.label, mockWorkspaceFolder1.name);
-        assert.equal(workspaceTreeItem.iconPath.id, 'folder');
-        assert.equal(workspaceTreeItem.parentTreeItem, undefined);
-        assert.equal(workspaceTreeItem.resourceUri, undefined);
-        assert.equal(workspaceTreeItem.tasks.length, 1);
+        assertWorkspaceTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
       });
 
       it('should clear all recent tasks', async () => {
@@ -306,12 +298,7 @@ describe(getSuiteName('Recent tasks'), () => {
         workspaceTreeItem1.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
       );
-      assert.equal(workspaceTreeItem1.contextValue, 'folder');
-      assert.equal(workspaceTreeItem1.label, mockWorkspaceFolder1.name);
-      assert.equal(workspaceTreeItem1.iconPath.id, 'folder');
-      assert.equal(workspaceTreeItem1.parentTreeItem, undefined);
-      assert.equal(workspaceTreeItem1.resourceUri, undefined);
-      assert.equal(workspaceTreeItem1.tasks.length, 1);
+      assertWorkspaceTreeItem(workspaceTreeItem1, mockWorkspaceFolder1);
 
       const workspaceTask1 = workspaceTreeItem1.tasks[0];
       assert.equal(workspaceTask1.contextValue, 'task');
@@ -324,12 +311,7 @@ describe(getSuiteName('Recent tasks'), () => {
         workspaceTreeItem2.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
       );
-      assert.equal(workspaceTreeItem2.contextValue, 'folder');
-      assert.equal(workspaceTreeItem2.label, mockWorkspaceFolder2.name);
-      assert.equal(workspaceTreeItem2.iconPath.id, 'folder');
-      assert.equal(workspaceTreeItem2.parentTreeItem, undefined);
-      assert.equal(workspaceTreeItem2.resourceUri, undefined);
-      assert.equal(workspaceTreeItem2.tasks.length, 1);
+      assertWorkspaceTreeItem(workspaceTreeItem2, mockWorkspaceFolder2);
 
       const workspaceTask2 = workspaceTreeItem2.tasks[0];
       assert.equal(workspaceTask2.contextValue, 'taskWithArgs');

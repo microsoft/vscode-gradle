@@ -129,7 +129,9 @@ task buildDev(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds development version TypeScript source files'
-  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('dist')
