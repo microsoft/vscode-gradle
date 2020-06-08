@@ -108,6 +108,7 @@ export function buildMockClient(): any {
     getDaemonsStatus: sinon.stub(),
     stopDaemon: sinon.stub(),
     stopDaemons: sinon.stub(),
+    cancelRunTask: sinon.stub(),
   };
 }
 

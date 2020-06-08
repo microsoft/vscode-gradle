@@ -173,7 +173,7 @@ export class GradleTasksTreeDataProvider
           if (!groupTreeItem) {
             groupTreeItem = new GroupTreeItem(
               definition.group,
-              workspaceTreeItem,
+              projectTreeItem,
               undefined
             );
             projectTreeItem.addGroup(groupTreeItem);

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ProjectTreeItem } from '.';
+import { TREE_ITEM_STATE_FOLDER } from '../constants';
 
 export class WorkspaceTreeItem extends vscode.TreeItem {
   public readonly projects: ProjectTreeItem[] = [];
@@ -8,7 +9,7 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
 
   constructor(name: string, resourceUri: vscode.Uri) {
     super(name, vscode.TreeItemCollapsibleState.Expanded);
-    this.contextValue = 'folder';
+    this.contextValue = TREE_ITEM_STATE_FOLDER;
     this.resourceUri = resourceUri;
     this.iconPath = vscode.ThemeIcon.Folder;
   }
