@@ -60,4 +60,8 @@ export class Logger {
     }
     this.channel = channel;
   }
+
+  public reset(): void {
+    this.channel = undefined;
+  }
 }

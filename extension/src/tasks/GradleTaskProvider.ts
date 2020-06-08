@@ -5,15 +5,9 @@ import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForFolders } from './taskUtil';
 import { TaskId } from '../stores/types';
 
-let cachedTasks: vscode.Task[] = [];
-const emptyTasks: vscode.Task[] = [];
-
-export function invalidateTasksCache(): void {
-  cachedTasks = emptyTasks;
-}
-
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
+  private cachedTasks: vscode.Task[] = [];
   private readonly _onDidLoadTasks: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
@@ -67,28 +61,30 @@ export class GradleTaskProvider
     if (this.loadTasksPromise) {
       return this.loadTasksPromise;
     }
-    if (cachedTasks.length) {
-      return Promise.resolve(cachedTasks);
+    if (this.cachedTasks.length) {
+      return Promise.resolve(this.cachedTasks);
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
     const folders = vscode.workspace.workspaceFolders;
+
     if (!folders) {
-      cachedTasks = emptyTasks;
-      return Promise.resolve(cachedTasks);
+      this.cachedTasks = [];
+      return Promise.resolve(this.cachedTasks);
     }
+
     this.loadTasksPromise = loadTasksForFolders(folders)
       .then(
         (tasks) => {
-          cachedTasks = tasks;
-          logger.info(`Found ${cachedTasks.length} tasks`);
+          this.cachedTasks = tasks;
+          logger.info(`Found ${this.cachedTasks.length} tasks`);
         },
         (err) => {
           logger.error('Unable to refresh tasks:', err.message);
-          cachedTasks = emptyTasks;
+          this.cachedTasks = [];
         }
       )
-      .then(() => cachedTasks);
+      .then(() => this.cachedTasks);
 
     return this.loadTasksPromise.finally(() => {
       this._onDidLoadTasks.fire(null);
@@ -98,13 +94,17 @@ export class GradleTaskProvider
   }
 
   public getTasks(): vscode.Task[] {
-    return cachedTasks;
+    return this.cachedTasks;
   }
 
   public findByTaskId(taskId: TaskId): vscode.Task | void {
-    return cachedTasks.find((task: vscode.Task) => {
+    return this.cachedTasks.find((task: vscode.Task) => {
       return task.definition.id === taskId;
     });
+  }
+
+  public clearTasksCache(): void {
+    this.cachedTasks = [];
   }
 
   public dispose(): void {

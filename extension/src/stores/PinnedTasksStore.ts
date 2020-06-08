@@ -25,7 +25,11 @@ export class PinnedTasksStore extends TaskStore {
       'pinnedTasks',
       {}
     ) as WorkspaceStateTasks;
-    if (Array.isArray(pinnedTasks)) {
+    if (
+      !pinnedTasks ||
+      Array.isArray(pinnedTasks) ||
+      typeof pinnedTasks !== 'object'
+    ) {
       return;
     }
     Object.keys(pinnedTasks).forEach((taskId: TaskId) => {

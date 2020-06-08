@@ -23,54 +23,39 @@ import {
   stopDaemonsCommand,
 } from '../../commands';
 import { logger } from '../../logger';
-import { getSuiteName } from '../testUtil';
+import {
+  getSuiteName,
+  resetObjectStubs,
+  buildMockOutputChannel,
+  buildMockWorkspaceFolder,
+  buildMockClient,
+  buildMockExtension,
+  buildMockContext,
+} from '../testUtil';
+import { IconPath } from '../../icons';
+import {
+  ICON_DAEMON_STOPPED,
+  ICON_DAEMON_BUSY,
+  ICON_DAEMON_IDLE,
+} from '../../views/constants';
 
-interface IconPath {
-  light: string;
-  dark: string;
-}
+const mockContext = buildMockContext();
+const mockClient = buildMockClient();
+const mockExtension = buildMockExtension();
 
-const mockContext: any = {
-  subscriptions: [],
-  asAbsolutePath(relativePath: string) {
-    return relativePath;
-  },
-};
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
+  0,
+  'folder1',
+  'folder name 1'
+);
 
-const mockClient = {
-  getDaemonsStatus: sinon.stub(),
-  stopDaemon: sinon.stub(),
-  stopDaemons: sinon.stub(),
-};
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
+  1,
+  'folder2',
+  'folder name 2'
+);
 
-const mockExtension = {
-  getClient: sinon.stub(),
-  getGradleDaemonsTreeDataProvider: sinon.stub(),
-};
-
-const mockWorkspaceFolder1: vscode.WorkspaceFolder = {
-  index: 0,
-  uri: vscode.Uri.file('folder1'),
-  name: 'folder name 1',
-};
-
-const mockWorkspaceFolder2: vscode.WorkspaceFolder = {
-  index: 1,
-  uri: vscode.Uri.file('folder2'),
-  name: 'folder name 2',
-};
-
-const mockOutputChannel = {
-  name: 'Mock Output Channel',
-  append: sinon.spy(),
-  appendLine: sinon.spy(),
-  clear: sinon.spy(),
-  show: sinon.spy(),
-  hide: sinon.spy(),
-  dispose: sinon.spy(),
-};
-
-logger.setLoggingChannel(mockOutputChannel);
+const mockOutputChannel = buildMockOutputChannel();
 
 describe(getSuiteName('Gradle daemons'), () => {
   beforeEach(() => {
@@ -85,14 +70,12 @@ describe(getSuiteName('Gradle daemons'), () => {
     sinon
       .stub(vscode.workspace, 'workspaceFolders')
       .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+    logger.reset();
+    logger.setLoggingChannel(mockOutputChannel);
   });
 
   afterEach(() => {
-    Object.values(mockOutputChannel).forEach((value: any) => {
-      if (value.isSinonProxy) {
-        value.resetHistory();
-      }
-    });
+    resetObjectStubs(mockOutputChannel);
     sinon.restore();
   });
 
@@ -144,11 +127,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const busyIconPath = treeItemBusy.iconPath as IconPath;
     assert.equal(
       busyIconPath.dark,
-      path.join('resources', 'dark', 'circle-filled.svg')
+      path.join('resources', 'dark', ICON_DAEMON_BUSY)
     );
     assert.equal(
       busyIconPath.light,
-      path.join('resources', 'light', 'circle-filled.svg')
+      path.join('resources', 'light', ICON_DAEMON_BUSY)
     );
 
     const treeItemIdle = children[1];
@@ -163,11 +146,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const idleIconPath = treeItemIdle.iconPath as IconPath;
     assert.equal(
       idleIconPath.dark,
-      path.join('resources', 'dark', 'circle-outline.svg')
+      path.join('resources', 'dark', ICON_DAEMON_IDLE)
     );
     assert.equal(
       idleIconPath.light,
-      path.join('resources', 'light', 'circle-outline.svg')
+      path.join('resources', 'light', ICON_DAEMON_IDLE)
     );
 
     const treeItemStopped = children[2];
@@ -185,11 +168,11 @@ describe(getSuiteName('Gradle daemons'), () => {
     const stoppedIconPath = treeItemStopped.iconPath as IconPath;
     assert.equal(
       stoppedIconPath.dark,
-      path.join('resources', 'dark', 'close.svg')
+      path.join('resources', 'dark', ICON_DAEMON_STOPPED)
     );
     assert.equal(
       stoppedIconPath.light,
-      path.join('resources', 'light', 'close.svg')
+      path.join('resources', 'light', ICON_DAEMON_STOPPED)
     );
   });
 

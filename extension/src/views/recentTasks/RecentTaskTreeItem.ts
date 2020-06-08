@@ -36,8 +36,6 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     );
     const numTerminals = taskTerminalsStore ? taskTerminalsStore.size : 0;
     this.description = `(${numTerminals})`;
-    // const taskName = `${buildTaskName(definition)} (${numTerminals})`;
-    // this.label = taskName;
     this.contextValue = getRecentTaskTreeItemState(
       getTreeItemState(this.task, this.javaDebug, definition.args),
       numTerminals
