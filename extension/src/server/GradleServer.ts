@@ -58,6 +58,9 @@ export class GradleServer implements vscode.Disposable {
       logger.debug('Starting server');
       try {
         this.taskExecution = await vscode.tasks.executeTask(task);
+        if (!this.taskExecution) {
+          throw new Error('Task execution not found');
+        }
       } catch (e) {
         logger.error('There was an error starting the server:', e.message);
       }
