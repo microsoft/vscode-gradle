@@ -30,11 +30,7 @@ import {
 } from '../views/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
 import { GracefulFileWatcher } from '../watcher';
-import {
-  COMMAND_LOAD_TASKS,
-  COMMAND_RENDER_TASK,
-  COMMAND_REFRESH,
-} from '../commands';
+import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
 
 export class Extension {
   private static instance: Extension;
