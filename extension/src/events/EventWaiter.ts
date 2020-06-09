@@ -14,6 +14,7 @@ export class EventWaiter {
   public onEvent = (callback: callback): void => {
     const disposable = this.event(() => {
       disposable.dispose();
+      this.eventRun = true;
       callback();
     });
   };
@@ -24,4 +25,8 @@ export class EventWaiter {
     }
     return new Promise(this.onEvent);
   };
+
+  public reset(): void {
+    this.eventRun = false;
+  }
 }

@@ -145,7 +145,6 @@ task buildTest(type: CrossPlatformExec) {
   description 'Builds TypeScript test source files'
   buildDir = 'out'
   inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir(buildDir)
@@ -159,7 +158,6 @@ task buildProd(type: CrossPlatformExec) {
   description 'Builds production version TypeScript source files'
   buildDir = 'dist'
   inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir("$buildDir")
   outputs.cacheIf { true }

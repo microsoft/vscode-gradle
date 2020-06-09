@@ -1,7 +1,10 @@
 import { Extension } from '../extension';
 export const COMMAND_REFRESH = 'gradle.refresh';
 
-export function refreshCommand(): void {
-  Extension.getInstance().getGradleTaskProvider().clearTasksCache();
-  Extension.getInstance().getGradleTasksTreeDataProvider().refresh();
+export async function refreshCommand(): Promise<void> {
+  const extension = Extension.getInstance();
+  extension.getGradleTaskProvider().clearTasksCache();
+  extension.getGradleTasksTreeDataProvider().refresh();
+  extension.getPinnedTasksTreeDataProvider().refresh();
+  extension.getRecentTasksTreeDataProvider().refresh();
 }
