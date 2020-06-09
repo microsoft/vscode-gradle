@@ -469,7 +469,7 @@
         },
         {
           "command": "gradle.closeTaskTerminals",
-          "when": "view == recentTasksView",
+          "when": "view == recentTasksView  && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$/",
           "group": "inline@1"
         },
         {

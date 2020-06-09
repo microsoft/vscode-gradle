@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { logger } from '../logger';
 import { getConfigJavaHome } from '../config';
 
@@ -7,9 +8,9 @@ export const SERVER_TASK_NAME = 'Gradle Server';
 export function getGradleServerCommand(): string {
   const platform = process.platform;
   if (platform === 'win32') {
-    return '.\\gradle-server.bat';
+    return 'gradle-server.bat';
   } else if (platform === 'linux' || platform === 'darwin') {
-    return './gradle-server';
+    return 'gradle-server';
   } else {
     throw new Error('Unsupported platform');
   }
@@ -19,8 +20,7 @@ export function buildGradleServerTask(
   cwd: string,
   args: string[] = []
 ): vscode.Task {
-  const cmd = `"${getGradleServerCommand()}"`;
-  logger.debug(`Gradle Server dir: ${cwd}`);
+  const cmd = path.join(cwd, getGradleServerCommand());
   logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
   const taskType = 'gradleserver';
   const definition = {
@@ -33,11 +33,20 @@ export function buildGradleServerTask(
       VSCODE_JAVA_HOME: javaHome,
     });
   }
-  return new vscode.Task(
+  const task = new vscode.Task(
     definition,
     vscode.TaskScope.Workspace,
     SERVER_TASK_NAME,
     taskType,
-    new vscode.ShellExecution(cmd, args, { cwd, env })
+    new vscode.ProcessExecution(cmd, args, { env })
   );
+  task.presentationOptions = {
+    showReuseMessage: false,
+    clear: true,
+    echo: false,
+    focus: false,
+    panel: vscode.TaskPanelKind.Shared,
+    reveal: vscode.TaskRevealKind.Silent,
+  };
+  return task;
 }

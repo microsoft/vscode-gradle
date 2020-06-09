@@ -26,7 +26,8 @@ export class GradleTaskProvider
     .event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  public readonly waitForTasksLoad = new EventWaiter(this.onDidLoadTasks).wait;
+  private readonly _waitForTasksLoad = new EventWaiter(this.onDidLoadTasks);
+  public readonly waitForTasksLoad = this._waitForTasksLoad.wait;
 
   public provideTasks(): Promise<vscode.Task[] | undefined> {
     return this.loadTasks();
@@ -98,13 +99,14 @@ export class GradleTaskProvider
   }
 
   public findByTaskId(taskId: TaskId): vscode.Task | void {
-    return this.cachedTasks.find((task: vscode.Task) => {
+    return this.getTasks().find((task: vscode.Task) => {
       return task.definition.id === taskId;
     });
   }
 
   public clearTasksCache(): void {
     this.cachedTasks = [];
+    this._waitForTasksLoad.reset();
   }
 
   public dispose(): void {
