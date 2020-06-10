@@ -23,7 +23,7 @@ export default [
     },
     plugins: [
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
-      commonjs(),
+      commonjs({ ignore: ['encoding'] }),
       json(),
       resolve({ preferBuiltins: true }),
     ],
