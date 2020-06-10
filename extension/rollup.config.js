@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production') {
 export default [
   {
     input: 'src/index.ts',
-    external: builtins.concat(['vscode', 'google-auth-library']),
+    external: builtins.concat(['vscode']),
     output: {
       dir: './dist',
       format: 'cjs',
