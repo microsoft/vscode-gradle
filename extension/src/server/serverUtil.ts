@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { logger } from '../logger';
 import { getConfigJavaHome } from '../config';
+import { isTest } from '../util';
 
 export const SERVER_TASK_NAME = 'Gradle Server';
 
@@ -40,13 +41,15 @@ export function buildGradleServerTask(
     taskType,
     new vscode.ProcessExecution(cmd, args, { env })
   );
-  task.presentationOptions = {
-    showReuseMessage: false,
-    clear: true,
-    echo: false,
-    focus: false,
-    panel: vscode.TaskPanelKind.Shared,
-    reveal: vscode.TaskRevealKind.Silent,
-  };
+  if (!isTest()) {
+    task.presentationOptions = {
+      showReuseMessage: false,
+      clear: true,
+      echo: false,
+      focus: false,
+      panel: vscode.TaskPanelKind.Shared,
+      reveal: vscode.TaskRevealKind.Silent,
+    };
+  }
   return task;
 }
