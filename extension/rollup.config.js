@@ -6,6 +6,11 @@ import json from '@rollup/plugin-json';
 import builtins from 'builtin-modules';
 import { terser } from 'rollup-plugin-terser';
 
+const outputPlugins = [];
+if (process.env.NODE_ENV === 'production') {
+  outputPlugins.push(terser());
+}
+
 export default [
   {
     input: 'src/index.ts',
@@ -14,7 +19,7 @@ export default [
       dir: './dist',
       format: 'cjs',
       sourcemap: true,
-      plugins: [terser()],
+      plugins: outputPlugins,
     },
     plugins: [
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
