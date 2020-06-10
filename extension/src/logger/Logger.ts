@@ -1,53 +1,58 @@
 import * as vscode from 'vscode';
-import { isTest } from '../util';
-import { getConfigIsDebugEnabled } from '../config';
 
-export type logType = 'info' | 'warning' | 'error' | 'debug';
+export enum LogVerbosity {
+  DEBUG = 0,
+  INFO = 1,
+  WARNING = 2,
+  ERROR = 3,
+}
 
 export class Logger {
   private channel?: vscode.OutputChannel;
+  private verbosity: LogVerbosity = LogVerbosity.INFO;
 
-  public log(message: string, type: logType): void {
+  public setLogVerbosity(verbosity: LogVerbosity): void {
+    this.verbosity = verbosity;
+  }
+
+  public log(message: string, verbosity: LogVerbosity): void {
     if (!this.channel) {
       throw new Error('No extension output channel defined.');
     }
-    this.appendLine(this.format(message, type));
+    this.appendLine(this.format(message, verbosity), verbosity);
   }
 
-  public appendLine(message: string): void {
-    this.channel?.appendLine(message);
-    if (isTest()) {
-      console.log(message);
+  public appendLine(message: string, verbosity: LogVerbosity): void {
+    if (verbosity >= this.verbosity) {
+      this.channel?.appendLine(message);
     }
   }
 
-  public append(message: string): void {
-    this.channel?.append(message);
-    if (isTest()) {
-      console.log(message);
+  public append(message: string, verbosity: LogVerbosity): void {
+    if (verbosity >= this.verbosity) {
+      this.channel?.append(message);
     }
   }
 
-  public format(message: string, type: logType): string {
-    return `[${type}] ${message}`;
+  public format(message: string, verbosity: LogVerbosity): string {
+    const verbosityString = LogVerbosity[verbosity].toLowerCase();
+    return `[${verbosityString}] ${message}`;
   }
 
   public info(...messages: string[]): void {
-    this.log(messages.join(' '), 'info');
+    this.log(messages.join(' '), LogVerbosity.INFO);
   }
 
   public warning(...messages: string[]): void {
-    this.log(messages.join(' '), 'warning');
+    this.log(messages.join(' '), LogVerbosity.WARNING);
   }
 
   public error(...messages: string[]): void {
-    this.log(messages.join(' '), 'error');
+    this.log(messages.join(' '), LogVerbosity.ERROR);
   }
 
   public debug(...messages: string[]): void {
-    if (getConfigIsDebugEnabled() || isTest()) {
-      this.log(messages.join(' '), 'debug');
-    }
+    this.log(messages.join(' '), LogVerbosity.DEBUG);
   }
 
   public getChannel(): vscode.OutputChannel | undefined {
