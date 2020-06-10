@@ -42,11 +42,11 @@ describe(getSuiteName('Extension'), () => {
     it('should load gradle tasks', async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
-      assert.equal(tasks!.length > 0, true);
-      const helloTask = tasks!.find(({ name }) => name === 'hello');
+      assert.equal(tasks.length > 0, true);
+      const helloTask = tasks.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
       assert.equal(
-        path.basename(helloTask!.definition.projectFolder),
+        path.basename(helloTask.definition.projectFolder),
         fixtureName
       );
     });
@@ -77,7 +77,7 @@ describe(getSuiteName('Extension'), () => {
           }
         });
         try {
-          await vscode.tasks.executeTask(task!);
+          await vscode.tasks.executeTask(task);
         } catch (e) {
           console.error('There was an error starting the task:', e.message);
         }

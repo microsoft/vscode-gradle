@@ -22,7 +22,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
     it('should be activated', () => {
       assert.ok(extension);
-      assert.equal(extension!.isActive, true);
+      assert.equal(extension.isActive, true);
     });
 
     describe('tasks', () => {
@@ -37,7 +37,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
-        assert.equal(groovyDefaultTask!.definition.project, 'gradle');
+        assert.equal(groovyDefaultTask.definition.project, 'gradle');
       });
 
       it('should load kotlin default build file tasks', () => {
@@ -45,7 +45,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           ({ name }) => name === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
-        assert.equal(kotlinTask!.definition.project, 'gradle-kotlin');
+        assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
       });
 
       it('should load groovy custom build file tasks', () => {
@@ -54,7 +54,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
         );
         assert.ok(groovyCustomTask);
         assert.equal(
-          groovyCustomTask!.definition.project,
+          groovyCustomTask.definition.project,
           'gradle-groovy-custom-build-file'
         );
       });
@@ -74,7 +74,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
             }
           });
           try {
-            await vscode.tasks.executeTask(task!);
+            await vscode.tasks.executeTask(task);
           } catch (e) {
             console.error('There was an error starting the task:', e.message);
           }

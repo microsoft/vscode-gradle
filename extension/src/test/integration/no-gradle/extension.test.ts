@@ -17,7 +17,7 @@ describe('without any build file or local gradle wrapper', () => {
 
   it('should not be activated', async () => {
     assert.ok(extension);
-    assert.equal(extension!.isActive, false);
+    assert.equal(extension.isActive, false);
     // This promise never resolves. Seems like this behaviour was changed in vscode-1.45.0
     // const tasks = await vscode.tasks.fetchTasks({
     //   type: 'fooo',

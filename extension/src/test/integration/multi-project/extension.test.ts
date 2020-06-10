@@ -24,7 +24,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
   it('should be activated', () => {
     assert.ok(extension);
-    assert.equal(extension!.isActive, true);
+    assert.equal(extension.isActive, true);
   });
 
   describe('tasks', () => {
