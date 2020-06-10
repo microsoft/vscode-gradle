@@ -6,7 +6,7 @@ import * as fs from 'fs-extra';
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-const VSCODE_VERSION = 'insiders';
+const VSCODE_VERSION = '1.46.0';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
