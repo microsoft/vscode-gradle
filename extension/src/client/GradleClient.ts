@@ -27,7 +27,7 @@ import {
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
-import { logger, LoggerStream } from '../logger';
+import { logger, LoggerStream, LogVerbosity } from '../logger';
 import { EventWaiter } from '../events';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
@@ -153,8 +153,8 @@ export class GradleClient implements vscode.Disposable {
         await this.waitForConnect();
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
-        const stdOutLoggerStream = new LoggerStream(logger, 'info');
-        const stdErrLoggerStream = new LoggerStream(logger, 'error');
+        const stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+        const stdErrLoggerStream = new LoggerStream(logger, LogVerbosity.ERROR);
 
         const request = new GetBuildRequest();
         request.setProjectDir(projectFolder);

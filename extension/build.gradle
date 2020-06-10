@@ -145,7 +145,6 @@ class CompileExtension extends com.github.jlouns.gradle.cpe.tasks.CrossPlatformE
     inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.dir('dist')
     outputs.cacheIf { true }
-    environment NODE_ENV: "production"
     commandLine 'npm', 'run', 'compile'
   }
 }
@@ -202,4 +201,4 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
-build.finalizedBy buildDev, buildTest
+build.finalizedBy buildProd, buildTest

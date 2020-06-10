@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as util from 'util';
 import { isTaskRunning } from '../tasks/taskUtil';
 import { waitOnTcp, isTest } from '../util';
-import { logger, LoggerStream } from '../logger';
+import { logger, LoggerStream, LogVerbosity } from '../logger';
 import { Extension } from '../extension';
 import { Output } from '../proto/gradle_pb';
 import { COMMAND_CANCEL_TASK } from '../commands';
@@ -80,7 +80,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   }
 
   private async doBuild(): Promise<void> {
-    const stdOutLoggerStream = new LoggerStream(logger, 'info');
+    const stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
     const args: string[] = this.task!.definition.args.split(' ').filter(
       Boolean
     );

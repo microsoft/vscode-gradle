@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
-import { logger } from '../logger';
+import { logger, LogVerbosity } from '../logger';
 import { registerCommands } from '../commands/register';
 import { Api } from '../api';
 import { GradleClient } from '../client';
 import { GradleServer } from '../server';
 import { Icons } from '../icons';
-import { getConfigFocusTaskInExplorer } from '../config';
+import {
+  getConfigFocusTaskInExplorer,
+  getConfigIsDebugEnabled,
+} from '../config';
 import {
   GradleDaemonsTreeDataProvider,
   PinnedTasksTreeDataProvider,
@@ -61,6 +64,10 @@ export class Extension {
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
+    if (getConfigIsDebugEnabled()) {
+      logger.setLogVerbosity(LogVerbosity.DEBUG);
+    }
+
     const statusBarItem = vscode.window.createStatusBarItem();
 
     this.server = new GradleServer({ host: 'localhost' }, context);
@@ -211,6 +218,12 @@ export class Extension {
           }
           if (event.affectsConfiguration('gradle.javaDebug')) {
             vscode.commands.executeCommand(COMMAND_REFRESH);
+          }
+          if (event.affectsConfiguration('gradle.debug')) {
+            const debug = getConfigIsDebugEnabled();
+            logger.setLogVerbosity(
+              debug ? LogVerbosity.DEBUG : LogVerbosity.INFO
+            );
           }
         }
       ),
