@@ -10,7 +10,6 @@
     "rootDir": "src",
     "noUnusedLocals": true,
     "allowJs": true, // to support compiling the generated proto js files
-    "declaration": true
   },
   "exclude": ["node_modules", ".vscode-test", "build", "beta"],
   "include": ["./src/**/*"]

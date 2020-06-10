@@ -25,7 +25,7 @@ task copyStoreTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies stores types'
-  from file("../extension/out/stores")
+  from file("../extension/dist/stores")
   include "*.d.ts"
   into 'lib/stores'
 }
@@ -34,7 +34,7 @@ task copyRecentTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies recentTasks views'
-  from file("../extension/out/views/recentTasks")
+  from file("../extension/dist/views/recentTasks")
   include "*.d.ts"
   into 'lib/views/recentTasks'
 }
@@ -43,7 +43,7 @@ task copyPinnedTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies pinnedTasks views'
-  from file("../extension/out/views/pinnedTasks")
+  from file("../extension/dist/views/pinnedTasks")
   include "*.d.ts"
   into 'lib/views/pinnedTasks'
 }
@@ -52,7 +52,7 @@ task copyGradleDaemonsViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies gradleDaemons views'
-  from file("../extension/out/views/gradleDaemons")
+  from file("../extension/dist/views/gradleDaemons")
   include "*.d.ts"
   into 'lib/views/gradleDaemons'
 }
@@ -61,7 +61,7 @@ task copyGradleTasksViewTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies gradleTasks views'
-  from file("../extension/out/views/gradleTasks")
+  from file("../extension/dist/views/gradleTasks")
   include "*.d.ts"
   into 'lib/views/gradleTasks'
 }
@@ -74,7 +74,7 @@ task copyViewTypes(type: Copy) {
     copyRecentTasksViewTypes
   group 'copy'
   description 'Copies views'
-  from file("../extension/out/views")
+  from file("../extension/dist/views")
   include "*.d.ts"
   into 'lib/views'
 }
@@ -83,7 +83,7 @@ task copyClientTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies client'
-  from file("../extension/out/client")
+  from file("../extension/dist/client")
   include "*.d.ts"
   into 'lib/client'
 }
@@ -92,7 +92,7 @@ task copyTasksTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies tasks'
-  from file("../extension/out/tasks")
+  from file("../extension/dist/tasks")
   include "*.d.ts"
   into 'lib/tasks'
 }
@@ -101,7 +101,7 @@ task copyServerTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies server'
-  from file("../extension/out/server")
+  from file("../extension/dist/server")
   include "*.d.ts"
   into 'lib/server'
 }
@@ -110,7 +110,7 @@ task copyLoggerTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies logger'
-  from file("../extension/out/logger")
+  from file("../extension/dist/logger")
   include "*.d.ts"
   into 'lib/logger'
 }
@@ -119,7 +119,7 @@ task copyApiTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
   description 'Copies api'
-  from file("../extension/out/api")
+  from file("../extension/dist/api")
   include "*.d.ts"
   into 'lib/api'
 }
@@ -135,7 +135,7 @@ task copyPublicApi(type: Copy) {
     copyApiTypes
   group 'copy'
   description 'Copies publc API types'
-  from file("../extension/out")
+  from file("../extension/dist")
   include "*.d.ts"
   into 'lib'
 }

@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import * as util from 'util';
-import * as getPort from 'get-port';
 import { isTaskRunning } from '../tasks/taskUtil';
 import { waitOnTcp, isTest } from '../util';
 import { logger, LoggerStream } from '../logger';
 import { Extension } from '../extension';
 import { Output } from '../proto/gradle_pb';
 import { COMMAND_CANCEL_TASK } from '../commands';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const getPort = require('get-port');
 
 export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
