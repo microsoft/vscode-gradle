@@ -141,7 +141,7 @@ class CompileExtension extends com.github.jlouns.gradle.cpe.tasks.CrossPlatformE
   public CompileExtension() {
     dependsOn 'copyProtoJs', 'copyProtoTs'
     group 'build'
-    description 'Builds development version TypeScript source files'
+    description 'Compile extension source files'
     inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
     outputs.dir('dist')
     outputs.cacheIf { true }
