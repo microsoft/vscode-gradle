@@ -41,6 +41,7 @@ export function buildGradleServerTask(
     taskType,
     new vscode.ProcessExecution(cmd, args, { env })
   );
+  // This helps reduce the "The specified task is missing an execution" errors in CI
   if (!isTest()) {
     task.presentationOptions = {
       showReuseMessage: false,
