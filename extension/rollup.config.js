@@ -23,7 +23,7 @@ export default [
     },
     plugins: [
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
-      commonjs({ ignore: ['encoding'] }),
+      commonjs({ ignore: ['encoding', 'google-auth-library'] }),
       json(),
       resolve({ preferBuiltins: true }),
     ],
