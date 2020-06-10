@@ -224,7 +224,7 @@ The integrated terminal has a limited buffer size and will not show the full out
 
 </details>
 
-<details><summary>Gradle: Configure project</summary>
+<details><summary>"Gradle: Configure project"</summary>
 
 When you open a Gradle project for the first time, the Gradle wrapper will start downloading the Gradle distribution. This process can take a while. As there's no progress events emitted via the Tooling API for this process, the extension will simply report "Gradle: Configure project". You can however view progress by selecting the "Gradle Server" process in the terminal panel to view download progress.
 
@@ -312,6 +312,14 @@ Another approach is to force vscode to load shells as interactive. Set this in y
 ```
 
 _(If you're on MacOS, change `linux` to `osx`.)_
+
+</details>
+
+<details><summary>"Orphaned" Java processes after quitting VS Code</summary>
+
+You might notice some Java processes are not closed after existing VS Code. These processes are the Gradle Daemons that Gradle spawns. This is the default behaviour of Gradle.
+
+You'll have `N` processes per Gradle version. Eventually Gradle will shut them down. Read more about the [Gradle Daemon](https://docs.gradle.org/current/userguide/gradle_daemon.html).
 
 </details>
 
