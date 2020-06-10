@@ -9,7 +9,8 @@
     "strict": true,
     "rootDir": "src",
     "noUnusedLocals": true,
-    "allowJs": true // to support compiling the generated proto js files
+    "allowJs": true, // to support compiling the generated proto js files
+    "allowSyntheticDefaultImports": true
   },
   "exclude": ["node_modules", ".vscode-test", "build", "beta"],
   "include": ["./src/**/*"]

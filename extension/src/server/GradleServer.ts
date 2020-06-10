@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
+import getPort from 'get-port';
 import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
 import { isDebuggingServer } from '../util';
 import { logger } from '../logger/index';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const getPort = require('get-port');
 
 export interface ServerOptions {
   host: string;
