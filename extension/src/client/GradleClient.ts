@@ -50,7 +50,7 @@ function logBuildEnvironment(environment: Environment): void {
 }
 
 export class GradleClient implements vscode.Disposable {
-  private readonly connectDeadline = 20; // seconds
+  private readonly connectDeadline = 30; // seconds
   private grpcClient: GrpcClient | null = null;
   private readonly _onDidConnect: vscode.EventEmitter<
     null
@@ -131,6 +131,7 @@ export class GradleClient implements vscode.Disposable {
     gradleConfig: GradleConfig,
     showOutputColors = false
   ): Promise<GradleBuild | void> {
+    await this.waitForConnect();
     this.statusBarItem.hide();
     return vscode.window.withProgress(
       {
@@ -150,7 +151,6 @@ export class GradleClient implements vscode.Disposable {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });
 
-        await this.waitForConnect();
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
         const stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
@@ -225,6 +225,8 @@ export class GradleClient implements vscode.Disposable {
     onOutput?: (output: Output) => void,
     showOutputColors = true
   ): Promise<void> {
+    await this.waitForConnect();
+    this.statusBarItem.hide();
     return vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
@@ -235,7 +237,6 @@ export class GradleClient implements vscode.Disposable {
         progress: vscode.Progress<{ message?: string }>,
         token: vscode.CancellationToken
       ) => {
-        await this.waitForConnect();
         token.onCancellationRequested(() =>
           vscode.commands.executeCommand(COMMAND_CANCEL_TASK, task)
         );
@@ -295,6 +296,7 @@ export class GradleClient implements vscode.Disposable {
 
   public async cancelRunTask(task: vscode.Task): Promise<void> {
     await this.waitForConnect();
+    this.statusBarItem.hide();
     const definition = task.definition as GradleTaskDefinition;
     const request = new CancelRunTaskRequest();
     request.setProjectDir(definition.projectFolder);
