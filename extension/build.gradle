@@ -125,27 +125,12 @@ task format(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildDev(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
-  group 'build'
-  description 'Builds development version TypeScript source files'
-  inputs.files(fileTree('src').matching {
-    exclude 'test'
-  }).withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
-  outputs.dir('dist')
-  outputs.cacheIf { true }
-  commandLine 'npm', 'run', 'compile:dev'
-}
-
 task buildTest(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
   buildDir = 'out'
   inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir(buildDir)
   outputs.cacheIf { true }
@@ -157,11 +142,13 @@ task buildProd(type: CrossPlatformExec) {
   group 'build'
   description 'Builds production version TypeScript source files'
   buildDir = 'dist'
-  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir("$buildDir")
   outputs.cacheIf { true }
-  commandLine 'npm', 'run', 'compile:prod'
+  commandLine 'npm', 'run', 'compile'
 }
 
 task bundle() {
@@ -202,4 +189,4 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
-build.finalizedBy buildDev, buildTest
+build.finalizedBy buildProd, buildTest
