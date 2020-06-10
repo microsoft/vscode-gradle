@@ -333,7 +333,8 @@ describe(getSuiteName('Gradle daemons'), () => {
 
     await new Promise((resolve, reject) => {
       // This call will return the previous results (quickReply) as we've cancelled
-      // the request with the subsequent call to getChildren()
+      // the request with the subsequent call to refresh()
+      gradleDaemonsTreeDataProvider.refresh();
       gradleDaemonsTreeDataProvider
         .getChildren()
         .then((_children: vscode.TreeItem[]) => {
@@ -341,6 +342,7 @@ describe(getSuiteName('Gradle daemons'), () => {
         })
         .catch(reject);
       // This call will return the correct results (longReply)
+      gradleDaemonsTreeDataProvider.refresh();
       gradleDaemonsTreeDataProvider
         .getChildren()
         .then((_children: vscode.TreeItem[]) => {
