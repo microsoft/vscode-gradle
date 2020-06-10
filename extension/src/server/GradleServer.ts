@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
-import * as getPort from 'get-port';
 import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
 import { isDebuggingServer } from '../util';
-import { logger } from '../logger';
+import { logger } from '../logger/index';
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const getPort = require('get-port');
 
 export interface ServerOptions {
   host: string;
@@ -58,6 +60,9 @@ export class GradleServer implements vscode.Disposable {
       logger.debug('Starting server');
       try {
         this.taskExecution = await vscode.tasks.executeTask(task);
+        if (!this.taskExecution) {
+          throw new Error('Task execution not found');
+        }
       } catch (e) {
         logger.error('There was an error starting the server:', e.message);
       }

@@ -125,45 +125,43 @@ task format(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildDev(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
-  group 'build'
-  description 'Builds development version TypeScript source files'
-  inputs.files(fileTree('src').matching {
-    exclude 'test'
-  }).withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
-  outputs.dir('dist')
-  outputs.cacheIf { true }
-  commandLine 'npm', 'run', 'compile:dev'
-}
-
 task buildTest(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
   buildDir = 'out'
   inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir(buildDir)
   outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:test'
 }
 
-task buildProd(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
-  group 'build'
-  description 'Builds production version TypeScript source files'
-  buildDir = 'dist'
-  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file("package-lock.json").withPathSensitivity(PathSensitivity.RELATIVE)
-  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
-  outputs.dir("$buildDir")
-  outputs.cacheIf { true }
-  commandLine 'npm', 'run', 'compile:prod'
+class CompileExtension extends com.github.jlouns.gradle.cpe.tasks.CrossPlatformExec {
+  public CompileExtension() {
+    dependsOn 'copyProtoJs', 'copyProtoTs'
+    group 'build'
+    description 'Builds development version TypeScript source files'
+    inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir('dist')
+    outputs.cacheIf { true }
+    environment NODE_ENV: "production"
+    commandLine 'npm', 'run', 'compile'
+  }
+}
+
+task buildDev(type: CompileExtension) {
+  environment NODE_ENV: 'development'
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
+task buildProd(type: CompileExtension) {
+  environment NODE_ENV: 'production'
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 task bundle() {

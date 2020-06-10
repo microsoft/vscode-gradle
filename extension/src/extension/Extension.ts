@@ -30,11 +30,7 @@ import {
 } from '../views/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
 import { GracefulFileWatcher } from '../watcher';
-import {
-  COMMAND_LOAD_TASKS,
-  COMMAND_RENDER_TASK,
-  COMMAND_REFRESH,
-} from '../commands';
+import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
 
 export class Extension {
   private static instance: Extension;
@@ -162,9 +158,15 @@ export class Extension {
   }
 
   private loadTasks(): void {
-    this.client.onDidConnect(() =>
-      vscode.commands.executeCommand(COMMAND_LOAD_TASKS)
-    );
+    this.client.onDidConnect(() => {
+      this.getGradleTaskProvider().clearTasksCache();
+      // Explicitly load tasks as the views not be visible
+      this.getGradleTaskProvider().loadTasks();
+      // If the views are visible, refresh them
+      this.getGradleTasksTreeDataProvider().refresh();
+      this.getPinnedTasksTreeDataProvider().refresh();
+      this.getRecentTasksTreeDataProvider().refresh();
+    });
   }
 
   private handleTaskEvents(): void {
