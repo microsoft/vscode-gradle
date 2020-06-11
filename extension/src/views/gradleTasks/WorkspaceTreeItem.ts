@@ -4,7 +4,6 @@ import { TREE_ITEM_STATE_FOLDER } from '../constants';
 
 export class WorkspaceTreeItem extends vscode.TreeItem {
   public readonly projects: ProjectTreeItem[] = [];
-  public readonly projectFolders: WorkspaceTreeItem[] = [];
   public readonly parentTreeItem: WorkspaceTreeItem | null = null;
 
   constructor(name: string, resourceUri: vscode.Uri) {
@@ -16,9 +15,5 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
 
   public addProject(project: ProjectTreeItem): void {
     this.projects.push(project);
-  }
-
-  public addProjectFolder(projectFolder: WorkspaceTreeItem): void {
-    this.projectFolders.push(projectFolder);
   }
 }

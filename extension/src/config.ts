@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
 import { GradleConfig } from './proto/gradle_pb';
+import { GradleProjectFolder } from './tasks/taskUtil';
 
 type AutoDetect = 'on' | 'off';
 
 export function getConfigIsAutoDetectionEnabled(
-  workspaceFolder: vscode.WorkspaceFolder
+  gradleProjectFolder: GradleProjectFolder
 ): boolean {
   return (
     vscode.workspace
-      .getConfiguration('gradle', workspaceFolder.uri)
+      .getConfiguration('gradle', gradleProjectFolder.workspaceFolder.uri)
       .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
 }
@@ -61,8 +62,16 @@ export function getConfigFocusTaskInExplorer(): boolean {
     .get<boolean>('focusTaskInExplorer', true);
 }
 
+export function getNestedProjectsConfig(
+  workspaceFolder: vscode.WorkspaceFolder
+): boolean | ReadonlyArray<string> {
+  return vscode.workspace
+    .getConfiguration('gradle', workspaceFolder.uri)
+    .get<boolean | ReadonlyArray<string>>('nestedProjects', false);
+}
+
 export type JavaDebug = {
-  tasks: string[];
+  tasks: ReadonlyArray<string>;
 };
 
 export function getConfigJavaDebug(

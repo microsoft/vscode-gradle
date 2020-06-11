@@ -23,7 +23,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly projectFolder: string
+    private readonly projectFolder: vscode.Uri
   ) {
     // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
     this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
@@ -75,7 +75,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
       const runTask = Extension.getInstance()
         .getClient()
         .runTask(
-          this.projectFolder,
+          this.projectFolder.fsPath,
           this.task!,
           args,
           '',

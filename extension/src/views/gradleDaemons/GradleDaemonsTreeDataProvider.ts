@@ -2,16 +2,36 @@ import * as vscode from 'vscode';
 import { Deferred } from '../../async';
 import { GradleDaemonTreeItem } from '.';
 import { Extension } from '../../extension';
+import { GradleTaskDefinition, GradleTaskProvider } from '../../tasks';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private cancelDeferred?: Deferred<vscode.TreeItem[]>;
   private treeItems: vscode.TreeItem[] = [];
+  private taskProjectFolders: string[] = [];
   private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly gradleTaskProvider: GradleTaskProvider
+  ) {
+    this.context.subscriptions.push(
+      this.gradleTaskProvider.onDidLoadTasks(async () => {
+        const tasks = await this.gradleTaskProvider.getTasks();
+        this.taskProjectFolders = [
+          ...new Set(
+            tasks.map((task) => {
+              const definition = task.definition as GradleTaskDefinition;
+              return definition.projectFolder;
+            })
+          ),
+        ];
+        this.refresh();
+      })
+    );
+  }
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -31,10 +51,10 @@ export class GradleDaemonsTreeDataProvider
     this.cancelDeferred = new Deferred();
     const promises: Promise<
       GradleDaemonTreeItem[]
-    >[] = vscode.workspace.workspaceFolders.map((folder) =>
+    >[] = this.taskProjectFolders.map((folder) =>
       Extension.getInstance()
         .getClient()
-        .getDaemonsStatus(folder.uri.fsPath)
+        .getDaemonsStatus(folder)
         .then((status) =>
           status
             ? status

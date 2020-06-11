@@ -35,8 +35,8 @@
     "tasks"
   ],
   "activationEvents": [
-    "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat"
+    "workspaceContains:**/gradlew",
+    "workspaceContains:**/gradlew.bat"
   ],
   "main": "./dist/index.js",
   "contributes": {
@@ -557,6 +557,22 @@
           "default": "on",
           "scope": "resource",
           "description": "Controls whether Gradle tasks should be automatically detected"
+        },
+        "gradle.nestedProjects": {
+          "anyOf": [
+            {
+              "type": "boolean",
+              "description": "Processs all nested projects",
+              "default": false
+            },
+            {
+              "type": "array",
+              "description": "Process specific nested projects",
+              "default": []
+            }
+          ],
+          "scope": "window",
+          "default": false
         },
         "gradle.debug": {
           "type": "boolean",

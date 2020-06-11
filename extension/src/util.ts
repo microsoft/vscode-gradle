@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as net from 'net';
 import * as fg from 'fast-glob';
+import { GradleProjectFolder } from './tasks/taskUtil';
 
 export const isTest = (): boolean =>
   process.env.VSCODE_TEST?.toLowerCase() === 'true';
@@ -49,10 +50,12 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
   return tryConnect(host, port, Date.now());
 }
 
-export function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
+export function getGradleBuildFile(
+  gradleProjectFolder: GradleProjectFolder
+): string {
   const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
     onlyFiles: true,
-    cwd: folder.uri.fsPath,
+    cwd: gradleProjectFolder.uri.fsPath,
     deep: 1,
     absolute: true,
   });

@@ -2,7 +2,11 @@ import * as vscode from 'vscode';
 import { EventWaiter } from '../events';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import { createTaskFromDefinition, loadTasksForFolders } from './taskUtil';
+import {
+  createTaskFromDefinition,
+  loadTasksForFolders,
+  getGradleProjectFolders,
+} from './taskUtil';
 import { TaskId } from '../stores/types';
 
 export class GradleTaskProvider
@@ -48,15 +52,14 @@ export class GradleTaskProvider
       );
       return undefined;
     }
-    const projectFolder = vscode.Uri.file(gradleTaskDefinition.projectFolder);
-    return createTaskFromDefinition(
-      gradleTaskDefinition,
+    const gradleProjectFolder = {
       workspaceFolder,
-      projectFolder
-    );
+      uri: vscode.Uri.file(gradleTaskDefinition.projectFolder),
+    };
+    return createTaskFromDefinition(gradleTaskDefinition, gradleProjectFolder);
   }
 
-  public loadTasks(): Promise<vscode.Task[]> {
+  public async loadTasks(): Promise<vscode.Task[]> {
     // To accomodate calling loadTasks() on extension activate (when client is connected)
     // and opening the treeview.
     if (this.loadTasksPromise) {
@@ -67,9 +70,9 @@ export class GradleTaskProvider
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
-    const folders = vscode.workspace.workspaceFolders;
+    const folders = await getGradleProjectFolders();
 
-    if (!folders) {
+    if (!folders.length) {
       this.cachedTasks = [];
       return Promise.resolve(this.cachedTasks);
     }

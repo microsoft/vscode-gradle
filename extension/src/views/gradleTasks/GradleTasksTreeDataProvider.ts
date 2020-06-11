@@ -10,10 +10,10 @@ import {
 } from '..';
 
 import { JavaDebug, getConfigJavaDebug } from '../../config';
-import { EventWaiter } from '../../events';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
+import { isGradleTask } from '../../tasks/taskUtil';
 
 // eslint-disable-next-line sonarjs/no-unused-collection
 export const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
@@ -37,16 +37,6 @@ export class GradleTasksTreeDataProvider
   private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
-
-  private readonly _onDidBuildTreeItems: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
-  public readonly onDidBuildTreeItems: vscode.Event<null> = this
-    ._onDidBuildTreeItems.event;
-
-  public readonly waitForBuildTreeItems = new EventWaiter(
-    this.onDidBuildTreeItems
-  ).wait;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const collapsed = this.context.workspaceState.get(
@@ -74,12 +64,9 @@ export class GradleTasksTreeDataProvider
     const tasks = await Extension.getInstance()
       .getGradleTaskProvider()
       .loadTasks();
-    const taskItems =
-      tasks.length === 0
-        ? [new NoGradleTasksTreeItem(this.context)]
-        : this.buildItemsTreeFromTasks(tasks);
-    this._onDidBuildTreeItems.fire(null);
-    return taskItems;
+    return tasks.length === 0
+      ? [new NoGradleTasksTreeItem(this.context)]
+      : this.buildItemsTreeFromTasks(tasks);
   }
 
   public refresh(treeItem: vscode.TreeItem | null = null): void {
@@ -106,7 +93,7 @@ export class GradleTasksTreeDataProvider
     element?: vscode.TreeItem
   ): Promise<vscode.TreeItem[]> {
     if (element instanceof WorkspaceTreeItem) {
-      return [...element.projectFolders, ...element.projects];
+      return element.projects;
     }
     if (element instanceof ProjectTreeItem) {
       return [...element.groups, ...element.tasks];
@@ -134,14 +121,14 @@ export class GradleTasksTreeDataProvider
 
     tasks.forEach((task) => {
       const definition = task.definition as GradleTaskDefinition;
-      if (isWorkspaceFolder(task.scope) && definition.buildFile) {
-        workspaceTreeItem = workspaceTreeItemMap.get(task.scope.name);
+      if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
+        workspaceTreeItem = workspaceTreeItemMap.get(definition.projectFolder);
         if (!workspaceTreeItem) {
           workspaceTreeItem = new WorkspaceTreeItem(
-            task.scope.name,
-            task.scope.uri
+            path.basename(definition.projectFolder),
+            vscode.Uri.file(definition.projectFolder)
           );
-          workspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
+          workspaceTreeItemMap.set(definition.projectFolder, workspaceTreeItem);
         }
 
         if (!workspaceJavaDebugMap.has(task.scope.name)) {
@@ -188,7 +175,7 @@ export class GradleTasksTreeDataProvider
           taskName,
           definition.description || taskName,
           '',
-          workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder))
+          workspaceJavaDebugMap.get(task.scope.name)
         );
         taskTreeItem.setContext();
 
@@ -198,10 +185,7 @@ export class GradleTasksTreeDataProvider
     });
 
     if (workspaceTreeItemMap.size === 1) {
-      return [
-        ...workspaceTreeItemMap.values().next().value.projectFolders,
-        ...workspaceTreeItemMap.values().next().value.projects,
-      ];
+      return workspaceTreeItemMap.values().next().value.projects;
     }
     return [...workspaceTreeItemMap.values()];
   }

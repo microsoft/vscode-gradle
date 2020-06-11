@@ -90,7 +90,8 @@ export class Extension {
       showCollapseAll: true,
     });
     this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
-      this.context
+      this.context,
+      this.gradleTaskProvider
     );
     this.gradleDaemonsTreeView = vscode.window.createTreeView(
       GRADLE_DAEMONS_VIEW,
@@ -225,7 +226,10 @@ export class Extension {
           ) {
             this.server.restart();
           }
-          if (event.affectsConfiguration('gradle.javaDebug')) {
+          if (
+            event.affectsConfiguration('gradle.javaDebug') ||
+            event.affectsConfiguration('gradle.nestedProjects')
+          ) {
             vscode.commands.executeCommand(COMMAND_REFRESH);
           }
           if (event.affectsConfiguration('gradle.debug')) {
