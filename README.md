@@ -351,6 +351,7 @@ Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
 - Inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm)
 - Thanks to [@hanct](https://github.com/hanct) for providing feature suggestions and BETA testing
+- Thanks to [@dcermak](https://github.com/dcermak) for providing inspiration to write some unit tests
 - Thanks to all who have submitted bug reports and feedback
 
 ## Related Extensions
