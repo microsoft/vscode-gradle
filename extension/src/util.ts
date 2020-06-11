@@ -1,4 +1,6 @@
+import * as vscode from 'vscode';
 import * as net from 'net';
+import * as fg from 'fast-glob';
 
 export const isTest = (): boolean =>
   process.env.VSCODE_TEST?.toLowerCase() === 'true';
@@ -45,4 +47,19 @@ async function tryConnect(
 
 export function waitOnTcp(host: string, port: number): Promise<void> {
   return tryConnect(host, port, Date.now());
+}
+
+export function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
+  const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
+    onlyFiles: true,
+    cwd: folder.uri.fsPath,
+    deep: 1,
+    absolute: true,
+  });
+  return files[0];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
+  return value && typeof value !== 'number';
 }

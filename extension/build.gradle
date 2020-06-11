@@ -6,7 +6,6 @@ def docsFiles = [
   "LICENSE.md",
   "ARCHITECTURE.md",
   "CONTRIBUTING.md",
-  "FEATURES.md",
   "CHANGELOG.md"
 ]
 
@@ -109,9 +108,10 @@ task copyProtoTs(type: Copy) {
 
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
-  inputs.file('package-lock.json')
+  inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
-  commandLine 'npm', 'ci'
+  outputs.cacheIf { true }
+  commandLine 'npm', 'install'
 }
 
 task lint(type: CrossPlatformExec) {
@@ -125,42 +125,48 @@ task format(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildDev(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
-  group 'build'
-  description 'Builds development version TypeScript source files'
-  outputs.dir('dist')
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
-  inputs.file('tsconfig.json')
-  commandLine 'npm', 'run', 'compile:dev'
-}
-
 task buildTest(type: CrossPlatformExec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
   buildDir = 'out'
+  inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir(buildDir)
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
-  inputs.file('tsconfig.json')
+  outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:test'
 }
 
-task buildProd(type: CrossPlatformExec) {
-  dependsOn copyProtoJs, copyProtoTs
+task buildDev(type: CrossPlatformExec) {
+  dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
-  description 'Builds production version TypeScript source files'
-  buildDir = 'dist'
-  outputs.dir("$buildDir")
-  inputs.dir('src')
-  inputs.file('webpack.config.js')
-  commandLine 'npm', 'run', 'compile:prod'
+  description 'Compile extension source files'
+  inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
+  outputs.dir('dist')
+  outputs.cacheIf { true }
+  environment NODE_ENV: 'development'
+  commandLine 'npm', 'run', 'compile'
+}
+
+task buildProd(type: CrossPlatformExec) {
+  dependsOn 'copyProtoJs', 'copyProtoTs'
+  group 'build'
+  description 'Compile extension source files'
+  inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.files(fileTree('src').matching {
+    exclude 'test'
+  }).withPathSensitivity(PathSensitivity.RELATIVE)
+  outputs.dir('dist')
+  outputs.cacheIf { true }
+  environment NODE_ENV: 'production'
+  commandLine 'npm', 'run', 'compile'
 }
 
 task bundle() {
-  dependsOn ':tasks-server:build', buildProd, ':npm-package:build'
+  dependsOn ':gradle-server:build', buildProd, ':npm-package:build'
   group 'build'
   description 'Bundles the extension files for release'
 }
@@ -183,8 +189,18 @@ task copyDocs(type: Copy) {
   into "$projectDir"
 }
 
+task prepareBeta(type: CrossPlatformExec) {
+  description 'Prepare the extesion for a BETA release'
+  workingDir file('./beta')
+  commandLine 'node', 'prepare.js'
+}
+
 task prepareForRelease() {
   dependsOn bundle, copyDocs
 }
 
-build.finalizedBy buildDev, buildTest
+task prepareForBetaRelease() {
+  dependsOn bundle, copyDocs, prepareBeta
+}
+
+build.finalizedBy buildProd, buildTest

@@ -20,5 +20,6 @@ build.gradle
 build/**
 .gradle/**
 node_modules
-webpack.config.js
+rollup.config.js
 .snyk
+beta/**

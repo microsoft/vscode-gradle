@@ -21,20 +21,131 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
-task copyPublicApi(type: Copy) {
+task copyStoreTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
+  description 'Copies stores types'
+  from file("../extension/dist/stores")
+  include "*.d.ts"
+  into 'lib/stores'
+}
+
+task copyRecentTasksViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies recentTasks views'
+  from file("../extension/dist/views/recentTasks")
+  include "*.d.ts"
+  into 'lib/views/recentTasks'
+}
+
+task copyPinnedTasksViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies pinnedTasks views'
+  from file("../extension/dist/views/pinnedTasks")
+  include "*.d.ts"
+  into 'lib/views/pinnedTasks'
+}
+
+task copyGradleDaemonsViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies gradleDaemons views'
+  from file("../extension/dist/views/gradleDaemons")
+  include "*.d.ts"
+  into 'lib/views/gradleDaemons'
+}
+
+task copyGradleTasksViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies gradleTasks views'
+  from file("../extension/dist/views/gradleTasks")
+  include "*.d.ts"
+  into 'lib/views/gradleTasks'
+}
+
+task copyViewTypes(type: Copy) {
+  dependsOn ':extension:buildProd',
+    copyPinnedTasksViewTypes,
+    copyGradleDaemonsViewTypes,
+    copyGradleTasksViewTypes,
+    copyRecentTasksViewTypes
+  group 'copy'
+  description 'Copies views'
+  from file("../extension/dist/views")
+  include "*.d.ts"
+  into 'lib/views'
+}
+
+task copyClientTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies client'
+  from file("../extension/dist/client")
+  include "*.d.ts"
+  into 'lib/client'
+}
+
+task copyTasksTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies tasks'
+  from file("../extension/dist/tasks")
+  include "*.d.ts"
+  into 'lib/tasks'
+}
+
+task copyServerTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies server'
+  from file("../extension/dist/server")
+  include "*.d.ts"
+  into 'lib/server'
+}
+
+task copyLoggerTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies logger'
+  from file("../extension/dist/logger")
+  include "*.d.ts"
+  into 'lib/logger'
+}
+
+task copyApiTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies api'
+  from file("../extension/dist/api")
+  include "*.d.ts"
+  into 'lib/api'
+}
+
+task copyPublicApi(type: Copy) {
+  dependsOn ':extension:buildProd',
+    copyStoreTypes,
+    copyViewTypes,
+    copyClientTypes,
+    copyTasksTypes,
+    copyServerTypes,
+    copyLoggerTypes,
+    copyApiTypes
+  group 'copy'
   description 'Copies publc API types'
-  from file("../extension/out")
+  from file("../extension/dist")
   include "*.d.ts"
   into 'lib'
 }
 
 task npmInstall(type: CrossPlatformExec) {
   description 'Installs node dependencies'
-  inputs.file('package-lock.json')
+  inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
-  commandLine 'npm', 'ci'
+  outputs.cacheIf { true }
+  commandLine 'npm', 'install'
 }
 
 task compileTypeScript(type: CrossPlatformExec) {

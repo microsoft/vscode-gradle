@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { GradleConfig } from './proto/gradle_tasks_pb';
+import { GradleConfig } from './proto/gradle_pb';
 
 type AutoDetect = 'on' | 'off';
 
@@ -11,12 +11,6 @@ export function getConfigIsAutoDetectionEnabled(
       .getConfiguration('gradle', workspaceFolder.uri)
       .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
-}
-
-export function getConfigIsTasksExplorerEnabled(): boolean {
-  return vscode.workspace
-    .getConfiguration('gradle')
-    .get<boolean>('enableTasksExplorer', true);
 }
 
 export function getConfigJavaHome(): string | null {
@@ -53,6 +47,12 @@ export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('debug', false);
+}
+
+export function getDisableConfirmations(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('disableConfirmations', false);
 }
 
 export function getConfigFocusTaskInExplorer(): boolean {

@@ -6,7 +6,7 @@ import * as fs from 'fs-extra';
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-const VSCODE_VERSION = '1.45.0';
+const VSCODE_VERSION = '1.46.0';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
@@ -21,7 +21,7 @@ async function runTestsWithGradle(
     await runTests({
       vscodeExecutablePath,
       extensionDevelopmentPath,
-      extensionTestsPath: path.resolve(__dirname, 'gradle'),
+      extensionTestsPath: path.resolve(__dirname, 'integration', 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
         '--disable-extensions',
@@ -40,26 +40,46 @@ async function runNetworkTestsWithGradle(
   vscodeExecutablePath: string,
   userDir: string
 ): Promise<void> {
-  const fixtures = ['gradle-groovy-custom-build-file'];
-  for (const fixture of fixtures) {
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath,
-      extensionTestsPath: path.resolve(__dirname, 'gradle'),
-      launchArgs: [
-        path.resolve(__dirname, `../../test-fixtures/${fixture}`),
-        '--disable-extensions',
-        `--user-data-dir=${userDir}`,
-      ],
-      extensionTestsEnv: {
-        FIXTURE_NAME: fixture,
-        VSCODE_TEST: 'true',
-        SUITE_NAME: 'Run network tests with Gradle',
-        // eslint-disable-next-line @typescript-eslint/camelcase
-        http_proxy: 'http://0.0.0.0',
-      },
-    });
-  }
+  const fixture = 'gradle-groovy-default-build-file';
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, 'integration', 'gradle'),
+    launchArgs: [
+      path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+      '--disable-extensions',
+      `--user-data-dir=${userDir}`,
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: fixture,
+      VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run network tests with Gradle',
+      // eslint-disable-next-line @typescript-eslint/camelcase
+      http_proxy: 'http://0.0.0.0',
+    },
+  });
+}
+
+async function runUnitTests(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
+  const fixture = 'no-gradle';
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(__dirname, 'unit'),
+    launchArgs: [
+      path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+      '--disable-extensions',
+      `--user-data-dir=${userDir}`,
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: fixture,
+      VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run unit tests',
+    },
+  });
 }
 
 function runTestsWithoutGradle(
@@ -69,7 +89,7 @@ function runTestsWithoutGradle(
   return runTests({
     vscodeExecutablePath,
     extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'no-gradle'),
+    extensionTestsPath: path.resolve(__dirname, 'integration', 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions',
@@ -89,7 +109,7 @@ function runTestsWithMultiRoot(
   return runTests({
     vscodeExecutablePath,
     extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'multi-root'),
+    extensionTestsPath: path.resolve(__dirname, 'integration', 'multi-root'),
     launchArgs: [
       path.resolve(
         __dirname,
@@ -113,7 +133,7 @@ function runTestsWithMultiProject(
   return runTests({
     vscodeExecutablePath,
     extensionDevelopmentPath,
-    extensionTestsPath: path.resolve(__dirname, 'multi-project'),
+    extensionTestsPath: path.resolve(__dirname, 'integration', 'multi-project'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
       '--disable-extensions',
@@ -138,6 +158,7 @@ async function main(): Promise<void> {
   let hasErr = false;
 
   try {
+    await runUnitTests(vscodeExecutablePath, tmpDir);
     await runTestsWithGradle(vscodeExecutablePath, tmpDir);
     await runNetworkTestsWithGradle(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiRoot(vscodeExecutablePath, tmpDir);

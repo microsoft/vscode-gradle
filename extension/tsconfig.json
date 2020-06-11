@@ -1,16 +1,17 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
     "module": "commonjs",
-    "target": "es6",
+    "target": "ES2017",
     "outDir": "out",
-    "lib": ["es6", "es2018.promise", "es2019.array"],
+    "lib": ["ES6", "ES2018.promise", "ES2019.array"],
     "sourceMap": true,
     "strict": true,
     "rootDir": "src",
     "noUnusedLocals": true,
     "allowJs": true, // to support compiling the generated proto js files
-    "declaration": true
+    "allowSyntheticDefaultImports": true
   },
-  "exclude": ["node_modules", ".vscode-test", "build"],
+  "exclude": ["node_modules", ".vscode-test", "build", "beta"],
   "include": ["./src/**/*"]
 }

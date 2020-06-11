@@ -18,9 +18,9 @@
       "type": "java",
       "name": "Debug Server",
       "request": "launch",
-      "mainClass": "com.github.badsyntax.gradletasks.GradleTasksServer",
-      "projectName": "tasks-server",
-      "cwd": "${workspaceFolder}/tasks-server",
+      "mainClass": "com.github.badsyntax.gradle.GradleServer",
+      "projectName": "gradle-server",
+      "cwd": "${workspaceFolder}/gradle-server",
       "presentation": {
         "group": "debug",
         "order": 2
@@ -54,14 +54,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -79,14 +79,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-kotlin-default-build-file"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -104,14 +104,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-custom-build-file"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -128,14 +128,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/no-gradle/",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/no-gradle/",
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -153,14 +153,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-root/",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/multi-root/",
         "${workspaceFolder}/extension/test-fixtures/multi-root/multiple-project.code-workspace"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -177,14 +177,14 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/multi-project/",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/multi-project/",
         "${workspaceFolder}/extension/test-fixtures/multi-project"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
-      "preLaunchTask": "Gradle: Build",
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
@@ -203,14 +203,39 @@
       "args": [
         "--disable-extensions",
         "--extensionDevelopmentPath=${workspaceFolder}/extension",
-        "--extensionTestsPath=${workspaceFolder}/extension/out/test/gradle",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/gradle",
         "${workspaceFolder}/extension/test-fixtures/gradle-groovy-default-build-file"
       ],
       "outFiles": [
         "${workspaceFolder}/extension/dist/**/*.js",
-        "${workspaceFolder}/extension/out/test/**/*.js"
+        "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build",
+      "presentation": {
+        "group": "test"
+      }
+    },
+    {
+      "name": "Test: Unit",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "env": {
+        "FIXTURE_NAME": "no-gradle",
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run Unit tests"
+      },
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/unit",
+        "${workspaceFolder}/extension/test-fixtures/no-gradle"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/**/*.js"
+      ],
+      "preLaunchTask": "Gradle: Build Test",
       "presentation": {
         "group": "test"
       }
