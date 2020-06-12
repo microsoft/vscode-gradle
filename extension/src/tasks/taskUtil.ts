@@ -1,17 +1,11 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
 import { CustomBuildTaskTerminal } from '../terminal';
 import { logger } from '../logger';
-import {
-  getGradleConfig,
-  getConfigIsAutoDetectionEnabled,
-  getNestedProjectsConfig,
-} from '../config';
-import { getGradleBuildFile } from '../util';
+import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
 import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,
@@ -22,11 +16,7 @@ import {
 } from '../compat';
 import { getTaskArgs } from '../input';
 import { COMMAND_RENDER_TASK } from '../commands';
-
-export interface GradleProjectFolder {
-  workspaceFolder: vscode.WorkspaceFolder;
-  uri: vscode.Uri;
-}
+import { RootProject } from '../rootProject/RootProject';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -143,16 +133,16 @@ export function buildTaskName(definition: GradleTaskDefinition): string {
 
 export function createTaskFromDefinition(
   definition: Required<GradleTaskDefinition>,
-  gradleProjectFolder: GradleProjectFolder
+  rootProject: RootProject
 ): vscode.Task {
   const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
   const terminal = new CustomBuildTaskTerminal(
-    gradleProjectFolder.workspaceFolder,
-    gradleProjectFolder.uri
+    rootProject.getWorkspaceFolder(),
+    rootProject.getProjectUri()
   );
   const task = new vscode.Task(
     definition,
-    gradleProjectFolder.workspaceFolder,
+    rootProject.getWorkspaceFolder(),
     buildTaskName(definition),
     'gradle',
     new vscode.CustomExecution(
@@ -185,7 +175,7 @@ export function createTaskFromDefinition(
 
 function createVSCodeTaskFromGradleTask(
   gradleTask: GradleTask,
-  gradleProjectFolder: GradleProjectFolder,
+  rootProject: RootProject,
   args = '',
   javaDebug = false
 ): vscode.Task {
@@ -194,7 +184,7 @@ function createVSCodeTaskFromGradleTask(
   const definition: Required<GradleTaskDefinition> = {
     type: 'gradle',
     id: buildTaskId(
-      gradleProjectFolder.uri.fsPath,
+      rootProject.getProjectUri().fsPath,
       script,
       gradleTask.getProject()
     ),
@@ -204,16 +194,16 @@ function createVSCodeTaskFromGradleTask(
     project: gradleTask.getProject(),
     buildFile: gradleTask.getBuildfile(),
     rootProject: gradleTask.getRootproject(),
-    projectFolder: gradleProjectFolder.uri.fsPath,
-    workspaceFolder: gradleProjectFolder.workspaceFolder.uri.fsPath,
+    projectFolder: rootProject.getProjectUri().fsPath,
+    workspaceFolder: rootProject.getWorkspaceFolder().uri.fsPath,
     args,
     javaDebug,
   };
-  return createTaskFromDefinition(definition, gradleProjectFolder);
+  return createTaskFromDefinition(definition, rootProject);
 }
 
 function getVSCodeTasksFromGradleProject(
-  gradleProjectFolder: GradleProjectFolder,
+  rootProject: RootProject,
   gradleProject: GradleProject
 ): vscode.Task[] {
   const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
@@ -221,7 +211,7 @@ function getVSCodeTasksFromGradleProject(
   try {
     vsCodeTasks.push(
       ...gradleTasks.map((gradleTask) =>
-        createVSCodeTaskFromGradleTask(gradleTask, gradleProjectFolder)
+        createVSCodeTaskFromGradleTask(gradleTask, rootProject)
       )
     );
   } catch (err) {
@@ -231,36 +221,30 @@ function getVSCodeTasksFromGradleProject(
     );
   }
   gradleProject.getProjectsList().forEach((project) => {
-    vsCodeTasks.push(
-      ...getVSCodeTasksFromGradleProject(gradleProjectFolder, project)
-    );
+    vsCodeTasks.push(...getVSCodeTasksFromGradleProject(rootProject, project));
   });
   return vsCodeTasks;
 }
 
 async function getGradleBuild(
-  gradleProjectFolder: GradleProjectFolder
+  rootProject: RootProject
 ): Promise<GradleBuild | void> {
   return Extension.getInstance()
     .getClient()
-    .getBuild(gradleProjectFolder.uri.fsPath, getGradleConfig());
+    .getBuild(rootProject, getGradleConfig());
 }
 
-export async function loadTasksForFolders(
-  gradleProjectFolders: ReadonlyArray<GradleProjectFolder>
+export async function loadTasksForProjectRoots(
+  rootProjects: ReadonlyArray<RootProject>
 ): Promise<vscode.Task[]> {
   const allTasks: vscode.Task[] = [];
-  for (const gradleProjectFolder of gradleProjectFolders) {
-    if (getConfigIsAutoDetectionEnabled(gradleProjectFolder)) {
-      const buildFile = getGradleBuildFile(gradleProjectFolder);
-      if (!buildFile) {
-        continue;
-      }
-      const gradleBuild = await getGradleBuild(gradleProjectFolder);
+  for (const rootProject of rootProjects) {
+    if (getConfigIsAutoDetectionEnabled(rootProject)) {
+      const gradleBuild = await getGradleBuild(rootProject);
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
         allTasks.push(
-          ...getVSCodeTasksFromGradleProject(gradleProjectFolder, gradleProject)
+          ...getVSCodeTasksFromGradleProject(rootProject, gradleProject)
         );
       }
     }
@@ -337,55 +321,9 @@ export function cloneTask(
     args,
     javaDebug,
   };
-  const gradleProjectFolder = {
-    workspaceFolder: task.scope as vscode.WorkspaceFolder,
-    uri: vscode.Uri.file(definition.projectFolder),
-  };
-  return createTaskFromDefinition(definition, gradleProjectFolder);
-}
-
-export async function getGradleProjectFolders(): Promise<
-  ReadonlyArray<GradleProjectFolder>
-> {
-  const workspaceFolders: ReadonlyArray<vscode.WorkspaceFolder> =
-    vscode.workspace.workspaceFolders || [];
-  const allFolders: GradleProjectFolder[] = workspaceFolders.map(
-    (workspaceFolder) => ({
-      workspaceFolder,
-      uri: workspaceFolder.uri,
-    })
+  const rootProject = new RootProject(
+    task.scope as vscode.WorkspaceFolder,
+    vscode.Uri.file(definition.projectFolder)
   );
-  for (const workspaceFolder of workspaceFolders) {
-    const configNestedFolders = getNestedProjectsConfig(workspaceFolder);
-    if (configNestedFolders === true) {
-      allFolders.push(...(await getNestedGradleProjectFolders()));
-    } else if (Array.isArray(configNestedFolders)) {
-      const nestedFolders = configNestedFolders.map((nestedfolder) => {
-        const fsPath = path.join(workspaceFolder.uri.fsPath, nestedfolder);
-        return buildGradleFolder(vscode.Uri.file(fsPath));
-      });
-      allFolders.push(...nestedFolders);
-    }
-  }
-  return allFolders;
-}
-
-async function getNestedGradleProjectFolders(): Promise<GradleProjectFolder[]> {
-  const files = await vscode.workspace.findFiles(
-    '**/{gradlew,gradlew.bat}',
-    '/{gradlew,gradlew.bat}' // ignore root wrapper scripts
-  );
-  const projectFolders = [
-    ...new Set(files.map((uri) => path.dirname(uri.fsPath))),
-  ];
-  return projectFolders.map((folder) =>
-    buildGradleFolder(vscode.Uri.file(folder))
-  );
-}
-
-function buildGradleFolder(folderUri: vscode.Uri): GradleProjectFolder {
-  return {
-    workspaceFolder: vscode.workspace.getWorkspaceFolder(folderUri)!,
-    uri: folderUri,
-  };
+  return createTaskFromDefinition(definition, rootProject);
 }

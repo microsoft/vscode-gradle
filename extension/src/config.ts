@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 import { GradleConfig } from './proto/gradle_pb';
-import { GradleProjectFolder } from './tasks/taskUtil';
+import { RootProject } from './rootProject/RootProject';
 
 type AutoDetect = 'on' | 'off';
 
 export function getConfigIsAutoDetectionEnabled(
-  gradleProjectFolder: GradleProjectFolder
+  rootProject: RootProject
 ): boolean {
   return (
     vscode.workspace
-      .getConfiguration('gradle', gradleProjectFolder.workspaceFolder.uri)
+      .getConfiguration('gradle', rootProject.getWorkspaceFolder().uri)
       .get<AutoDetect>('autoDetect', 'on') === 'on'
   );
 }

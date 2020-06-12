@@ -2,12 +2,10 @@ import * as vscode from 'vscode';
 import { EventWaiter } from '../events';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import {
-  createTaskFromDefinition,
-  loadTasksForFolders,
-  getGradleProjectFolders,
-} from './taskUtil';
+import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
+import { GradleProjectsStore } from '../stores';
+import { RootProject } from '../rootProject/RootProject';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
@@ -21,6 +19,8 @@ export class GradleTaskProvider
   private readonly _onDidStopRefresh: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
+
+  constructor(private readonly gradleProjectsStore: GradleProjectsStore) {}
 
   public readonly onDidLoadTasks: vscode.Event<null> = this._onDidLoadTasks
     .event;
@@ -52,11 +52,11 @@ export class GradleTaskProvider
       );
       return undefined;
     }
-    const gradleProjectFolder = {
+    const rootProject = new RootProject(
       workspaceFolder,
-      uri: vscode.Uri.file(gradleTaskDefinition.projectFolder),
-    };
-    return createTaskFromDefinition(gradleTaskDefinition, gradleProjectFolder);
+      vscode.Uri.file(gradleTaskDefinition.projectFolder)
+    );
+    return createTaskFromDefinition(gradleTaskDefinition, rootProject);
   }
 
   public async loadTasks(): Promise<vscode.Task[]> {
@@ -70,14 +70,13 @@ export class GradleTaskProvider
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
-    const folders = await getGradleProjectFolders();
-
+    const folders = await this.gradleProjectsStore.buildAndGetProjectRoots();
     if (!folders.length) {
       this.cachedTasks = [];
       return Promise.resolve(this.cachedTasks);
     }
 
-    this.loadTasksPromise = loadTasksForFolders(folders)
+    this.loadTasksPromise = loadTasksForProjectRoots(folders)
       .then(
         (tasks) => {
           this.cachedTasks = tasks;

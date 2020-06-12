@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { logger, LogVerbosity } from '../logger';
+import { logger, LogVerbosity, Logger } from '../logger';
 import { registerCommands } from '../commands/register';
 import { Api } from '../api';
 import { GradleClient } from '../client';
@@ -19,6 +19,7 @@ import {
   PinnedTasksStore,
   RecentTasksStore,
   TaskTerminalsStore,
+  GradleProjectsStore,
 } from '../stores';
 import {
   GradleTaskProvider,
@@ -46,6 +47,7 @@ export class Extension {
   private readonly pinnedTasksStore: PinnedTasksStore;
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
+  private readonly gradleProjectsStore: GradleProjectsStore;
   private readonly gradleTaskProvider: GradleTaskProvider;
   private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
@@ -63,19 +65,24 @@ export class Extension {
   private readonly api: Api;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
-    logger.setLoggingChannel(vscode.window.createOutputChannel('Gradle Tasks'));
+    const loggingChannel = vscode.window.createOutputChannel('Gradle Tasks');
+
+    const clientLogger = new Logger('grpc');
+    logger.setLoggingChannel(loggingChannel);
+    clientLogger.setLoggingChannel(loggingChannel);
     if (getConfigIsDebugEnabled()) {
       logger.setLogVerbosity(LogVerbosity.DEBUG);
+      clientLogger.setLogVerbosity(LogVerbosity.DEBUG);
     }
 
     const statusBarItem = vscode.window.createStatusBarItem();
-
     this.server = new GradleServer({ host: 'localhost' }, context);
-    this.client = new GradleClient(this.server, statusBarItem);
+    this.client = new GradleClient(this.server, statusBarItem, clientLogger);
     this.pinnedTasksStore = new PinnedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
-    this.gradleTaskProvider = new GradleTaskProvider();
+    this.gradleProjectsStore = new GradleProjectsStore();
+    this.gradleTaskProvider = new GradleTaskProvider(this.gradleProjectsStore);
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
       this.gradleTaskProvider
@@ -91,7 +98,7 @@ export class Extension {
     });
     this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
       this.context,
-      this.gradleTaskProvider
+      this.gradleProjectsStore
     );
     this.gradleDaemonsTreeView = vscode.window.createTreeView(
       GRADLE_DAEMONS_VIEW,
@@ -166,14 +173,14 @@ export class Extension {
   }
 
   private loadTasks(): void {
-    this.client.onDidConnect(() => {
-      this.getGradleTaskProvider().clearTasksCache();
-      // Explicitly load tasks as the views not be visible
-      this.getGradleTaskProvider().loadTasks();
-      // If the views are visible, refresh them
-      this.getGradleTasksTreeDataProvider().refresh();
-      this.getPinnedTasksTreeDataProvider().refresh();
-      this.getRecentTasksTreeDataProvider().refresh();
+    this.client.onDidConnect(async () => {
+      this.gradleTaskProvider.clearTasksCache();
+      // Explicitly load tasks as the views might not be visible on editor start
+      this.gradleTaskProvider.loadTasks();
+      // If the server crashes and is restarted, we need to review the views
+      this.gradleTasksTreeDataProvider.refresh();
+      this.pinnedTasksTreeDataProvider.refresh();
+      this.recentTasksTreeDataProvider.refresh();
     });
   }
 
@@ -219,12 +226,15 @@ export class Extension {
   private handleEditorEvents(): void {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(
-        (event: vscode.ConfigurationChangeEvent) => {
+        async (event: vscode.ConfigurationChangeEvent) => {
           if (
             event.affectsConfiguration('java.home') &&
             this.server.isReady()
           ) {
             this.server.restart();
+          }
+          if (event.affectsConfiguration('gradle.nestedProjects')) {
+            this.gradleProjectsStore.clear();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
@@ -255,6 +265,10 @@ export class Extension {
 
   public getGradleTaskProvider(): GradleTaskProvider {
     return this.gradleTaskProvider;
+  }
+
+  public getGradleProjectsStore(): GradleProjectsStore {
+    return this.gradleProjectsStore;
   }
 
   public getClient(): GradleClient {

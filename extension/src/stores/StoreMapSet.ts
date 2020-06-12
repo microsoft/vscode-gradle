@@ -1,6 +1,6 @@
-import { Store } from '.';
+import { StoreMap } from './StoreMap';
 
-export class StoreSet<K, V> extends Store<K, Set<V>> {
+export class StoreMapSet<K, V> extends StoreMap<K, Set<V>> {
   public addEntry(key: K, value: V, fireOnDidChange = true): void {
     let set = this.getItem(key);
     if (!set) {

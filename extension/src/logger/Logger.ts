@@ -11,6 +11,8 @@ export class Logger {
   private channel?: vscode.OutputChannel;
   private verbosity: LogVerbosity = LogVerbosity.INFO;
 
+  constructor(private readonly prefix?: string) {}
+
   public setLogVerbosity(verbosity: LogVerbosity): void {
     this.verbosity = verbosity;
   }
@@ -36,7 +38,8 @@ export class Logger {
 
   public format(message: string, verbosity: LogVerbosity): string {
     const verbosityString = LogVerbosity[verbosity].toLowerCase();
-    return `[${verbosityString}] ${message}`;
+    const prefix = this.prefix ? ` [${this.prefix}]` : '';
+    return `[${verbosityString}]${prefix} ${message}`;
   }
 
   public info(...messages: string[]): void {
