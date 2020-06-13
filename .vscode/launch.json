@@ -232,7 +232,6 @@
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
       "outFiles": [
-        "${workspaceFolder}/extension/dist/**/*.js",
         "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",

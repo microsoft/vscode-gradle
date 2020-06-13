@@ -69,7 +69,7 @@ export class GradleProjectsStore extends StoreMap<string, RootProject> {
     const gradleVersionIds: string[] = [];
     return (await this.buildAndGetProjectRoots()).filter((rootProject) => {
       const version = rootProject
-        .getEnvironent()
+        .getEnvironment()
         ?.getGradleEnvironment()
         ?.getGradleVersion();
       if (version === undefined) {

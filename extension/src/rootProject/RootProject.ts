@@ -12,7 +12,7 @@ export class RootProject {
     this.environment = environment;
   }
 
-  public getEnvironent(): Environment | undefined {
+  public getEnvironment(): Environment | undefined {
     return this.environment;
   }
 
