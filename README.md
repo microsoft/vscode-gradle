@@ -118,6 +118,7 @@ The extension uses the Gradle wrapper to list daemons, and is quite a slow proce
 - Supports Kotlin & Groovy build files
 - Supports [multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
 - Supports [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces)
+- Supports nested projects (enabled via setting)
 - Show flat or nested tasks in the explorer
 - Gracefully cancel a running task
 - Debug JavaExec tasks
@@ -134,6 +135,7 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
+- `gradle.nestedProjects`: Support nested projects. This can be a boolean or an array of directories.
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc)
