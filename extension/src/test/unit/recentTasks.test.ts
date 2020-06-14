@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as assert from 'assert';
-import * as fs from 'fs';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -17,6 +16,7 @@ import {
   buildMockTaskDefinition,
   buildMockGradleTask,
   assertFolderTreeItem,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import {
   RecentTasksTreeDataProvider,
@@ -111,20 +111,7 @@ describe(getSuiteName('Recent tasks'), () => {
 
   describe('Without a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
-      sinon
-        .stub(fs, 'existsSync')
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 
@@ -299,26 +286,7 @@ describe(getSuiteName('Recent tasks'), () => {
 
   describe('With multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
-      const existsSyncStub = sinon.stub(fs, 'existsSync');
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder2.uri.fsPath, 'gradlew'))
-        .returns(true);
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder2.uri.fsPath))
-        .returns(mockWorkspaceFolder2);
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
       const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,
@@ -374,20 +342,7 @@ describe(getSuiteName('Recent tasks'), () => {
     const mockTerminal1 = buildMockTerminal();
     const mockTerminal2 = buildMockTerminal();
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
-      sinon
-        .stub(fs, 'existsSync')
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
       const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
       recentTasksStore.addEntry(

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
-import * as fs from 'fs';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -16,6 +15,7 @@ import {
   buildMockTaskDefinition,
   buildMockGradleTask,
   assertFolderTreeItem,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -51,7 +51,6 @@ const mockContext = buildMockContext();
 const mockExtension = buildMockExtension();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
-
 const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
 
 const mockTaskDefinition1 = buildMockTaskDefinition(
@@ -113,22 +112,7 @@ describe(getSuiteName('Pinned tasks'), () => {
 
   describe('Without a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
-      sinon
-        .stub(fs, 'existsSync')
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
-
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 
@@ -396,27 +380,7 @@ describe(getSuiteName('Pinned tasks'), () => {
 
   describe('With a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
-      const existsSyncStub = sinon.stub(fs, 'existsSync');
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder2.uri.fsPath, 'gradlew'))
-        .returns(true);
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder2.uri.fsPath))
-        .returns(mockWorkspaceFolder2);
-
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 

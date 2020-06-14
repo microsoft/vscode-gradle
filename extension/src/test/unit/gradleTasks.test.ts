@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
-import * as fs from 'fs';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -15,6 +14,7 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -166,19 +166,7 @@ describe(getSuiteName('Gradle tasks'), () => {
 
     describe('With gradle tasks', () => {
       beforeEach(async () => {
-        const existsSyncStub = sinon.stub(fs, 'existsSync');
-        existsSyncStub
-          .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-          .returns(true);
-
-        const getWorkspaceFolderStub = sinon.stub(
-          vscode.workspace,
-          'getWorkspaceFolder'
-        );
-        getWorkspaceFolderStub
-          .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-          .returns(mockWorkspaceFolder1);
-
+        stubWorkspaceFolders([mockWorkspaceFolder1]);
         mockExtension.getClient().getBuild.resolves(mockGradleBuildWithTasks);
       });
 
@@ -425,29 +413,7 @@ describe(getSuiteName('Gradle tasks'), () => {
 
   describe('With a multi-root workspace', () => {
     beforeEach(async () => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
-
-      const existsSyncStub = sinon.stub(fs, 'existsSync');
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-        .returns(true);
-      existsSyncStub
-        .withArgs(path.join(mockWorkspaceFolder2.uri.fsPath, 'gradlew'))
-        .returns(true);
-
-      const getWorkspaceFolderStub = sinon.stub(
-        vscode.workspace,
-        'getWorkspaceFolder'
-      );
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder1.uri.fsPath))
-        .returns(mockWorkspaceFolder1);
-
-      getWorkspaceFolderStub
-        .withArgs(sinon.match.has('fsPath', mockWorkspaceFolder2.uri.fsPath))
-        .returns(mockWorkspaceFolder2);
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
     });
 
     describe('Without gradle tasks', () => {
@@ -501,7 +467,7 @@ describe(getSuiteName('Gradle tasks'), () => {
           'ResourceUri is not set on RootProject'
         );
         assert.equal(
-          rootProjectItem.resourceUri.path,
+          rootProjectItem.resourceUri.fsPath,
           mockWorkspaceFolder1.uri.fsPath
         );
       });
