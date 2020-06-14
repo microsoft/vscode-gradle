@@ -77,11 +77,12 @@ export type JavaDebug = {
 export function getConfigJavaDebug(
   workspaceFolder: vscode.WorkspaceFolder
 ): JavaDebug {
+  const defaultValue = {
+    tasks: ['run', 'runBoot', 'test', 'intTest', 'integration'],
+  };
   return vscode.workspace
     .getConfiguration('gradle', workspaceFolder.uri)
-    .get<JavaDebug>('javaDebug', {
-      tasks: ['run', 'runBoot', 'test', 'intTest', 'integration'],
-    });
+    .get<JavaDebug>('javaDebug', defaultValue);
 }
 
 export function getGradleConfig(): GradleConfig {

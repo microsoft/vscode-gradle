@@ -5,7 +5,7 @@ import { StoreMap } from '.';
 import { isGradleRootProject } from '../util';
 import { RootProject } from '../rootProject/RootProject';
 
-async function getNestedGradleProjectFolders(): Promise<RootProject[]> {
+async function getNestedRootProjectFolders(): Promise<RootProject[]> {
   const files = await vscode.workspace.findFiles(
     '**/{gradlew,gradlew.bat}',
     '/{gradlew,gradlew.bat}' // ignore root wrapper scripts
@@ -14,43 +14,43 @@ async function getNestedGradleProjectFolders(): Promise<RootProject[]> {
     ...new Set(files.map((uri) => path.dirname(uri.fsPath))),
   ];
   return projectFolders.map((folder) =>
-    buildGradleFolder(vscode.Uri.file(folder))
+    buildRootFolder(vscode.Uri.file(folder))
   );
 }
 
-function buildGradleFolder(folderUri: vscode.Uri): RootProject {
+function buildRootFolder(folderUri: vscode.Uri): RootProject {
   return new RootProject(
     vscode.workspace.getWorkspaceFolder(folderUri)!,
     folderUri
   );
 }
 
-export class GradleProjectsStore extends StoreMap<string, RootProject> {
+export class RootProjectsStore extends StoreMap<string, RootProject> {
   private async populate(): Promise<void> {
     const workspaceFolders: ReadonlyArray<vscode.WorkspaceFolder> =
       vscode.workspace.workspaceFolders || [];
     workspaceFolders.forEach((workspaceFolder) =>
-      this.setGradleProjectFolder(buildGradleFolder(workspaceFolder.uri))
+      this.setRootProjectFolder(buildRootFolder(workspaceFolder.uri))
     );
     for (const workspaceFolder of workspaceFolders) {
       const configNestedFolders = getNestedProjectsConfig(workspaceFolder);
       if (configNestedFolders === true) {
-        (await getNestedGradleProjectFolders()).forEach(
-          this.setGradleProjectFolder
+        (await getNestedRootProjectFolders()).forEach(
+          this.setRootProjectFolder
         );
       } else if (Array.isArray(configNestedFolders)) {
         configNestedFolders
           .map((nestedfolder) => {
             const fsPath = path.join(workspaceFolder.uri.fsPath, nestedfolder);
-            return buildGradleFolder(vscode.Uri.file(fsPath));
+            return buildRootFolder(vscode.Uri.file(fsPath));
           })
-          .forEach(this.setGradleProjectFolder);
+          .forEach(this.setRootProjectFolder);
       }
     }
     this.fireOnDidChange(null);
   }
 
-  private setGradleProjectFolder = (rootProject: RootProject): void => {
+  private setRootProjectFolder = (rootProject: RootProject): void => {
     if (isGradleRootProject(rootProject)) {
       this.setItem(rootProject.getProjectUri().fsPath, rootProject, false);
     }

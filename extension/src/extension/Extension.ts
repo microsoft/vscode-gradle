@@ -19,7 +19,7 @@ import {
   PinnedTasksStore,
   RecentTasksStore,
   TaskTerminalsStore,
-  GradleProjectsStore,
+  RootProjectsStore,
 } from '../stores';
 import {
   GradleTaskProvider,
@@ -47,7 +47,7 @@ export class Extension {
   private readonly pinnedTasksStore: PinnedTasksStore;
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
-  private readonly gradleProjectsStore: GradleProjectsStore;
+  private readonly rootProjectsStore: RootProjectsStore;
   private readonly gradleTaskProvider: GradleTaskProvider;
   private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
@@ -81,8 +81,8 @@ export class Extension {
     this.pinnedTasksStore = new PinnedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
-    this.gradleProjectsStore = new GradleProjectsStore();
-    this.gradleTaskProvider = new GradleTaskProvider(this.gradleProjectsStore);
+    this.rootProjectsStore = new RootProjectsStore();
+    this.gradleTaskProvider = new GradleTaskProvider(this.rootProjectsStore);
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
       this.gradleTaskProvider
@@ -98,7 +98,7 @@ export class Extension {
     });
     this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
       this.context,
-      this.gradleProjectsStore
+      this.rootProjectsStore
     );
     this.gradleDaemonsTreeView = vscode.window.createTreeView(
       GRADLE_DAEMONS_VIEW,
@@ -109,7 +109,8 @@ export class Extension {
     );
     this.pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
       this.context,
-      this.pinnedTasksStore
+      this.pinnedTasksStore,
+      this.rootProjectsStore
     );
     this.pinnedTasksTreeView = vscode.window.createTreeView(PINNED_TASKS_VIEW, {
       treeDataProvider: this.pinnedTasksTreeDataProvider,
@@ -119,7 +120,8 @@ export class Extension {
     this.recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       this.context,
       this.recentTasksStore,
-      this.taskTerminalsStore
+      this.taskTerminalsStore,
+      this.rootProjectsStore
     );
     this.recentTasksTreeView = vscode.window.createTreeView(RECENT_TASKS_VIEW, {
       treeDataProvider: this.recentTasksTreeDataProvider,
@@ -234,7 +236,7 @@ export class Extension {
             this.server.restart();
           }
           if (event.affectsConfiguration('gradle.nestedProjects')) {
-            this.gradleProjectsStore.clear();
+            this.rootProjectsStore.clear();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
@@ -267,8 +269,8 @@ export class Extension {
     return this.gradleTaskProvider;
   }
 
-  public getGradleProjectsStore(): GradleProjectsStore {
-    return this.gradleProjectsStore;
+  public getRootProjectsStore(): RootProjectsStore {
+    return this.rootProjectsStore;
   }
 
   public getClient(): GradleClient {

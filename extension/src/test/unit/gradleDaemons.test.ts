@@ -43,44 +43,30 @@ import {
   ICON_DAEMON_BUSY,
   ICON_DAEMON_IDLE,
 } from '../../views/constants';
-import { GradleProjectsStore } from '../../stores';
+import { RootProjectsStore } from '../../stores';
 
 const mockContext = buildMockContext();
 const mockClient = buildMockClient();
 const mockExtension = buildMockExtension();
 
-const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
-  0,
-  'folder1',
-  'folder name 1'
-);
-
-const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
-  1,
-  'folder2',
-  'folder name 2'
-);
-
-const mockWorkspaceFolder3 = buildMockWorkspaceFolder(
-  2,
-  'folder3',
-  'folder name 3'
-);
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
+const mockWorkspaceFolder3 = buildMockWorkspaceFolder(2, 'folder3', 'folder3');
 
 const mockOutputChannel = buildMockOutputChannel();
 
 describe(getSuiteName('Gradle daemons'), () => {
   beforeEach(async () => {
-    const gradleProjectStore = new GradleProjectsStore();
+    const rootProjectsStore = new RootProjectsStore();
     const gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
       mockContext,
-      gradleProjectStore
+      rootProjectsStore
     );
     mockExtension.getClient.returns(mockClient);
     mockExtension.getGradleDaemonsTreeDataProvider.returns(
       gradleDaemonsTreeDataProvider
     );
-    mockExtension.getGradleProjectsStore.returns(gradleProjectStore);
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
 
     sinon.stub(Extension, 'getInstance').returns(mockExtension as any);
     sinon
@@ -115,7 +101,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       .returns(mockWorkspaceFolder3);
 
     // GradleClient.getBuild() sets the gradle versions once it receives the gradle environment
-    const projectRoots = await gradleProjectStore.buildAndGetProjectRoots();
+    const projectRoots = await rootProjectsStore.buildAndGetProjectRoots();
     const gradleEnvironment1 = new GradleEnvironment();
     gradleEnvironment1.setGradleVersion('6.3');
     const environment1 = new Environment();
@@ -145,7 +131,7 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should filter out projects with duplicate gradle versions', async () => {
-    const projects = await (mockExtension.getGradleProjectsStore() as GradleProjectsStore).buildAndGetProjectRootsWithUniqueVersions();
+    const projects = await (mockExtension.getRootProjectsStore() as RootProjectsStore).buildAndGetProjectRootsWithUniqueVersions();
     assert.equal(
       projects.length,
       2,
@@ -368,7 +354,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     const workspaceFolder1: vscode.WorkspaceFolder = {
       index: 0,
       uri: vscode.Uri.file('folder1'),
-      name: 'folder name 1',
+      name: 'folder1',
     };
 
     sinon.stub(vscode.workspace, 'workspaceFolders').value([workspaceFolder1]);

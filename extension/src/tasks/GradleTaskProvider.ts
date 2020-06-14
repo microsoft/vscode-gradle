@@ -4,7 +4,7 @@ import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
-import { GradleProjectsStore } from '../stores';
+import { RootProjectsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
 
 export class GradleTaskProvider
@@ -20,7 +20,7 @@ export class GradleTaskProvider
     null
   > = new vscode.EventEmitter<null>();
 
-  constructor(private readonly gradleProjectsStore: GradleProjectsStore) {}
+  constructor(private readonly rootProjectsStore: RootProjectsStore) {}
 
   public readonly onDidLoadTasks: vscode.Event<null> = this._onDidLoadTasks
     .event;
@@ -70,7 +70,7 @@ export class GradleTaskProvider
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
-    const folders = await this.gradleProjectsStore.buildAndGetProjectRoots();
+    const folders = await this.rootProjectsStore.buildAndGetProjectRoots();
     if (!folders.length) {
       this.cachedTasks = [];
       return Promise.resolve(this.cachedTasks);

@@ -5,4 +5,4 @@ export * from './TaskStore';
 export * from './PinnedTasksStore';
 export * from './RecentTasksStore';
 export * from './TaskTerminalsStore';
-export * from './GradleProjectsStore';
+export * from './RootProjectsStore';

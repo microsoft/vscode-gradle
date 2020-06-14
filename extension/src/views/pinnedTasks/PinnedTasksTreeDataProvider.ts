@@ -1,25 +1,21 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import {
-  PinnedTasksWorkspaceTreeItem,
+  PinnedTasksRootProjectTreeItem,
   PinnedTaskTreeItem,
   NoPinnedTasksTreeItem,
 } from '.';
-import { JavaDebug, getConfigJavaDebug } from '../../config';
-import { GradleTaskTreeItem } from '..';
+import { GradleTaskTreeItem, gradleProjectJavaDebugMap } from '..';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import { PinnedTasksStore } from '../../stores';
+import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 
-const pinnedTasksWorkspaceTreeItemMap: Map<
+const pinnedTasksGradleProjectTreeItemMap: Map<
   string,
-  PinnedTasksWorkspaceTreeItem
-> = new Map();
-export const pinnedTasksWorkspaceJavaDebugMap: Map<
-  string,
-  JavaDebug
+  PinnedTasksRootProjectTreeItem
 > = new Map();
 
 // eslint-disable-next-line sonarjs/no-unused-collection
@@ -29,48 +25,45 @@ export const pinnedTasksTreeItemMap: Map<
 > = new Map();
 
 function buildTaskTreeItem(
-  workspaceTreeItem: PinnedTasksWorkspaceTreeItem,
+  gradleProjectTreeItem: PinnedTasksRootProjectTreeItem,
   task: vscode.Task
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
-  const workspaceFolder = task.scope as vscode.WorkspaceFolder;
   const pinnedTaskTreeItem = new PinnedTaskTreeItem(
-    workspaceTreeItem,
+    gradleProjectTreeItem,
     task,
     task.name,
     definition.description || task.name,
     '',
-    pinnedTasksWorkspaceJavaDebugMap.get(workspaceFolder.name)
+    gradleProjectJavaDebugMap.get(definition.projectFolder)
   );
   pinnedTaskTreeItem.setContext();
   return pinnedTaskTreeItem;
 }
 
-function buildWorkspaceTreeItem(task: vscode.Task): void {
+function buildGradleProjectTreeItem(task: vscode.Task): void {
   const definition = task.definition as GradleTaskDefinition;
-  if (isWorkspaceFolder(task.scope) && definition.buildFile) {
-    let workspaceTreeItem = pinnedTasksWorkspaceTreeItemMap.get(
-      task.scope.name
+  if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
+    let gradleProjectTreeItem = pinnedTasksGradleProjectTreeItemMap.get(
+      definition.projectFolder
     );
-    if (!workspaceTreeItem) {
-      workspaceTreeItem = new PinnedTasksWorkspaceTreeItem(task.scope.name);
-      pinnedTasksWorkspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
-    }
-
-    if (!pinnedTasksWorkspaceJavaDebugMap.has(task.scope.name)) {
-      pinnedTasksWorkspaceJavaDebugMap.set(
-        task.scope.name,
-        getConfigJavaDebug(task.scope)
+    if (!gradleProjectTreeItem) {
+      gradleProjectTreeItem = new PinnedTasksRootProjectTreeItem(
+        path.basename(definition.projectFolder)
+      );
+      pinnedTasksGradleProjectTreeItemMap.set(
+        definition.projectFolder,
+        gradleProjectTreeItem
       );
     }
 
-    const pinnedTaskTreeItem = buildTaskTreeItem(workspaceTreeItem, task);
+    const pinnedTaskTreeItem = buildTaskTreeItem(gradleProjectTreeItem, task);
     pinnedTasksTreeItemMap.set(
       definition.id + definition.args,
       pinnedTaskTreeItem
     );
 
-    workspaceTreeItem.addTask(pinnedTaskTreeItem);
+    gradleProjectTreeItem.addTask(pinnedTaskTreeItem);
   }
 }
 
@@ -82,7 +75,8 @@ export class PinnedTasksTreeDataProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly pinnedTasksStore: PinnedTasksStore
+    private readonly pinnedTasksStore: PinnedTasksStore,
+    private readonly rootProjectsStore: RootProjectsStore
   ) {
     this.pinnedTasksStore.onDidChange(() => this.refresh());
   }
@@ -109,7 +103,7 @@ export class PinnedTasksTreeDataProvider
   public async getChildren(
     element?: vscode.TreeItem
   ): Promise<vscode.TreeItem[]> {
-    if (element instanceof PinnedTasksWorkspaceTreeItem) {
+    if (element instanceof PinnedTasksRootProjectTreeItem) {
       return [...element.tasks];
     }
     if (!element) {
@@ -125,13 +119,13 @@ export class PinnedTasksTreeDataProvider
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
     pinnedTasksTreeItemMap.clear();
-    pinnedTasksWorkspaceTreeItemMap.clear();
+    pinnedTasksGradleProjectTreeItemMap.clear();
 
-    const { workspaceFolders } = vscode.workspace;
-    if (!workspaceFolders) {
+    const rootProjects = await this.rootProjectsStore.buildAndGetProjectRoots();
+    if (!rootProjects.length) {
       return [];
     }
-    const isMultiRoot = workspaceFolders.length > 1;
+    const isMultiRoot = rootProjects.length > 1;
 
     const gradleTaskProvider = Extension.getInstance().getGradleTaskProvider();
     await gradleTaskProvider.waitForTasksLoad();
@@ -146,17 +140,19 @@ export class PinnedTasksTreeDataProvider
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const pinnedTask = cloneTask(task, args);
-          buildWorkspaceTreeItem(pinnedTask);
+          buildGradleProjectTreeItem(pinnedTask);
         });
       }
     });
 
-    if (!pinnedTasksWorkspaceTreeItemMap.size) {
+    if (!pinnedTasksGradleProjectTreeItemMap.size) {
       return [];
     } else if (isMultiRoot) {
-      return [...pinnedTasksWorkspaceTreeItemMap.values()];
+      return [...pinnedTasksGradleProjectTreeItemMap.values()];
     } else {
-      return [...pinnedTasksWorkspaceTreeItemMap.values().next().value.tasks];
+      return [
+        ...pinnedTasksGradleProjectTreeItemMap.values().next().value.tasks,
+      ];
     }
   }
 }

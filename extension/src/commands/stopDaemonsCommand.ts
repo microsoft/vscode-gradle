@@ -14,7 +14,7 @@ export async function stopDaemonsCommand(): Promise<void> {
     return;
   }
   const gradleRootFolders = await Extension.getInstance()
-    .getGradleProjectsStore()
+    .getRootProjectsStore()
     .buildAndGetProjectRootsWithUniqueVersions();
   const promises: Promise<StopDaemonsReply | void>[] = gradleRootFolders.map(
     (rootProject) =>

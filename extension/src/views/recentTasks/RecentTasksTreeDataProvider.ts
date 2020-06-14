@@ -1,21 +1,25 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {
-  RecentTasksWorkspaceTreeItem,
   RecentTaskTreeItem,
   NoRecentTasksTreeItem,
+  RecentTasksRootProjectTreeItem,
 } from '.';
-import { TaskTerminalsStore, RecentTasksStore } from '../../stores';
+import {
+  TaskTerminalsStore,
+  RecentTasksStore,
+  RootProjectsStore,
+} from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
-import { workspaceJavaDebugMap, GradleTaskTreeItem } from '..';
+import { gradleProjectJavaDebugMap, GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 
-const recentTasksWorkspaceTreeItemMap: Map<
+const recentTasksGradleProjectTreeItemMap: Map<
   string,
-  RecentTasksWorkspaceTreeItem
+  RecentTasksRootProjectTreeItem
 > = new Map();
 
 // eslint-disable-next-line sonarjs/no-unused-collection
@@ -25,39 +29,44 @@ export const recentTasksTreeItemMap: Map<
 > = new Map();
 
 function buildTaskTreeItem(
-  workspaceTreeItem: RecentTasksWorkspaceTreeItem,
+  gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
   task: vscode.Task,
   taskTerminalsStore: TaskTerminalsStore
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
   const recentTaskTreeItem = new RecentTaskTreeItem(
-    workspaceTreeItem,
+    gradleProjectTreeItem,
     task,
     task.name,
     definition.description,
-    workspaceJavaDebugMap.get(path.basename(definition.workspaceFolder)),
+    gradleProjectJavaDebugMap.get(definition.projectFolder),
     taskTerminalsStore
   );
   recentTaskTreeItem.setContext();
   return recentTaskTreeItem;
 }
 
-function buildWorkspaceTreeItem(
+function buildGradleProjectTreeItem(
   task: vscode.Task,
   taskTerminalsStore: TaskTerminalsStore
 ): void {
   const definition = task.definition as GradleTaskDefinition;
-  if (isWorkspaceFolder(task.scope) && definition.buildFile) {
-    let workspaceTreeItem = recentTasksWorkspaceTreeItemMap.get(
-      task.scope.name
+  if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
+    let gradleProjectTreeItem = recentTasksGradleProjectTreeItemMap.get(
+      definition.projectFolder
     );
-    if (!workspaceTreeItem) {
-      workspaceTreeItem = new RecentTasksWorkspaceTreeItem(task.scope.name);
-      recentTasksWorkspaceTreeItemMap.set(task.scope.name, workspaceTreeItem);
+    if (!gradleProjectTreeItem) {
+      gradleProjectTreeItem = new RecentTasksRootProjectTreeItem(
+        path.basename(definition.projectFolder)
+      );
+      recentTasksGradleProjectTreeItemMap.set(
+        definition.projectFolder,
+        gradleProjectTreeItem
+      );
     }
 
     const recentTaskTreeItem = buildTaskTreeItem(
-      workspaceTreeItem,
+      gradleProjectTreeItem,
       task,
       taskTerminalsStore
     );
@@ -66,7 +75,7 @@ function buildWorkspaceTreeItem(
       recentTaskTreeItem
     );
 
-    workspaceTreeItem.addTask(recentTaskTreeItem);
+    gradleProjectTreeItem.addTask(recentTaskTreeItem);
   }
 }
 
@@ -79,7 +88,8 @@ export class RecentTasksTreeDataProvider
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly recentTasksStore: RecentTasksStore,
-    private readonly taskTerminalsStore: TaskTerminalsStore
+    private readonly taskTerminalsStore: TaskTerminalsStore,
+    private readonly rootProjectsStore: RootProjectsStore
   ) {
     this.recentTasksStore.onDidChange(() => this.refresh());
     this.taskTerminalsStore.onDidChange(this.handleTerminalsStoreChange);
@@ -126,7 +136,7 @@ export class RecentTasksTreeDataProvider
   public async getChildren(
     element?: vscode.TreeItem
   ): Promise<vscode.TreeItem[]> {
-    if (element instanceof RecentTasksWorkspaceTreeItem) {
+    if (element instanceof RecentTasksRootProjectTreeItem) {
       return [...element.tasks];
     }
     if (!element) {
@@ -141,14 +151,14 @@ export class RecentTasksTreeDataProvider
   }
 
   private async buildTreeItems(): Promise<vscode.TreeItem[]> {
-    recentTasksWorkspaceTreeItemMap.clear();
+    recentTasksGradleProjectTreeItemMap.clear();
     recentTasksTreeItemMap.clear();
 
-    const { workspaceFolders } = vscode.workspace;
-    if (!workspaceFolders) {
+    const gradleProjects = await this.rootProjectsStore.buildAndGetProjectRoots();
+    if (!gradleProjects.length) {
       return [];
     }
-    const isMultiRoot = workspaceFolders.length > 1;
+    const isMultiRoot = gradleProjects.length > 1;
     const gradleTaskProvider = Extension.getInstance().getGradleTaskProvider();
     await gradleTaskProvider.waitForTasksLoad();
 
@@ -164,17 +174,19 @@ export class RecentTasksTreeDataProvider
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const recentTask = cloneTask(task, args, definition.javaDebug);
-          buildWorkspaceTreeItem(recentTask, this.taskTerminalsStore);
+          buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore);
         });
       }
     });
 
-    if (!recentTasksWorkspaceTreeItemMap.size) {
+    if (!recentTasksGradleProjectTreeItemMap.size) {
       return [];
     } else if (isMultiRoot) {
-      return [...recentTasksWorkspaceTreeItemMap.values()];
+      return [...recentTasksGradleProjectTreeItemMap.values()];
     } else {
-      return [...recentTasksWorkspaceTreeItemMap.values().next().value.tasks];
+      return [
+        ...recentTasksGradleProjectTreeItemMap.values().next().value.tasks,
+      ];
     }
   }
 }

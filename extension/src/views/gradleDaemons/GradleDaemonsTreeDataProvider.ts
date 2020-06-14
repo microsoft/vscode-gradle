@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { GradleDaemonTreeItem } from '.';
 import { Extension } from '../../extension';
 import { Deferred } from '../../async';
-import { GradleProjectsStore } from '../../stores';
+import { RootProjectsStore } from '../../stores';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -14,7 +14,7 @@ export class GradleDaemonsTreeDataProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly gradleProjectsStore: GradleProjectsStore
+    private readonly rootProjectsStore: RootProjectsStore
   ) {}
 
   public refresh(): void {
@@ -67,7 +67,7 @@ export class GradleDaemonsTreeDataProvider
 
   private async getProjectRootFolders(): Promise<string[]> {
     return (
-      await this.gradleProjectsStore.buildAndGetProjectRootsWithUniqueVersions()
+      await this.rootProjectsStore.buildAndGetProjectRootsWithUniqueVersions()
     ).map((rootProject) => rootProject.getProjectUri().fsPath);
   }
 }

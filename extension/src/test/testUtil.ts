@@ -86,7 +86,7 @@ export function buildMockExtension(): any {
     getPinnedTasksTreeDataProvider: sinon.stub(),
     getPinnedTasksStore: sinon.stub(),
     getGradleTasksTreeDataProvider: sinon.stub(),
-    getGradleProjectsStore: sinon.stub(),
+    getRootProjectsStore: sinon.stub(),
   };
 }
 
