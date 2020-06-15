@@ -127,5 +127,5 @@ task(format) {
   dependsOn(spotlessApply)
 }
 
-compileJava.dependsOn 'generateProto'
+compileJava.dependsOn 'generateProto', spotlessCheck
 assemble.dependsOn serverStartScripts
