@@ -4,8 +4,6 @@ import * as vscode from 'vscode';
 
 import { getSuiteName, EXTENSION_NAME } from '../../testUtil';
 
-const nestedProjectsConfigKey = 'gradle.nestedProjects';
-
 describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extension: vscode.Extension<any> | undefined;
@@ -37,30 +35,14 @@ describe(getSuiteName('Extension'), () => {
     describe('With nestedProjects:true setting', () => {
       let tasks: vscode.Task[] | undefined;
 
-      before((done) => {
-        const disposable = vscode.workspace.onDidChangeConfiguration(
-          (event) => {
-            if (event.affectsConfiguration(nestedProjectsConfigKey)) {
-              disposable.dispose();
-              done();
-            }
-          }
-        );
-        vscode.workspace
+      before(async () => {
+        await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', true);
       });
 
-      after((done) => {
-        const disposable = vscode.workspace.onDidChangeConfiguration(
-          (event) => {
-            if (event.affectsConfiguration(nestedProjectsConfigKey)) {
-              disposable.dispose();
-              done();
-            }
-          }
-        );
-        vscode.workspace
+      after(async () => {
+        await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', false);
       });
@@ -100,30 +82,14 @@ describe(getSuiteName('Extension'), () => {
     describe('With nestedProjects:[] setting', () => {
       let tasks: vscode.Task[] | undefined;
 
-      before((done) => {
-        const disposable = vscode.workspace.onDidChangeConfiguration(
-          (event) => {
-            if (event.affectsConfiguration(nestedProjectsConfigKey)) {
-              disposable.dispose();
-              done();
-            }
-          }
-        );
-        vscode.workspace
+      before(async () => {
+        await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', ['gradle-groovy-default-build-file']);
       });
 
-      after((done) => {
-        const disposable = vscode.workspace.onDidChangeConfiguration(
-          (event) => {
-            if (event.affectsConfiguration(nestedProjectsConfigKey)) {
-              disposable.dispose();
-              done();
-            }
-          }
-        );
-        vscode.workspace
+      after(async () => {
+        await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', false);
       });

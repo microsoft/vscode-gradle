@@ -237,8 +237,7 @@ export class Extension {
           }
           if (event.affectsConfiguration('gradle.nestedProjects')) {
             this.rootProjectsStore.clear();
-            this.gradleTaskProvider.clearTasksCache();
-            this.gradleTaskProvider.loadTasks();
+            this.reloadTasks();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
