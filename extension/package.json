@@ -722,7 +722,7 @@
     "google-auth-library": "^6.0.1",
     "google-protobuf": "^3.12.2",
     "grpc-tools": "^1.9.0",
-    "mocha": "^7.2.0",
+    "mocha": "^8.0.1",
     "prettier": "^2.0.4",
     "rollup": "^2.16.1",
     "rollup-plugin-terser": "^6.1.0",
