@@ -193,17 +193,26 @@ export class Extension {
   private handleWatchEvents(): void {
     this.buildFileWatcher.onDidChange((uri: vscode.Uri) => {
       logger.debug('Build file changed:', uri.fsPath);
-      vscode.commands.executeCommand(COMMAND_REFRESH);
+      this.reloadTasks();
     });
     this.gradleWrapperWatcher.onDidChange((uri: vscode.Uri) => {
       logger.debug('Gradle wrapper properties changed:', uri.fsPath);
       this.client.close();
       const disposable = this.client.onDidConnect(() => {
         disposable.dispose();
-        vscode.commands.executeCommand(COMMAND_REFRESH);
+        this.reloadTasks();
       });
       this.server.restart();
     });
+  }
+
+  private reloadTasks(): void {
+    if (this.gradleTasksTreeView.visible) {
+      vscode.commands.executeCommand(COMMAND_REFRESH);
+    } else {
+      this.getGradleTaskProvider().clearTasksCache();
+      this.getGradleTaskProvider().loadTasks();
+    }
   }
 
   private handleEditorEvents(): void {

@@ -15,7 +15,7 @@ dependencies {
   compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
   implementation "io.grpc:grpc-stub:${grpcVersion}"
-  runtimeOnly "io.grpc:grpc-netty-shaded:${grpcVersion}"
+  runtimeOnly "io.grpc:grpc-netty:${grpcVersion}"
   runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
   testImplementation "io.grpc:grpc-testing:${grpcVersion}"
   testImplementation 'junit:junit:4.13'
