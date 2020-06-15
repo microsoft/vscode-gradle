@@ -6,16 +6,16 @@ export class EventWaiter {
   private eventRun = false;
 
   constructor(private readonly event: vscode.Event<null>) {
-    this.onEvent(() => {
-      this.eventRun = true;
-    });
+    this.waitForEvent();
   }
 
-  public onEvent = (callback: callback): void => {
+  public waitForEvent = (callback?: callback): void => {
     const disposable = this.event(() => {
       disposable.dispose();
       this.eventRun = true;
-      callback();
+      if (callback) {
+        callback();
+      }
     });
   };
 
@@ -23,10 +23,11 @@ export class EventWaiter {
     if (this.eventRun) {
       return Promise.resolve();
     }
-    return new Promise(this.onEvent);
+    return new Promise(this.waitForEvent);
   };
 
   public reset(): void {
     this.eventRun = false;
+    this.waitForEvent();
   }
 }
