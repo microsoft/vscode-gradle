@@ -41,6 +41,7 @@ protobuf {
     all().each { task ->
       task.plugins {
         grpc {
+          outputSubDir = 'js'
           option 'grpc_js'
         }
         ts {
