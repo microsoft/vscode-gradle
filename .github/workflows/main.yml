@@ -20,11 +20,11 @@ jobs:
         with:
           node-version: 12.16.2
       - name: Lint
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: lint
       - name: Build & Analyse
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: gradle-server:build sonarqube -x :test -x extension:test -x npm-package:test
         env:
@@ -60,7 +60,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
           architecture: x64
       - name: Build Extension
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: extension:build
         env:
@@ -80,25 +80,25 @@ jobs:
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Prepare gradle-groovy-custom-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
       - name: Prepare gradle-groovy-default-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
       - name: Prepare gradle-kotlin-default-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
       - name: Test extension
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: testVsCode
         env:
@@ -117,7 +117,7 @@ jobs:
         with:
           node-version: 12.16.2
       - name: Build & prepare extension
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: prepareForBetaRelease
       - name: Publish types
@@ -152,7 +152,7 @@ jobs:
         with:
           node-version: 12.16.2
       - name: Build & prepare extension
-        uses: eskatos/gradle-command-action@v1
+        uses: eskatos/gradle-command-action@v1.2.1
         with:
           arguments: prepareForRelease
       - name: Publish types
