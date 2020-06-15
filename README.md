@@ -135,7 +135,7 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
-- `gradle.nestedProjects`: Support nested projects. This can be a boolean or an array of directories.
+- `gradle.nestedProjects`: Support nested projects (boolean or an array of directories)
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc)

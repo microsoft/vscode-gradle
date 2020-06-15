@@ -16,9 +16,9 @@ Tasks belong to projects and projects are hierarchical, meaning projects can hav
 
 The gRPC server provides a `getBuild` method to provide this hierarchical data structure, and accepts a `projectDir` argument, which the client provides.
 
-A root project (`projectDir`) is defined by having a gradle wrapper script at the root (`gradlew` or `gradlew.bat`).
+A root project (`projectDir`) is defined by having a gradle wrapper script at the root (`gradlew` or `gradlew.bat`). By default the extension will search for wrapper scripts at the root of the workspaces, but you can control this behaviour by setting `gradle.nestedProjects` to allow the extension to discover Gradle projects at other locations.
 
-Once the client has discovered the root projects for all workspaces, it requests project data for each project via separate gRPC method calls using `getBuild`. Gradle progress and output (`STDERR` & `STDOUT`) are streamed to the client. Once the tasks have been discovered and returned to the client, it builds a single-dimensional list of vscode tasks from the Gradle project tasks. These vscode tasks have definitions that contain all the relevant task & project information.
+Once the client has discovered the root projects for all workspaces, it requests project data for each root project via separate gRPC method calls using `getBuild`. Gradle progress and output (`STDERR` & `STDOUT`) are streamed to the client. Once the tasks have been discovered and returned to the client, it builds a single-dimensional list of vscode tasks from the Gradle project tasks. These vscode tasks have definitions that contain all the relevant task & project information.
 
 The extension models the project hierarchical structure using the vscode treeView. The treeview data provider consumes the vscode tasks, and builds a tree of projects & tasks using the information provided in the task definitions.
 
