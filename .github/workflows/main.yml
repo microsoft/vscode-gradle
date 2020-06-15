@@ -104,6 +104,28 @@ jobs:
         env:
           DISPLAY: ':99.0'
           CI: 'true'
+      - name: Stop Gradle daemon for root project
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: --stop
+      - name: Stop Gradle daemon for gradle-groovy-custom-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: --stop
+          build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+          wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+      - name: Stop Gradle daemon for gradle-groovy-default-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: --stop
+          build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
+          wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
+      - name: Stop Gradle daemon for gradle-kotlin-default-build-file
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: --stop
+          build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
+          wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
 
   publish-beta-extension:
     needs: [test-extension]
