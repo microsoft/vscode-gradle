@@ -60,6 +60,31 @@ async function runNetworkTestsWithGradle(
   });
 }
 
+async function runNestedProjectTests(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(
+      __dirname,
+      'integration',
+      'nested-projects'
+    ),
+    launchArgs: [
+      path.resolve(__dirname, `../../test-fixtures`),
+      '--disable-extensions',
+      `--user-data-dir=${userDir}`,
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: 'test-fixtures',
+      VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run nested project tests',
+    },
+  });
+}
+
 async function runUnitTests(
   vscodeExecutablePath: string,
   userDir: string
@@ -163,6 +188,7 @@ async function main(): Promise<void> {
     await runNetworkTestsWithGradle(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiRoot(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiProject(vscodeExecutablePath, tmpDir);
+    await runNestedProjectTests(vscodeExecutablePath, tmpDir);
     await runTestsWithoutGradle(vscodeExecutablePath, tmpDir);
   } catch (err) {
     hasErr = true;
