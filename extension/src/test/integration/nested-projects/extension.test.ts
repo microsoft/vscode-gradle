@@ -55,7 +55,7 @@ describe(getSuiteName('Extension'), () => {
         const disposable = vscode.workspace.onDidChangeConfiguration(
           (event) => {
             if (event.affectsConfiguration(nestedProjectsConfigKey)) {
-              disposable?.dispose();
+              disposable.dispose();
               done();
             }
           }
