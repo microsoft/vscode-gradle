@@ -14,7 +14,11 @@ export class LoggerStream {
       ? message
       : this.logger.format(message.trimLeft(), this.verbosity);
     this.buffer += message;
-    this.logger.append(formattedMessage, this.verbosity);
+    this.append(formattedMessage);
+  }
+
+  private append(message: string): void {
+    this.logger.append(message, this.verbosity);
   }
 
   public getBuffer(): string {

@@ -286,6 +286,7 @@ export class GradleClient implements vscode.Disposable {
           logger.info('Completed task:', task.definition.script);
         } catch (err) {
           logger.error('Error running task:', err.details || err.message);
+          throw err;
         } finally {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
           restartQueuedTask(task);
