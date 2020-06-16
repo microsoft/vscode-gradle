@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as util from 'util';
 import getPort from 'get-port';
 import { isTaskRunning } from '../tasks/taskUtil';
-import { waitOnTcp } from '../util';
-import { logger } from '../logger';
+import { waitOnTcp, isTest } from '../util';
+import { logger, LoggerStream, LogVerbosity } from '../logger';
 import { Extension } from '../extension';
 import { Output } from '../proto/gradle_pb';
 import { COMMAND_CANCEL_TASK } from '../commands';
@@ -19,11 +19,15 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private readonly closeEmitter = new vscode.EventEmitter<void>();
   private task?: vscode.Task;
   public readonly onDidClose?: vscode.Event<void> = this.closeEmitter.event;
+  private stdOutLoggerStream: LoggerStream;
 
   constructor(
     private readonly workspaceFolder: vscode.WorkspaceFolder,
     private readonly projectFolder: string
-  ) {}
+  ) {
+    // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
+    this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+  }
 
   public setTask(task: vscode.Task): void {
     this.task = task;
@@ -93,6 +97,9 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   private handleOutput = (output: Output): void => {
     const messageBytes = output.getOutputBytes_asU8();
     if (messageBytes.length) {
+      if (isTest()) {
+        this.stdOutLoggerStream.write(messageBytes);
+      }
       this.write(new util.TextDecoder('utf-8').decode(messageBytes));
     }
   };
