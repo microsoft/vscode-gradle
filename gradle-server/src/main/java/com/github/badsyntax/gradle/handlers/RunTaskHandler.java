@@ -18,6 +18,7 @@ import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -98,6 +99,12 @@ public class RunTaskHandler {
           }
         };
 
+    // Specifying the tasks to run via build arguments provides support for task *and* build
+    // arguments.
+    // Using BuildLauncher.forTasks() prevents us from specifying task args.
+    ArrayList<String> argsList = new ArrayList<String>(req.getArgsList());
+    argsList.add(0, req.getTask());
+
     BuildLauncher build =
         connection
             .newBuild()
@@ -123,8 +130,7 @@ public class RunTaskHandler {
                   }
                 })
             .setColorOutput(req.getShowOutputColors())
-            .withArguments(req.getArgsList())
-            .forTasks(req.getTask());
+            .withArguments(argsList);
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       InputStream inputStream = new ByteArrayInputStream(req.getInput().getBytes());

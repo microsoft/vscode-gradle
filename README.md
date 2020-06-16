@@ -121,7 +121,7 @@ The extension uses the Gradle wrapper to list daemons, and is quite a slow proce
 - Show flat or nested tasks in the explorer
 - Gracefully cancel a running task
 - Debug JavaExec tasks
-- Run/debug a task with custom arguments
+- Run/debug a task with arguments (supports both build & task args, eg `gradle tasks --all --info`)
 - Pin tasks
 - List recent tasks
 - List & stop daemons
