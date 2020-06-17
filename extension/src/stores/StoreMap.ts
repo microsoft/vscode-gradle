@@ -1,6 +1,6 @@
 import { EventedStore } from '.';
 
-export abstract class Store<K, V> extends EventedStore<V> {
+export abstract class StoreMap<K, V> extends EventedStore<V> {
   private readonly data = new Map<K, V>();
 
   public getItem(key: K): V | void {
@@ -19,11 +19,9 @@ export abstract class Store<K, V> extends EventedStore<V> {
   }
 
   public setItem(key: K, value: V, fireOnDidChange = true): void {
-    if (!this.data.has(key)) {
-      this.data.set(key, value);
-      if (fireOnDidChange) {
-        this.fireOnDidChange(value);
-      }
+    this.data.set(key, value);
+    if (fireOnDidChange) {
+      this.fireOnDidChange(value);
     }
   }
 

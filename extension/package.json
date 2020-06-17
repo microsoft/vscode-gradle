@@ -35,8 +35,8 @@
     "tasks"
   ],
   "activationEvents": [
-    "workspaceContains:gradlew",
-    "workspaceContains:gradlew.bat"
+    "workspaceContains:**/gradlew",
+    "workspaceContains:**/gradlew.bat"
   ],
   "main": "./dist/index.js",
   "contributes": {
@@ -63,11 +63,11 @@
         },
         {
           "id": "pinnedTasksView",
-          "name": "Pinned Gradle Tasks"
+          "name": "Pinned Tasks"
         },
         {
           "id": "recentTasksView",
-          "name": "Recent Gradle Tasks"
+          "name": "Recent Tasks"
         },
         {
           "id": "gradleDaemonsView",
@@ -558,6 +558,22 @@
           "scope": "resource",
           "description": "Controls whether Gradle tasks should be automatically detected"
         },
+        "gradle.nestedProjects": {
+          "anyOf": [
+            {
+              "type": "boolean",
+              "description": "Processs all nested projects",
+              "default": false
+            },
+            {
+              "type": "array",
+              "description": "Process specific nested projects",
+              "default": []
+            }
+          ],
+          "scope": "window",
+          "default": false
+        },
         "gradle.debug": {
           "type": "boolean",
           "default": false,
@@ -715,7 +731,6 @@
     "eslint-config-prettier": "^6.10.1",
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-sonarjs": "^0.5.0",
-    "fast-glob": "^3.2.2",
     "fs-extra": "^9.0.1",
     "get-port": "^5.1.1",
     "google-auth-library": "^6.0.1",

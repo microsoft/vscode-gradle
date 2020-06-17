@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { Deferred } from '../../async';
 import { GradleDaemonTreeItem } from '.';
 import { Extension } from '../../extension';
+import { Deferred } from '../../async';
+import { RootProjectsStore } from '../../stores';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -11,7 +12,10 @@ export class GradleDaemonsTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly rootProjectsStore: RootProjectsStore
+  ) {}
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -29,31 +33,41 @@ export class GradleDaemonsTreeDataProvider
       return [];
     }
     this.cancelDeferred = new Deferred();
-    const promises: Promise<
-      GradleDaemonTreeItem[]
-    >[] = vscode.workspace.workspaceFolders.map((folder) =>
-      Extension.getInstance()
-        .getClient()
-        .getDaemonsStatus(folder.uri.fsPath)
-        .then((status) =>
-          status
-            ? status
-                .getDaemonInfoList()
-                .map(
-                  (daemonInfo) =>
-                    new GradleDaemonTreeItem(
-                      this.context,
-                      daemonInfo.getPid(),
-                      daemonInfo
-                    )
-                )
-            : []
-        )
+    const cancellationToken = new vscode.CancellationTokenSource();
+    this.cancelDeferred.promise.then(() => cancellationToken.cancel());
+
+    const projectRootFolders = await this.getProjectRootFolders();
+    const promises: Promise<GradleDaemonTreeItem[]>[] = projectRootFolders.map(
+      (projectRootFolder) =>
+        Extension.getInstance()
+          .getClient()
+          .getDaemonsStatus(projectRootFolder, cancellationToken.token)
+          .then((getDaemonsStatusReply) =>
+            getDaemonsStatusReply
+              ? getDaemonsStatusReply
+                  .getDaemonInfoList()
+                  .map(
+                    (daemonInfo) =>
+                      new GradleDaemonTreeItem(
+                        this.context,
+                        daemonInfo.getPid(),
+                        daemonInfo
+                      )
+                  )
+              : []
+          )
     );
     this.treeItems = await Promise.race([
       Promise.all(promises).then((items) => items.flat()),
       this.cancelDeferred.promise,
     ]);
+    this.cancelDeferred = undefined;
     return this.treeItems;
+  }
+
+  private async getProjectRootFolders(): Promise<string[]> {
+    return (
+      await this.rootProjectsStore.buildAndGetProjectRootsWithUniqueVersions()
+    ).map((rootProject) => rootProject.getProjectUri().fsPath);
   }
 }

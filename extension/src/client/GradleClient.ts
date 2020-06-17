@@ -27,7 +27,7 @@ import {
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
-import { logger, LoggerStream, LogVerbosity } from '../logger';
+import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
 import { EventWaiter } from '../events';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
@@ -39,6 +39,7 @@ import {
   COMMAND_SHOW_LOGS,
   COMMAND_CANCEL_TASK,
 } from '../commands';
+import { RootProject } from '../rootProject/RootProject';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -66,7 +67,8 @@ export class GradleClient implements vscode.Disposable {
 
   public constructor(
     private readonly server: GradleServer,
-    private readonly statusBarItem: vscode.StatusBarItem
+    private readonly statusBarItem: vscode.StatusBarItem,
+    private readonly clientLogger: Logger
   ) {
     this.server.onDidStart(this.handleServerStart);
     this.server.onDidStop(this.handleServerStop);
@@ -117,6 +119,7 @@ export class GradleClient implements vscode.Disposable {
         grpc.credentials.createInsecure(),
         { 'grpc.enable_http_proxy': 0 }
       );
+      grpc.setLogger(this.clientLogger);
       const deadline = new Date();
       deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
       this.grpcClient.waitForReady(deadline, this.handleClientReady);
@@ -127,7 +130,7 @@ export class GradleClient implements vscode.Disposable {
   }
 
   public async getBuild(
-    projectFolder: string,
+    rootProject: RootProject,
     gradleConfig: GradleConfig,
     showOutputColors = false
   ): Promise<GradleBuild | void> {
@@ -147,9 +150,6 @@ export class GradleClient implements vscode.Disposable {
           progress,
           'Configure project'
         );
-        progressHandler.onDidProgressStart(() => {
-          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-        });
 
         token.onCancellationRequested(() => this.cancelGetBuilds());
 
@@ -157,7 +157,7 @@ export class GradleClient implements vscode.Disposable {
         const stdErrLoggerStream = new LoggerStream(logger, LogVerbosity.ERROR);
 
         const request = new GetBuildRequest();
-        request.setProjectDir(projectFolder);
+        request.setProjectDir(rootProject.getProjectUri().fsPath);
         request.setGradleConfig(gradleConfig);
         request.setShowOutputColors(showOutputColors);
         const getBuildStream = this.grpcClient!.getBuild(request);
@@ -193,7 +193,12 @@ export class GradleClient implements vscode.Disposable {
                     build = getBuildReply.getGetBuildResult()!.getBuild();
                     break;
                   case GetBuildReply.KindCase.ENVIRONMENT:
-                    logBuildEnvironment(getBuildReply.getEnvironment()!);
+                    const environment = getBuildReply.getEnvironment()!;
+                    rootProject.setEnvironment(environment);
+                    logBuildEnvironment(environment);
+                    vscode.commands.executeCommand(
+                      COMMAND_REFRESH_DAEMON_STATUS
+                    );
                     break;
                 }
               })
@@ -202,7 +207,7 @@ export class GradleClient implements vscode.Disposable {
           });
         } catch (err) {
           logger.error(
-            `Error getting build for ${projectFolder}: ${
+            `Error getting build for ${rootProject.getProjectUri().fsPath}: ${
               err.details || err.message
             }`
           );
@@ -210,7 +215,9 @@ export class GradleClient implements vscode.Disposable {
           this.statusBarItem.text = '$(warning) Gradle: Build Error';
           this.statusBarItem.show();
         } finally {
-          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+          process.nextTick(() =>
+            vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS)
+          );
         }
       }
     );
@@ -242,6 +249,7 @@ export class GradleClient implements vscode.Disposable {
         );
 
         const progressHandler = new ProgressHandler(progress);
+        // eslint-disable-next-line sonarjs/no-identical-functions
         progressHandler.onDidProgressStart(() => {
           vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });
@@ -390,14 +398,16 @@ export class GradleClient implements vscode.Disposable {
   }
 
   public async getDaemonsStatus(
-    projectFolder: string
+    projectFolder: string,
+    cancelToken: vscode.CancellationToken
   ): Promise<GetDaemonsStatusReply | void> {
     await this.waitForConnect();
+    logger.debug('Get daemon status');
     const request = new GetDaemonsStatusRequest();
     request.setProjectDir(projectFolder);
     try {
       return await new Promise((resolve, reject) => {
-        this.grpcClient!.getDaemonsStatus(
+        const stream = this.grpcClient!.getDaemonsStatus(
           request,
           (
             err: grpc.ServiceError | null,
@@ -410,9 +420,15 @@ export class GradleClient implements vscode.Disposable {
             }
           }
         );
+        cancelToken.onCancellationRequested(() => stream.cancel());
       });
     } catch (err) {
-      logger.error('Error getting status:', err.details || err.message);
+      const errMessage = err.details || err.message;
+      if (cancelToken.isCancellationRequested) {
+        logger.debug('Get daemon status:', errMessage);
+      } else {
+        logger.error('Unable to get daemon status:', errMessage);
+      }
     }
   }
 
@@ -440,6 +456,8 @@ export class GradleClient implements vscode.Disposable {
       });
     } catch (err) {
       logger.error('Error stopping daemons:', err.details || err.message);
+    } finally {
+      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   }
 
@@ -465,6 +483,8 @@ export class GradleClient implements vscode.Disposable {
       });
     } catch (err) {
       logger.error('Error stopping daemon:', err.details || err.message);
+    } finally {
+      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   }
 

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { TaskId } from './types';
-import { StoreSet } from '.';
+import { StoreMapSet } from '.';
 
-export class TaskTerminalsStore extends StoreSet<TaskId, vscode.Terminal> {
+export class TaskTerminalsStore extends StoreMapSet<TaskId, vscode.Terminal> {
   removeTerminal(terminal: vscode.Terminal): void {
     Array.from(this.getData().keys()).forEach((key) => {
       const itemSet = this.getItem(key);

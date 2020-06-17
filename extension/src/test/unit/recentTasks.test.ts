@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as assert from 'assert';
-import * as fg from 'fast-glob';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -17,15 +16,20 @@ import {
   buildMockTaskDefinition,
   buildMockGradleTask,
   assertFolderTreeItem,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import {
   RecentTasksTreeDataProvider,
   NoRecentTasksTreeItem,
   RecentTaskTreeItem,
-  RecentTasksWorkspaceTreeItem,
+  RecentTasksRootProjectTreeItem,
 } from '../../views';
 import { GradleTaskProvider } from '../../tasks';
-import { RecentTasksStore, TaskTerminalsStore } from '../../stores';
+import {
+  RecentTasksStore,
+  TaskTerminalsStore,
+  RootProjectsStore,
+} from '../../stores';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import { IconPath, Icons } from '../../icons';
 import {
@@ -46,17 +50,9 @@ import { SinonStub } from 'sinon';
 const mockContext = buildMockContext();
 const mockExtension = buildMockExtension();
 
-const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
-  0,
-  'folder1',
-  'folder name 1'
-);
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
 
-const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
-  1,
-  'folder2',
-  'folder name 2'
-);
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
 
 const mockTaskDefinition1 = buildMockTaskDefinition(
   mockWorkspaceFolder1,
@@ -83,13 +79,15 @@ mockGradleBuild.setProject(mockGradleProject);
 describe(getSuiteName('Recent tasks'), () => {
   beforeEach(() => {
     const icons = new Icons(mockContext);
-    const gradleTaskProvider = new GradleTaskProvider();
+    const rootProjectsStore = new RootProjectsStore();
+    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
     const recentTasksStore = new RecentTasksStore();
     const taskTerminalsStore = new TaskTerminalsStore();
     const recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       mockContext,
       recentTasksStore,
-      taskTerminalsStore
+      taskTerminalsStore,
+      rootProjectsStore
     );
     const mockClient = buildMockClient();
     mockClient.getBuild.resolves(mockGradleBuild);
@@ -103,7 +101,6 @@ describe(getSuiteName('Recent tasks'), () => {
     mockExtension.getIcons.returns(icons);
 
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
-    sinon.stub(fg, 'sync').returns([mockTaskDefinition1.buildFile]);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -114,9 +111,7 @@ describe(getSuiteName('Recent tasks'), () => {
 
   describe('Without a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 
@@ -243,10 +238,10 @@ describe(getSuiteName('Recent tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksWorkspaceTreeItem;
+        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
         assert.ok(
-          workspaceTreeItem instanceof RecentTasksWorkspaceTreeItem,
-          'Tree item is not RecentTasksWorkspaceTreeItem'
+          workspaceTreeItem instanceof RecentTasksRootProjectTreeItem,
+          'Tree item is not RecentTasksRootProjectTreeItem'
         );
         assertFolderTreeItem(workspaceTreeItem, mockWorkspaceFolder1);
         assert.ok(workspaceTreeItem.tasks.length);
@@ -291,9 +286,7 @@ describe(getSuiteName('Recent tasks'), () => {
 
   describe('With multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
       const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,
@@ -349,9 +342,7 @@ describe(getSuiteName('Recent tasks'), () => {
     const mockTerminal1 = buildMockTerminal();
     const mockTerminal2 = buildMockTerminal();
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
       const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
       recentTasksStore.addEntry(

@@ -4,4 +4,4 @@ export * from './TreeItemWithTasksOrGroups';
 export * from './ProjectTreeItem';
 export * from './GroupTreeItem';
 export * from './NoGradleTasksTreeItem';
-export * from './WorkspaceTreeItem';
+export * from './RootProjectTreeItem';

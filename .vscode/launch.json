@@ -117,6 +117,31 @@
       }
     },
     {
+      "name": "Test: Nested Projects",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "env": {
+        "FIXTURE_NAME": "test-fixtures",
+        "VSCODE_TEST": "true",
+        "SUITE_NAME": "Run nested project tests"
+      },
+      "args": [
+        "--disable-extensions",
+        "--extensionDevelopmentPath=${workspaceFolder}/extension",
+        "--extensionTestsPath=${workspaceFolder}/extension/out/test/integration/nested-projects",
+        "${workspaceFolder}/extension/test-fixtures"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js",
+        "${workspaceFolder}/extension/out/**/*.js"
+      ],
+      "preLaunchTask": "Gradle: Build Test",
+      "presentation": {
+        "group": "test"
+      }
+    },
+    {
       "name": "Test: No-Gradle",
       "type": "extensionHost",
       "request": "launch",
@@ -232,7 +257,6 @@
         "${workspaceFolder}/extension/test-fixtures/no-gradle"
       ],
       "outFiles": [
-        "${workspaceFolder}/extension/dist/**/*.js",
         "${workspaceFolder}/extension/out/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build Test",

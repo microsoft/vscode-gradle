@@ -6,7 +6,8 @@ import * as fs from 'fs-extra';
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-const VSCODE_VERSION = '1.46.0';
+// TODO: change to 1.47.0 when released. See https://github.com/microsoft/vscode/issues/98080
+const VSCODE_VERSION = 'insiders';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
@@ -56,6 +57,31 @@ async function runNetworkTestsWithGradle(
       SUITE_NAME: 'Run network tests with Gradle',
       // eslint-disable-next-line @typescript-eslint/camelcase
       http_proxy: 'http://0.0.0.0',
+    },
+  });
+}
+
+async function runNestedProjectTests(
+  vscodeExecutablePath: string,
+  userDir: string
+): Promise<void> {
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath,
+    extensionTestsPath: path.resolve(
+      __dirname,
+      'integration',
+      'nested-projects'
+    ),
+    launchArgs: [
+      path.resolve(__dirname, `../../test-fixtures`),
+      '--disable-extensions',
+      `--user-data-dir=${userDir}`,
+    ],
+    extensionTestsEnv: {
+      FIXTURE_NAME: 'test-fixtures',
+      VSCODE_TEST: 'true',
+      SUITE_NAME: 'Run nested project tests',
     },
   });
 }
@@ -163,6 +189,7 @@ async function main(): Promise<void> {
     await runNetworkTestsWithGradle(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiRoot(vscodeExecutablePath, tmpDir);
     await runTestsWithMultiProject(vscodeExecutablePath, tmpDir);
+    await runNestedProjectTests(vscodeExecutablePath, tmpDir);
     await runTestsWithoutGradle(vscodeExecutablePath, tmpDir);
   } catch (err) {
     hasErr = true;

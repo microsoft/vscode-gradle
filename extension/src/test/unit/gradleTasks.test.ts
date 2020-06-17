@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
-import * as fg from 'fast-glob';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -15,6 +14,7 @@ import {
   buildMockOutputChannel,
   buildMockTaskDefinition,
   buildMockGradleTask,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -23,7 +23,7 @@ import {
   ProjectTreeItem,
   GroupTreeItem,
   NoGradleTasksTreeItem,
-  WorkspaceTreeItem,
+  RootProjectTreeItem,
 } from '../../views';
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
@@ -45,21 +45,13 @@ import {
   COMMAND_RENDER_TASK,
 } from '../../commands';
 import { removeCancellingTask } from '../../tasks/taskUtil';
+import { RootProjectsStore } from '../../stores';
 
 const mockContext = buildMockContext();
 const mockExtension = buildMockExtension();
 
-const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
-  0,
-  'folder1',
-  'folder name 1'
-);
-
-const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
-  1,
-  'folder2',
-  'folder name 2'
-);
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
 
 const mockTaskDefinition1ForFolder1 = buildMockTaskDefinition(
   mockWorkspaceFolder1,
@@ -112,8 +104,10 @@ describe(getSuiteName('Gradle tasks'), () => {
     const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext
     );
-    const gradleTaskProvider = new GradleTaskProvider();
+    const rootProjectsStore = new RootProjectsStore();
+    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
     const mockClient = buildMockClient();
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
     mockExtension.getClient.returns(mockClient);
     mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
     mockExtension.getGradleTasksTreeDataProvider.returns(
@@ -121,7 +115,6 @@ describe(getSuiteName('Gradle tasks'), () => {
     );
     mockExtension.getIcons.returns(icons);
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
-    sinon.stub(fg, 'sync').returns([mockTaskDefinition1ForFolder1.buildFile]);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -173,13 +166,13 @@ describe(getSuiteName('Gradle tasks'), () => {
 
     describe('With gradle tasks', () => {
       beforeEach(async () => {
+        stubWorkspaceFolders([mockWorkspaceFolder1]);
         mockExtension.getClient().getBuild.resolves(mockGradleBuildWithTasks);
       });
 
       describe('Expanded tree', () => {
         let gradleProjects: vscode.TreeItem[] = [];
         beforeEach(async () => {
-          explorerTreeCommand();
           const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
           gradleProjects = await gradleTaskTreeDataProvider.getChildren();
         });
@@ -211,8 +204,8 @@ describe(getSuiteName('Gradle tasks'), () => {
             mockTaskDefinition1ForFolder1.project
           );
           assert.ok(
-            projectItem.parentTreeItem instanceof WorkspaceTreeItem,
-            'parentTreeItem must be a WorkspaceTreeItem'
+            projectItem.parentTreeItem instanceof RootProjectTreeItem,
+            'parentTreeItem must be a RootProjectTreeItem'
           );
           assert.ok(
             projectItem.resourceUri,
@@ -311,8 +304,8 @@ describe(getSuiteName('Gradle tasks'), () => {
             'Gradle project is not a ProjectTreeItem'
           );
           assert.ok(
-            projectItem.parentTreeItem instanceof WorkspaceTreeItem,
-            'parentTreeItem must be a WorkspaceTreeItem'
+            projectItem.parentTreeItem instanceof RootProjectTreeItem,
+            'parentTreeItem must be a RootProjectTreeItem'
           );
         });
 
@@ -419,10 +412,8 @@ describe(getSuiteName('Gradle tasks'), () => {
   });
 
   describe('With a multi-root workspace', () => {
-    beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+    beforeEach(async () => {
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
     });
 
     describe('Without gradle tasks', () => {
@@ -445,33 +436,40 @@ describe(getSuiteName('Gradle tasks'), () => {
         explorerTreeCommand();
       });
 
-      it('should build workspace items at top level', async () => {
+      it('should build root RootProject items at top level', async () => {
         const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-        const workspaceItems = await gradleTaskTreeDataProvider.getChildren();
-        assert.ok(workspaceItems.length > 0, 'No workspaces found');
+        const rootProjectItems = await gradleTaskTreeDataProvider.getChildren();
+        assert.ok(rootProjectItems.length > 0, 'No root gradle projects found');
         assert.equal(
-          workspaceItems.length,
+          rootProjectItems.length,
           2,
-          'There should multi workspace items when there are multi tasks belonging to different workspaces'
+          'There should multi RootProject items when there are multi tasks belonging to different root projects'
         );
-        const workspaceItem = workspaceItems[0] as WorkspaceTreeItem;
+        const rootProjectItem = rootProjectItems[0] as RootProjectTreeItem;
         assert.ok(
-          workspaceItem instanceof WorkspaceTreeItem,
-          'Tree item is not a WorkspaceTreeItem'
+          rootProjectItem instanceof RootProjectTreeItem,
+          'Tree item is not a RootProjectTreeItem'
         );
         assert.equal(
-          workspaceItem.projects.length,
+          rootProjectItem.projects.length,
           1,
-          'There should only be one project belonging to this workspace'
+          'There should only be one project belonging to this RootProject'
         );
         assert.equal(
-          workspaceItem.collapsibleState,
+          rootProjectItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
         );
-        assert.equal(workspaceItem.contextValue, TREE_ITEM_STATE_FOLDER);
-        assert.equal(workspaceItem.label, mockWorkspaceFolder1.name);
-        assert.equal(workspaceItem.iconPath, vscode.ThemeIcon.Folder);
-        assert.equal(workspaceItem.resourceUri, mockWorkspaceFolder1.uri);
+        assert.equal(rootProjectItem.contextValue, TREE_ITEM_STATE_FOLDER);
+        assert.equal(rootProjectItem.label, mockWorkspaceFolder1.name);
+        assert.equal(rootProjectItem.iconPath, vscode.ThemeIcon.Folder);
+        assert.ok(
+          rootProjectItem.resourceUri,
+          'ResourceUri is not set on RootProject'
+        );
+        assert.equal(
+          rootProjectItem.resourceUri.fsPath,
+          mockWorkspaceFolder1.uri.fsPath
+        );
       });
     });
   });

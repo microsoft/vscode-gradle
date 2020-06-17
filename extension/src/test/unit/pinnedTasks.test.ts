@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
-import * as fg from 'fast-glob';
 
 import { Extension } from '../../extension';
 import { logger } from '../../logger';
@@ -16,6 +15,7 @@ import {
   buildMockTaskDefinition,
   buildMockGradleTask,
   assertFolderTreeItem,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import { GradleBuild, GradleProject } from '../../proto/gradle_pb';
 import {
@@ -25,11 +25,11 @@ import {
   GradleTaskTreeItem,
   ProjectTreeItem,
   GroupTreeItem,
-  WorkspaceTreeItem,
   PinnedTaskTreeItem,
   TreeItemWithTasksOrGroups,
+  RootProjectTreeItem,
 } from '../../views';
-import { PinnedTasksStore } from '../../stores';
+import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
 import {
@@ -50,17 +50,8 @@ import { SinonStub } from 'sinon';
 const mockContext = buildMockContext();
 const mockExtension = buildMockExtension();
 
-const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
-  0,
-  'folder1',
-  'folder name 1'
-);
-
-const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
-  1,
-  'folder2',
-  'folder name 2'
-);
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
 
 const mockTaskDefinition1 = buildMockTaskDefinition(
   mockWorkspaceFolder1,
@@ -90,11 +81,13 @@ describe(getSuiteName('Pinned tasks'), () => {
     const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext
     );
-    const gradleTaskProvider = new GradleTaskProvider();
+    const rootProjectsStore = new RootProjectsStore();
+    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
     const pinnedTasksStore = new PinnedTasksStore(mockContext);
     const pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
       mockContext,
-      pinnedTasksStore
+      pinnedTasksStore,
+      rootProjectsStore
     );
     const mockClient = buildMockClient();
     mockClient.getBuild.resolves(mockGradleBuild);
@@ -109,7 +102,6 @@ describe(getSuiteName('Pinned tasks'), () => {
     );
     mockExtension.getIcons.returns(icons);
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
-    sinon.stub(fg, 'sync').returns([mockTaskDefinition1.buildFile]);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -120,9 +112,7 @@ describe(getSuiteName('Pinned tasks'), () => {
 
   describe('Without a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
+      stubWorkspaceFolders([mockWorkspaceFolder1]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 
@@ -390,9 +380,7 @@ describe(getSuiteName('Pinned tasks'), () => {
 
   describe('With a multi-root workspace', () => {
     beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
       mockExtension.getGradleTaskProvider().loadTasks();
     });
 
@@ -401,10 +389,10 @@ describe(getSuiteName('Pinned tasks'), () => {
         const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
         const workspaceTreeItems = await gradleTaskTreeDataProvider.getChildren();
         assert.ok(workspaceTreeItems.length > 0, 'No gradle projects found');
-        const workspaceTreeItem = workspaceTreeItems[0] as WorkspaceTreeItem;
+        const workspaceTreeItem = workspaceTreeItems[0] as RootProjectTreeItem;
         assert.ok(
-          workspaceTreeItem instanceof WorkspaceTreeItem,
-          'Workspace tree item is not a WorkspaceTreeItem'
+          workspaceTreeItem instanceof RootProjectTreeItem,
+          'Workspace tree item is not a RootProjectTreeItem'
         );
         const projectItem = workspaceTreeItem.projects[0];
         assert.ok(
@@ -426,23 +414,23 @@ describe(getSuiteName('Pinned tasks'), () => {
           .getPinnedTasksTreeDataProvider()
           .getChildren();
         assert.equal(children.length, 1);
-        const pinnedTasksWorkspaceTreeItem = children[0];
+        const pinnedTasksRootProjectTreeItem = children[0];
         assert.equal(
-          pinnedTasksWorkspaceTreeItem.collapsibleState,
+          pinnedTasksRootProjectTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
         );
         assert.equal(
-          pinnedTasksWorkspaceTreeItem.contextValue,
+          pinnedTasksRootProjectTreeItem.contextValue,
           TREE_ITEM_STATE_FOLDER
         );
         assert.equal(
-          pinnedTasksWorkspaceTreeItem.label,
+          pinnedTasksRootProjectTreeItem.label,
           mockWorkspaceFolder1.name
         );
-        assert.equal(pinnedTasksWorkspaceTreeItem.parentTreeItem, undefined);
-        assert.equal(pinnedTasksWorkspaceTreeItem.tasks.length, 1);
+        assert.equal(pinnedTasksRootProjectTreeItem.parentTreeItem, undefined);
+        assert.equal(pinnedTasksRootProjectTreeItem.tasks.length, 1);
 
-        const pinnedTaskTreeItem = pinnedTasksWorkspaceTreeItem.tasks[0];
+        const pinnedTaskTreeItem = pinnedTasksRootProjectTreeItem.tasks[0];
         assert.equal(
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None

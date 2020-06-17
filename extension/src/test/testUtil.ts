@@ -5,6 +5,7 @@ import * as Mocha from 'mocha';
 import * as glob from 'glob';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
+import * as fs from 'fs';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleTask } from '../proto/gradle_pb';
 import { TREE_ITEM_STATE_FOLDER } from '../views/constants';
@@ -86,7 +87,27 @@ export function buildMockExtension(): any {
     getPinnedTasksTreeDataProvider: sinon.stub(),
     getPinnedTasksStore: sinon.stub(),
     getGradleTasksTreeDataProvider: sinon.stub(),
+    getRootProjectsStore: sinon.stub(),
   };
+}
+
+export function stubWorkspaceFolders(
+  workspaceFolders: vscode.WorkspaceFolder[]
+): void {
+  sinon.stub(vscode.workspace, 'workspaceFolders').value(workspaceFolders);
+  const existsSyncStub = sinon.stub(fs, 'existsSync');
+  const getWorkspaceFolderStub = sinon.stub(
+    vscode.workspace,
+    'getWorkspaceFolder'
+  );
+  workspaceFolders.forEach((workspaceFolder) => {
+    existsSyncStub
+      .withArgs(path.join(workspaceFolder.uri.fsPath, 'gradlew'))
+      .returns(true);
+    getWorkspaceFolderStub
+      .withArgs(sinon.match.has('fsPath', workspaceFolder.uri.fsPath))
+      .returns(workspaceFolder);
+  });
 }
 
 export function buildMockContext(): any {

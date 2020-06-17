@@ -1,14 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// TODO: add tests for filtering out duplicate versions
+
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
+import * as fs from 'fs';
 
 import {
   GetDaemonsStatusReply,
   DaemonInfo,
   StopDaemonReply,
   StopDaemonsReply,
+  Environment,
+  GradleEnvironment,
 } from '../../proto/gradle_pb';
 import {
   GradleDaemonsTreeDataProvider,
@@ -18,7 +24,6 @@ import { Extension } from '../../extension';
 import { SinonStub } from 'sinon';
 import {
   stopDaemonCommand,
-  COMMAND_REFRESH_DAEMON_STATUS,
   refreshDaemonStatusCommand,
   stopDaemonsCommand,
 } from '../../commands';
@@ -38,38 +43,84 @@ import {
   ICON_DAEMON_BUSY,
   ICON_DAEMON_IDLE,
 } from '../../views/constants';
+import { RootProjectsStore } from '../../stores';
 
 const mockContext = buildMockContext();
 const mockClient = buildMockClient();
 const mockExtension = buildMockExtension();
 
-const mockWorkspaceFolder1 = buildMockWorkspaceFolder(
-  0,
-  'folder1',
-  'folder name 1'
-);
-
-const mockWorkspaceFolder2 = buildMockWorkspaceFolder(
-  1,
-  'folder2',
-  'folder name 2'
-);
+const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
+const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
+const mockWorkspaceFolder3 = buildMockWorkspaceFolder(2, 'folder3', 'folder3');
 
 const mockOutputChannel = buildMockOutputChannel();
 
 describe(getSuiteName('Gradle daemons'), () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const rootProjectsStore = new RootProjectsStore();
     const gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
-      mockContext
+      mockContext,
+      rootProjectsStore
     );
     mockExtension.getClient.returns(mockClient);
     mockExtension.getGradleDaemonsTreeDataProvider.returns(
       gradleDaemonsTreeDataProvider
     );
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
+
     sinon.stub(Extension, 'getInstance').returns(mockExtension as any);
     sinon
       .stub(vscode.workspace, 'workspaceFolders')
-      .value([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      .value([
+        mockWorkspaceFolder1,
+        mockWorkspaceFolder2,
+        mockWorkspaceFolder3,
+      ]);
+    const existsSyncStub = sinon.stub(fs, 'existsSync');
+    existsSyncStub
+      .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
+      .returns(true);
+    existsSyncStub
+      .withArgs(path.join(mockWorkspaceFolder2.uri.fsPath, 'gradlew'))
+      .returns(true);
+    existsSyncStub
+      .withArgs(path.join(mockWorkspaceFolder3.uri.fsPath, 'gradlew'))
+      .returns(true);
+    const getWorkspaceFolderStub = sinon.stub(
+      vscode.workspace,
+      'getWorkspaceFolder'
+    );
+    getWorkspaceFolderStub
+      .withArgs(mockWorkspaceFolder1.uri)
+      .returns(mockWorkspaceFolder1);
+    getWorkspaceFolderStub
+      .withArgs(mockWorkspaceFolder2.uri)
+      .returns(mockWorkspaceFolder2);
+    getWorkspaceFolderStub
+      .withArgs(mockWorkspaceFolder3.uri)
+      .returns(mockWorkspaceFolder3);
+
+    // GradleClient.getBuild() sets the gradle versions once it receives the gradle environment
+    const projectRoots = await rootProjectsStore.buildAndGetProjectRoots();
+    const gradleEnvironment1 = new GradleEnvironment();
+    gradleEnvironment1.setGradleVersion('6.3');
+    const environment1 = new Environment();
+    environment1.setGradleEnvironment(gradleEnvironment1);
+    projectRoots[0].setEnvironment(environment1);
+
+    const gradleEnvironment2 = new GradleEnvironment();
+    gradleEnvironment2.setGradleVersion('6.4');
+    const environment2 = new Environment();
+    environment2.setGradleEnvironment(gradleEnvironment2);
+    projectRoots[1].setEnvironment(environment2);
+
+    // Should be ignored as it has a duplicate gradle version
+    const gradleEnvironment3 = new GradleEnvironment();
+    gradleEnvironment3.setGradleVersion('6.4');
+    const environment3 = new Environment();
+    environment3.setGradleEnvironment(gradleEnvironment3);
+    projectRoots[2].setEnvironment(environment3);
+
     logger.reset();
     logger.setLoggingChannel(mockOutputChannel);
   });
@@ -79,12 +130,20 @@ describe(getSuiteName('Gradle daemons'), () => {
     sinon.restore();
   });
 
+  it('should filter out projects with duplicate gradle versions', async () => {
+    const projects = await (mockExtension.getRootProjectsStore() as RootProjectsStore).buildAndGetProjectRootsWithUniqueVersions();
+    assert.equal(
+      projects.length,
+      2,
+      'There should only be two projects with unique gradle versions'
+    );
+  });
+
   it('should build the daemon treeitems', async () => {
-    const mockReply = new GetDaemonsStatusReply();
     const mockDaemonInfoBusy = new DaemonInfo();
     mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
     mockDaemonInfoBusy.setPid('41716');
-    mockDaemonInfoBusy.setInfo('6.4');
+    mockDaemonInfoBusy.setInfo('6.3');
 
     const mockDaemonInfoIdle = new DaemonInfo();
     mockDaemonInfoIdle.setStatus(DaemonInfo.DaemonStatus.IDLE);
@@ -96,30 +155,32 @@ describe(getSuiteName('Gradle daemons'), () => {
     mockDaemonInfoStopped.setPid('41718');
     mockDaemonInfoStopped.setInfo('(by user or operating system)');
 
-    mockReply.setDaemonInfoList([
-      mockDaemonInfoBusy,
-      mockDaemonInfoIdle,
-      mockDaemonInfoStopped,
-    ]);
+    const mockReply1 = new GetDaemonsStatusReply();
+    mockReply1.setDaemonInfoList([mockDaemonInfoBusy, mockDaemonInfoStopped]);
+
+    const mockReply2 = new GetDaemonsStatusReply();
+    mockReply2.setDaemonInfoList([mockDaemonInfoIdle, mockDaemonInfoStopped]);
 
     mockClient.getDaemonsStatus
       .withArgs(mockWorkspaceFolder1.uri.fsPath)
-      .resolves(mockReply);
+      .resolves(mockReply1);
     mockClient.getDaemonsStatus
       .withArgs(mockWorkspaceFolder2.uri.fsPath)
-      .resolves(mockReply);
+      .resolves(mockReply2);
+    // NOTE: no reason to mock reply for mockWorkspaceFolder3 as it should be ignored due to
+    // dupicate gradle version
 
     const children = await mockExtension
       .getGradleDaemonsTreeDataProvider()
       .getChildren();
 
-    assert.equal(children.length, 6);
+    assert.equal(children.length, 4, 'There should be 6 items in the tree');
 
     const treeItemBusy = children[0];
     assert.equal(treeItemBusy.label, '41716');
     assert.equal(treeItemBusy.description, 'BUSY');
     assert.equal(treeItemBusy.contextValue, 'busy');
-    assert.equal(treeItemBusy.tooltip, 'BUSY - 6.4');
+    assert.equal(treeItemBusy.tooltip, 'BUSY - 6.3');
     assert.equal(
       treeItemBusy.collapsibleState,
       vscode.TreeItemCollapsibleState.None
@@ -134,26 +195,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       path.join('resources', 'light', ICON_DAEMON_BUSY)
     );
 
-    const treeItemIdle = children[1];
-    assert.equal(treeItemIdle.label, '41717');
-    assert.equal(treeItemIdle.description, 'IDLE');
-    assert.equal(treeItemIdle.contextValue, 'idle');
-    assert.equal(treeItemIdle.tooltip, 'IDLE - 6.4');
-    assert.equal(
-      treeItemIdle.collapsibleState,
-      vscode.TreeItemCollapsibleState.None
-    );
-    const idleIconPath = treeItemIdle.iconPath as IconPath;
-    assert.equal(
-      idleIconPath.dark,
-      path.join('resources', 'dark', ICON_DAEMON_IDLE)
-    );
-    assert.equal(
-      idleIconPath.light,
-      path.join('resources', 'light', ICON_DAEMON_IDLE)
-    );
-
-    const treeItemStopped = children[2];
+    const treeItemStopped = children[1];
     assert.equal(treeItemStopped.label, '41718');
     assert.equal(treeItemStopped.description, 'STOPPED');
     assert.equal(treeItemStopped.contextValue, 'stopped');
@@ -174,14 +216,28 @@ describe(getSuiteName('Gradle daemons'), () => {
       stoppedIconPath.light,
       path.join('resources', 'light', ICON_DAEMON_STOPPED)
     );
+
+    const treeItemIdle = children[2];
+    assert.equal(treeItemIdle.label, '41717');
+    assert.equal(treeItemIdle.description, 'IDLE');
+    assert.equal(treeItemIdle.contextValue, 'idle');
+    assert.equal(treeItemIdle.tooltip, 'IDLE - 6.4');
+    assert.equal(
+      treeItemIdle.collapsibleState,
+      vscode.TreeItemCollapsibleState.None
+    );
+    const idleIconPath = treeItemIdle.iconPath as IconPath;
+    assert.equal(
+      idleIconPath.dark,
+      path.join('resources', 'dark', ICON_DAEMON_IDLE)
+    );
+    assert.equal(
+      idleIconPath.light,
+      path.join('resources', 'light', ICON_DAEMON_IDLE)
+    );
   });
 
   it('should stop a daemon', async () => {
-    const executeCommandStub = sinon.stub(
-      vscode.commands,
-      'executeCommand'
-    ) as SinonStub;
-
     const mockReply = new StopDaemonReply();
     mockReply.setMessage('Stopped');
     mockClient.stopDaemon.resolves(mockReply);
@@ -221,11 +277,6 @@ describe(getSuiteName('Gradle daemons'), () => {
       'Output channel appendLine not called with correct message'
     );
     assert.equal(mockOutputChannel.appendLine.callCount, 1);
-    assert.ok(
-      executeCommandStub.calledWith(COMMAND_REFRESH_DAEMON_STATUS),
-      'Daemon refresh command not called'
-    );
-    assert.equal(executeCommandStub.callCount, 1);
   });
 
   it('should stop all daemons', async () => {
@@ -245,11 +296,6 @@ describe(getSuiteName('Gradle daemons'), () => {
       vscode.window,
       'showWarningMessage'
     ) as SinonStub).resolves('Yes');
-
-    const executeCommandStub = sinon.stub(
-      vscode.commands,
-      'executeCommand'
-    ) as SinonStub;
 
     await stopDaemonsCommand();
 
@@ -273,11 +319,6 @@ describe(getSuiteName('Gradle daemons'), () => {
       mockOutputChannel.appendLine.calledWith('[info] Stopped 2'),
       'Reply for folder 2 not logged'
     );
-    assert.ok(
-      executeCommandStub.calledWith(COMMAND_REFRESH_DAEMON_STATUS),
-      'Daemon refresh command not called'
-    );
-    assert.equal(executeCommandStub.callCount, 1);
   });
 
   it('should refresh the daemons list', () => {
@@ -313,7 +354,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     const workspaceFolder1: vscode.WorkspaceFolder = {
       index: 0,
       uri: vscode.Uri.file('folder1'),
-      name: 'folder name 1',
+      name: 'folder1',
     };
 
     sinon.stub(vscode.workspace, 'workspaceFolders').value([workspaceFolder1]);

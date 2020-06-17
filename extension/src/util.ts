@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as net from 'net';
-import * as fg from 'fast-glob';
+import * as path from 'path';
+import * as fs from 'fs';
+import { RootProject } from './rootProject/RootProject';
 
 export const isTest = (): boolean =>
   process.env.VSCODE_TEST?.toLowerCase() === 'true';
@@ -49,14 +51,11 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
   return tryConnect(host, port, Date.now());
 }
 
-export function getGradleBuildFile(folder: vscode.WorkspaceFolder): string {
-  const files = fg.sync('!(*settings){.gradle,.gradle.kts}', {
-    onlyFiles: true,
-    cwd: folder.uri.fsPath,
-    deep: 1,
-    absolute: true,
-  });
-  return files[0];
+export function isGradleRootProject(rootProject: RootProject): boolean {
+  return (
+    fs.existsSync(path.join(rootProject.getProjectUri().fsPath, 'gradlew')) ||
+    fs.existsSync(path.join(rootProject.getProjectUri().fsPath, 'gradlew.bat'))
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

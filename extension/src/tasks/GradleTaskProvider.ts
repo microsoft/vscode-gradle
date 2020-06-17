@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import { EventWaiter } from '../events';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import { createTaskFromDefinition, loadTasksForFolders } from './taskUtil';
+import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
+import { RootProjectsStore } from '../stores';
+import { RootProject } from '../rootProject/RootProject';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
@@ -17,6 +19,8 @@ export class GradleTaskProvider
   private readonly _onDidStopRefresh: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
+
+  constructor(private readonly rootProjectsStore: RootProjectsStore) {}
 
   public readonly onDidLoadTasks: vscode.Event<null> = this._onDidLoadTasks
     .event;
@@ -48,15 +52,14 @@ export class GradleTaskProvider
       );
       return undefined;
     }
-    const projectFolder = vscode.Uri.file(gradleTaskDefinition.projectFolder);
-    return createTaskFromDefinition(
-      gradleTaskDefinition,
+    const rootProject = new RootProject(
       workspaceFolder,
-      projectFolder
+      vscode.Uri.file(gradleTaskDefinition.projectFolder)
     );
+    return createTaskFromDefinition(gradleTaskDefinition, rootProject);
   }
 
-  public loadTasks(): Promise<vscode.Task[]> {
+  public async loadTasks(): Promise<vscode.Task[]> {
     // To accomodate calling loadTasks() on extension activate (when client is connected)
     // and opening the treeview.
     if (this.loadTasksPromise) {
@@ -67,14 +70,13 @@ export class GradleTaskProvider
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
-    const folders = vscode.workspace.workspaceFolders;
-
-    if (!folders) {
+    const folders = await this.rootProjectsStore.buildAndGetProjectRoots();
+    if (!folders.length) {
       this.cachedTasks = [];
       return Promise.resolve(this.cachedTasks);
     }
 
-    this.loadTasksPromise = loadTasksForFolders(folders)
+    this.loadTasksPromise = loadTasksForProjectRoots(folders)
       .then(
         (tasks) => {
           this.cachedTasks = tasks;
