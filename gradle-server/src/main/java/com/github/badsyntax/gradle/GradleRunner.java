@@ -12,15 +12,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.gradle.tooling.BuildCancelledException;
-import org.gradle.tooling.BuildException;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
-import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressListener;
-import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 
 public class GradleRunner {
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
@@ -76,10 +72,7 @@ public class GradleRunner {
     return this;
   }
 
-  public void run()
-      throws GradleConnectionException, BuildCancelledException, BuildException,
-          UnsupportedVersionException, UnsupportedBuildArgumentException, IllegalStateException,
-          IOException, GradleTaskRunnerException {
+  public void run() throws GradleConnectionException, IOException, GradleTaskRunnerException {
     GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
     try (ProjectConnection connection = gradleConnector.connect()) {
       runCommand(connection);
