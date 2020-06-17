@@ -21,7 +21,7 @@ public class CancellationHandler {
     return getCancellationToken(CancellationTokenPool.TYPE.GET, cancellationKey);
   }
 
-  public static CancellationToken getRunTaskCancellationToken(String cancellationKey) {
+  public static CancellationToken getRunCancellationToken(String cancellationKey) {
     return getCancellationToken(CancellationTokenPool.TYPE.RUN, cancellationKey);
   }
 
@@ -34,11 +34,11 @@ public class CancellationHandler {
     clearToken(CancellationTokenPool.TYPE.GET, cancellationKey);
   }
 
-  public static void clearRunTaskToken(String cancellationKey) {
+  public static void clearRunToken(String cancellationKey) {
     clearToken(CancellationTokenPool.TYPE.RUN, cancellationKey);
   }
 
-  public static void cancelRunTask(String cancellationKey) throws GradleCancellationException {
+  public static void cancelRun(String cancellationKey) throws GradleCancellationException {
     CancellationTokenSource cancellationTokenSource =
         cancellationTokenPool.get(CancellationTokenPool.TYPE.RUN, cancellationKey);
     if (cancellationTokenSource == null) {

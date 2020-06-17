@@ -46,11 +46,11 @@ public class GetBuildHandler {
     this.responseObserver = responseObserver;
   }
 
-  public static String getCancellationKey(String projectDir) {
+  private static String getCancellationKey(String projectDir) {
     return projectDir;
   }
 
-  public String getCancellationKey() {
+  private String getCancellationKey() {
     return GetBuildHandler.getCancellationKey(req.getProjectDir());
   }
 
@@ -173,7 +173,7 @@ public class GetBuildHandler {
         .build();
   }
 
-  public void replyWithProject(GradleProject gradleProject) {
+  private void replyWithProject(GradleProject gradleProject) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setGetBuildResult(
@@ -183,7 +183,7 @@ public class GetBuildHandler {
     responseObserver.onCompleted();
   }
 
-  public void replyWithCancelled(BuildCancelledException e) {
+  private void replyWithCancelled(BuildCancelledException e) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setCancelled(
@@ -194,11 +194,11 @@ public class GetBuildHandler {
     responseObserver.onCompleted();
   }
 
-  public void replyWithError(Exception e) {
+  private void replyWithError(Exception e) {
     responseObserver.onError(ErrorMessageBuilder.build(e));
   }
 
-  public void replyWithBuildEnvironment(Environment environment) {
+  private void replyWithBuildEnvironment(Environment environment) {
     responseObserver.onNext(GetBuildReply.newBuilder().setEnvironment(environment).build());
   }
 

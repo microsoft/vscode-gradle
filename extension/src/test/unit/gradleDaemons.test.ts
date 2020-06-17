@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// TODO: add tests for filtering out duplicate versions
-
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';

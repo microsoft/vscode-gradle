@@ -8,13 +8,14 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CancelTaskHandler {
-  private static final Logger logger = LoggerFactory.getLogger(CancelTaskHandler.class.getName());
+public class CancelRunTaskHandler {
+  private static final Logger logger =
+      LoggerFactory.getLogger(CancelRunTaskHandler.class.getName());
 
   private CancelRunTaskRequest req;
   private StreamObserver<CancelRunTaskReply> responseObserver;
 
-  public CancelTaskHandler(
+  public CancelRunTaskHandler(
       CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
@@ -22,7 +23,7 @@ public class CancelTaskHandler {
 
   public void run() {
     try {
-      CancellationHandler.cancelRunTask(
+      CancellationHandler.cancelRun(
           RunTaskHandler.getCancellationKey(req.getProjectDir(), req.getTask()));
       replyWithCancelledSuccess();
     } catch (GradleCancellationException e) {

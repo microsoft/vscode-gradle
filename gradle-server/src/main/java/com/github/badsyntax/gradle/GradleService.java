@@ -1,9 +1,11 @@
 package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.cancellation.CancellationHandler;
-import com.github.badsyntax.gradle.handlers.CancelTaskHandler;
+import com.github.badsyntax.gradle.handlers.CancelRunCommandHandler;
+import com.github.badsyntax.gradle.handlers.CancelRunTaskHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetDaemonsStatusHandler;
+import com.github.badsyntax.gradle.handlers.RunCommandHandler;
 import com.github.badsyntax.gradle.handlers.RunTaskHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonsHandler;
@@ -24,6 +26,12 @@ public class GradleService extends GradleGrpc.GradleImplBase {
   }
 
   @Override
+  public void runCommand(RunCommandRequest req, StreamObserver<RunCommandReply> responseObserver) {
+    RunCommandHandler runCommandHandler = new RunCommandHandler(req, responseObserver);
+    runCommandHandler.run();
+  }
+
+  @Override
   public void cancelGetBuilds(
       CancelGetBuildsRequest req, StreamObserver<CancelGetBuildsReply> responseObserver) {
     CancellationHandler.cancelAllRunningBuilds();
@@ -35,7 +43,14 @@ public class GradleService extends GradleGrpc.GradleImplBase {
   @Override
   public void cancelRunTask(
       CancelRunTaskRequest req, StreamObserver<CancelRunTaskReply> responseObserver) {
-    CancelTaskHandler cancelTaskHandler = new CancelTaskHandler(req, responseObserver);
+    CancelRunTaskHandler cancelTaskHandler = new CancelRunTaskHandler(req, responseObserver);
+    cancelTaskHandler.run();
+  }
+
+  @Override
+  public void cancelRunCommand(
+      CancelRunCommandRequest req, StreamObserver<CancelRunCommandReply> responseObserver) {
+    CancelRunCommandHandler cancelTaskHandler = new CancelRunCommandHandler(req, responseObserver);
     cancelTaskHandler.run();
   }
 

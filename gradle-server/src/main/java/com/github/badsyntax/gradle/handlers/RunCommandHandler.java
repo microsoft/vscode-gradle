@@ -6,17 +6,15 @@ import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GradleRunner;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
-import com.github.badsyntax.gradle.RunTaskReply;
-import com.github.badsyntax.gradle.RunTaskRequest;
-import com.github.badsyntax.gradle.RunTaskResult;
+import com.github.badsyntax.gradle.RunCommandReply;
+import com.github.badsyntax.gradle.RunCommandRequest;
+import com.github.badsyntax.gradle.RunCommandResult;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.exceptions.GradleTaskRunnerException;
-import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.UnsupportedVersionException;
@@ -25,37 +23,31 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RunTaskHandler {
-  private static final Logger logger = LoggerFactory.getLogger(RunTaskHandler.class.getName());
+public class RunCommandHandler {
+  private static final Logger logger = LoggerFactory.getLogger(RunCommandHandler.class.getName());
 
-  private RunTaskRequest req;
-  private StreamObserver<RunTaskReply> responseObserver;
+  private RunCommandRequest req;
+  private StreamObserver<RunCommandReply> responseObserver;
 
-  public RunTaskHandler(RunTaskRequest req, StreamObserver<RunTaskReply> responseObserver) {
+  public RunCommandHandler(
+      RunCommandRequest req, StreamObserver<RunCommandReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
 
-  public static String getCancellationKey(String projectDir, String task) {
-    return projectDir + task;
+  public static String getCancellationKey(String projectDir, List<String> args) {
+    return projectDir + String.join("", args);
   }
 
   public void run() {
-    ArrayList<String> args = new ArrayList<String>(req.getArgsList());
-    args.add(0, req.getTask());
-    String cancellationKey = getCancellationKey(req.getProjectDir(), req.getTask());
+    String cancellationKey = getCancellationKey(req.getProjectDir(), req.getArgsList());
     GradleRunner gradleRunner =
         new GradleRunner(
-            req.getProjectDir(),
-            args,
-            req.getGradleConfig(),
-            cancellationKey,
-            req.getShowOutputColors(),
-            req.getJavaDebugPort());
+            req.getProjectDir(), req.getArgsList(), req.getGradleConfig(), cancellationKey);
     gradleRunner
         .setProgressListener(
             (ProgressEvent event) -> {
-              synchronized (RunTaskHandler.class) {
+              synchronized (RunCommandHandler.class) {
                 replyWithProgress(event);
               }
             })
@@ -63,7 +55,7 @@ public class RunTaskHandler {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (RunTaskHandler.class) {
+                synchronized (RunCommandHandler.class) {
                   replyWithStandardOutput(bytes);
                 }
               }
@@ -72,15 +64,11 @@ public class RunTaskHandler {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (RunTaskHandler.class) {
+                synchronized (RunCommandHandler.class) {
                   replyWithStandardError(bytes);
                 }
               }
             });
-
-    if (!Strings.isNullOrEmpty(req.getInput())) {
-      gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));
-    }
 
     try {
       gradleRunner.run();
@@ -103,7 +91,7 @@ public class RunTaskHandler {
 
   public void replyWithCancelled(BuildCancelledException e) {
     responseObserver.onNext(
-        RunTaskReply.newBuilder()
+        RunCommandReply.newBuilder()
             .setCancelled(
                 Cancelled.newBuilder()
                     .setMessage(e.getMessage())
@@ -117,17 +105,15 @@ public class RunTaskHandler {
 
   public void replyWithSuccess() {
     responseObserver.onNext(
-        RunTaskReply.newBuilder()
-            .setRunTaskResult(
-                RunTaskResult.newBuilder()
-                    .setMessage("Successfully run task")
-                    .setTask(req.getTask()))
+        RunCommandReply.newBuilder()
+            .setRunCommandResult(
+                RunCommandResult.newBuilder().setMessage("Successfully run command"))
             .build());
   }
 
   private void replyWithProgress(ProgressEvent progressEvent) {
     responseObserver.onNext(
-        RunTaskReply.newBuilder()
+        RunCommandReply.newBuilder()
             .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
             .build());
   }
@@ -135,7 +121,7 @@ public class RunTaskHandler {
   private void replyWithStandardOutput(byte[] bytes) {
     ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
-        RunTaskReply.newBuilder()
+        RunCommandReply.newBuilder()
             .setOutput(
                 Output.newBuilder()
                     .setOutputType(Output.OutputType.STDOUT)
@@ -146,7 +132,7 @@ public class RunTaskHandler {
   private void replyWithStandardError(byte[] bytes) {
     ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
-        RunTaskReply.newBuilder()
+        RunCommandReply.newBuilder()
             .setOutput(
                 Output.newBuilder()
                     .setOutputType(Output.OutputType.STDERR)

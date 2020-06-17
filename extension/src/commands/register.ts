@@ -60,6 +60,10 @@ import {
   clearAllPinnedTasksCommand,
   COMMAND_REMOVE_RECENT_TASK,
   removeRecentTaskCommand,
+  COMMAND_RUN_COMMAND,
+  runCommandCommand,
+  COMMAND_CANCEL_COMMAND,
+  cancelCommandCommand,
 } from '.';
 
 export function registerCommands(context: vscode.ExtensionContext): void {
@@ -135,6 +139,11 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       COMMAND_REMOVE_RECENT_TASK,
       removeRecentTaskCommand
+    ),
+    vscode.commands.registerCommand(COMMAND_RUN_COMMAND, runCommandCommand),
+    vscode.commands.registerCommand(
+      COMMAND_CANCEL_COMMAND,
+      cancelCommandCommand
     )
   );
 }

@@ -94,6 +94,14 @@
         }
       },
       {
+        "command": "gradle.runCommand",
+        "title": "Run a Gradle Command",
+        "icon": {
+          "light": "resources/light/console.svg",
+          "dark": "resources/dark/console.svg"
+        }
+      },
+      {
         "command": "gradle.pinTask",
         "title": "Pin Task"
       },
@@ -220,10 +228,6 @@
           "light": "resources/light/list-tree.svg",
           "dark": "resources/dark/list-tree.svg"
         }
-      },
-      {
-        "command": "gradle.killGradleProcess",
-        "title": "Kill Gradle task process"
       },
       {
         "command": "gradle.showProcessMessage",
@@ -402,6 +406,10 @@
         },
         {
           "command": "gradle.openSettings",
+          "when": "view == gradleTasksView"
+        },
+        {
+          "command": "gradle.runCommand",
           "when": "view == gradleTasksView",
           "group": "navigation@0"
         },

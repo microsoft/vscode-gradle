@@ -24,6 +24,10 @@ import {
   StopDaemonsRequest,
   StopDaemonRequest,
   StopDaemonReply,
+  RunCommandRequest,
+  RunCommandReply,
+  CancelRunCommandRequest,
+  CancelRunCommandReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -40,6 +44,7 @@ import {
   COMMAND_CANCEL_TASK,
 } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
+import { COMMAND_CANCEL_COMMAND } from '../commands/cancelCommandCommand';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -303,6 +308,80 @@ export class GradleClient implements vscode.Disposable {
     );
   }
 
+  public async runCommand(
+    projectFolder: string,
+    args: ReadonlyArray<string> = [],
+    onOutput?: (output: Output) => void
+  ): Promise<void> {
+    await this.waitForConnect();
+    this.statusBarItem.hide();
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: 'Gradle',
+        cancellable: true,
+      },
+      async (
+        progress: vscode.Progress<{ message?: string }>,
+        token: vscode.CancellationToken
+      ) => {
+        token.onCancellationRequested(() =>
+          vscode.commands.executeCommand(
+            COMMAND_CANCEL_COMMAND,
+            projectFolder,
+            args
+          )
+        );
+
+        const progressHandler = new ProgressHandler(progress);
+        progressHandler.onDidProgressStart(() => {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        });
+
+        const gradleConfig = getGradleConfig();
+        const request = new RunCommandRequest();
+        request.setProjectDir(projectFolder);
+        request.setArgsList(args as string[]);
+        request.setGradleConfig(gradleConfig);
+        const runCommandStream = this.grpcClient!.runCommand(request);
+        try {
+          await new Promise((resolve, reject) => {
+            runCommandStream
+              .on('data', (runCommandReply: RunCommandReply) => {
+                switch (runCommandReply.getKindCase()) {
+                  case RunCommandReply.KindCase.PROGRESS:
+                    progressHandler.report(
+                      runCommandReply.getProgress()!.getMessage().trim()
+                    );
+                    break;
+                  case RunCommandReply.KindCase.OUTPUT:
+                    if (onOutput) {
+                      onOutput(runCommandReply.getOutput()!);
+                    }
+                    break;
+                  case RunCommandReply.KindCase.CANCELLED:
+                    logger.info(
+                      `Command cancelled: gradle ${args.join(
+                        ' '
+                      )}: ${runCommandReply.getCancelled()!.getMessage()}`
+                    );
+                    break;
+                }
+              })
+              .on('error', reject)
+              .on('end', resolve);
+          });
+          logger.info('Completed command:', args.join(' '));
+        } catch (err) {
+          logger.error('Error running command:', err.details || err.message);
+          throw err;
+        } finally {
+          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        }
+      }
+    );
+  }
+
   public async cancelRunTask(task: vscode.Task): Promise<void> {
     await this.waitForConnect();
     this.statusBarItem.hide();
@@ -333,6 +412,44 @@ export class GradleClient implements vscode.Disposable {
     } catch (err) {
       logger.error(
         'Error cancelling running task:',
+        err.details || err.message
+      );
+    } finally {
+      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+    }
+  }
+
+  public async cancelRunCommand(
+    projectFolder: string,
+    args: ReadonlyArray<string>
+  ): Promise<void> {
+    await this.waitForConnect();
+    this.statusBarItem.hide();
+    const request = new CancelRunCommandRequest();
+    request.setProjectDir(projectFolder);
+    request.setArgsList(args as string[]);
+    try {
+      const reply: CancelRunCommandReply = await new Promise(
+        (resolve, reject) => {
+          this.grpcClient!.cancelRunCommand(
+            request,
+            (
+              err: grpc.ServiceError | null,
+              cancelRunCommandReply: CancelRunCommandReply | undefined
+            ) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(cancelRunCommandReply);
+              }
+            }
+          );
+        }
+      );
+      logger.debug(reply.getMessage());
+    } catch (err) {
+      logger.error(
+        'Error cancelling running command:',
         err.details || err.message
       );
     } finally {

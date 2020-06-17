@@ -3,7 +3,7 @@ import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
-import { CustomBuildTaskTerminal } from '../terminal';
+import { RunTaskTerminal } from '../terminal';
 import { logger } from '../logger';
 import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
 import {
@@ -128,7 +128,7 @@ export function buildTaskId(
 
 export function buildTaskName(definition: GradleTaskDefinition): string {
   const argsLabel = definition.args ? ` ${definition.args}` : '';
-  return `${definition.script}${argsLabel}`;
+  return `gradle ${definition.script}${argsLabel}`;
 }
 
 export function createTaskFromDefinition(
@@ -136,10 +136,7 @@ export function createTaskFromDefinition(
   rootProject: RootProject
 ): vscode.Task {
   const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
-  const terminal = new CustomBuildTaskTerminal(
-    rootProject.getWorkspaceFolder(),
-    rootProject.getProjectUri()
-  );
+  const terminal = new RunTaskTerminal(rootProject);
   const task = new vscode.Task(
     definition,
     rootProject.getWorkspaceFolder(),
@@ -164,7 +161,7 @@ export function createTaskFromDefinition(
   task.presentationOptions = {
     showReuseMessage: false,
     clear: true,
-    echo: true,
+    echo: false,
     focus: true,
     panel: vscode.TaskPanelKind.Shared,
     reveal: vscode.TaskRevealKind.Always,

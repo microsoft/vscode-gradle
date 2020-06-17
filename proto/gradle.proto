@@ -12,8 +12,10 @@ service Gradle {
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
   rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
+  rpc RunCommand(RunCommandRequest) returns (stream RunCommandReply) {}
   rpc CancelGetBuilds(CancelGetBuildsRequest) returns (CancelGetBuildsReply) {}
   rpc CancelRunTask(CancelRunTaskRequest) returns (CancelRunTaskReply) {}
+  rpc CancelRunCommand(CancelRunCommandRequest) returns (CancelRunCommandReply) {}
   rpc CancelRunTasks(CancelRunTasksRequest) returns (CancelRunTasksReply) {}
 }
 
@@ -49,11 +51,13 @@ message GetBuildResult {
   GradleBuild build = 2;
 }
 
+message RunCommandRequest {
+  string project_dir = 1;
+  repeated string args = 2;
+  GradleConfig gradle_config = 3;
+}
+
 message RunTaskRequest {
-  enum OutputStream {
-    BYTES = 0;
-    STRING = 1;
-  }
   string project_dir = 1;
   string task = 2;
   repeated string args = 3;
@@ -69,15 +73,30 @@ message RunTaskResult {
   string task = 2;
 }
 
+message RunCommandResult {
+  string message = 1;
+}
+
 message CancelRunTaskRequest {
   string project_dir = 1;
   string task = 2;
+}
+
+message CancelRunCommandRequest {
+  string project_dir = 1;
+  repeated string args = 2;
 }
 
 message CancelRunTaskReply {
   string message = 1;
   string task = 2;
   bool task_running = 3;
+}
+
+message CancelRunCommandReply {
+  string message = 1;
+  repeated string args = 2;
+  bool command_running = 3;
 }
 
 message CancelRunTasksRequest {}
@@ -124,6 +143,15 @@ message DaemonInfo {
 message RunTaskReply {
   oneof kind {
     RunTaskResult run_task_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+    Cancelled cancelled = 4;
+  }
+}
+
+message RunCommandReply {
+  oneof kind {
+    RunCommandResult run_command_result = 1;
     Progress progress = 2;
     Output output = 3;
     Cancelled cancelled = 4;

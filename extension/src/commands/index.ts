@@ -30,3 +30,5 @@ export * from './showTaskTerminalCommand';
 export * from './showTasksCommand';
 export * from './stopDaemonCommand';
 export * from './stopDaemonsCommand';
+export * from './runCommandCommand';
+export * from './cancelCommandCommand';
