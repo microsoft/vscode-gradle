@@ -41,7 +41,7 @@ public class RunTaskHandler {
   }
 
   public void run() {
-    ArrayList<String> args = new ArrayList<String>(req.getArgsList());
+    ArrayList<String> args = new ArrayList<>(req.getArgsList());
     args.add(0, req.getTask());
     String cancellationKey = getCancellationKey(req.getProjectDir(), req.getTask());
     GradleRunner gradleRunner =
