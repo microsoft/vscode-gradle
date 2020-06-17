@@ -21,6 +21,15 @@ task copyProtoLib(type: Copy) {
   into protoLib
 }
 
+task copyRootProjectTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies root project types'
+  from file("../extension/dist/rootProject")
+  include "*.d.ts"
+  into 'lib/rootProject'
+}
+
 task copyStoreTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
@@ -132,6 +141,7 @@ task copyPublicApi(type: Copy) {
     copyTasksTypes,
     copyServerTypes,
     copyLoggerTypes,
+    copyRootProjectTypes,
     copyApiTypes
   group 'copy'
   description 'Copies publc API types'
