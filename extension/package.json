@@ -63,11 +63,11 @@
         },
         {
           "id": "pinnedTasksView",
-          "name": "Pinned Gradle Tasks"
+          "name": "Pinned Tasks"
         },
         {
           "id": "recentTasksView",
-          "name": "Recent Gradle Tasks"
+          "name": "Recent Tasks"
         },
         {
           "id": "gradleDaemonsView",
