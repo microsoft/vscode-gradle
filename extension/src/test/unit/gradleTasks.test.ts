@@ -101,10 +101,11 @@ mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 describe(getSuiteName('Gradle tasks'), () => {
   beforeEach(() => {
     const icons = new Icons(mockContext);
-    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
-      mockContext
-    );
     const rootProjectsStore = new RootProjectsStore();
+    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
+      mockContext,
+      rootProjectsStore
+    );
     const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
     const mockClient = buildMockClient();
     mockExtension.getRootProjectsStore.returns(rootProjectsStore);

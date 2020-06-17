@@ -9,24 +9,19 @@ import {
   TreeItemWithTasksOrGroups,
 } from '..';
 
-import { JavaDebug, getConfigJavaDebug } from '../../config';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { isGradleTask } from '../../tasks/taskUtil';
+import { RootProjectsStore } from '../../stores';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
 const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
 const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
-const gradleProjectJavaDebugMap: Map<string, JavaDebug> = new Map();
 
 export function getGradleTaskTreeItemMap(): Map<string, GradleTaskTreeItem> {
   return gradleTaskTreeItemMap;
-}
-
-export function getGradleProjectJavaDebugMap(): Map<string, JavaDebug> {
-  return gradleProjectJavaDebugMap;
 }
 
 export function getProjectTreeItemMap(): Map<string, ProjectTreeItem> {
@@ -38,7 +33,6 @@ function resetCachedTreeItems(): void {
   gradleProjectTreeItemMap.clear();
   projectTreeItemMap.clear();
   groupTreeItemMap.clear();
-  gradleProjectJavaDebugMap.clear();
 }
 
 export class GradleTasksTreeDataProvider
@@ -49,7 +43,10 @@ export class GradleTasksTreeDataProvider
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly rootProjectStore: RootProjectsStore
+  ) {
     const collapsed = this.context.workspaceState.get(
       'gradleTasksCollapsed',
       false
@@ -133,30 +130,21 @@ export class GradleTasksTreeDataProvider
     tasks.forEach((task) => {
       const definition = task.definition as GradleTaskDefinition;
       if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
+        const rootProject = this.rootProjectStore.get(definition.projectFolder);
+        if (!rootProject) {
+          return;
+        }
         gradleProjectTreeItem = gradleProjectTreeItemMap.get(
           definition.projectFolder
         );
         if (!gradleProjectTreeItem) {
           gradleProjectTreeItem = new RootProjectTreeItem(
             path.basename(definition.projectFolder),
-            vscode.Uri.file(definition.projectFolder)
+            rootProject.getProjectUri()
           );
           gradleProjectTreeItemMap.set(
             definition.projectFolder,
             gradleProjectTreeItem
-          );
-        }
-
-        if (!gradleProjectJavaDebugMap.has(definition.projectFolder)) {
-          const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-            vscode.Uri.file(definition.projectFolder)
-          );
-          if (!workspaceFolder) {
-            return;
-          }
-          gradleProjectJavaDebugMap.set(
-            definition.projectFolder,
-            getConfigJavaDebug(workspaceFolder)
           );
         }
 
@@ -197,7 +185,7 @@ export class GradleTasksTreeDataProvider
           taskName,
           definition.description || taskName,
           '',
-          gradleProjectJavaDebugMap.get(definition.projectFolder)
+          rootProject.getJavaDebug()
         );
         taskTreeItem.setContext();
 

@@ -11,11 +11,12 @@ import {
   RootProjectsStore,
 } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
-import { GradleTaskTreeItem, getGradleProjectJavaDebugMap } from '..';
+import { GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
+import { RootProject } from '../../rootProject/RootProject';
 
 const recentTasksGradleProjectTreeItemMap: Map<
   string,
@@ -31,6 +32,7 @@ export function getRecentTaskTreeItemMap(): Map<string, RecentTaskTreeItem> {
 function buildTaskTreeItem(
   gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
   task: vscode.Task,
+  rootProject: RootProject,
   taskTerminalsStore: TaskTerminalsStore
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
@@ -40,7 +42,7 @@ function buildTaskTreeItem(
     task,
     taskName,
     definition.description || taskName, // used for tooltip
-    getGradleProjectJavaDebugMap().get(definition.projectFolder),
+    rootProject.getJavaDebug(),
     taskTerminalsStore
   );
   recentTaskTreeItem.setContext();
@@ -49,6 +51,7 @@ function buildTaskTreeItem(
 
 function buildGradleProjectTreeItem(
   task: vscode.Task,
+  rootProject: RootProject,
   taskTerminalsStore: TaskTerminalsStore
 ): void {
   const definition = task.definition as GradleTaskDefinition;
@@ -69,6 +72,7 @@ function buildGradleProjectTreeItem(
     const recentTaskTreeItem = buildTaskTreeItem(
       gradleProjectTreeItem,
       task,
+      rootProject,
       taskTerminalsStore
     );
     recentTasksTreeItemMap.set(
@@ -170,12 +174,19 @@ export class RecentTasksTreeDataProvider
         return;
       }
       const definition = task.definition as GradleTaskDefinition;
+      const rootProject = this.rootProjectsStore.get(definition.projectFolder);
+      if (!rootProject) {
+        return;
+      }
       const taskArgs = recentTasks.get(taskId) || '';
-
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const recentTask = cloneTask(task, args, definition.javaDebug);
-          buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore);
+          buildGradleProjectTreeItem(
+            recentTask,
+            rootProject,
+            this.taskTerminalsStore
+          );
         });
       }
     });

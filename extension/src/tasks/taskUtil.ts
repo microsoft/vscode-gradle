@@ -321,9 +321,8 @@ export function cloneTask(
     args,
     javaDebug,
   };
-  const rootProject = new RootProject(
-    task.scope as vscode.WorkspaceFolder,
-    vscode.Uri.file(definition.projectFolder)
-  );
-  return createTaskFromDefinition(definition, rootProject);
+  const rootProject = Extension.getInstance()
+    .getRootProjectsStore()
+    .get(definition.projectFolder);
+  return createTaskFromDefinition(definition, rootProject!);
 }

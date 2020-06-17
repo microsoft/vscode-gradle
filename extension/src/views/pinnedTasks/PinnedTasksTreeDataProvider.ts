@@ -5,13 +5,14 @@ import {
   PinnedTaskTreeItem,
   NoPinnedTasksTreeItem,
 } from '.';
-import { GradleTaskTreeItem, getGradleProjectJavaDebugMap } from '..';
+import { GradleTaskTreeItem } from '..';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
 import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
+import { RootProject } from '../../rootProject/RootProject';
 
 const pinnedTasksGradleProjectTreeItemMap: Map<
   string,
@@ -26,7 +27,8 @@ export function getPinnedTasksTreeItemMap(): Map<string, PinnedTaskTreeItem> {
 
 function buildTaskTreeItem(
   gradleProjectTreeItem: PinnedTasksRootProjectTreeItem,
-  task: vscode.Task
+  task: vscode.Task,
+  rootProject: RootProject
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
   const taskName = buildTaskName(definition);
@@ -37,13 +39,16 @@ function buildTaskTreeItem(
     definition.description || taskName, // tooltip
     '', // description
     // TODO: debug map won't exist unless the main gradle tasks view is visible
-    getGradleProjectJavaDebugMap().get(definition.projectFolder)
+    rootProject.getJavaDebug()
   );
   pinnedTaskTreeItem.setContext();
   return pinnedTaskTreeItem;
 }
 
-function buildGradleProjectTreeItem(task: vscode.Task): void {
+function buildGradleProjectTreeItem(
+  task: vscode.Task,
+  rootProject: RootProject
+): void {
   const definition = task.definition as GradleTaskDefinition;
   if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
     let gradleProjectTreeItem = pinnedTasksGradleProjectTreeItemMap.get(
@@ -59,7 +64,11 @@ function buildGradleProjectTreeItem(task: vscode.Task): void {
       );
     }
 
-    const pinnedTaskTreeItem = buildTaskTreeItem(gradleProjectTreeItem, task);
+    const pinnedTaskTreeItem = buildTaskTreeItem(
+      gradleProjectTreeItem,
+      task,
+      rootProject
+    );
     pinnedTasksTreeItemMap.set(
       definition.id + definition.args,
       pinnedTaskTreeItem
@@ -138,11 +147,16 @@ export class PinnedTasksTreeDataProvider
       if (!task) {
         return;
       }
+      const definition = task.definition as GradleTaskDefinition;
+      const rootProject = this.rootProjectsStore.get(definition.projectFolder);
+      if (!rootProject) {
+        return;
+      }
       const taskArgs = pinnedTasks.get(taskId) || '';
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const pinnedTask = cloneTask(task, args);
-          buildGradleProjectTreeItem(pinnedTask);
+          buildGradleProjectTreeItem(pinnedTask, rootProject);
         });
       }
     });
