@@ -6,7 +6,8 @@ import * as fs from 'fs-extra';
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-const VSCODE_VERSION = '1.46.0';
+// TODO: change to 1.47.0 when released. See https://github.com/microsoft/vscode/issues/98080
+const VSCODE_VERSION = 'insiders';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
