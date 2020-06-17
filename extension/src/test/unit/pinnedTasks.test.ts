@@ -102,6 +102,7 @@ describe(getSuiteName('Pinned tasks'), () => {
       gradleTasksTreeDataProvider
     );
     mockExtension.getIcons.returns(icons);
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());

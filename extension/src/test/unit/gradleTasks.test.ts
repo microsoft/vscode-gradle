@@ -125,13 +125,10 @@ describe(getSuiteName('Gradle tasks'), () => {
   });
 
   describe('Without a multi-root workspace', () => {
-    beforeEach(() => {
-      sinon
-        .stub(vscode.workspace, 'workspaceFolders')
-        .value([mockWorkspaceFolder1]);
-    });
-
     describe('With no gradle tasks', () => {
+      beforeEach(() => {
+        stubWorkspaceFolders([mockWorkspaceFolder1]);
+      });
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
         mockExtension
           .getClient()

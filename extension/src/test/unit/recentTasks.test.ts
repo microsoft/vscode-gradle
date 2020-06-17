@@ -99,6 +99,7 @@ describe(getSuiteName('Recent tasks'), () => {
     mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
     mockExtension.getTaskTerminalsStore.returns(taskTerminalsStore);
     mockExtension.getIcons.returns(icons);
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
 
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
     logger.reset();
