@@ -265,7 +265,6 @@ export class GradleClient implements vscode.Disposable {
         request.setTask(task.definition.script);
         request.setArgsList(args as string[]);
         request.setGradleConfig(gradleConfig);
-        request.setJavaDebug(task.definition.javaDebug);
         request.setShowOutputColors(showOutputColors);
         request.setJavaDebugPort(javaDebugPort);
         request.setInput(input);

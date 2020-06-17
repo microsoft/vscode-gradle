@@ -126,9 +126,12 @@ export function buildTaskId(
   return projectFolder + script + project;
 }
 
-export function buildTaskName(definition: GradleTaskDefinition): string {
+export function buildTaskName(
+  definition: GradleTaskDefinition,
+  prefix = ''
+): string {
   const argsLabel = definition.args ? ` ${definition.args}` : '';
-  return `gradle ${definition.script}${argsLabel}`;
+  return `${prefix ? prefix + ' ' : ''}${definition.script}${argsLabel}`;
 }
 
 export function createTaskFromDefinition(
@@ -140,7 +143,7 @@ export function createTaskFromDefinition(
   const task = new vscode.Task(
     definition,
     rootProject.getWorkspaceFolder(),
-    buildTaskName(definition),
+    buildTaskName(definition, 'gradle'),
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {

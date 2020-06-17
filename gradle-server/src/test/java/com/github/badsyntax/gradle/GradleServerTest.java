@@ -380,24 +380,6 @@ public class GradleServerTest {
   }
 
   @Test
-  public void runTask_shouldThrowIfDebugAndNotPortSpecified() throws IOException {
-    StreamObserver<RunTaskReply> mockResponseObserver =
-        (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
-
-    RunTaskRequest req =
-        RunTaskRequest.newBuilder()
-            .setProjectDir(mockProjectDir.getAbsolutePath().toString())
-            .setJavaDebug(true)
-            .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
-            .build();
-
-    ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
-    stub.runTask(req, mockResponseObserver);
-    verify(mockResponseObserver).onError(onError.capture());
-    assertEquals("INTERNAL: Java debug port is not set", onError.getValue().getMessage());
-  }
-
-  @Test
   public void runTask_shouldSetJwdpEnvironmentVarIfDebug() throws IOException {
     StreamObserver<RunTaskReply> mockResponseObserver =
         (StreamObserver<RunTaskReply>) mock(StreamObserver.class);
@@ -405,7 +387,6 @@ public class GradleServerTest {
     RunTaskRequest req =
         RunTaskRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
-            .setJavaDebug(true)
             .setJavaDebugPort(1111)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .build();

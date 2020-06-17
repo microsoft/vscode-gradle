@@ -15,15 +15,23 @@ import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { isGradleTask } from '../../tasks/taskUtil';
 
-// eslint-disable-next-line sonarjs/no-unused-collection
-export const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
-export const gradleProjectTreeItemMap: Map<
-  string,
-  RootProjectTreeItem
-> = new Map();
-export const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
-export const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
-export const gradleProjectJavaDebugMap: Map<string, JavaDebug> = new Map();
+const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
+const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
+const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
+const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
+const gradleProjectJavaDebugMap: Map<string, JavaDebug> = new Map();
+
+export function getGradleTaskTreeItemMap(): Map<string, GradleTaskTreeItem> {
+  return gradleTaskTreeItemMap;
+}
+
+export function getGradleProjectJavaDebugMap(): Map<string, JavaDebug> {
+  return gradleProjectJavaDebugMap;
+}
+
+export function getProjectTreeItemMap(): Map<string, ProjectTreeItem> {
+  return projectTreeItemMap;
+}
 
 function resetCachedTreeItems(): void {
   gradleTaskTreeItemMap.clear();

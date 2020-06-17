@@ -61,11 +61,10 @@ message RunTaskRequest {
   string project_dir = 1;
   string task = 2;
   repeated string args = 3;
-  bool java_debug = 4;
-  int32 java_debug_port = 5;
-  GradleConfig gradle_config = 6;
-  string input = 7;
-  bool show_output_colors = 8;
+  int32 java_debug_port = 4;
+  GradleConfig gradle_config = 5;
+  string input = 6;
+  bool show_output_colors = 7;
 }
 
 message RunTaskResult {

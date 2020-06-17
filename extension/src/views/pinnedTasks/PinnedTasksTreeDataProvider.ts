@@ -5,37 +5,39 @@ import {
   PinnedTaskTreeItem,
   NoPinnedTasksTreeItem,
 } from '.';
-import { GradleTaskTreeItem, gradleProjectJavaDebugMap } from '..';
+import { GradleTaskTreeItem, getGradleProjectJavaDebugMap } from '..';
 import { GradleTaskDefinition } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
 import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
 
 const pinnedTasksGradleProjectTreeItemMap: Map<
   string,
   PinnedTasksRootProjectTreeItem
 > = new Map();
 
-// eslint-disable-next-line sonarjs/no-unused-collection
-export const pinnedTasksTreeItemMap: Map<
-  string,
-  PinnedTaskTreeItem
-> = new Map();
+const pinnedTasksTreeItemMap: Map<string, PinnedTaskTreeItem> = new Map();
+
+export function getPinnedTasksTreeItemMap(): Map<string, PinnedTaskTreeItem> {
+  return pinnedTasksTreeItemMap;
+}
 
 function buildTaskTreeItem(
   gradleProjectTreeItem: PinnedTasksRootProjectTreeItem,
   task: vscode.Task
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
+  const taskName = buildTaskName(definition);
   const pinnedTaskTreeItem = new PinnedTaskTreeItem(
     gradleProjectTreeItem,
     task,
-    task.name,
-    definition.description || task.name,
-    '',
-    gradleProjectJavaDebugMap.get(definition.projectFolder)
+    taskName,
+    definition.description || taskName, // tooltip
+    '', // description
+    // TODO: debug map won't exist unless the main gradle tasks view is visible
+    getGradleProjectJavaDebugMap().get(definition.projectFolder)
   );
   pinnedTaskTreeItem.setContext();
   return pinnedTaskTreeItem;

@@ -11,22 +11,22 @@ import {
   RootProjectsStore,
 } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
-import { gradleProjectJavaDebugMap, GradleTaskTreeItem } from '..';
+import { GradleTaskTreeItem, getGradleProjectJavaDebugMap } from '..';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
 
 const recentTasksGradleProjectTreeItemMap: Map<
   string,
   RecentTasksRootProjectTreeItem
 > = new Map();
 
-// eslint-disable-next-line sonarjs/no-unused-collection
-export const recentTasksTreeItemMap: Map<
-  string,
-  RecentTaskTreeItem
-> = new Map();
+const recentTasksTreeItemMap: Map<string, RecentTaskTreeItem> = new Map();
+
+export function getRecentTaskTreeItemMap(): Map<string, RecentTaskTreeItem> {
+  return recentTasksTreeItemMap;
+}
 
 function buildTaskTreeItem(
   gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
@@ -34,12 +34,13 @@ function buildTaskTreeItem(
   taskTerminalsStore: TaskTerminalsStore
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
+  const taskName = buildTaskName(definition);
   const recentTaskTreeItem = new RecentTaskTreeItem(
     gradleProjectTreeItem,
     task,
-    task.name,
-    definition.description,
-    gradleProjectJavaDebugMap.get(definition.projectFolder),
+    taskName,
+    definition.description || taskName, // used for tooltip
+    getGradleProjectJavaDebugMap().get(definition.projectFolder),
     taskTerminalsStore
   );
   recentTaskTreeItem.setContext();

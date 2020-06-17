@@ -102,9 +102,12 @@ public class GradleRunner {
             .addProgressListener(progressListener, progressEvents)
             .setStandardOutput(standardOutputStream)
             .setStandardError(standardErrorStream)
-            .setStandardInput(standardInputStream)
             .setColorOutput(colorOutput)
             .withArguments(args);
+
+    if (this.standardInputStream != null) {
+      build.setStandardInput(standardInputStream);
+    }
 
     if (javaDebugPort != 0) {
       build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
