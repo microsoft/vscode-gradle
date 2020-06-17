@@ -40,7 +40,9 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
     it('should run a gradle task', async () => {
       assert.ok(extension);
-      const task = tasks!.find(({ name }) => name === 'hello');
+      const task = tasks!.find(
+        ({ definition }) => definition.script === 'hello'
+      );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');
       await new Promise(async (resolve) => {

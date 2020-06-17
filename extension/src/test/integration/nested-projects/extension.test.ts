@@ -53,7 +53,7 @@ describe(getSuiteName('Extension'), () => {
 
       it('should load groovy default build file tasks', () => {
         const groovyDefaultTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyDefault'
+          ({ definition }) => definition.script === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
         assert.equal(groovyDefaultTask.definition.project, 'gradle');
@@ -61,7 +61,7 @@ describe(getSuiteName('Extension'), () => {
 
       it('should load kotlin default build file tasks', () => {
         const kotlinTask = tasks!.find(
-          ({ name }) => name === 'helloKotlinDefault'
+          ({ definition }) => definition.script === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
         assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
@@ -69,7 +69,7 @@ describe(getSuiteName('Extension'), () => {
 
       it('should load groovy custom build file tasks', () => {
         const groovyCustomTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyCustom'
+          ({ definition }) => definition.script === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
         assert.equal(
@@ -100,7 +100,7 @@ describe(getSuiteName('Extension'), () => {
 
       it('should load groovy default build file tasks', () => {
         const groovyDefaultTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyDefault'
+          ({ definition }) => definition.script === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
         assert.equal(groovyDefaultTask.definition.project, 'gradle');
@@ -108,14 +108,14 @@ describe(getSuiteName('Extension'), () => {
 
       it('should not load kotlin default build file tasks', () => {
         const kotlinTask = tasks!.find(
-          ({ name }) => name === 'helloKotlinDefault'
+          ({ definition }) => definition.script === 'helloKotlinDefault'
         );
         assert.ok(!kotlinTask);
       });
 
       it('should not load groovy custom build file tasks', () => {
         const groovyCustomTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyCustom'
+          ({ definition }) => definition.script === 'helloGroovyCustom'
         );
         assert.ok(!groovyCustomTask);
       });

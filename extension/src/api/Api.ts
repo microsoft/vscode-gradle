@@ -57,7 +57,8 @@ export class Api {
     const foundTask = tasks.find((task) => {
       const definition = task.definition as GradleTaskDefinition;
       return (
-        task.name === taskName && definition.projectFolder === projectFolder
+        definition.script === taskName &&
+        definition.projectFolder === projectFolder
       );
     });
     if (!foundTask) {

@@ -34,7 +34,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
       it('should load groovy default build file tasks', () => {
         const groovyDefaultTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyDefault'
+          ({ definition }) => definition.script === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
         assert.equal(groovyDefaultTask.definition.project, 'gradle');
@@ -42,7 +42,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
       it('should load kotlin default build file tasks', () => {
         const kotlinTask = tasks!.find(
-          ({ name }) => name === 'helloKotlinDefault'
+          ({ definition }) => definition.script === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
         assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
@@ -50,7 +50,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
       it('should load groovy custom build file tasks', () => {
         const groovyCustomTask = tasks!.find(
-          ({ name }) => name === 'helloGroovyCustom'
+          ({ definition }) => definition.script === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
         assert.equal(
@@ -62,7 +62,9 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       it('should successfully run a custom task', async () => {
         assert.ok(extension);
 
-        const task = tasks!.find(({ name }) => name === 'hello');
+        const task = tasks!.find(
+          ({ definition }) => definition.script === 'hello'
+        );
         assert.ok(task);
 
         const spy = sinon.spy(extension.exports.logger, 'append');
@@ -85,7 +87,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       it('should refresh tasks', async () => {
         await vscode.commands.executeCommand(COMMAND_REFRESH);
         const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-          ({ name }) => name === 'hello'
+          ({ definition }) => definition.script === 'hello'
         );
         assert.ok(task);
       });
