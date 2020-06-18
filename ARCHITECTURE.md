@@ -26,7 +26,7 @@ The extension models the project hierarchical structure using the vscode treeVie
 
 Gradle tasks can be run through either the [treeView](https://code.visualstudio.com/api/extension-guides/tree-view) or the Command Palette.
 
-The tasks use the gRPC client to call the `runTask` server method. Similar to getting project data, Gradle progress and output (`STDERR` & `STDOUT`) is streamed to the client. Tasks are run in a custom vscode terminal.
+Tasks are run via the `runBuild` gRPC method. Similar to getting project data, Gradle progress and output (`STDERR` & `STDOUT`) is streamed to the client. Tasks are run in a custom vscode terminal. The `runBuild` gRPC method accepts a list of arguments which are passed to the `BuildLauncher`.
 
 ## The Build System
 

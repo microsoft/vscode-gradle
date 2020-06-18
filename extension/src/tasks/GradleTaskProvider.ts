@@ -6,6 +6,7 @@ import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
 import { RootProjectsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
+import { getConfigJavaDebug } from '../config';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
@@ -52,9 +53,11 @@ export class GradleTaskProvider
       );
       return undefined;
     }
+    const javaDebug = getConfigJavaDebug(workspaceFolder);
     const rootProject = new RootProject(
       workspaceFolder,
-      vscode.Uri.file(gradleTaskDefinition.projectFolder)
+      vscode.Uri.file(gradleTaskDefinition.projectFolder),
+      javaDebug
     );
     return createTaskFromDefinition(gradleTaskDefinition, rootProject);
   }

@@ -1,45 +1,47 @@
 import * as vscode from 'vscode';
 import * as util from 'util';
-import getPort from 'get-port';
-import { isTaskRunning } from '../tasks/taskUtil';
-import { waitOnTcp, isTest } from '../util';
+import { isTest, waitOnTcp } from '../util';
 import { logger, LoggerStream, LogVerbosity } from '../logger';
-import { Extension } from '../extension';
 import { Output } from '../proto/gradle_pb';
-import { COMMAND_CANCEL_TASK } from '../commands';
 import { ServiceError } from '@grpc/grpc-js';
+import { RootProject } from '../rootProject/RootProject';
+import { isTaskRunning } from '../tasks/taskUtil';
+import getPort from 'get-port';
+import { Extension } from '../extension';
+import { COMMAND_CANCEL_BUILD } from '../commands';
 
 const NL = '\n';
 const CR = '\r';
 const nlRegExp = new RegExp(`${NL}([^${CR}])`, 'g');
 
-export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
+export class GradleRunnerTerminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
-  public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
+  private stdOutLoggerStream: LoggerStream;
   private readonly closeEmitter = new vscode.EventEmitter<void>();
   private task?: vscode.Task;
+  public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
   public readonly onDidClose?: vscode.Event<void> = this.closeEmitter.event;
-  private stdOutLoggerStream: LoggerStream;
 
   constructor(
-    private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly projectFolder: vscode.Uri
+    private readonly rootProject: RootProject,
+    private readonly args: string[],
+    private readonly cancellationKey: string
   ) {
     // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
     this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+  }
+
+  public open(): void {
+    this.runBuild();
   }
 
   public setTask(task: vscode.Task): void {
     this.task = task;
   }
 
-  public open(): void {
-    this.doBuild();
-  }
-
   public close(): void {
     if (this.task && isTaskRunning(this.task)) {
-      vscode.commands.executeCommand(COMMAND_CANCEL_TASK, this.task);
+      this.cancelCommand();
     }
   }
 
@@ -47,7 +49,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     try {
       await waitOnTcp('localhost', javaDebugPort);
       const startedDebugging = await vscode.debug.startDebugging(
-        this.workspaceFolder,
+        this.rootProject.getWorkspaceFolder(),
         {
           type: 'java',
           name: 'Debug (Attach) via Gradle Tasks',
@@ -65,21 +67,19 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     }
   }
 
-  private async doBuild(): Promise<void> {
-    const args: string[] = this.task!.definition.args.split(' ').filter(
-      Boolean
-    );
+  private async runBuild(): Promise<void> {
+    const javaDebugEnabled = this.task ? this.task.definition.javaDebug : false;
     try {
-      const javaDebugEnabled = this.task!.definition.javaDebug;
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
       const runTask = Extension.getInstance()
         .getClient()
-        .runTask(
-          this.projectFolder.fsPath,
-          this.task!,
-          args,
+        .runBuild(
+          this.rootProject.getProjectUri().fsPath,
+          this.cancellationKey,
+          this.args,
           '',
           javaDebugPort,
+          this.task,
           this.handleOutput,
           true
         );
@@ -92,6 +92,14 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
     } finally {
       this.closeEmitter.fire();
     }
+  }
+
+  private cancelCommand(): void {
+    vscode.commands.executeCommand(
+      COMMAND_CANCEL_BUILD,
+      this.cancellationKey,
+      this.task
+    );
   }
 
   private handleOutput = (output: Output): void => {
@@ -111,7 +119,7 @@ export class CustomBuildTaskTerminal implements vscode.Pseudoterminal {
   public handleInput(data: string): void {
     // sigint eg cmd/ctrl+C
     if (data === '\x03') {
-      vscode.commands.executeCommand(COMMAND_CANCEL_TASK, this.task);
+      this.cancelCommand();
     }
   }
 

@@ -11,6 +11,10 @@ export abstract class StoreMap<K, V> extends EventedStore<V> {
     return this.data;
   }
 
+  public get(key: K): V | undefined {
+    return this.getData().get(key);
+  }
+
   public clear(fireOnDidChange = true): void {
     this.data.clear();
     if (fireOnDidChange) {

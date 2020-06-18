@@ -1,6 +1,14 @@
 import * as vscode from 'vscode';
 import { TaskArgs } from '../stores/types';
 import { getDisableConfirmations } from '../config';
+import { Extension } from '../extension';
+import { RootProject } from '../rootProject/RootProject';
+
+function returnTrimmedInput(value: string | undefined): string | undefined {
+  if (value !== undefined) {
+    return value.trim();
+  }
+}
 
 export function getTaskArgs(): Thenable<TaskArgs | undefined> {
   return vscode.window
@@ -8,11 +16,43 @@ export function getTaskArgs(): Thenable<TaskArgs | undefined> {
       placeHolder: 'For example: --info',
       ignoreFocusOut: true,
     })
-    .then((value: string | undefined) => {
-      if (value !== undefined) {
-        return value.trim();
-      }
-    });
+    .then(returnTrimmedInput);
+}
+
+export function getGradleCommand(): Thenable<TaskArgs | undefined> {
+  return vscode.window
+    .showInputBox({
+      prompt: [
+        'Enter a command for gradle to run.',
+        'This can include built-in Gradle commands or tasks.',
+        'Not all Gradle command line options are supported.',
+      ].join(' '),
+      placeHolder: 'For example: build --info',
+      ignoreFocusOut: true,
+    })
+    .then(returnTrimmedInput);
+}
+
+export async function getRootProjectFolder(): Promise<RootProject | undefined> {
+  const rootProjects = await Extension.getInstance()
+    .getRootProjectsStore()
+    .buildAndGetProjectRoots();
+  if (rootProjects.length === 1) {
+    return Promise.resolve(rootProjects[0]);
+  }
+  const rootProjectPaths = rootProjects.map(
+    (rootProject) => rootProject.getProjectUri().fsPath
+  );
+  const selectedRootProjectPath = await vscode.window.showQuickPick(
+    rootProjectPaths,
+    {
+      canPickMany: false,
+      placeHolder: 'Select the root project',
+    }
+  );
+  if (selectedRootProjectPath) {
+    return rootProjects[rootProjectPaths.indexOf(selectedRootProjectPath)];
+  }
 }
 
 export async function confirmModal(message: string): Promise<boolean> {

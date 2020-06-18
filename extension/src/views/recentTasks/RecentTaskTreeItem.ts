@@ -23,6 +23,7 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     javaDebug: JavaDebug = { tasks: [] },
     private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
+    // On construction, don't set a description, this will be set in setContext
     super(parentTreeItem, task, label, description || label, '', javaDebug);
   }
 

@@ -1,1 +1,1 @@
-export * from './CustomBuildTaskTerminal';
+export * from './GradleRunnerTerminal';

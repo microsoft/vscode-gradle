@@ -84,7 +84,7 @@ describe(getSuiteName('Extension'), () => {
       });
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(
-        loggerAppendLineSpy.calledWith(sinon.match('Completed task: hello'))
+        loggerAppendLineSpy.calledWith(sinon.match('Completed build: hello'))
       );
     });
 

@@ -94,6 +94,14 @@
         }
       },
       {
+        "command": "gradle.runBuild",
+        "title": "Run a Gradle Build",
+        "icon": {
+          "light": "resources/light/console.svg",
+          "dark": "resources/dark/console.svg"
+        }
+      },
+      {
         "command": "gradle.pinTask",
         "title": "Pin Task"
       },
@@ -186,7 +194,7 @@
         "title": "Open Task Build File"
       },
       {
-        "command": "gradle.cancelTask",
+        "command": "gradle.cancelBuild",
         "title": "Cancel Task"
       },
       {
@@ -220,10 +228,6 @@
           "light": "resources/light/list-tree.svg",
           "dark": "resources/dark/list-tree.svg"
         }
-      },
-      {
-        "command": "gradle.killGradleProcess",
-        "title": "Kill Gradle task process"
       },
       {
         "command": "gradle.showProcessMessage",
@@ -341,7 +345,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.cancelTask",
+          "command": "gradle.cancelBuild",
           "when": "false"
         },
         {
@@ -402,6 +406,10 @@
         },
         {
           "command": "gradle.openSettings",
+          "when": "view == gradleTasksView"
+        },
+        {
+          "command": "gradle.runBuild",
           "when": "view == gradleTasksView",
           "group": "navigation@0"
         },

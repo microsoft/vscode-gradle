@@ -8,25 +8,18 @@ package gradle;
 
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
+  rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
+  rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
-  rpc RunTask(RunTaskRequest) returns (stream RunTaskReply) {}
-  rpc CancelGetBuilds(CancelGetBuildsRequest) returns (CancelGetBuildsReply) {}
-  rpc CancelRunTask(CancelRunTaskRequest) returns (CancelRunTaskReply) {}
-  rpc CancelRunTasks(CancelRunTasksRequest) returns (CancelRunTasksReply) {}
 }
-
-message CancelGetBuildsRequest {}
-
-message CancelGetBuildsReply { string message = 1; }
-
-message GetTasksRequest { string project_dir = 1; }
 
 message GetBuildRequest {
   string project_dir = 1;
-  GradleConfig gradle_config = 2;
-  bool show_output_colors = 8;
+  string cancellation_key = 2;
+  GradleConfig gradle_config = 3;
+  bool show_output_colors = 4;
 }
 
 message GetBuildReply {
@@ -39,50 +32,42 @@ message GetBuildReply {
   }
 }
 
-message GetTasksResult {
-  string message = 1;
-  repeated GradleTask tasks = 2;
-}
-
 message GetBuildResult {
   string message = 1;
   GradleBuild build = 2;
 }
 
-message RunTaskRequest {
-  enum OutputStream {
-    BYTES = 0;
-    STRING = 1;
-  }
+message RunBuildRequest {
   string project_dir = 1;
-  string task = 2;
+  string cancellation_key = 2;
   repeated string args = 3;
-  bool java_debug = 4;
-  int32 java_debug_port = 5;
-  GradleConfig gradle_config = 6;
-  string input = 7;
-  bool show_output_colors = 8;
+  int32 java_debug_port = 4;
+  GradleConfig gradle_config = 5;
+  string input = 6;
+  bool show_output_colors = 7;
 }
 
-message RunTaskResult {
+message RunBuildResult {
   string message = 1;
-  string task = 2;
 }
 
-message CancelRunTaskRequest {
-  string project_dir = 1;
-  string task = 2;
+message RunBuildReply {
+  oneof kind {
+    RunBuildResult run_build_result = 1;
+    Progress progress = 2;
+    Output output = 3;
+    Cancelled cancelled = 4;
+  }
 }
 
-message CancelRunTaskReply {
+message CancelBuildRequest {
+  string cancellation_key = 1;
+}
+
+message CancelBuildReply {
   string message = 1;
-  string task = 2;
-  bool task_running = 3;
+  bool build_running = 2;
 }
-
-message CancelRunTasksRequest {}
-
-message CancelRunTasksReply { string message = 1; }
 
 message GetDaemonsStatusRequest {
   string project_dir = 1;
@@ -121,15 +106,6 @@ message DaemonInfo {
   string info = 3;
 }
 
-message RunTaskReply {
-  oneof kind {
-    RunTaskResult run_task_result = 1;
-    Progress progress = 2;
-    Output output = 3;
-    Cancelled cancelled = 4;
-  }
-}
-
 message GradleConfig {
   string user_home = 2;
   string jvm_arguments = 3;
@@ -158,7 +134,6 @@ message GradleTask {
 message Cancelled {
   string message = 1;
   string project_dir = 2;
-  string task = 3;
 }
 
 message Progress { string message = 1; }

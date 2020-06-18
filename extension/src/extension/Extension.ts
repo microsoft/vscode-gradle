@@ -90,7 +90,8 @@ export class Extension {
     this.icons = new Icons(context);
 
     this.gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
-      this.context
+      this.context,
+      this.rootProjectsStore
     );
     this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
       treeDataProvider: this.gradleTasksTreeDataProvider,
@@ -175,15 +176,7 @@ export class Extension {
   }
 
   private loadTasks(): void {
-    this.client.onDidConnect(async () => {
-      this.gradleTaskProvider.clearTasksCache();
-      // Explicitly load tasks as the views might not be visible on editor start
-      this.gradleTaskProvider.loadTasks();
-      // If the server crashes and is restarted, we need to review the views
-      this.gradleTasksTreeDataProvider.refresh();
-      this.pinnedTasksTreeDataProvider.refresh();
-      this.recentTasksTreeDataProvider.refresh();
-    });
+    this.client.onDidConnect(() => this.refresh());
   }
 
   private handleTaskEvents(): void {
@@ -203,26 +196,21 @@ export class Extension {
   private handleWatchEvents(): void {
     this.buildFileWatcher.onDidChange((uri: vscode.Uri) => {
       logger.debug('Build file changed:', uri.fsPath);
-      this.reloadTasks();
+      this.refresh();
     });
     this.gradleWrapperWatcher.onDidChange((uri: vscode.Uri) => {
       logger.debug('Gradle wrapper properties changed:', uri.fsPath);
       this.client.close();
       const disposable = this.client.onDidConnect(() => {
         disposable.dispose();
-        this.reloadTasks();
+        this.refresh();
       });
       this.server.restart();
     });
   }
 
-  private reloadTasks(): void {
-    if (this.gradleTasksTreeView.visible) {
-      vscode.commands.executeCommand(COMMAND_REFRESH);
-    } else {
-      this.getGradleTaskProvider().clearTasksCache();
-      this.getGradleTaskProvider().loadTasks();
-    }
+  private refresh(): void {
+    vscode.commands.executeCommand(COMMAND_REFRESH);
   }
 
   private handleEditorEvents(): void {
@@ -235,15 +223,12 @@ export class Extension {
           ) {
             this.server.restart();
           }
-          if (event.affectsConfiguration('gradle.nestedProjects')) {
-            this.rootProjectsStore.clear();
-            this.reloadTasks();
-          }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
-            vscode.commands.executeCommand(COMMAND_REFRESH);
+            this.rootProjectsStore.clear();
+            this.refresh();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
@@ -256,9 +241,7 @@ export class Extension {
       vscode.window.onDidCloseTerminal((terminal: vscode.Terminal) => {
         this.taskTerminalsStore.removeTerminal(terminal);
       }),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => {
-        vscode.commands.executeCommand(COMMAND_REFRESH);
-      })
+      vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh())
     );
   }
 

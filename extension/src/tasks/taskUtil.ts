@@ -3,7 +3,7 @@ import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
-import { CustomBuildTaskTerminal } from '../terminal';
+import { GradleRunnerTerminal } from '../terminal';
 import { logger } from '../logger';
 import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
 import {
@@ -17,6 +17,7 @@ import {
 import { getTaskArgs } from '../input';
 import { COMMAND_RENDER_TASK } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
+import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -50,16 +51,25 @@ export function getRunningGradleTasks(): vscode.Task[] {
     .map(({ task }) => task);
 }
 
+export function getRunningGradleTask(task: vscode.Task): vscode.Task | void {
+  return getRunningGradleTasks().find((runningTask) =>
+    isTask(runningTask, task)
+  );
+}
+
 export function isTaskRunning(task: vscode.Task, args?: TaskArgs): boolean {
   return getTaskExecution(task, args) !== undefined;
 }
 
-export async function cancelTask(task: vscode.Task): Promise<void> {
-  if (isTaskRunning(task)) {
+export async function cancelBuild(
+  cancellationKey: string,
+  task?: vscode.Task
+): Promise<void> {
+  if (task && isTaskRunning(task)) {
     cancellingTasks.set(task.definition.id, task);
     await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
-    Extension.getInstance().getClient().cancelRunTask(task);
   }
+  Extension.getInstance().getClient().cancelBuild(cancellationKey, task);
 }
 
 export function isTaskCancelling(task: vscode.Task, args?: TaskArgs): boolean {
@@ -102,19 +112,23 @@ export async function restartQueuedTask(task: vscode.Task): Promise<void> {
   }
 }
 
-export async function removeCancellingTask(task: vscode.Task): Promise<void> {
+export function removeCancellingTask(task: vscode.Task): void {
   const cancellingTask = getCancellingTask(task);
   if (cancellingTask) {
     cancellingTasks.delete(cancellingTask.definition.id);
-    await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
   }
 }
 
 export function queueRestartTask(task: vscode.Task): void {
   if (isTaskRunning(task)) {
-    restartingTasks.set(task.definition.id, task);
+    const definition = task.definition as GradleTaskDefinition;
+    restartingTasks.set(definition.id, task);
+    const cancellationKey = getRunTaskCommandCancellationKey(
+      definition.projectFolder,
+      task.name
+    );
     // Once the task is cancelled it will restart via onDidEndTask
-    cancelTask(task);
+    cancelBuild(cancellationKey, task);
   }
 }
 
@@ -136,14 +150,19 @@ export function createTaskFromDefinition(
   rootProject: RootProject
 ): vscode.Task {
   const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
-  const terminal = new CustomBuildTaskTerminal(
-    rootProject.getWorkspaceFolder(),
-    rootProject.getProjectUri()
+  const args = [definition.script].concat(
+    definition.args.split(' ').filter(Boolean)
   );
+  const taskName = buildTaskName(definition);
+  const cancellationKey = getRunTaskCommandCancellationKey(
+    rootProject.getProjectUri().fsPath,
+    definition.script
+  );
+  const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey);
   const task = new vscode.Task(
     definition,
     rootProject.getWorkspaceFolder(),
-    buildTaskName(definition),
+    taskName,
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {
@@ -321,9 +340,8 @@ export function cloneTask(
     args,
     javaDebug,
   };
-  const rootProject = new RootProject(
-    task.scope as vscode.WorkspaceFolder,
-    vscode.Uri.file(definition.projectFolder)
-  );
-  return createTaskFromDefinition(definition, rootProject);
+  const rootProject = Extension.getInstance()
+    .getRootProjectsStore()
+    .get(definition.projectFolder);
+  return createTaskFromDefinition(definition, rootProject!);
 }

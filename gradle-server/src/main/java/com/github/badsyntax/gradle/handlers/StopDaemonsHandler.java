@@ -35,11 +35,11 @@ public class StopDaemonsHandler {
     }
   }
 
-  public void replyWithError(Exception e) {
+  private void replyWithError(Exception e) {
     responseObserver.onError(ErrorMessageBuilder.build(e));
   }
 
-  public void replyWithSuccess(String message) {
+  private void replyWithSuccess(String message) {
     responseObserver.onNext(StopDaemonsReply.newBuilder().setMessage(message).build());
   }
 }

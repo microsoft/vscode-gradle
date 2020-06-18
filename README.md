@@ -33,7 +33,11 @@ When you expand a project, tasks are listed in a tree, grouped by the task group
 </details>
 <details><summary>Run tasks</summary>
 
-Tasks can be run via the `Gradle Tasks`, `Pinned Tasks` or `Recent Tasks` treeviews, or as vscode tasks via `Command Palette => Run Task`.
+Tasks can be run via:
+
+- `Gradle Tasks`, `Pinned Tasks` or `Recent Tasks` treeviews
+- `Run Task` command
+- `Run a Gradle Build` command
 
 A running task will be shown with an animated "spinner" icon in the treeviews, along with `Cancel Task` & `Restart Task` buttons. The `Cancel Task` button will gracefully cancel the task. The `Restart Task` button will first cancel the task, then restart it.
 
@@ -44,6 +48,10 @@ A task will be run a vscode terminal where you can view the task output.
 Send a SIGINT signal (ctrl/cmd + c) in the terminal to gracefully cancel it.
 
 <img src="./images/task-output.png" width="650" alt="Gradle Tasks Output" />
+
+Tasks run via the `Run a Gradle Build` command are not reflected in any of the treeviews. Use this command to specify your own Gradle build arguments, for example to run multiple tasks or to exclude tasks.
+
+<img src="./images/run-build.png" width="650" alt="Run Gradle Build" />
 
 </details>
 <details><summary>Debug JavaExec tasks</summary>
@@ -135,7 +143,7 @@ This extension contributes the following settings:
 
 - `gradle.autoDetect`: Automatically detect Gradle tasks
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
-- `gradle.nestedProjects`: Support nested projects (boolean or an array of directories)
+- `gradle.nestedProjects`: Process nested projects (boolean or an array of directories)
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc)

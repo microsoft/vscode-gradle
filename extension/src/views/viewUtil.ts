@@ -6,18 +6,18 @@ import {
   TREE_ITEM_STATE_TASK_DEBUG_IDLE,
   TREE_ITEM_STATE_TASK_IDLE,
 } from './constants';
-import {
-  gradleTaskTreeItemMap,
-  pinnedTasksTreeItemMap,
-  recentTasksTreeItemMap,
-  projectTreeItemMap,
-} from '.';
 import { GradleTaskDefinition } from '../tasks';
 import { logger } from '../logger';
 import { JavaDebug } from '../config';
 import { TaskArgs } from '../stores/types';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
-import { GradleTaskTreeItem } from './gradleTasks';
+import {
+  GradleTaskTreeItem,
+  getGradleTaskTreeItemMap,
+  getProjectTreeItemMap,
+  getPinnedTasksTreeItemMap,
+  getRecentTaskTreeItemMap,
+} from '.';
 import { Extension } from '../extension';
 
 export function treeItemSortCompareFunc(
@@ -48,17 +48,17 @@ export function getTreeItemForTask(
   task: vscode.Task
 ): GradleTaskTreeItem | null {
   const definition = task.definition as GradleTaskDefinition;
-  const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
+  const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
   if (gradleTaskTreeItem && gradleTaskTreeItem.task === task) {
     return gradleTaskTreeItem;
   }
-  const pinnedTaskTreeItem = pinnedTasksTreeItemMap.get(
+  const pinnedTaskTreeItem = getPinnedTasksTreeItemMap().get(
     definition.id + definition.args
   );
   if (pinnedTaskTreeItem && pinnedTaskTreeItem.task === task) {
     return pinnedTaskTreeItem;
   }
-  const recentTaskTreeItem = recentTasksTreeItemMap.get(
+  const recentTaskTreeItem = getRecentTaskTreeItemMap().get(
     definition.id + definition.args
   );
   if (recentTaskTreeItem && recentTaskTreeItem.task === task) {
@@ -69,20 +69,20 @@ export function getTreeItemForTask(
 
 export function updateGradleTreeItemStateForTask(task: vscode.Task): void {
   const definition = task.definition as GradleTaskDefinition;
-  const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
+  const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
   const extension = Extension.getInstance();
   if (gradleTaskTreeItem) {
     gradleTaskTreeItem.setContext();
     extension.getGradleTasksTreeDataProvider().refresh(gradleTaskTreeItem);
   }
-  const pinTaskTreeItem = pinnedTasksTreeItemMap.get(
+  const pinTaskTreeItem = getPinnedTasksTreeItemMap().get(
     definition.id + definition.args
   );
   if (pinTaskTreeItem) {
     pinTaskTreeItem.setContext();
     extension.getPinnedTasksTreeDataProvider().refresh(pinTaskTreeItem);
   }
-  const recentTaskTreeItem = recentTasksTreeItemMap.get(
+  const recentTaskTreeItem = getRecentTaskTreeItemMap().get(
     definition.id + definition.args
   );
   if (recentTaskTreeItem) {
@@ -98,7 +98,7 @@ export async function focusTaskInGradleTasksTree(
     const definition = task.definition as GradleTaskDefinition;
     const treeItem = getTreeItemForTask(task); // null if running task from command palette
     if (treeItem === null || treeItem.constructor === GradleTaskTreeItem) {
-      const gradleTaskTreeItem = gradleTaskTreeItemMap.get(definition.id);
+      const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
       if (gradleTaskTreeItem) {
         await Extension.getInstance()
           .getGradleTasksTreeView()
@@ -119,7 +119,7 @@ export async function focusProjectInGradleTasksTree(
     await vscode.commands.executeCommand(
       `workbench.view.extension.${GRADLE_CONTAINER_VIEW}`
     );
-    const treeItem = projectTreeItemMap.get(uri.fsPath);
+    const treeItem = getProjectTreeItemMap().get(uri.fsPath);
     if (treeItem) {
       await Extension.getInstance().getGradleTasksTreeView().reveal(treeItem, {
         focus: true,

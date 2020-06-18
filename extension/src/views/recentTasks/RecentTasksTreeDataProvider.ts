@@ -11,35 +11,38 @@ import {
   RootProjectsStore,
 } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
-import { gradleProjectJavaDebugMap, GradleTaskTreeItem } from '..';
+import { GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
+import { RootProject } from '../../rootProject/RootProject';
 
 const recentTasksGradleProjectTreeItemMap: Map<
   string,
   RecentTasksRootProjectTreeItem
 > = new Map();
 
-// eslint-disable-next-line sonarjs/no-unused-collection
-export const recentTasksTreeItemMap: Map<
-  string,
-  RecentTaskTreeItem
-> = new Map();
+const recentTasksTreeItemMap: Map<string, RecentTaskTreeItem> = new Map();
+
+export function getRecentTaskTreeItemMap(): Map<string, RecentTaskTreeItem> {
+  return recentTasksTreeItemMap;
+}
 
 function buildTaskTreeItem(
   gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
   task: vscode.Task,
+  rootProject: RootProject,
   taskTerminalsStore: TaskTerminalsStore
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
+  const taskName = task.name;
   const recentTaskTreeItem = new RecentTaskTreeItem(
     gradleProjectTreeItem,
     task,
-    task.name,
-    definition.description,
-    gradleProjectJavaDebugMap.get(definition.projectFolder),
+    taskName,
+    definition.description || taskName, // used for tooltip
+    rootProject.getJavaDebug(),
     taskTerminalsStore
   );
   recentTaskTreeItem.setContext();
@@ -48,6 +51,7 @@ function buildTaskTreeItem(
 
 function buildGradleProjectTreeItem(
   task: vscode.Task,
+  rootProject: RootProject,
   taskTerminalsStore: TaskTerminalsStore
 ): void {
   const definition = task.definition as GradleTaskDefinition;
@@ -68,6 +72,7 @@ function buildGradleProjectTreeItem(
     const recentTaskTreeItem = buildTaskTreeItem(
       gradleProjectTreeItem,
       task,
+      rootProject,
       taskTerminalsStore
     );
     recentTasksTreeItemMap.set(
@@ -169,12 +174,19 @@ export class RecentTasksTreeDataProvider
         return;
       }
       const definition = task.definition as GradleTaskDefinition;
+      const rootProject = this.rootProjectsStore.get(definition.projectFolder);
+      if (!rootProject) {
+        return;
+      }
       const taskArgs = recentTasks.get(taskId) || '';
-
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const recentTask = cloneTask(task, args, definition.javaDebug);
-          buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore);
+          buildGradleProjectTreeItem(
+            recentTask,
+            rootProject,
+            this.taskTerminalsStore
+          );
         });
       }
     });

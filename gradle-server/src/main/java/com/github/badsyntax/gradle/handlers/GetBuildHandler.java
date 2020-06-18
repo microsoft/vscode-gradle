@@ -8,6 +8,7 @@ import com.github.badsyntax.gradle.GetBuildReply;
 import com.github.badsyntax.gradle.GetBuildRequest;
 import com.github.badsyntax.gradle.GetBuildResult;
 import com.github.badsyntax.gradle.GradleBuild;
+import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleEnvironment;
 import com.github.badsyntax.gradle.GradleProject;
 import com.github.badsyntax.gradle.GradleProjectConnector;
@@ -15,7 +16,6 @@ import com.github.badsyntax.gradle.GradleTask;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
-import com.github.badsyntax.gradle.cancellation.CancellationHandler;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildCancelledException;
+import org.gradle.tooling.CancellationToken;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
@@ -44,14 +45,6 @@ public class GetBuildHandler {
   public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
-  }
-
-  public static String getCancellationKey(String projectDir) {
-    return projectDir;
-  }
-
-  public String getCancellationKey() {
-    return GetBuildHandler.getCancellationKey(req.getProjectDir());
   }
 
   public void run() {
@@ -77,7 +70,7 @@ public class GetBuildHandler {
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {
-      CancellationHandler.clearBuildToken(getCancellationKey());
+      GradleBuildCancellation.clearToken(req.getCancellationKey());
     }
   }
 
@@ -97,8 +90,12 @@ public class GetBuildHandler {
             replyWithProgress(event);
           }
         };
+
+    CancellationToken cancellationToken =
+        GradleBuildCancellation.buildToken(req.getCancellationKey());
+
     projectBuilder
-        .withCancellationToken(CancellationHandler.getBuildCancellationToken(getCancellationKey()))
+        .withCancellationToken(cancellationToken)
         .addProgressListener(progressListener, progressEvents)
         .setStandardOutput(
             new ByteBufferOutputStream() {
@@ -173,7 +170,7 @@ public class GetBuildHandler {
         .build();
   }
 
-  public void replyWithProject(GradleProject gradleProject) {
+  private void replyWithProject(GradleProject gradleProject) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setGetBuildResult(
@@ -183,7 +180,7 @@ public class GetBuildHandler {
     responseObserver.onCompleted();
   }
 
-  public void replyWithCancelled(BuildCancelledException e) {
+  private void replyWithCancelled(BuildCancelledException e) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setCancelled(
@@ -194,11 +191,11 @@ public class GetBuildHandler {
     responseObserver.onCompleted();
   }
 
-  public void replyWithError(Exception e) {
+  private void replyWithError(Exception e) {
     responseObserver.onError(ErrorMessageBuilder.build(e));
   }
 
-  public void replyWithBuildEnvironment(Environment environment) {
+  private void replyWithBuildEnvironment(Environment environment) {
     responseObserver.onNext(GetBuildReply.newBuilder().setEnvironment(environment).build());
   }
 

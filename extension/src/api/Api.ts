@@ -4,6 +4,7 @@ import { logger } from '../logger';
 import { GradleTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
+import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -30,12 +31,20 @@ export class Api {
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
     const task = await this.findTask(opts.projectFolder, opts.taskName);
-    return this.client.runTask(
+    const buildArgs = [task.definition.script]
+      .concat(opts.args)
+      .filter(Boolean);
+    const cancellationKey = getRunTaskCommandCancellationKey(
       opts.projectFolder,
-      task,
-      opts.args,
+      opts.taskName
+    );
+    return this.client.runBuild(
+      opts.projectFolder,
+      cancellationKey,
+      buildArgs,
       opts.input,
       0,
+      task,
       opts.onOutput,
       opts.showOutputColors
     );
@@ -43,7 +52,11 @@ export class Api {
 
   public async cancelRunTask(opts: CancelTaskOpts): Promise<void> {
     const task = await this.findTask(opts.projectFolder, opts.taskName);
-    return this.client.cancelRunTask(task);
+    const cancellationKey = getRunTaskCommandCancellationKey(
+      opts.projectFolder,
+      opts.taskName
+    );
+    return this.client.cancelBuild(cancellationKey, task);
   }
 
   private async findTask(

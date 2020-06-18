@@ -78,10 +78,11 @@ mockGradleBuild.setProject(mockGradleProject);
 describe(getSuiteName('Pinned tasks'), () => {
   beforeEach(() => {
     const icons = new Icons(mockContext);
-    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
-      mockContext
-    );
     const rootProjectsStore = new RootProjectsStore();
+    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
+      mockContext,
+      rootProjectsStore
+    );
     const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
     const pinnedTasksStore = new PinnedTasksStore(mockContext);
     const pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
@@ -101,6 +102,7 @@ describe(getSuiteName('Pinned tasks'), () => {
       gradleTasksTreeDataProvider
     );
     mockExtension.getIcons.returns(icons);
+    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
     sinon.stub(Extension, 'getInstance').returns(mockExtension);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());

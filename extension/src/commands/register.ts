@@ -14,8 +14,8 @@ import {
   debugTaskWithArgsCommand,
   COMMAND_RENDER_TASK,
   renderTaskCommand,
-  COMMAND_CANCEL_TASK,
-  cancelTaskCommand,
+  COMMAND_CANCEL_BUILD,
+  cancelBuildCommand,
   COMMAND_CANCEL_TREE_ITEM_TASK,
   cancelTreeItemTaskCommand,
   COMMAND_REFRESH,
@@ -60,6 +60,8 @@ import {
   clearAllPinnedTasksCommand,
   COMMAND_REMOVE_RECENT_TASK,
   removeRecentTaskCommand,
+  COMMAND_RUN_BUILD,
+  runBuildCommand,
 } from '.';
 
 export function registerCommands(context: vscode.ExtensionContext): void {
@@ -77,7 +79,7 @@ export function registerCommands(context: vscode.ExtensionContext): void {
       debugTaskWithArgsCommand
     ),
     vscode.commands.registerCommand(COMMAND_RENDER_TASK, renderTaskCommand),
-    vscode.commands.registerCommand(COMMAND_CANCEL_TASK, cancelTaskCommand),
+    vscode.commands.registerCommand(COMMAND_CANCEL_BUILD, cancelBuildCommand),
     vscode.commands.registerCommand(
       COMMAND_CANCEL_TREE_ITEM_TASK,
       cancelTreeItemTaskCommand
@@ -135,6 +137,7 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       COMMAND_REMOVE_RECENT_TASK,
       removeRecentTaskCommand
-    )
+    ),
+    vscode.commands.registerCommand(COMMAND_RUN_BUILD, runBuildCommand)
   );
 }
