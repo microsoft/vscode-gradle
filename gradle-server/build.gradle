@@ -2,7 +2,6 @@ plugins {
   id 'java'
   id 'application'
   id 'com.github.johnrengelman.shadow' version '6.0.0'
-  id 'com.diffplug.gradle.spotless'
 }
 
 description = 'vscode-gradle :: gradle-server'
@@ -123,9 +122,5 @@ task serverStartScripts(type: CreateStartScripts) {
   )
 }
 
-task(format) {
-  dependsOn(spotlessApply)
-}
-
-compileJava.dependsOn 'generateProto', spotlessCheck
+compileJava.dependsOn 'generateProto', 'spotlessCheck'
 assemble.dependsOn serverStartScripts

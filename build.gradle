@@ -28,6 +28,7 @@ allprojects {
 subprojects {
   apply plugin: 'java'
   apply plugin: 'com.google.protobuf'
+  apply plugin: 'com.diffplug.gradle.spotless'
 
   repositories {
     maven {
