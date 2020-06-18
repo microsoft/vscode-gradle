@@ -20,9 +20,21 @@ import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.security.CodeSource;
 import java.util.HashSet;
 import java.util.Set;
+import org.gradle.demo.model.OutgoingArtifactsModel;
+import org.gradle.demo.plugin.Beacon;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
@@ -59,6 +71,15 @@ public class GetBuildHandler {
 
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
+
+      ModelBuilder<OutgoingArtifactsModel> customModelBuilder =
+          connection.model(OutgoingArtifactsModel.class);
+      customModelBuilder.withArguments("--init-script", copyInitScript().getAbsolutePath());
+      OutgoingArtifactsModel model = customModelBuilder.get();
+      for (File artifact : model.getArtifacts()) {
+        System.out.println("artifact = " + artifact);
+      }
+
       org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
       replyWithProject(getProjectData(gradleProject, gradleProject));
     } catch (BuildCancelledException e) {
@@ -66,6 +87,7 @@ public class GetBuildHandler {
     } catch (ServiceCreationException
         | IOException
         | IllegalStateException
+        | URISyntaxException
         | org.gradle.tooling.GradleConnectionException e) {
       logger.error(e.getMessage());
       replyWithError(e);
@@ -169,6 +191,44 @@ public class GetBuildHandler {
                 .addAllJvmArgs(javaEnvironment.getJvmArguments()))
         .build();
   }
+
+  private File copyInitScript() throws IOException, URISyntaxException {
+    Path init = Files.createTempFile("init", ".gradle");
+    StringBuilder sb = new StringBuilder();
+    File pluginJar = lookupJar(Beacon.class);
+    File modelJar = lookupJar(OutgoingArtifactsModel.class);
+    try (BufferedReader reader =
+        new BufferedReader(
+            new InputStreamReader(
+                getClass().getClassLoader().getResourceAsStream("init.gradle")))) {
+      reader
+          .lines()
+          .forEach(
+              line -> {
+                String repl =
+                    line.replace("%%PLUGIN_JAR%%", pluginJar.getAbsolutePath())
+                        .replace("%%MODEL_JAR%%", modelJar.getAbsolutePath());
+                sb.append(repl).append("\n");
+              });
+    }
+    Files.copy(
+        new ByteArrayInputStream(sb.toString().getBytes(Charset.defaultCharset())),
+        init,
+        StandardCopyOption.REPLACE_EXISTING);
+    return init.toFile();
+  }
+
+  private static File lookupJar(Class<?> beaconClass) throws URISyntaxException {
+    CodeSource codeSource = beaconClass.getProtectionDomain().getCodeSource();
+    return new File(codeSource.getLocation().toURI());
+  }
+
+  // private static File findProjectPath(String... args) {
+  //   if (args.length == 0) {
+  //     return new File(".").getAbsoluteFile();
+  //   }
+  //   return new File(args[0]);
+  // }
 
   private void replyWithProject(GradleProject gradleProject) {
     responseObserver.onNext(

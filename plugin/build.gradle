@@ -1,0 +1,16 @@
+plugins {
+  id 'java-gradle-plugin'
+}
+
+gradlePlugin {
+  plugins {
+    myplugin {
+      id = "org.gradle.demo.plugin.custom.model"
+      implementationClass = "org.gradle.demo.plugin.CustomModelInjection"
+    }
+  }
+}
+
+dependencies {
+    implementation(project(":model"))
+}

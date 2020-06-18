@@ -1,0 +1,12 @@
+import org.gradle.demo.plugin.CustomModelInjectionPlugin
+
+initscript {
+    dependencies {
+        // If the plugin was published instead of copied we would just have to apply it
+        classpath files("%%PLUGIN_JAR%%", "%%MODEL_JAR%%")
+    }
+}
+
+allprojects {
+    apply plugin: CustomModelInjectionPlugin
+}
