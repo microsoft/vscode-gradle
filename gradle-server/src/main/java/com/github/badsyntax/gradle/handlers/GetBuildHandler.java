@@ -72,9 +72,11 @@ public class GetBuildHandler {
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
 
+      String initPath = copyInitScript().getAbsolutePath().replace("\\", "\\\\");
+      System.out.println("init script:" + initPath);
       ModelBuilder<OutgoingArtifactsModel> customModelBuilder =
           connection.model(OutgoingArtifactsModel.class);
-      customModelBuilder.withArguments("--init-script", copyInitScript().getAbsolutePath());
+      customModelBuilder.withArguments("--init-script", initPath);
       OutgoingArtifactsModel model = customModelBuilder.get();
       for (File artifact : model.getArtifacts()) {
         System.out.println("artifact = " + artifact);
@@ -197,6 +199,8 @@ public class GetBuildHandler {
     StringBuilder sb = new StringBuilder();
     File pluginJar = lookupJar(Beacon.class);
     File modelJar = lookupJar(OutgoingArtifactsModel.class);
+    System.out.println(pluginJar.getAbsolutePath());
+    System.out.println(modelJar.getAbsolutePath());
     try (BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(
@@ -206,8 +210,9 @@ public class GetBuildHandler {
           .forEach(
               line -> {
                 String repl =
-                    line.replace("%%PLUGIN_JAR%%", pluginJar.getAbsolutePath())
-                        .replace("%%MODEL_JAR%%", modelJar.getAbsolutePath());
+                    line.replace(
+                            "%%PLUGIN_JAR%%", pluginJar.getAbsolutePath().replace("\\", "\\\\"))
+                        .replace("%%MODEL_JAR%%", modelJar.getAbsolutePath().replace("\\", "\\\\"));
                 sb.append(repl).append("\n");
               });
     }
