@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import { getGradleCommand, getRootProjectFolder } from '../input';
-import { RunCommandTerminal } from '../terminal';
-export const COMMAND_RUN_COMMAND = 'gradle.runCommand';
+import { GradleRunnerTerminal } from '../terminal';
+import { getRunBuildCancellationKey } from '../client/CancellationKeys';
+export const COMMAND_RUN_BUILD = 'gradle.runBuild';
 
-export async function runCommandCommand(): Promise<void> {
+export async function runBuildCommand(): Promise<void> {
   const rootProject = await getRootProjectFolder();
   if (!rootProject) {
     return;
@@ -12,16 +13,19 @@ export async function runCommandCommand(): Promise<void> {
   if (!gradleCommand) {
     return;
   }
-  const commandArgs = gradleCommand.split(' ');
-  const terminal = new RunCommandTerminal(rootProject);
-  terminal.setArgs(commandArgs);
+  const args: string[] = gradleCommand.split(' ').filter(Boolean);
+  const cancellationKey = getRunBuildCancellationKey(
+    rootProject.getProjectUri().fsPath,
+    args
+  );
+  const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey);
   const task = new vscode.Task(
     {
-      type: 'gradlecommand',
+      type: 'gradle',
     },
     rootProject.getWorkspaceFolder(),
-    'gradle ' + gradleCommand,
-    'gradlecommand',
+    gradleCommand,
+    'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => terminal
     ),
@@ -30,7 +34,7 @@ export async function runCommandCommand(): Promise<void> {
   task.presentationOptions = {
     showReuseMessage: false,
     clear: true,
-    echo: false,
+    echo: true,
     focus: true,
     panel: vscode.TaskPanelKind.Shared,
     reveal: vscode.TaskRevealKind.Always,

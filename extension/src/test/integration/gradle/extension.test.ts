@@ -43,9 +43,7 @@ describe(getSuiteName('Extension'), () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
       assert.equal(tasks.length > 0, true);
-      const helloTask = tasks.find(
-        ({ definition }) => definition.script === 'hello'
-      );
+      const helloTask = tasks.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
       assert.equal(
         path.basename(helloTask.definition.projectFolder),
@@ -63,7 +61,7 @@ describe(getSuiteName('Extension'), () => {
 
     it('should run a gradle task', async () => {
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        ({ definition }) => definition.script === 'hello'
+        ({ name }) => name === 'hello'
       );
       assert.ok(task);
       const loggerAppendSpy = sinon.spy(extension?.exports.logger, 'append');
@@ -86,7 +84,7 @@ describe(getSuiteName('Extension'), () => {
       });
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(
-        loggerAppendLineSpy.calledWith(sinon.match('Completed task: hello'))
+        loggerAppendLineSpy.calledWith(sinon.match('Completed build: hello'))
       );
     });
 
@@ -98,7 +96,7 @@ describe(getSuiteName('Extension'), () => {
       assert.ok(extension);
 
       const task = (await vscode.tasks.fetchTasks({ type: 'gradle' })).find(
-        ({ definition }) => definition.script === 'helloProjectProperty'
+        ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.logger, 'append');

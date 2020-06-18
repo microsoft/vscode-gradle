@@ -15,7 +15,7 @@ import { GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 import { RootProject } from '../../rootProject/RootProject';
 
 const recentTasksGradleProjectTreeItemMap: Map<
@@ -36,7 +36,7 @@ function buildTaskTreeItem(
   taskTerminalsStore: TaskTerminalsStore
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
-  const taskName = buildTaskName(definition);
+  const taskName = task.name;
   const recentTaskTreeItem = new RecentTaskTreeItem(
     gradleProjectTreeItem,
     task,

@@ -3,18 +3,19 @@ package com.github.badsyntax.gradle.handlers;
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
-import com.github.badsyntax.gradle.GradleRunner;
+import com.github.badsyntax.gradle.GradleBuildRunner;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
-import com.github.badsyntax.gradle.RunCommandReply;
-import com.github.badsyntax.gradle.RunCommandRequest;
-import com.github.badsyntax.gradle.RunCommandResult;
+import com.github.badsyntax.gradle.RunBuildReply;
+import com.github.badsyntax.gradle.RunBuildRequest;
+import com.github.badsyntax.gradle.RunBuildResult;
+import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
-import com.github.badsyntax.gradle.exceptions.GradleTaskRunnerException;
+import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.UnsupportedVersionException;
@@ -23,31 +24,30 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RunCommandHandler {
-  private static final Logger logger = LoggerFactory.getLogger(RunCommandHandler.class.getName());
+public class RunBuildHandler {
+  private static final Logger logger = LoggerFactory.getLogger(RunBuildHandler.class.getName());
 
-  private RunCommandRequest req;
-  private StreamObserver<RunCommandReply> responseObserver;
+  private RunBuildRequest req;
+  private StreamObserver<RunBuildReply> responseObserver;
 
-  public RunCommandHandler(
-      RunCommandRequest req, StreamObserver<RunCommandReply> responseObserver) {
+  public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
 
-  public static String getCancellationKey(String projectDir, List<String> args) {
-    return projectDir + String.join("", args);
-  }
-
   public void run() {
-    String cancellationKey = getCancellationKey(req.getProjectDir(), req.getArgsList());
-    GradleRunner gradleRunner =
-        new GradleRunner(
-            req.getProjectDir(), req.getArgsList(), req.getGradleConfig(), cancellationKey);
+    GradleBuildRunner gradleRunner =
+        new GradleBuildRunner(
+            req.getProjectDir(),
+            req.getArgsList(),
+            req.getGradleConfig(),
+            req.getCancellationKey(),
+            req.getShowOutputColors(),
+            req.getJavaDebugPort());
     gradleRunner
         .setProgressListener(
             (ProgressEvent event) -> {
-              synchronized (RunCommandHandler.class) {
+              synchronized (RunBuildHandler.class) {
                 replyWithProgress(event);
               }
             })
@@ -55,7 +55,7 @@ public class RunCommandHandler {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (RunCommandHandler.class) {
+                synchronized (RunBuildHandler.class) {
                   replyWithStandardOutput(bytes);
                 }
               }
@@ -64,11 +64,15 @@ public class RunCommandHandler {
             new ByteBufferOutputStream() {
               @Override
               public void onFlush(byte[] bytes) {
-                synchronized (RunCommandHandler.class) {
+                synchronized (RunBuildHandler.class) {
                   replyWithStandardError(bytes);
                 }
               }
             });
+
+    if (!Strings.isNullOrEmpty(req.getInput())) {
+      gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));
+    }
 
     try {
       gradleRunner.run();
@@ -83,7 +87,7 @@ public class RunCommandHandler {
         | UnsupportedBuildArgumentException
         | IllegalStateException
         | IOException
-        | GradleTaskRunnerException e) {
+        | GradleBuildRunnerException e) {
       logger.error(e.getMessage());
       replyWithError(e);
     }
@@ -91,7 +95,7 @@ public class RunCommandHandler {
 
   public void replyWithCancelled(BuildCancelledException e) {
     responseObserver.onNext(
-        RunCommandReply.newBuilder()
+        RunBuildReply.newBuilder()
             .setCancelled(
                 Cancelled.newBuilder()
                     .setMessage(e.getMessage())
@@ -105,15 +109,14 @@ public class RunCommandHandler {
 
   public void replyWithSuccess() {
     responseObserver.onNext(
-        RunCommandReply.newBuilder()
-            .setRunCommandResult(
-                RunCommandResult.newBuilder().setMessage("Successfully run command"))
+        RunBuildReply.newBuilder()
+            .setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build"))
             .build());
   }
 
   private void replyWithProgress(ProgressEvent progressEvent) {
     responseObserver.onNext(
-        RunCommandReply.newBuilder()
+        RunBuildReply.newBuilder()
             .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
             .build());
   }
@@ -121,7 +124,7 @@ public class RunCommandHandler {
   private void replyWithStandardOutput(byte[] bytes) {
     ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
-        RunCommandReply.newBuilder()
+        RunBuildReply.newBuilder()
             .setOutput(
                 Output.newBuilder()
                     .setOutputType(Output.OutputType.STDOUT)
@@ -132,7 +135,7 @@ public class RunCommandHandler {
   private void replyWithStandardError(byte[] bytes) {
     ByteString byteString = ByteString.copyFrom(bytes);
     responseObserver.onNext(
-        RunCommandReply.newBuilder()
+        RunBuildReply.newBuilder()
             .setOutput(
                 Output.newBuilder()
                     .setOutputType(Output.OutputType.STDERR)

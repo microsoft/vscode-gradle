@@ -1,4 +1,4 @@
-export * from './cancelTaskCommand';
+export * from './cancelBuildCommand';
 export * from './cancelTreeItemTaskCommand';
 export * from './cancellingTreeItemTaskCommand';
 export * from './clearAllPinnedTasksCommand';
@@ -30,5 +30,4 @@ export * from './showTaskTerminalCommand';
 export * from './showTasksCommand';
 export * from './stopDaemonCommand';
 export * from './stopDaemonsCommand';
-export * from './runCommandCommand';
-export * from './cancelCommandCommand';
+export * from './runBuildCommand';

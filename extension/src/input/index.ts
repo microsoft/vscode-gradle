@@ -22,8 +22,11 @@ export function getTaskArgs(): Thenable<TaskArgs | undefined> {
 export function getGradleCommand(): Thenable<TaskArgs | undefined> {
   return vscode.window
     .showInputBox({
-      prompt:
-        'Enter a command for gradle to run. This can include built-in Gradle commands or tasks',
+      prompt: [
+        'Enter a command for gradle to run.',
+        'This can include built-in Gradle commands or tasks.',
+        'Not all Gradle command line options are supported.',
+      ].join(' '),
       placeHolder: 'For example: build --info',
       ignoreFocusOut: true,
     })

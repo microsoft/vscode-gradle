@@ -41,11 +41,12 @@ import {
   COMMAND_SHOW_LOGS,
   explorerFlatCommand,
   explorerTreeCommand,
-  cancelTaskCommand,
   COMMAND_RENDER_TASK,
+  cancelBuildCommand,
 } from '../../commands';
 import { removeCancellingTask } from '../../tasks/taskUtil';
 import { RootProjectsStore } from '../../stores';
+import { getRunTaskCommandCancellationKey } from '../../client/CancellationKeys';
 
 const mockContext = buildMockContext();
 const mockExtension = buildMockExtension();
@@ -380,7 +381,11 @@ describe(getSuiteName('Gradle tasks'), () => {
             vscode.commands,
             'executeCommand'
           );
-          cancelTaskCommand(task);
+          const cancellationKey = getRunTaskCommandCancellationKey(
+            mockTaskDefinition1ForFolder1.projectFolder,
+            task.name
+          );
+          cancelBuildCommand(cancellationKey, task);
           assert.ok(
             executeCommandStub.calledWith(COMMAND_RENDER_TASK, task),
             'Task was not rendered'

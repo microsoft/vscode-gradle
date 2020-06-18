@@ -94,8 +94,8 @@
         }
       },
       {
-        "command": "gradle.runCommand",
-        "title": "Run a Gradle Command",
+        "command": "gradle.runBuild",
+        "title": "Run a Gradle Build",
         "icon": {
           "light": "resources/light/console.svg",
           "dark": "resources/dark/console.svg"
@@ -194,7 +194,7 @@
         "title": "Open Task Build File"
       },
       {
-        "command": "gradle.cancelTask",
+        "command": "gradle.cancelBuild",
         "title": "Cancel Task"
       },
       {
@@ -345,7 +345,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.cancelTask",
+          "command": "gradle.cancelBuild",
           "when": "false"
         },
         {
@@ -409,7 +409,7 @@
           "when": "view == gradleTasksView"
         },
         {
-          "command": "gradle.runCommand",
+          "command": "gradle.runBuild",
           "when": "view == gradleTasksView",
           "group": "navigation@0"
         },

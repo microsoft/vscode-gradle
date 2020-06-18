@@ -11,7 +11,7 @@ import { isWorkspaceFolder } from '../../util';
 import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
-import { cloneTask, isGradleTask, buildTaskName } from '../../tasks/taskUtil';
+import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 import { RootProject } from '../../rootProject/RootProject';
 
 const pinnedTasksGradleProjectTreeItemMap: Map<
@@ -31,14 +31,13 @@ function buildTaskTreeItem(
   rootProject: RootProject
 ): GradleTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
-  const taskName = buildTaskName(definition);
+  const taskName = task.name;
   const pinnedTaskTreeItem = new PinnedTaskTreeItem(
     gradleProjectTreeItem,
     task,
     taskName,
     definition.description || taskName, // tooltip
     '', // description
-    // TODO: debug map won't exist unless the main gradle tasks view is visible
     rootProject.getJavaDebug()
   );
   pinnedTaskTreeItem.setContext();
