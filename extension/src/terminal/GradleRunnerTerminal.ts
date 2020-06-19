@@ -31,17 +31,17 @@ export class GradleRunnerTerminal {
     this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
   }
 
-  public open(): void {
-    this.runBuild();
+  public async open(): Promise<void> {
+    await this.runBuild();
   }
 
   public setTask(task: vscode.Task): void {
     this.task = task;
   }
 
-  public close(): void {
+  public async close(): Promise<void> {
     if (this.task && isTaskRunning(this.task)) {
-      this.cancelCommand();
+      await this.cancelCommand();
     }
   }
 
@@ -63,7 +63,7 @@ export class GradleRunnerTerminal {
       }
     } catch (err) {
       logger.error('Unable to start Java debugging:', err.message);
-      this.close();
+      await this.close();
     }
   }
 
@@ -94,8 +94,8 @@ export class GradleRunnerTerminal {
     }
   }
 
-  private cancelCommand(): void {
-    vscode.commands.executeCommand(
+  private async cancelCommand(): Promise<void> {
+    await vscode.commands.executeCommand(
       COMMAND_CANCEL_BUILD,
       this.cancellationKey,
       this.task
@@ -116,10 +116,10 @@ export class GradleRunnerTerminal {
     this.write(err.details || err.message);
   }
 
-  public handleInput(data: string): void {
+  public async handleInput(data: string): Promise<void> {
     // sigint eg cmd/ctrl+C
     if (data === '\x03') {
-      this.cancelCommand();
+      await this.cancelCommand();
     }
   }
 

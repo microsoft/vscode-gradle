@@ -69,7 +69,7 @@ export async function cancelBuild(
     cancellingTasks.set(task.definition.id, task);
     await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
   }
-  Extension.getInstance().getClient().cancelBuild(cancellationKey, task);
+  await Extension.getInstance().getClient().cancelBuild(cancellationKey, task);
 }
 
 export function isTaskCancelling(task: vscode.Task, args?: TaskArgs): boolean {
@@ -119,7 +119,7 @@ export function removeCancellingTask(task: vscode.Task): void {
   }
 }
 
-export function queueRestartTask(task: vscode.Task): void {
+export async function queueRestartTask(task: vscode.Task): Promise<void> {
   if (isTaskRunning(task)) {
     const definition = task.definition as GradleTaskDefinition;
     restartingTasks.set(definition.id, task);
@@ -128,7 +128,7 @@ export function queueRestartTask(task: vscode.Task): void {
       task.name
     );
     // Once the task is cancelled it will restart via onDidEndTask
-    cancelBuild(cancellationKey, task);
+    await cancelBuild(cancellationKey, task);
   }
 }
 
@@ -295,12 +295,12 @@ export async function runTask(
       }
       return;
     } else if (!isJavaDebuggerExtensionActivated()) {
-      vscode.window.showErrorMessage(
+      await vscode.window.showErrorMessage(
         'The Java Debugger extension is not activated.'
       );
       return;
     } else if (!isJavaLanguageSupportExtensionActivated()) {
-      vscode.window.showErrorMessage(
+      await vscode.window.showErrorMessage(
         'The Java Language Support extension is not activated.'
       );
       return;
@@ -324,7 +324,7 @@ export async function runTaskWithArgs(
 ): Promise<void> {
   const args = await getTaskArgs();
   if (args !== undefined) {
-    runTask(task, args, debug);
+    await runTask(task, args, debug);
   } else {
     logger.error('Args not supplied');
   }

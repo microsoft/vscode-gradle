@@ -33,14 +33,14 @@ export class GradleServer implements vscode.Disposable {
           this.fireOnStart();
         }
       }),
-      vscode.tasks.onDidEndTaskProcess((event) => {
+      vscode.tasks.onDidEndTaskProcess(async (event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this.ready = false;
           this._onDidStop.fire(null);
           if (!this.restarting) {
             logger.info('Gradle server stopped');
             this.taskExecution = undefined;
-            this.showRestartMessage();
+            await this.showRestartMessage();
           }
         }
       })
@@ -78,27 +78,27 @@ export class GradleServer implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.start();
+      await this.start();
     }
   }
 
-  public restart(): void {
+  public async restart(): Promise<void> {
     if (this.restarting) {
       return;
     }
     logger.info('Restarting gradle server');
     if (this.taskExecution) {
       this.restarting = true;
-      const disposable = vscode.tasks.onDidEndTaskProcess((event) => {
+      const disposable = vscode.tasks.onDidEndTaskProcess(async (event) => {
         if (event.execution.task.name === SERVER_TASK_NAME) {
           this.restarting = false;
           disposable.dispose();
-          this.start();
+          await this.start();
         }
       });
       this.taskExecution.terminate();
     } else {
-      this.start();
+      await this.start();
     }
   }
 

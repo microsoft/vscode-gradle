@@ -13,5 +13,5 @@
     "allowSyntheticDefaultImports": true
   },
   "exclude": ["node_modules", ".vscode-test", "build", "beta"],
-  "include": ["./src/**/*"]
+  "include": ["./src"]
 }

@@ -51,13 +51,14 @@ export class GradleTasksTreeDataProvider
       'gradleTasksCollapsed',
       false
     );
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.setCollapsed(collapsed);
   }
 
-  public setCollapsed(collapsed: boolean): void {
+  public async setCollapsed(collapsed: boolean): Promise<void> {
     this.collapsed = collapsed;
-    this.context.workspaceState.update('gradleTasksCollapsed', collapsed);
-    vscode.commands.executeCommand(
+    await this.context.workspaceState.update('gradleTasksCollapsed', collapsed);
+    await vscode.commands.executeCommand(
       'setContext',
       'gradle:gradleTasksCollapsed',
       collapsed

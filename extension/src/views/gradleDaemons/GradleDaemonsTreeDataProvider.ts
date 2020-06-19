@@ -34,6 +34,7 @@ export class GradleDaemonsTreeDataProvider
     }
     this.cancelDeferred = new Deferred();
     const cancellationToken = new vscode.CancellationTokenSource();
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.cancelDeferred.promise.then(() => cancellationToken.cancel());
 
     const projectRootFolders = await this.getProjectRootFolders();

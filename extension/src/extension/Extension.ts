@@ -188,23 +188,23 @@ export class Extension {
   }
 
   private handleWatchEvents(): void {
-    this.buildFileWatcher.onDidChange((uri: vscode.Uri) => {
+    this.buildFileWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Build file changed:', uri.fsPath);
-      this.refresh();
+      await this.refresh();
     });
-    this.gradleWrapperWatcher.onDidChange((uri: vscode.Uri) => {
+    this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
-      const disposable = this.client.onDidConnect(() => {
+      const disposable = this.client.onDidConnect(async () => {
         disposable.dispose();
-        this.refresh();
+        await this.refresh();
       });
       this.client.close();
-      this.server.restart();
+      await this.server.restart();
     });
   }
 
-  private refresh(): void {
-    vscode.commands.executeCommand(COMMAND_REFRESH);
+  private refresh(): Thenable<void> {
+    return vscode.commands.executeCommand(COMMAND_REFRESH);
   }
 
   private handleEditorEvents(): void {
@@ -215,14 +215,14 @@ export class Extension {
             event.affectsConfiguration('java.home') &&
             this.server.isReady()
           ) {
-            this.server.restart();
+            await this.server.restart();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
             this.rootProjectsStore.clear();
-            this.refresh();
+            await this.refresh();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
