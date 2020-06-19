@@ -746,7 +746,7 @@
     "grpc-tools": "^1.9.0",
     "mocha": "^8.0.1",
     "prettier": "^2.0.4",
-    "rollup": "^2.17.0",
+    "rollup": "^2.17.1",
     "rollup-plugin-terser": "^6.1.0",
     "sinon": "^9.0.2",
     "snyk": "^1.342.2",
