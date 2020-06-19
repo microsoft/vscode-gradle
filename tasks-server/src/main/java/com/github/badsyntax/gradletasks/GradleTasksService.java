@@ -9,7 +9,7 @@ import io.grpc.stub.StreamObserver;
 import org.gradle.tooling.GradleConnector;
 
 public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
-  private static final Logger logger = Logger.getLogger(GradleTasksService.class);
+  // private static final Logger logger = Logger.getLogger(GradleTasksService.class);
   private String pluginPath;
 
   GradleTasksService(String pluginPath) {
@@ -25,7 +25,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
           new GradleProjectBuilder(req, responseObserver, gradleConnector, pluginPath);
       projectBuilder.build();
     } catch (GradleConnectionException e) {
-      logger.error(e.getMessage());
+      // logger.error(e.getMessage());
       responseObserver.onError(ErrorMessageBuilder.build(e));
     }
   }
@@ -38,7 +38,7 @@ public class GradleTasksService extends GradleTasksGrpc.GradleTasksImplBase {
       GradleTaskRunner taskRunner = new GradleTaskRunner(req, responseObserver, gradleConnector);
       taskRunner.run();
     } catch (GradleConnectionException e) {
-      logger.error(e.getMessage());
+      // logger.error(e.getMessage());
       responseObserver.onError(ErrorMessageBuilder.build(e));
     }
   }

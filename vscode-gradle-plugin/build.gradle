@@ -1,6 +1,9 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation
+
 plugins {
   id 'com.diffplug.gradle.spotless'
   id 'java-gradle-plugin'
+  id 'com.github.johnrengelman.shadow' version '6.0.0'
 }
 
 description = 'vscode-gradle :: vscode-gradle-plugin'
@@ -8,7 +11,11 @@ description = 'vscode-gradle :: vscode-gradle-plugin'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+configurations.compile.dependencies.remove dependencies.gradleApi()
+
 dependencies {
+  shadow gradleApi()
+  shadow localGroovy()
   testImplementation 'junit:junit:4.12'
   testImplementation gradleTestKit()
 }
@@ -49,3 +56,9 @@ task functionalTest(type: Test) {
 check {
   dependsOn(tasks.functionalTest)
 }
+
+task relocateShadowJar(type: ConfigureShadowRelocation) {
+    target = tasks.shadowJar
+}
+
+tasks.shadowJar.dependsOn tasks.relocateShadowJar

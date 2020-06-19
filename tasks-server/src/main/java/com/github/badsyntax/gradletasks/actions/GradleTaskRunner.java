@@ -3,7 +3,7 @@ package com.github.badsyntax.gradletasks.actions;
 import com.github.badsyntax.gradletasks.ByteBufferOutputStream;
 import com.github.badsyntax.gradletasks.Cancelled;
 import com.github.badsyntax.gradletasks.ErrorMessageBuilder;
-import com.github.badsyntax.gradletasks.Logger;
+// import com.github.badsyntax.gradletasks.Logger;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.RunTaskReply;
@@ -33,7 +33,7 @@ import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 
 public class GradleTaskRunner {
-  private static final Logger logger = Logger.getLogger(GradleTaskRunner.class);
+  // private static final Logger logger = Logger.getLogger(GradleTaskRunner.class);
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
 
   private RunTaskRequest req;
@@ -71,7 +71,7 @@ public class GradleTaskRunner {
         | IllegalStateException
         | IOException
         | GradleTaskRunnerException e) {
-      logger.error(e.getMessage());
+      // logger.error(e.getMessage());
       replyWithError(e);
     } finally {
       CancellationHandler.clearRunTaskToken(getCancellationKey());

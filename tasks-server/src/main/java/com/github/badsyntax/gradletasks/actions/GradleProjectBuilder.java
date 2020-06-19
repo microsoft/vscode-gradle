@@ -12,7 +12,7 @@ import com.github.badsyntax.gradletasks.GradleEnvironment;
 import com.github.badsyntax.gradletasks.GradleProject;
 import com.github.badsyntax.gradletasks.GradleTask;
 import com.github.badsyntax.gradletasks.JavaEnvironment;
-import com.github.badsyntax.gradletasks.Logger;
+// import com.github.badsyntax.gradletasks.Logger;
 import com.github.badsyntax.gradletasks.Output;
 import com.github.badsyntax.gradletasks.Progress;
 import com.github.badsyntax.gradletasks.VsCodeProject;
@@ -44,7 +44,7 @@ import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.gradle.tooling.model.build.BuildEnvironment;
 
 public class GradleProjectBuilder {
-  private static final Logger logger = Logger.getLogger(GradleProjectBuilder.class);
+  // private static final Logger logger = Logger.getLogger(GradleProjectBuilder.class);
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
@@ -103,7 +103,7 @@ public class GradleProjectBuilder {
         | IOException
         | IllegalStateException
         | GradleProjectBuilderException e) {
-      logger.error(e.getMessage());
+      // logger.error(e.getMessage());
       replyWithError(e);
     } finally {
       if (initScript != null) {
