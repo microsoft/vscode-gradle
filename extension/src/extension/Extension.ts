@@ -33,7 +33,7 @@ import {
   RECENT_TASKS_VIEW,
 } from '../views/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
-import { GracefulFileWatcher } from '../watcher';
+import { FileWatcher } from '../watcher';
 import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
 
 export class Extension {
@@ -52,8 +52,8 @@ export class Extension {
   private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
   private readonly icons: Icons;
-  private readonly buildFileWatcher: GracefulFileWatcher;
-  private readonly gradleWrapperWatcher: GracefulFileWatcher;
+  private readonly buildFileWatcher: FileWatcher;
+  private readonly gradleWrapperWatcher: FileWatcher;
   private readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
@@ -130,15 +130,9 @@ export class Extension {
     });
 
     this.gradleTaskManager = new GradleTaskManager(context);
-    this.buildFileWatcher = new GracefulFileWatcher(
-      '**/*.{gradle,gradle.kts}',
-      this.gradleTaskProvider,
-      this.gradleTaskManager
-    );
-    this.gradleWrapperWatcher = new GracefulFileWatcher(
-      '**/gradle/wrapper/gradle-wrapper.properties',
-      this.gradleTaskProvider,
-      this.gradleTaskManager
+    this.buildFileWatcher = new FileWatcher('**/*.{gradle,gradle.kts}');
+    this.gradleWrapperWatcher = new FileWatcher(
+      '**/gradle/wrapper/gradle-wrapper.properties'
     );
     this.api = new Api(this.client, this.gradleTasksTreeDataProvider);
 
@@ -195,16 +189,16 @@ export class Extension {
 
   private handleWatchEvents(): void {
     this.buildFileWatcher.onDidChange((uri: vscode.Uri) => {
-      logger.debug('Build file changed:', uri.fsPath);
+      logger.info('Build file changed:', uri.fsPath);
       this.refresh();
     });
     this.gradleWrapperWatcher.onDidChange((uri: vscode.Uri) => {
-      logger.debug('Gradle wrapper properties changed:', uri.fsPath);
-      this.client.close();
+      logger.info('Gradle wrapper properties changed:', uri.fsPath);
       const disposable = this.client.onDidConnect(() => {
         disposable.dispose();
         this.refresh();
       });
+      this.client.close();
       this.server.restart();
     });
   }
