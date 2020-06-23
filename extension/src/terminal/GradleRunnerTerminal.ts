@@ -9,6 +9,7 @@ import { isTaskRunning } from '../tasks/taskUtil';
 import getPort from 'get-port';
 import { Extension } from '../extension';
 import { COMMAND_CANCEL_BUILD } from '../commands';
+import { GradleTaskDefinition } from '../tasks';
 
 const NL = '\n';
 const CR = '\r';
@@ -48,15 +49,19 @@ export class GradleRunnerTerminal {
   private async startJavaDebug(javaDebugPort: number): Promise<void> {
     try {
       await waitOnTcp('localhost', javaDebugPort);
+      const definition = this.task?.definition as GradleTaskDefinition;
+      const projectName = definition ? definition.project : undefined;
+      const debugConfig = {
+        type: 'java',
+        name: 'Debug (Attach) via Gradle Tasks',
+        request: 'attach',
+        hostName: 'localhost',
+        port: javaDebugPort,
+        projectName,
+      };
       const startedDebugging = await vscode.debug.startDebugging(
         this.rootProject.getWorkspaceFolder(),
-        {
-          type: 'java',
-          name: 'Debug (Attach) via Gradle Tasks',
-          request: 'attach',
-          hostName: 'localhost',
-          port: javaDebugPort,
-        }
+        debugConfig
       );
       if (!startedDebugging) {
         throw new Error('The debugger was not started');
