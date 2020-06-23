@@ -13,7 +13,7 @@ import { GradleTaskDefinition } from '../tasks';
 
 const NL = '\n';
 const CR = '\r';
-const nlRegExp = new RegExp(`${NL}([^${CR}])`, 'g');
+const nlRegExp = new RegExp(`${NL}([^${CR}]|$)`, 'g');
 
 export class GradleRunnerTerminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
