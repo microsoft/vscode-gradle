@@ -68,6 +68,7 @@ export class GradleClient implements vscode.Disposable {
   ) {
     this.server.onDidStart(this.handleServerStart);
     this.server.onDidStop(this.handleServerStop);
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.server.start();
   }
 
@@ -99,9 +100,9 @@ export class GradleClient implements vscode.Disposable {
     );
   };
 
-  public handleClientReady = (err: Error | undefined): void => {
+  public handleClientReady = async (err: Error | undefined): Promise<void> => {
     if (err) {
-      this.handleConnectError(err);
+      await this.handleConnectError(err);
     } else {
       logger.info('Gradle client connected to server');
       this._onDidConnect.fire(null);
@@ -165,7 +166,7 @@ export class GradleClient implements vscode.Disposable {
           return await new Promise((resolve, reject) => {
             let build: GradleBuild | void = undefined;
             getBuildStream
-              .on('data', (getBuildReply: GetBuildReply) => {
+              .on('data', async (getBuildReply: GetBuildReply) => {
                 switch (getBuildReply.getKindCase()) {
                   case GetBuildReply.KindCase.PROGRESS:
                     progressHandler.report(
@@ -196,7 +197,7 @@ export class GradleClient implements vscode.Disposable {
                     const environment = getBuildReply.getEnvironment()!;
                     rootProject.setEnvironment(environment);
                     logBuildEnvironment(environment);
-                    vscode.commands.executeCommand(
+                    await vscode.commands.executeCommand(
                       COMMAND_REFRESH_DAEMON_STATUS
                     );
                     break;
@@ -255,8 +256,8 @@ export class GradleClient implements vscode.Disposable {
 
         const progressHandler = new ProgressHandler(progress);
         // eslint-disable-next-line sonarjs/no-identical-functions
-        progressHandler.onDidProgressStart(() => {
-          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        progressHandler.onDidProgressStart(async () => {
+          await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });
 
         const gradleConfig = getGradleConfig();
@@ -305,9 +306,9 @@ export class GradleClient implements vscode.Disposable {
           );
           throw err;
         } finally {
-          vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+          await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
           if (task) {
-            restartQueuedTask(task);
+            await restartQueuedTask(task);
           }
         }
       }
@@ -407,7 +408,7 @@ export class GradleClient implements vscode.Disposable {
     } catch (err) {
       logger.error('Error stopping daemons:', err.details || err.message);
     } finally {
-      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+      await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   }
 
@@ -434,7 +435,7 @@ export class GradleClient implements vscode.Disposable {
     } catch (err) {
       logger.error('Error stopping daemon:', err.details || err.message);
     } finally {
-      vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+      await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
   }
 
@@ -455,7 +456,7 @@ export class GradleClient implements vscode.Disposable {
     logger.info('Get build cancelled:', cancelled.getMessage());
   };
 
-  private handleConnectError = (e: Error): void => {
+  private handleConnectError = async (e: Error): Promise<void> => {
     logger.error('Error connecting to gradle server:', e.message);
     this.close();
     this._onDidConnectFail.fire(null);
@@ -465,9 +466,9 @@ export class GradleClient implements vscode.Disposable {
       );
       const enumKey = ConnectivityState[connectivityState];
       logger.error('The client has state:', enumKey);
-      this.showRestartMessage();
+      await this.showRestartMessage();
     } else {
-      this.server.showRestartMessage();
+      await this.server.showRestartMessage();
     }
   };
 
@@ -478,7 +479,7 @@ export class GradleClient implements vscode.Disposable {
       OPT_RESTART
     );
     if (input === OPT_RESTART) {
-      this.handleServerStart();
+      await this.handleServerStart();
     }
   }
 

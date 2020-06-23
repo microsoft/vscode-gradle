@@ -39,5 +39,5 @@ export async function runBuildCommand(): Promise<void> {
     panel: vscode.TaskPanelKind.Shared,
     reveal: vscode.TaskRevealKind.Always,
   };
-  vscode.tasks.executeTask(task);
+  await vscode.tasks.executeTask(task);
 }

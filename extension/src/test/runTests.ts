@@ -195,11 +195,18 @@ async function main(): Promise<void> {
     hasErr = true;
     console.error('Error running tests:', err.message);
   } finally {
-    fs.remove(tmpDir);
+    await fs.remove(tmpDir);
     if (hasErr) {
       process.exit(1);
     }
   }
 }
 
-main();
+main().then(
+  () => {
+    console.log('Finished running tests');
+  },
+  (err) => {
+    console.error('Error cleaning up tests:', err.message);
+  }
+);

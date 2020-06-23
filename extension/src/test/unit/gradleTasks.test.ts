@@ -281,7 +281,7 @@ describe(getSuiteName('Gradle tasks'), () => {
       describe('Collapsed tree', () => {
         let gradleProjects: vscode.TreeItem[] = [];
         beforeEach(async () => {
-          explorerFlatCommand();
+          await explorerFlatCommand();
           const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
           gradleProjects = await gradleTaskTreeDataProvider.getChildren();
         });
@@ -385,7 +385,7 @@ describe(getSuiteName('Gradle tasks'), () => {
             mockTaskDefinition1ForFolder1.projectFolder,
             task.name
           );
-          cancelBuildCommand(cancellationKey, task);
+          await cancelBuildCommand(cancellationKey, task);
           assert.ok(
             executeCommandStub.calledWith(COMMAND_RENDER_TASK, task),
             'Task was not rendered'
@@ -436,7 +436,7 @@ describe(getSuiteName('Gradle tasks'), () => {
         mockExtension
           .getClient()
           .getBuild.resolves(mockGradleBuildWithTasksForMultiRoot);
-        explorerTreeCommand();
+        await explorerTreeCommand();
       });
 
       it('should build root RootProject items at top level', async () => {

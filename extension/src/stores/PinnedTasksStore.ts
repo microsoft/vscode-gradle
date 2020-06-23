@@ -37,11 +37,14 @@ export class PinnedTasksStore extends TaskStore {
     });
   }
 
-  public fireOnDidChange(): void {
+  public async fireOnDidChange(): Promise<void> {
     const workspaceStateTasks: WorkspaceStateTasks = toWorkspaceStateTasks(
       this.getData()
     );
-    this.context.workspaceState.update('pinnedTasks', workspaceStateTasks);
+    await this.context.workspaceState.update(
+      'pinnedTasks',
+      workspaceStateTasks
+    );
     super.fireOnDidChange(null);
   }
 }
