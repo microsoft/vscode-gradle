@@ -1,39 +1,61 @@
 import * as vscode from 'vscode';
+import minimatch from 'minimatch';
 
 export class FileWatcher implements vscode.Disposable {
-  private enabled = true;
-  private fileSystemWatcher: vscode.FileSystemWatcher;
   private readonly _onDidChange: vscode.EventEmitter<
     vscode.Uri
   > = new vscode.EventEmitter<vscode.Uri>();
   public readonly onDidChange: vscode.Event<vscode.Uri> = this._onDidChange
     .event;
+  private onDidSaveDisposable: vscode.Disposable;
+  private onDidDeleteDisposable: vscode.Disposable;
+  private onDidCreateDisposable: vscode.Disposable;
 
-  constructor(protected readonly buildFileGlob: string) {
-    this.fileSystemWatcher = vscode.workspace.createFileSystemWatcher(
-      this.buildFileGlob
+  constructor(protected readonly fileGlob: string) {
+    this.onDidSaveDisposable = vscode.workspace.onDidSaveTextDocument(
+      (doc: vscode.TextDocument) => {
+        if (this.isFileMatching(doc.uri)) {
+          this.fireOnDidChange(doc.uri);
+        }
+      }
     );
-    this.fileSystemWatcher.onDidChange(this.fireOnDidChange);
-    this.fileSystemWatcher.onDidDelete(this.fireOnDidChange);
-    this.fileSystemWatcher.onDidCreate(this.fireOnDidChange);
+    this.onDidDeleteDisposable = vscode.workspace.onDidDeleteFiles(
+      (event: vscode.FileDeleteEvent) => {
+        const fileDeleted = event.files.find((file) =>
+          this.isFileMatching(file)
+        );
+        if (fileDeleted) {
+          this.fireOnDidChange(fileDeleted);
+        }
+      }
+    );
+    this.onDidCreateDisposable = vscode.workspace.onDidCreateFiles(
+      (event: vscode.FileDeleteEvent) => {
+        const fileCreated = event.files.find((file) =>
+          this.isFileMatching(file)
+        );
+        if (fileCreated) {
+          this.fireOnDidChange(fileCreated);
+        }
+      }
+    );
+  }
+
+  private isFileMatching(uri: vscode.Uri): boolean {
+    if (uri.scheme !== 'file') {
+      return false;
+    }
+    return minimatch(uri.fsPath, this.fileGlob);
   }
 
   public fireOnDidChange = (uri: vscode.Uri): void => {
-    if (this.enabled) {
-      this._onDidChange.fire(uri);
-    }
+    this._onDidChange.fire(uri);
   };
 
-  protected enable(): void {
-    this.enabled = true;
-  }
-
-  protected disable(): void {
-    this.enabled = false;
-  }
-
   public dispose(): void {
-    this.fileSystemWatcher.dispose();
+    this.onDidSaveDisposable.dispose();
+    this.onDidDeleteDisposable.dispose();
+    this.onDidCreateDisposable.dispose();
     this._onDidChange.dispose();
   }
 }
