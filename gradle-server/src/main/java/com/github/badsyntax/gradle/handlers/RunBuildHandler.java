@@ -73,9 +73,9 @@ public class RunBuildHandler {
             req.getShowOutputColors(),
             req.getJavaDebugPort());
     gradleRunner
-        .setProgressListener(this.progressListener)
-        .setStandardOutputStream(this.standardOutputListener)
-        .setStandardErrorStream(this.standardErrorListener);
+        .setProgressListener(progressListener)
+        .setStandardOutputStream(standardOutputListener)
+        .setStandardErrorStream(standardErrorListener);
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));
