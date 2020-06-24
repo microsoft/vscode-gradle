@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CancelBuildsHandler {
-  private static final Logger logger = LoggerFactory.getLogger(CancelBuildHandler.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(CancelBuildsHandler.class.getName());
 
   private StreamObserver<CancelBuildsReply> responseObserver;
 
