@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 export enum LogVerbosity {
   DEBUG = 0,
   INFO = 1,
-  WARNING = 2,
+  WARN = 2,
   ERROR = 3,
 }
 
@@ -46,8 +46,8 @@ export class Logger {
     this.log(messages.join(' '), LogVerbosity.INFO);
   }
 
-  public warning(...messages: string[]): void {
-    this.log(messages.join(' '), LogVerbosity.WARNING);
+  public warn(...messages: string[]): void {
+    this.log(messages.join(' '), LogVerbosity.WARN);
   }
 
   public error(...messages: string[]): void {

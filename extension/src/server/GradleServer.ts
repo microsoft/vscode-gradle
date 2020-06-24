@@ -1,51 +1,36 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as cp from 'child_process';
 import getPort from 'get-port';
-import { SERVER_TASK_NAME, buildGradleServerTask } from './serverUtil';
+import { getGradleServerCommand, getGradleServerEnv } from './serverUtil';
 import { isDebuggingServer } from '../util';
-import { logger } from '../logger/index';
+import { Logger } from '../logger/index';
+
+const serverLogLevelRegEx = /^\[([A-Z]+)\](.*)$/;
 
 export interface ServerOptions {
   host: string;
 }
 
 export class GradleServer implements vscode.Disposable {
-  private taskExecution?: vscode.TaskExecution;
   private readonly _onDidStart: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
   private readonly _onDidStop: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
-  private restarting = false;
   private ready = false;
   private port: number | undefined;
 
   public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
   public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
+  private process?: cp.ChildProcessWithoutNullStreams;
 
   constructor(
     private readonly opts: ServerOptions,
-    private readonly context: vscode.ExtensionContext
-  ) {
-    context.subscriptions.push(
-      vscode.tasks.onDidStartTaskProcess(async (event) => {
-        if (event.execution.task.name === SERVER_TASK_NAME) {
-          this.fireOnStart();
-        }
-      }),
-      vscode.tasks.onDidEndTaskProcess(async (event) => {
-        if (event.execution.task.name === SERVER_TASK_NAME) {
-          this.ready = false;
-          this._onDidStop.fire(null);
-          if (!this.restarting) {
-            logger.info('Gradle server stopped');
-            this.taskExecution = undefined;
-            await this.showRestartMessage();
-          }
-        }
-      })
-    );
-  }
+    private readonly context: vscode.ExtensionContext,
+    private readonly logger: Logger
+  ) {}
 
   public async start(): Promise<void> {
     if (isDebuggingServer()) {
@@ -54,16 +39,27 @@ export class GradleServer implements vscode.Disposable {
     } else {
       this.port = await getPort();
       const cwd = this.context.asAbsolutePath('lib');
-      const task = buildGradleServerTask(cwd, [String(this.port)]);
-      logger.debug('Starting server');
-      try {
-        this.taskExecution = await vscode.tasks.executeTask(task);
-        if (!this.taskExecution) {
-          throw new Error('Task execution not found');
-        }
-      } catch (e) {
-        logger.error('There was an error starting the server:', e.message);
-      }
+      const cmd = path.join(cwd, getGradleServerCommand());
+      const args = [String(this.port)];
+      const env = getGradleServerEnv();
+
+      this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
+      this.logger.debug('Starting server');
+
+      this.process = cp.spawn(cmd, args, { cwd, env, shell: true });
+      this.process.stdout.on('data', this.logOutput);
+      this.process.stderr.on('data', this.logOutput);
+      this.process
+        .on('error', async (err: Error) =>
+          this.logger.error('Server error:', err.message)
+        )
+        .on('exit', async (code) => {
+          if (code !== 0) {
+            await this.handleServerStartError();
+          }
+        });
+
+      this.fireOnStart();
     }
   }
 
@@ -83,33 +79,51 @@ export class GradleServer implements vscode.Disposable {
   }
 
   public async restart(): Promise<void> {
-    if (this.restarting) {
-      return;
+    this.logger.info('Restarting gradle server');
+    this.killProcess();
+    await this.start();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private logOutput = (data: any): void => {
+    const str = data.toString().trim();
+    if (str) {
+      const logLevelMatches = str.match(serverLogLevelRegEx);
+      if (logLevelMatches.length) {
+        const [, serverLogLevel, serverLogMessage] = logLevelMatches;
+        const logLevel = serverLogLevel.toLowerCase() as
+          | 'debug'
+          | 'info'
+          | 'warn'
+          | 'error';
+        this.logger[logLevel](serverLogMessage.trim());
+      } else {
+        this.logger.info(str);
+      }
     }
-    logger.info('Restarting gradle server');
-    if (this.taskExecution) {
-      this.restarting = true;
-      const disposable = vscode.tasks.onDidEndTaskProcess(async (event) => {
-        if (event.execution.task.name === SERVER_TASK_NAME) {
-          this.restarting = false;
-          disposable.dispose();
-          await this.start();
-        }
-      });
-      this.taskExecution.terminate();
-    } else {
-      await this.start();
-    }
+  };
+
+  private killProcess(): void {
+    this.process?.removeAllListeners();
+    this.process?.kill('SIGTERM');
+  }
+
+  private async handleServerStartError(): Promise<void> {
+    this.logger.error('There was an error starting the server');
+    this.ready = false;
+    this._onDidStop.fire(null);
+    this.logger.info('Gradle server stopped');
+    await this.showRestartMessage();
   }
 
   private fireOnStart(): void {
-    logger.info('Gradle server started');
+    this.logger.info('Gradle server started');
     this.ready = true;
     this._onDidStart.fire(null);
   }
 
   public dispose(): void {
-    this.taskExecution?.terminate();
+    this.killProcess();
     this._onDidStart.dispose();
     this._onDidStop.dispose();
   }

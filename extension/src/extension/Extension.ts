@@ -66,17 +66,26 @@ export class Extension {
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     const loggingChannel = vscode.window.createOutputChannel('Gradle Tasks');
+    logger.setLoggingChannel(loggingChannel);
 
     const clientLogger = new Logger('grpc');
-    logger.setLoggingChannel(loggingChannel);
     clientLogger.setLoggingChannel(loggingChannel);
+
+    const serverLogger = new Logger('gradle-server');
+    serverLogger.setLoggingChannel(loggingChannel);
+
     if (getConfigIsDebugEnabled()) {
       logger.setLogVerbosity(LogVerbosity.DEBUG);
       clientLogger.setLogVerbosity(LogVerbosity.DEBUG);
+      serverLogger.setLogVerbosity(LogVerbosity.DEBUG);
     }
 
     const statusBarItem = vscode.window.createStatusBarItem();
-    this.server = new GradleServer({ host: 'localhost' }, context);
+    this.server = new GradleServer(
+      { host: 'localhost' },
+      context,
+      serverLogger
+    );
     this.client = new GradleClient(this.server, statusBarItem, clientLogger);
     this.pinnedTasksStore = new PinnedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();

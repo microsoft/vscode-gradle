@@ -453,7 +453,7 @@ export class GradleClient implements vscode.Disposable {
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {
-    logger.info('Get build cancelled:', cancelled.getMessage());
+    logger.info('Build cancelled:', cancelled.getMessage());
   };
 
   private handleConnectError = async (e: Error): Promise<void> => {
