@@ -87,19 +87,20 @@ export class GradleServer implements vscode.Disposable {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private logOutput = (data: any): void => {
     const str = data.toString().trim();
-    if (str) {
-      const logLevelMatches = str.match(serverLogLevelRegEx);
-      if (logLevelMatches.length) {
-        const [, serverLogLevel, serverLogMessage] = logLevelMatches;
-        const logLevel = serverLogLevel.toLowerCase() as
-          | 'debug'
-          | 'info'
-          | 'warn'
-          | 'error';
-        this.logger[logLevel](serverLogMessage.trim());
-      } else {
-        this.logger.info(str);
-      }
+    if (!str) {
+      return;
+    }
+    const logLevelMatches = str.match(serverLogLevelRegEx);
+    if (logLevelMatches.length) {
+      const [, serverLogLevel, serverLogMessage] = logLevelMatches;
+      const logLevel = serverLogLevel.toLowerCase() as
+        | 'debug'
+        | 'info'
+        | 'warn'
+        | 'error';
+      this.logger[logLevel](serverLogMessage.trim());
+    } else {
+      this.logger.info(str);
     }
   };
 
