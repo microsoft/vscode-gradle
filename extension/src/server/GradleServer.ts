@@ -50,9 +50,7 @@ export class GradleServer implements vscode.Disposable {
       this.process.stdout.on('data', this.logOutput);
       this.process.stderr.on('data', this.logOutput);
       this.process
-        .on('error', async (err: Error) =>
-          this.logger.error('Server error:', err.message)
-        )
+        .on('error', (err: Error) => this.logger.error(err.message))
         .on('exit', async (code) => {
           if (code !== 0) {
             await this.handleServerStartError();
@@ -110,15 +108,13 @@ export class GradleServer implements vscode.Disposable {
   }
 
   private async handleServerStartError(): Promise<void> {
-    this.logger.error('There was an error starting the server');
+    this.logger.warn('Gradle server stopped');
     this.ready = false;
     this._onDidStop.fire(null);
-    this.logger.info('Gradle server stopped');
     await this.showRestartMessage();
   }
 
   private fireOnStart(): void {
-    this.logger.info('Gradle server started');
     this.ready = true;
     this._onDidStart.fire(null);
   }

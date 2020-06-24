@@ -75,9 +75,7 @@ export class Extension {
     serverLogger.setLoggingChannel(loggingChannel);
 
     if (getConfigIsDebugEnabled()) {
-      logger.setLogVerbosity(LogVerbosity.DEBUG);
-      clientLogger.setLogVerbosity(LogVerbosity.DEBUG);
-      serverLogger.setLogVerbosity(LogVerbosity.DEBUG);
+      Logger.setLogVerbosity(LogVerbosity.DEBUG);
     }
 
     const statusBarItem = vscode.window.createStatusBarItem();
@@ -235,7 +233,7 @@ export class Extension {
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
-            logger.setLogVerbosity(
+            Logger.setLogVerbosity(
               debug ? LogVerbosity.DEBUG : LogVerbosity.INFO
             );
           }

@@ -9,12 +9,12 @@ export enum LogVerbosity {
 
 export class Logger {
   private channel?: vscode.OutputChannel;
-  private verbosity: LogVerbosity = LogVerbosity.INFO;
+  protected static verbosity: LogVerbosity = LogVerbosity.INFO;
 
   constructor(private readonly prefix?: string) {}
 
-  public setLogVerbosity(verbosity: LogVerbosity): void {
-    this.verbosity = verbosity;
+  public static setLogVerbosity(verbosity: LogVerbosity): void {
+    Logger.verbosity = verbosity;
   }
 
   public log(message: string, verbosity: LogVerbosity): void {
@@ -25,13 +25,13 @@ export class Logger {
   }
 
   public appendLine(message: string, verbosity: LogVerbosity): void {
-    if (verbosity >= this.verbosity) {
+    if (verbosity >= Logger.verbosity) {
       this.channel?.appendLine(message);
     }
   }
 
   public append(message: string, verbosity: LogVerbosity): void {
-    if (verbosity >= this.verbosity) {
+    if (verbosity >= Logger.verbosity) {
       this.channel?.append(message);
     }
   }
