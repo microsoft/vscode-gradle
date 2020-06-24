@@ -70,16 +70,6 @@ public class GradleServerTest {
   @Mock
   org.gradle.tooling.ModelBuilder<org.gradle.tooling.model.GradleProject> mockGradleProjectBuilder;
 
-  @Mock org.gradle.tooling.model.GradleProject mockGradleProject;
-  @Mock org.gradle.tooling.GradleConnector mockConnector;
-  @Mock org.gradle.tooling.ProjectConnection mockConnection;
-  @Mock org.gradle.tooling.CancellationTokenSource mockCancellationTokenSource;
-  @Mock org.gradle.tooling.CancellationToken mockCancellationToken;
-  @Mock org.gradle.tooling.model.build.BuildEnvironment mockEnvironment;
-  @Mock org.gradle.tooling.model.build.GradleEnvironment mockGradleEnvironment;
-  @Mock org.gradle.tooling.model.build.JavaEnvironment mockJavaEnvironment;
-  @Mock org.gradle.tooling.BuildLauncher mockBuildLauncher;
-
   @Mock
   org.gradle.tooling.ModelBuilder<org.gradle.tooling.model.build.BuildEnvironment>
       mockBuildEnvironmentBuilder;
@@ -90,6 +80,17 @@ public class GradleServerTest {
 
   @Mock
   org.gradle.tooling.model.DomainObjectSet<? extends org.gradle.tooling.model.GradleTask> mockTasks;
+
+  @Mock org.gradle.tooling.model.GradleProject mockGradleProject;
+  @Mock org.gradle.tooling.model.build.BuildEnvironment mockBuildEnvironment;
+  @Mock org.gradle.tooling.GradleConnector mockConnector;
+  @Mock org.gradle.tooling.ProjectConnection mockConnection;
+  @Mock org.gradle.tooling.CancellationTokenSource mockCancellationTokenSource;
+  @Mock org.gradle.tooling.CancellationToken mockCancellationToken;
+  @Mock org.gradle.tooling.model.build.BuildEnvironment mockEnvironment;
+  @Mock org.gradle.tooling.model.build.GradleEnvironment mockGradleEnvironment;
+  @Mock org.gradle.tooling.model.build.JavaEnvironment mockJavaEnvironment;
+  @Mock org.gradle.tooling.BuildLauncher mockBuildLauncher;
 
   private void setupMocks() {
     mockStatic(org.gradle.tooling.GradleConnector.class);
@@ -113,14 +114,24 @@ public class GradleServerTest {
     when(mockGradleProjectBuilder.get()).thenReturn(mockGradleProject);
     when(mockGradleProjectBuilder.withCancellationToken(any()))
         .thenReturn(mockGradleProjectBuilder);
+    when(mockBuildEnvironmentBuilder.withCancellationToken(any()))
+        .thenReturn(mockBuildEnvironmentBuilder);
     when(mockGradleProjectBuilder.addProgressListener(
             any(org.gradle.tooling.events.ProgressListener.class),
             ArgumentMatchers.<Set<OperationType>>any()))
         .thenReturn(mockGradleProjectBuilder);
+    when(mockBuildEnvironmentBuilder.addProgressListener(
+            any(org.gradle.tooling.events.ProgressListener.class),
+            ArgumentMatchers.<Set<OperationType>>any()))
+        .thenReturn(mockBuildEnvironmentBuilder);
     when(mockGradleProjectBuilder.setStandardOutput(any(OutputStream.class)))
         .thenReturn(mockGradleProjectBuilder);
     when(mockGradleProjectBuilder.setStandardError(any(OutputStream.class)))
         .thenReturn(mockGradleProjectBuilder);
+    when(mockBuildEnvironmentBuilder.setStandardOutput(any(OutputStream.class)))
+        .thenReturn(mockBuildEnvironmentBuilder);
+    when(mockBuildEnvironmentBuilder.setStandardError(any(OutputStream.class)))
+        .thenReturn(mockBuildEnvironmentBuilder);
     when(mockGradleProjectBuilder.setColorOutput(any(Boolean.class)))
         .thenReturn(mockGradleProjectBuilder);
     when(mockConnection.model(org.gradle.tooling.model.GradleProject.class))
@@ -128,7 +139,7 @@ public class GradleServerTest {
     when(mockConnection.model(org.gradle.tooling.model.build.BuildEnvironment.class))
         .thenReturn(mockBuildEnvironmentBuilder);
 
-    // Build launcher (run task) mocks
+    // Build launcher (run build) mocks
     when(mockBuildLauncher.withCancellationToken(any())).thenReturn(mockBuildLauncher);
     when(mockBuildLauncher.addProgressListener(
             any(org.gradle.tooling.events.ProgressListener.class),
@@ -281,13 +292,13 @@ public class GradleServerTest {
 
     stub.getBuild(req, mockResponseObserver);
     verify(mockResponseObserver, never()).onError(any());
+
     verify(mockGradleProjectBuilder)
         .addProgressListener(
             any(org.gradle.tooling.events.ProgressListener.class), onAddProgressListener.capture());
 
-    assertEquals(2, onAddProgressListener.getValue().size());
+    assertEquals(1, onAddProgressListener.getValue().size());
     assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
-    assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
   }
 
   @Test

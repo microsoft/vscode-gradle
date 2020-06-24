@@ -108,8 +108,7 @@ public class GetBuildHandler {
                   replyWithStandardError(bytes);
                 }
               }
-            })
-        .setColorOutput(req.getShowOutputColors());
+            });
 
     try {
       BuildEnvironment environment = buildEnvironment.get();
