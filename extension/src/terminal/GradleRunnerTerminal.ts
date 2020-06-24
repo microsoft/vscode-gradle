@@ -122,7 +122,7 @@ export class GradleRunnerTerminal {
       const outputChannel = logger.getChannel();
       if (outputChannel) {
         this.write(
-          `Unable to run Gradle Task due to a server error. View the "${outputChannel.name}" output for details.`
+          `Unable to run Gradle Task due to server error. View the "${outputChannel.name}" output for details.`
         );
       }
     } else {

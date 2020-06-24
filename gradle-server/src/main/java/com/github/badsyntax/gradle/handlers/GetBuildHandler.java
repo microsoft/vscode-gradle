@@ -31,6 +31,7 @@ import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressEvent;
+import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +41,37 @@ public class GetBuildHandler {
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
+  private ProgressListener progressListener;
+  private ByteBufferOutputStream standardOutputListener;
+  private ByteBufferOutputStream standardErrorListener;
 
   public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
+    this.progressListener =
+        (ProgressEvent event) -> {
+          synchronized (GetBuildHandler.class) {
+            replyWithProgress(event);
+          }
+        };
+    this.standardOutputListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (GetBuildHandler.class) {
+              replyWithStandardOutput(bytes);
+            }
+          }
+        };
+    this.standardErrorListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (GetBuildHandler.class) {
+              replyWithStandardError(bytes);
+            }
+          }
+        };
   }
 
   public void run() {
@@ -84,31 +112,9 @@ public class GetBuildHandler {
 
     buildEnvironment
         .withCancellationToken(cancellationToken)
-        .addProgressListener(
-            (ProgressEvent event) -> {
-              synchronized (GetBuildHandler.class) {
-                replyWithProgress(event);
-              }
-            },
-            progressEvents)
-        .setStandardOutput(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardOutput(bytes);
-                }
-              }
-            })
-        .setStandardError(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardError(bytes);
-                }
-              }
-            });
+        .addProgressListener(progressListener, progressEvents)
+        .setStandardOutput(standardOutputListener)
+        .setStandardError(standardErrorListener);
 
     try {
       BuildEnvironment environment = buildEnvironment.get();
@@ -143,31 +149,9 @@ public class GetBuildHandler {
 
     projectBuilder
         .withCancellationToken(cancellationToken)
-        .addProgressListener(
-            (ProgressEvent event) -> {
-              synchronized (GetBuildHandler.class) {
-                replyWithProgress(event);
-              }
-            },
-            progressEvents)
-        .setStandardOutput(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardOutput(bytes);
-                }
-              }
-            })
-        .setStandardError(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardError(bytes);
-                }
-              }
-            })
+        .addProgressListener(progressListener, progressEvents)
+        .setStandardOutput(standardOutputListener)
+        .setStandardError(standardErrorListener)
         .setColorOutput(req.getShowOutputColors());
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
