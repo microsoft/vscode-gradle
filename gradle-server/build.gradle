@@ -83,8 +83,6 @@ startScripts.enabled = false
 jar.enabled = false
 distZip.enabled = false
 distTar.enabled = false
-assemble.enabled = false;
-processResources.enabled = false;
 shadowDistZip.enabled = false;
 shadowDistTar.enabled = false;
 
