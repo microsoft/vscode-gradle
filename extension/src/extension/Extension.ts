@@ -201,13 +201,14 @@ export class Extension {
     });
     this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
-      const disposable = this.client.onDidConnect(async () => {
-        disposable.dispose();
-        await this.refresh();
-      });
-      this.client.close();
-      await this.server.restart();
+      await this.restartServer();
     });
+  }
+
+  private async restartServer(): Promise<void> {
+    await this.client.cancelBuilds();
+    this.client.close();
+    await this.server.restart();
   }
 
   private refresh(): Thenable<void> {
@@ -218,11 +219,8 @@ export class Extension {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(
         async (event: vscode.ConfigurationChangeEvent) => {
-          if (
-            event.affectsConfiguration('java.home') &&
-            this.server.isReady()
-          ) {
-            await this.server.restart();
+          if (event.affectsConfiguration('java.home')) {
+            await this.restartServer();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||

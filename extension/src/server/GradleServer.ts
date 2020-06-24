@@ -6,7 +6,8 @@ import { getGradleServerCommand, getGradleServerEnv } from './serverUtil';
 import { isDebuggingServer } from '../util';
 import { Logger } from '../logger/index';
 
-const serverLogLevelRegEx = /^\[([A-Z]+)\](.*)$/;
+const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
+const DOWNLOAD_PROGRESS_CHAR = '.';
 
 export interface ServerOptions {
   host: string;
@@ -21,6 +22,7 @@ export class GradleServer implements vscode.Disposable {
   > = new vscode.EventEmitter<null>();
   private ready = false;
   private port: number | undefined;
+  private restarting = false;
 
   public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
   public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
@@ -40,11 +42,11 @@ export class GradleServer implements vscode.Disposable {
       this.port = await getPort();
       const cwd = this.context.asAbsolutePath('lib');
       const cmd = path.join(cwd, getGradleServerCommand());
-      const args = [String(this.port)];
       const env = getGradleServerEnv();
+      const args = [String(this.port)];
 
-      this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
       this.logger.debug('Starting server');
+      this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
 
       this.process = cp.spawn(cmd, args, { cwd, env, shell: true });
       this.process.stdout.on('data', this.logOutput);
@@ -52,7 +54,12 @@ export class GradleServer implements vscode.Disposable {
       this.process
         .on('error', (err: Error) => this.logger.error(err.message))
         .on('exit', async (code) => {
-          if (code !== 0) {
+          this.ready = false;
+          this.process?.removeAllListeners();
+          if (this.restarting) {
+            this.restarting = false;
+            await this.start();
+          } else if (code !== 0) {
             await this.handleServerStartError();
           }
         });
@@ -78,18 +85,18 @@ export class GradleServer implements vscode.Disposable {
 
   public async restart(): Promise<void> {
     this.logger.info('Restarting gradle server');
+    this.restarting = true;
     this.killProcess();
-    await this.start();
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private logOutput = (data: any): void => {
     const str = data.toString().trim();
-    if (!str) {
+    if (!str || str === DOWNLOAD_PROGRESS_CHAR) {
       return;
     }
-    const logLevelMatches = str.match(serverLogLevelRegEx);
-    if (logLevelMatches.length) {
+    const logLevelMatches = str.match(SERVER_LOGLEVEL_REGEX);
+    if (logLevelMatches && logLevelMatches.length) {
       const [, serverLogLevel, serverLogMessage] = logLevelMatches;
       const logLevel = serverLogLevel.toLowerCase() as
         | 'debug'
@@ -103,13 +110,11 @@ export class GradleServer implements vscode.Disposable {
   };
 
   private killProcess(): void {
-    this.process?.removeAllListeners();
     this.process?.kill('SIGTERM');
   }
 
   private async handleServerStartError(): Promise<void> {
     this.logger.warn('Gradle server stopped');
-    this.ready = false;
     this._onDidStop.fire(null);
     await this.showRestartMessage();
   }
@@ -120,6 +125,7 @@ export class GradleServer implements vscode.Disposable {
   }
 
   public dispose(): void {
+    this.process?.removeAllListeners();
     this.killProcess();
     this._onDidStart.dispose();
     this._onDidStop.dispose();
