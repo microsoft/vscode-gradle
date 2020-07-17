@@ -28,7 +28,7 @@
     "@grpc/grpc-js": "^1.0.5",
     "@types/google-protobuf": "^3.7.2",
     "@types/vscode": "^1.45.0",
-    "google-protobuf": "^3.12.0-rc.1"
+    "google-protobuf": "^4.0.0-rc.1"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^2.30.0",
