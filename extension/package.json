@@ -750,7 +750,7 @@
     "rollup": "^2.18.0",
     "rollup-plugin-terser": "^6.1.0",
     "sinon": "^9.0.2",
-    "snyk": "^1.348.1",
+    "snyk": "^1.364.2",
     "ts-protoc-gen": "^0.12.0",
     "typescript": "^3.9.5",
     "vsce": "^1.77.0",
