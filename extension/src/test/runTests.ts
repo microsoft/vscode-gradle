@@ -55,7 +55,6 @@ async function runNetworkTestsWithGradle(
       FIXTURE_NAME: fixture,
       VSCODE_TEST: 'true',
       SUITE_NAME: 'Run network tests with Gradle',
-      // eslint-disable-next-line @typescript-eslint/camelcase
       http_proxy: 'http://0.0.0.0',
     },
   });
