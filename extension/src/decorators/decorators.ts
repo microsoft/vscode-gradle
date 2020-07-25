@@ -1,6 +1,7 @@
 // Taken from https://github.com/microsoft/vscode/blob/master/src/vs/base/common/decorators.ts
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-types */
 export function createDecorator(
   mapFn: (fn: Function, key: string) => Function
 ): Function {
