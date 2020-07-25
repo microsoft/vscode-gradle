@@ -23,10 +23,12 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: lint
+          wrapper-cache-enabled: false
       - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: gradle-server:build sonarqube -x :test -x extension:test -x npm-package:test
+          wrapper-cache-enabled: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -63,6 +65,7 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: extension:build
+          wrapper-cache-enabled: false
         env:
           NODE_OPTIONS: '--max-old-space-size=4096'
       - name: Download lib
@@ -85,22 +88,26 @@ jobs:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+          wrapper-cache-enabled: false
       - name: Prepare gradle-groovy-default-build-file
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
+          wrapper-cache-enabled: false
       - name: Prepare gradle-kotlin-default-build-file
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
+          wrapper-cache-enabled: false
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: testVsCode
+          wrapper-cache-enabled: false
         env:
           DISPLAY: ':99.0'
           CI: 'true'
@@ -108,24 +115,28 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: --stop
+          wrapper-cache-enabled: false
       - name: Stop Gradle daemon for gradle-groovy-custom-build-file
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: --stop
           build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
+          wrapper-cache-enabled: false
       - name: Stop Gradle daemon for gradle-groovy-default-build-file
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: --stop
           build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
+          wrapper-cache-enabled: false
       - name: Stop Gradle daemon for gradle-kotlin-default-build-file
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: --stop
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
+          wrapper-cache-enabled: false
 
   publish-beta-extension:
     needs: [test-extension]
@@ -142,6 +153,7 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: prepareForBetaRelease --no-daemon
+          wrapper-cache-enabled: false
       - name: Publish types
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -177,6 +189,7 @@ jobs:
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: prepareForRelease --no-daemon
+          wrapper-cache-enabled: false
       - name: Publish types
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
