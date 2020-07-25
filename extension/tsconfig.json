@@ -4,7 +4,7 @@
     "module": "commonjs",
     "target": "ES2017",
     "outDir": "out",
-    "lib": ["ES6", "ES2018.promise", "ES2019.array"],
+    "lib": ["ES6", "ES2018.promise", "ES2019.array", "DOM"],
     "sourceMap": true,
     "strict": true,
     "rootDir": "src",
