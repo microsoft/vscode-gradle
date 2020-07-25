@@ -35,7 +35,7 @@ public class CancelBuildHandler {
   private void replyWithCancelledSuccess() {
     responseObserver.onNext(
         CancelBuildReply.newBuilder()
-            .setMessage("Cancel run build requested")
+            .setMessage("Cancel build requested")
             .setBuildRunning(true)
             .build());
   }

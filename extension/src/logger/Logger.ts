@@ -3,18 +3,18 @@ import * as vscode from 'vscode';
 export enum LogVerbosity {
   DEBUG = 0,
   INFO = 1,
-  WARNING = 2,
+  WARN = 2,
   ERROR = 3,
 }
 
 export class Logger {
   private channel?: vscode.OutputChannel;
-  private verbosity: LogVerbosity = LogVerbosity.INFO;
+  protected static verbosity: LogVerbosity = LogVerbosity.INFO;
 
   constructor(private readonly prefix?: string) {}
 
-  public setLogVerbosity(verbosity: LogVerbosity): void {
-    this.verbosity = verbosity;
+  public static setLogVerbosity(verbosity: LogVerbosity): void {
+    Logger.verbosity = verbosity;
   }
 
   public log(message: string, verbosity: LogVerbosity): void {
@@ -25,13 +25,13 @@ export class Logger {
   }
 
   public appendLine(message: string, verbosity: LogVerbosity): void {
-    if (verbosity >= this.verbosity) {
+    if (verbosity >= Logger.verbosity) {
       this.channel?.appendLine(message);
     }
   }
 
   public append(message: string, verbosity: LogVerbosity): void {
-    if (verbosity >= this.verbosity) {
+    if (verbosity >= Logger.verbosity) {
       this.channel?.append(message);
     }
   }
@@ -46,8 +46,8 @@ export class Logger {
     this.log(messages.join(' '), LogVerbosity.INFO);
   }
 
-  public warning(...messages: string[]): void {
-    this.log(messages.join(' '), LogVerbosity.WARNING);
+  public warn(...messages: string[]): void {
+    this.log(messages.join(' '), LogVerbosity.WARN);
   }
 
   public error(...messages: string[]): void {

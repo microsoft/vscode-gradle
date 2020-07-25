@@ -10,6 +10,7 @@ service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
+  rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
@@ -64,9 +65,15 @@ message CancelBuildRequest {
   string cancellation_key = 1;
 }
 
+message CancelBuildsRequest {}
+
 message CancelBuildReply {
   string message = 1;
   bool build_running = 2;
+}
+
+message CancelBuildsReply {
+  string message = 1;
 }
 
 message GetDaemonsStatusRequest {

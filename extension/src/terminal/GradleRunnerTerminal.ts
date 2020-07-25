@@ -3,7 +3,7 @@ import * as util from 'util';
 import { isTest, waitOnTcp } from '../util';
 import { logger, LoggerStream, LogVerbosity } from '../logger';
 import { Output } from '../proto/gradle_pb';
-import { ServiceError } from '@grpc/grpc-js';
+import { ServiceError, status } from '@grpc/grpc-js';
 import { RootProject } from '../rootProject/RootProject';
 import { isTaskRunning } from '../tasks/taskUtil';
 import getPort from 'get-port';
@@ -118,7 +118,16 @@ export class GradleRunnerTerminal {
   };
 
   private handleError(err: ServiceError): void {
-    this.write(err.details || err.message);
+    if (err.code === status.UNKNOWN) {
+      const outputChannel = logger.getChannel();
+      if (outputChannel) {
+        this.write(
+          `Unable to run Gradle Task due to server error. View the "${outputChannel.name}" output for details.`
+        );
+      }
+    } else {
+      this.write(err.details || err.message);
+    }
   }
 
   public async handleInput(data: string): Promise<void> {

@@ -20,6 +20,7 @@ import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.events.ProgressEvent;
+import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.exceptions.UnsupportedBuildArgumentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +30,37 @@ public class RunBuildHandler {
 
   private RunBuildRequest req;
   private StreamObserver<RunBuildReply> responseObserver;
+  private ProgressListener progressListener;
+  private ByteBufferOutputStream standardOutputListener;
+  private ByteBufferOutputStream standardErrorListener;
 
   public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
+    this.progressListener =
+        (ProgressEvent event) -> {
+          synchronized (RunBuildHandler.class) {
+            replyWithProgress(event);
+          }
+        };
+    this.standardOutputListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (RunBuildHandler.class) {
+              replyWithStandardOutput(bytes);
+            }
+          }
+        };
+    this.standardErrorListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (RunBuildHandler.class) {
+              replyWithStandardError(bytes);
+            }
+          }
+        };
   }
 
   public void run() {
@@ -45,30 +73,9 @@ public class RunBuildHandler {
             req.getShowOutputColors(),
             req.getJavaDebugPort());
     gradleRunner
-        .setProgressListener(
-            (ProgressEvent event) -> {
-              synchronized (RunBuildHandler.class) {
-                replyWithProgress(event);
-              }
-            })
-        .setStandardOutputStream(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (RunBuildHandler.class) {
-                  replyWithStandardOutput(bytes);
-                }
-              }
-            })
-        .setStandardErrorStream(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (RunBuildHandler.class) {
-                  replyWithStandardError(bytes);
-                }
-              }
-            });
+        .setProgressListener(progressListener)
+        .setStandardOutputStream(standardOutputListener)
+        .setStandardErrorStream(standardErrorListener);
 
     if (!Strings.isNullOrEmpty(req.getInput())) {
       gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));

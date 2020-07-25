@@ -41,10 +41,37 @@ public class GetBuildHandler {
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
+  private ProgressListener progressListener;
+  private ByteBufferOutputStream standardOutputListener;
+  private ByteBufferOutputStream standardErrorListener;
 
   public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
+    this.progressListener =
+        (ProgressEvent event) -> {
+          synchronized (GetBuildHandler.class) {
+            replyWithProgress(event);
+          }
+        };
+    this.standardOutputListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (GetBuildHandler.class) {
+              replyWithStandardOutput(bytes);
+            }
+          }
+        };
+    this.standardErrorListener =
+        new ByteBufferOutputStream() {
+          @Override
+          public void onFlush(byte[] bytes) {
+            synchronized (GetBuildHandler.class) {
+              replyWithStandardError(bytes);
+            }
+          }
+        };
   }
 
   public void run() {
@@ -74,6 +101,40 @@ public class GetBuildHandler {
     }
   }
 
+  private Environment buildEnvironment(ProjectConnection connection) {
+    ModelBuilder<BuildEnvironment> buildEnvironment = connection.model(BuildEnvironment.class);
+
+    Set<OperationType> progressEvents = new HashSet<>();
+    progressEvents.add(OperationType.GENERIC);
+
+    CancellationToken cancellationToken =
+        GradleBuildCancellation.buildToken(req.getCancellationKey());
+
+    buildEnvironment
+        .withCancellationToken(cancellationToken)
+        .addProgressListener(progressListener, progressEvents)
+        .setStandardOutput(standardOutputListener)
+        .setStandardError(standardErrorListener);
+
+    try {
+      BuildEnvironment environment = buildEnvironment.get();
+      org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
+      org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
+      return Environment.newBuilder()
+          .setGradleEnvironment(
+              GradleEnvironment.newBuilder()
+                  .setGradleUserHome(gradleEnvironment.getGradleUserHome().getAbsolutePath())
+                  .setGradleVersion(gradleEnvironment.getGradleVersion()))
+          .setJavaEnvironment(
+              JavaEnvironment.newBuilder()
+                  .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
+                  .addAllJvmArgs(javaEnvironment.getJvmArguments()))
+          .build();
+    } finally {
+      GradleBuildCancellation.clearToken(req.getCancellationKey());
+    }
+  }
+
   private org.gradle.tooling.model.GradleProject buildGradleProject(ProjectConnection connection)
       throws IOException {
 
@@ -82,14 +143,6 @@ public class GetBuildHandler {
 
     Set<OperationType> progressEvents = new HashSet<>();
     progressEvents.add(OperationType.PROJECT_CONFIGURATION);
-    progressEvents.add(OperationType.TASK);
-
-    ProgressListener progressListener =
-        (ProgressEvent event) -> {
-          synchronized (GetBuildHandler.class) {
-            replyWithProgress(event);
-          }
-        };
 
     CancellationToken cancellationToken =
         GradleBuildCancellation.buildToken(req.getCancellationKey());
@@ -97,30 +150,18 @@ public class GetBuildHandler {
     projectBuilder
         .withCancellationToken(cancellationToken)
         .addProgressListener(progressListener, progressEvents)
-        .setStandardOutput(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardOutput(bytes);
-                }
-              }
-            })
-        .setStandardError(
-            new ByteBufferOutputStream() {
-              @Override
-              public void onFlush(byte[] bytes) {
-                synchronized (GetBuildHandler.class) {
-                  replyWithStandardError(bytes);
-                }
-              }
-            })
+        .setStandardOutput(standardOutputListener)
+        .setStandardError(standardErrorListener)
         .setColorOutput(req.getShowOutputColors());
     if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
       projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
     }
 
-    return projectBuilder.get();
+    try {
+      return projectBuilder.get();
+    } finally {
+      GradleBuildCancellation.clearToken(req.getCancellationKey());
+    }
   }
 
   private GradleProject getProjectData(
@@ -152,22 +193,6 @@ public class GetBuildHandler {
               project.addTasks(gradleTask.build());
             });
     return project.build();
-  }
-
-  private Environment buildEnvironment(ProjectConnection connection) {
-    BuildEnvironment environment = connection.model(BuildEnvironment.class).get();
-    org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
-    org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
-    return Environment.newBuilder()
-        .setGradleEnvironment(
-            GradleEnvironment.newBuilder()
-                .setGradleUserHome(gradleEnvironment.getGradleUserHome().getAbsolutePath())
-                .setGradleVersion(gradleEnvironment.getGradleVersion()))
-        .setJavaEnvironment(
-            JavaEnvironment.newBuilder()
-                .setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
-                .addAllJvmArgs(javaEnvironment.getJvmArguments()))
-        .build();
   }
 
   private void replyWithProject(GradleProject gradleProject) {

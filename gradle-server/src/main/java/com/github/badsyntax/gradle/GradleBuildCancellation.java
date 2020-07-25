@@ -35,4 +35,10 @@ public class GradleBuildCancellation {
       cancellationTokenSource.cancel();
     }
   }
+
+  public static void cancelBuilds() throws GradleCancellationException {
+    for (String cancellationKey : tokens.keySet()) {
+      cancelBuild(cancellationKey);
+    }
+  }
 }

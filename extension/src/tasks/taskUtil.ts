@@ -277,7 +277,7 @@ export async function runTask(
   debug = false
 ): Promise<void> {
   if (isTaskRunning(task, args)) {
-    logger.warning('Unable to run task, task is already running:', task.name);
+    logger.warn('Unable to run task, task is already running:', task.name);
     return;
   }
   if (debug) {

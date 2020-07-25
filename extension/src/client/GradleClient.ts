@@ -20,6 +20,8 @@ import {
   RunBuildReply,
   CancelBuildRequest,
   CancelBuildReply,
+  CancelBuildsRequest,
+  CancelBuildsReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -73,7 +75,7 @@ export class GradleClient implements vscode.Disposable {
   }
 
   private handleServerStop = (): void => {
-    //
+    this.close();
   };
 
   public handleServerStart = (): Thenable<void> => {
@@ -348,6 +350,31 @@ export class GradleClient implements vscode.Disposable {
     }
   }
 
+  public async cancelBuilds(): Promise<void> {
+    this.statusBarItem.hide();
+    const request = new CancelBuildsRequest();
+    try {
+      const reply: CancelBuildsReply = await new Promise((resolve, reject) => {
+        this.grpcClient!.cancelBuilds(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            cancelRunBuildsReply: CancelBuildsReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(cancelRunBuildsReply);
+            }
+          }
+        );
+      });
+      logger.info('Cancel builds:', reply.getMessage());
+    } catch (err) {
+      logger.error('Error cancelling builds:', err.details || err.message);
+    }
+  }
+
   public async getDaemonsStatus(
     projectFolder: string,
     cancelToken: vscode.CancellationToken
@@ -453,7 +480,7 @@ export class GradleClient implements vscode.Disposable {
   };
 
   private handleGetBuildCancelled = (cancelled: Cancelled): void => {
-    logger.info('Get build cancelled:', cancelled.getMessage());
+    logger.info('Build cancelled:', cancelled.getMessage());
   };
 
   private handleConnectError = async (e: Error): Promise<void> => {

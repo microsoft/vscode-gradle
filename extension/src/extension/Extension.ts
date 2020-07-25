@@ -66,17 +66,24 @@ export class Extension {
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     const loggingChannel = vscode.window.createOutputChannel('Gradle Tasks');
+    logger.setLoggingChannel(loggingChannel);
 
     const clientLogger = new Logger('grpc');
-    logger.setLoggingChannel(loggingChannel);
     clientLogger.setLoggingChannel(loggingChannel);
+
+    const serverLogger = new Logger('gradle-server');
+    serverLogger.setLoggingChannel(loggingChannel);
+
     if (getConfigIsDebugEnabled()) {
-      logger.setLogVerbosity(LogVerbosity.DEBUG);
-      clientLogger.setLogVerbosity(LogVerbosity.DEBUG);
+      Logger.setLogVerbosity(LogVerbosity.DEBUG);
     }
 
     const statusBarItem = vscode.window.createStatusBarItem();
-    this.server = new GradleServer({ host: 'localhost' }, context);
+    this.server = new GradleServer(
+      { host: 'localhost' },
+      context,
+      serverLogger
+    );
     this.client = new GradleClient(this.server, statusBarItem, clientLogger);
     this.pinnedTasksStore = new PinnedTasksStore(context);
     this.recentTasksStore = new RecentTasksStore();
@@ -194,13 +201,13 @@ export class Extension {
     });
     this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
-      const disposable = this.client.onDidConnect(async () => {
-        disposable.dispose();
-        await this.refresh();
-      });
-      this.client.close();
-      await this.server.restart();
+      await this.restartServer();
     });
+  }
+
+  private async restartServer(): Promise<void> {
+    await this.client.cancelBuilds();
+    await this.server.restart();
   }
 
   private refresh(): Thenable<void> {
@@ -211,11 +218,8 @@ export class Extension {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(
         async (event: vscode.ConfigurationChangeEvent) => {
-          if (
-            event.affectsConfiguration('java.home') &&
-            this.server.isReady()
-          ) {
-            await this.server.restart();
+          if (event.affectsConfiguration('java.home')) {
+            await this.restartServer();
           }
           if (
             event.affectsConfiguration('gradle.javaDebug') ||
@@ -226,7 +230,7 @@ export class Extension {
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
-            logger.setLogVerbosity(
+            Logger.setLogVerbosity(
               debug ? LogVerbosity.DEBUG : LogVerbosity.INFO
             );
           }
