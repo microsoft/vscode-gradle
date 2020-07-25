@@ -207,7 +207,6 @@ export class Extension {
 
   private async restartServer(): Promise<void> {
     await this.client.cancelBuilds();
-    this.client.close();
     await this.server.restart();
   }
 

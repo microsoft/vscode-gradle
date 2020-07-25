@@ -75,7 +75,7 @@ export class GradleClient implements vscode.Disposable {
   }
 
   private handleServerStop = (): void => {
-    //
+    this.close();
   };
 
   public handleServerStart = (): Thenable<void> => {

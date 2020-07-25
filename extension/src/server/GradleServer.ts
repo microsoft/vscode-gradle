@@ -54,6 +54,8 @@ export class GradleServer implements vscode.Disposable {
       this.process
         .on('error', (err: Error) => this.logger.error(err.message))
         .on('exit', async (code) => {
+          this.logger.warn('Gradle server stopped');
+          this._onDidStop.fire(null);
           this.ready = false;
           this.process?.removeAllListeners();
           if (this.restarting) {
@@ -114,8 +116,6 @@ export class GradleServer implements vscode.Disposable {
   }
 
   private async handleServerStartError(): Promise<void> {
-    this.logger.warn('Gradle server stopped');
-    this._onDidStop.fire(null);
     await this.showRestartMessage();
   }
 
