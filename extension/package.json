@@ -59,19 +59,23 @@
       "gradleContainerView": [
         {
           "id": "gradleTasksView",
-          "name": "Gradle Tasks"
+          "name": "Gradle Tasks",
+          "when": "gradle:activated"
         },
         {
           "id": "pinnedTasksView",
-          "name": "Pinned Tasks"
+          "name": "Pinned Tasks",
+          "when": "gradle:activated"
         },
         {
           "id": "recentTasksView",
-          "name": "Recent Tasks"
+          "name": "Recent Tasks",
+          "when": "gradle:activated"
         },
         {
           "id": "gradleDaemonsView",
-          "name": "Gradle Daemons"
+          "name": "Gradle Daemons",
+          "when": "gradle:activated"
         }
       ]
     },
