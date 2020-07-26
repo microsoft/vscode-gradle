@@ -143,6 +143,7 @@ export class Extension {
     );
     this.api = new Api(this.client, this.gradleTasksTreeDataProvider);
 
+    this.activate();
     this.storeSubscriptions();
     this.registerCommands();
     this.handleTaskEvents();
@@ -170,6 +171,12 @@ export class Extension {
       this.pinnedTasksTreeView,
       this.recentTasksTreeView
     );
+  }
+
+  private activate(): void {
+    // Used for showing the view container in the activity bar
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    vscode.commands.executeCommand('setContext', 'gradle:activated', true);
   }
 
   private registerCommands(): void {
