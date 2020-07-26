@@ -170,11 +170,12 @@ Use an environment manager like [direnv](https://direnv.net/) to set project spe
 
 This extension supports the following settings which are contributed by the [Java language support](https://github.com/redhat-developer/vscode-java) extension:
 
-- `java.home`: Absolute path to JDK home folder used to launch the gradle daemons
+- `java.home`: Absolute path to JDK home folder used to launch the Gradle daemons
+- `java.import.gradle.java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (if set, this value takes precedence over `java.home`)
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
-- `java.import.gradle.version`: Gradle version, used if the gradle wrapper is missing or disabled
+- `java.import.gradle.version`: Gradle version, used if the Gradle wrapper is missing or disabled
 
 ### Class References
 

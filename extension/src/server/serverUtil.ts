@@ -1,4 +1,4 @@
-import { getConfigJavaHome } from '../config';
+import { getConfigGradleJavaHome } from '../config';
 
 export function getGradleServerCommand(): string {
   const platform = process.platform;
@@ -16,7 +16,7 @@ export interface ProcessEnv {
 }
 
 export function getGradleServerEnv(): ProcessEnv {
-  const javaHome = getConfigJavaHome();
+  const javaHome = getConfigGradleJavaHome();
   const env = { ...process.env };
   if (javaHome) {
     Object.assign(env, {
