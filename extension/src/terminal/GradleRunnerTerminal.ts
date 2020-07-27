@@ -21,7 +21,7 @@ export class GradleRunnerTerminal {
   private readonly closeEmitter = new vscode.EventEmitter<void>();
   private task?: vscode.Task;
   public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
-  public readonly onDidClose?: vscode.Event<void> = this.closeEmitter.event;
+  public readonly onDidClose: vscode.Event<void> = this.closeEmitter.event;
 
   constructor(
     private readonly rootProject: RootProject,
@@ -46,36 +46,51 @@ export class GradleRunnerTerminal {
     }
   }
 
-  private async startJavaDebug(javaDebugPort: number): Promise<void> {
-    try {
-      await waitOnTcp('localhost', javaDebugPort);
-      const definition = this.task?.definition as GradleTaskDefinition;
-      const projectName = definition ? definition.project : undefined;
-      const debugConfig = {
-        type: 'java',
-        name: 'Debug (Attach) via Gradle Tasks',
-        request: 'attach',
-        hostName: 'localhost',
-        port: javaDebugPort,
-        projectName,
-      };
-      const startedDebugging = await vscode.debug.startDebugging(
-        this.rootProject.getWorkspaceFolder(),
-        debugConfig
-      );
-      if (!startedDebugging) {
-        throw new Error('The debugger was not started');
-      }
-    } catch (err) {
+  private startJavaDebug(javaDebugPort: number): void {
+    // To accommodate scenarios where debugging is bypassed due to Gradle build cache
+    const closePromise = new Promise((_resolve, reject) => {
+      const disposable = this.onDidClose(() => {
+        disposable.dispose();
+        reject(
+          new Error('The task completed without the debugger being attached')
+        );
+      });
+    });
+    const logError = (err: Error): void =>
       logger.error('Unable to start Java debugging:', err.message);
-      await this.close();
-    }
+    Promise.race([waitOnTcp('localhost', javaDebugPort), closePromise])
+      .then(async () => {
+        const definition = this.task?.definition as GradleTaskDefinition;
+        const projectName = definition ? definition.project : undefined;
+        const debugConfig = {
+          type: 'java',
+          name: 'Debug (Attach) via Gradle Tasks',
+          request: 'attach',
+          hostName: 'localhost',
+          port: javaDebugPort,
+          projectName,
+        };
+        const startedDebugging = await vscode.debug.startDebugging(
+          this.rootProject.getWorkspaceFolder(),
+          debugConfig
+        );
+        if (!startedDebugging) {
+          throw new Error('The debugger was not started');
+        }
+      }, logError)
+      .catch((err) => {
+        logError(err);
+        return this.close();
+      });
   }
 
   private async runBuild(): Promise<void> {
     const javaDebugEnabled = this.task ? this.task.definition.javaDebug : false;
     try {
       const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
+      if (javaDebugEnabled) {
+        this.startJavaDebug(javaDebugPort);
+      }
       const runTask = Extension.getInstance()
         .getClient()
         .runBuild(
@@ -88,9 +103,6 @@ export class GradleRunnerTerminal {
           this.handleOutput,
           true
         );
-      if (javaDebugEnabled) {
-        await this.startJavaDebug(javaDebugPort);
-      }
       await runTask;
     } catch (e) {
       this.handleError(e);

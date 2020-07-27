@@ -10,8 +10,8 @@ export const isTest = (): boolean =>
 export const isDebuggingServer = (): boolean =>
   process.env.VSCODE_DEBUG_SERVER?.toLowerCase() === 'true';
 
-const maximumTimeout = 120000; // 2 minutes
-const tcpTimeout = 300;
+const maximumTimeout = 10000; // ms
+const tcpTimeout = 300; // ms
 
 function tcpExists(host: string, port: number): Promise<boolean> {
   return new Promise((resolve) => {

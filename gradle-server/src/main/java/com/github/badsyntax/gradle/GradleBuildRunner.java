@@ -6,6 +6,7 @@ import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,9 +18,12 @@ import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GradleBuildRunner {
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+  private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
 
   private String projectDir;
   private List<String> args;
@@ -90,6 +94,8 @@ public class GradleBuildRunner {
 
     CancellationToken cancellationToken = GradleBuildCancellation.buildToken(cancellationKey);
 
+    Boolean isDebugging = javaDebugPort != 0;
+
     BuildLauncher build =
         connection
             .newBuild()
@@ -98,13 +104,13 @@ public class GradleBuildRunner {
             .setStandardOutput(standardOutputStream)
             .setStandardError(standardErrorStream)
             .setColorOutput(colorOutput)
-            .withArguments(args);
+            .withArguments(buildArguments(isDebugging));
 
     if (this.standardInputStream != null) {
       build.setStandardInput(standardInputStream);
     }
 
-    if (javaDebugPort != 0) {
+    if (Boolean.TRUE.equals(isDebugging)) {
       build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
     }
 
@@ -113,6 +119,26 @@ public class GradleBuildRunner {
     }
 
     build.run();
+  }
+
+  private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
+    if (Boolean.FALSE.equals(isDebugging)) {
+      return args;
+    }
+    if (args.size() > 1) {
+      throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
+    }
+    // Prepend a clean task to ensure any build cache is cleared to ensure
+    // debugging can occur for test tasks.
+    String capitalizedTaskName =
+        args.get(0).substring(0, 1).toUpperCase() + args.get(0).substring(1);
+    String cleanTaskName = "clean" + capitalizedTaskName;
+    List<String> newArgs = new ArrayList<String>(args);
+    newArgs.add(0, cleanTaskName);
+
+    logger.warn("Adding {} to ensure task output is cleared when debugging", cleanTaskName);
+
+    return newArgs;
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
