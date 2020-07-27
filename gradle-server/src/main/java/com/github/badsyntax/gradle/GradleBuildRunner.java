@@ -77,6 +77,9 @@ public class GradleBuildRunner {
   }
 
   public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
+    if (args.size() == 0) {
+      throw new GradleBuildRunnerException("No args supplied");
+    }
     GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
     try (ProjectConnection connection = gradleConnector.connect()) {
       runBuild(connection);
