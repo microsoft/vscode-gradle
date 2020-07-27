@@ -77,7 +77,7 @@ public class GradleBuildRunner {
   }
 
   public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
-    if (args.size() == 0) {
+    if (Boolean.TRUE.equals(args.isEmpty())) {
       throw new GradleBuildRunnerException("No args supplied");
     }
     GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
@@ -136,7 +136,7 @@ public class GradleBuildRunner {
     String capitalizedTaskName =
         args.get(0).substring(0, 1).toUpperCase() + args.get(0).substring(1);
     String cleanTaskName = "clean" + capitalizedTaskName;
-    List<String> newArgs = new ArrayList<String>(args);
+    List<String> newArgs = new ArrayList<>(args);
     newArgs.add(0, cleanTaskName);
 
     logger.warn("Adding {} to ensure task output is cleared when debugging", cleanTaskName);
