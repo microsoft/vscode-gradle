@@ -72,6 +72,8 @@ To enable this feature you need to specify which tasks can be debugged within yo
 
 You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
+> Note, a `cleanTaskName` task (eg `cleanTest`) is added to the debug build to ensure any output cached is deleted which ensures test tasks can be continually debugged.
+
 ![Debug Screencast](images/debug-screencast.gif?1)
 
 </details>
