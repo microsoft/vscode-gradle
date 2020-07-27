@@ -4,7 +4,7 @@
     {
       "label": "Gradle: Build",
       "type": "shell",
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": [],
       "command": "./gradlew",
       "windows": {
         "command": ".\\gradlew.bat"
@@ -21,7 +21,6 @@
         "-x",
         "extension:buildTest"
       ],
-      "isBackground": true,
       "presentation": {
         "reveal": "always"
       },
@@ -33,7 +32,7 @@
     {
       "label": "Gradle: Build Test",
       "type": "shell",
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": [],
       "command": "./gradlew",
       "windows": {
         "command": ".\\gradlew.bat"
@@ -48,7 +47,6 @@
         "-x",
         "npm-package:build"
       ],
-      "isBackground": true,
       "presentation": {
         "reveal": "always"
       },
