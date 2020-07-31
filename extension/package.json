@@ -745,7 +745,7 @@
     "google-protobuf": "^3.12.2",
     "grpc-tools": "^1.9.1",
     "minimatch": "^3.0.4",
-    "mocha": "^8.0.1",
+    "mocha": "^8.1.0",
     "prettier": "^2.0.5",
     "rollup": "^2.23.0",
     "rollup-plugin-terser": "^6.1.0",
