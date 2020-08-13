@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { parseArgsStringToArgv } from 'string-argv';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { Extension } from '../extension';
@@ -150,9 +151,9 @@ export function createTaskFromDefinition(
   rootProject: RootProject
 ): vscode.Task {
   const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
-  const args = [definition.script].concat(
-    definition.args.split(' ').filter(Boolean)
-  );
+  const args = [definition.script]
+    .concat(parseArgsStringToArgv(definition.args.trim()))
+    .filter(Boolean);
   const taskName = buildTaskName(definition);
   const cancellationKey = getRunTaskCommandCancellationKey(
     rootProject.getProjectUri().fsPath,

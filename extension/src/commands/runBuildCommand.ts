@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { parseArgsStringToArgv } from 'string-argv';
 import { getGradleCommand, getRootProjectFolder } from '../input';
 import { GradleRunnerTerminal } from '../terminal';
 import { getRunBuildCancellationKey } from '../client/CancellationKeys';
@@ -13,7 +14,8 @@ export async function runBuildCommand(): Promise<void> {
   if (!gradleCommand) {
     return;
   }
-  const args: string[] = gradleCommand.split(' ').filter(Boolean);
+
+  const args: string[] = parseArgsStringToArgv(gradleCommand.trim());
   const cancellationKey = getRunBuildCancellationKey(
     rootProject.getProjectUri().fsPath,
     args
