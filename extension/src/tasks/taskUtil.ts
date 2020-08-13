@@ -309,8 +309,8 @@ export async function runTask(
   }
   try {
     if (debug || args) {
-      const debugTask = cloneTask(task, args, debug);
-      await vscode.tasks.executeTask(debugTask);
+      const clonedTask = cloneTask(task, args, debug);
+      await vscode.tasks.executeTask(clonedTask);
     } else {
       await vscode.tasks.executeTask(task);
     }

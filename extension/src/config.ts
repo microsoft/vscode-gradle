@@ -82,6 +82,7 @@ export function getNestedProjectsConfig(
 
 export type JavaDebug = {
   tasks: ReadonlyArray<string>;
+  clean: boolean;
 };
 
 export function getConfigJavaDebug(
@@ -89,6 +90,7 @@ export function getConfigJavaDebug(
 ): JavaDebug {
   const defaultValue = {
     tasks: ['run', 'runBoot', 'test', 'intTest', 'integration'],
+    clean: true,
   };
   return vscode.workspace
     .getConfiguration('gradle', workspaceFolder.uri)

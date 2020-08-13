@@ -29,7 +29,7 @@ import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
 import { EventWaiter } from '../events';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
-import { getGradleConfig } from '../config';
+import { getGradleConfig, getConfigJavaDebug } from '../config';
 import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
 import {
   COMMAND_REFRESH_DAEMON_STATUS,
@@ -271,6 +271,17 @@ export class GradleClient implements vscode.Disposable {
         request.setShowOutputColors(showOutputColors);
         request.setJavaDebugPort(javaDebugPort);
         request.setInput(input);
+
+        if (javaDebugPort > 0) {
+          const workspaceFolder = vscode.workspace.getWorkspaceFolder(
+            vscode.Uri.file(projectFolder)
+          );
+          if (workspaceFolder) {
+            const javaDebug = getConfigJavaDebug(workspaceFolder);
+            request.setJavaDebugCleanOutputCache(javaDebug.clean ?? true);
+          }
+        }
+
         const runBuildStream = this.grpcClient!.runBuild(request);
         try {
           await new Promise((resolve, reject) => {

@@ -6,8 +6,11 @@ import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,9 +20,12 @@ import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GradleBuildRunner {
   private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+  private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
 
   private String projectDir;
   private List<String> args;
@@ -31,6 +37,7 @@ public class GradleBuildRunner {
   private OutputStream standardErrorStream;
   private InputStream standardInputStream;
   private ProgressListener progressListener;
+  private Boolean javaDebugCleanOutputCache;
 
   public GradleBuildRunner(
       String projectDir,
@@ -38,18 +45,20 @@ public class GradleBuildRunner {
       GradleConfig gradleConfig,
       String cancellationKey,
       Boolean colorOutput,
-      int javaDebugPort) {
+      int javaDebugPort,
+      Boolean javaDebugCleanOutputCache) {
     this.projectDir = projectDir;
     this.args = args;
     this.gradleConfig = gradleConfig;
     this.cancellationKey = cancellationKey;
     this.colorOutput = colorOutput;
     this.javaDebugPort = javaDebugPort;
+    this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
   }
 
   public GradleBuildRunner(
       String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
-    this(projectDir, args, gradleConfig, cancellationKey, true, 0);
+    this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
   }
 
   public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -73,6 +82,9 @@ public class GradleBuildRunner {
   }
 
   public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
+    if (Boolean.TRUE.equals(args.isEmpty())) {
+      throw new GradleBuildRunnerException("No args supplied");
+    }
     GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
     try (ProjectConnection connection = gradleConnector.connect()) {
       runBuild(connection);
@@ -90,6 +102,8 @@ public class GradleBuildRunner {
 
     CancellationToken cancellationToken = GradleBuildCancellation.buildToken(cancellationKey);
 
+    Boolean isDebugging = javaDebugPort != 0;
+
     BuildLauncher build =
         connection
             .newBuild()
@@ -98,13 +112,13 @@ public class GradleBuildRunner {
             .setStandardOutput(standardOutputStream)
             .setStandardError(standardErrorStream)
             .setColorOutput(colorOutput)
-            .withArguments(args);
+            .withArguments(buildArguments(isDebugging));
 
     if (this.standardInputStream != null) {
       build.setStandardInput(standardInputStream);
     }
 
-    if (javaDebugPort != 0) {
+    if (Boolean.TRUE.equals(isDebugging)) {
       build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
     }
 
@@ -113,6 +127,31 @@ public class GradleBuildRunner {
     }
 
     build.run();
+  }
+
+  private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
+    if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
+      return args;
+    }
+    if (args.size() > 1) {
+      throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
+    }
+
+    List<String> parts = new LinkedList<>(Arrays.asList(args.get(0).split(":")));
+    String taskName = parts.get(parts.size() - 1);
+    parts.remove(parts.size() - 1);
+
+    String capitalizedTaskName = taskName.substring(0, 1).toUpperCase() + taskName.substring(1);
+    parts.add("clean" + capitalizedTaskName);
+
+    String cleanTaskName = String.join(":", parts);
+
+    List<String> newArgs = new ArrayList<>(args);
+    newArgs.add(0, cleanTaskName);
+
+    logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
+
+    return newArgs;
   }
 
   private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {

@@ -58,7 +58,13 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
 
-To enable this feature you need to specify which tasks can be debugged within your project `.vscode/settings.json` file:
+To enable this feature you need to specify which tasks can be debugged within your project `.vscode/settings.json`.
+
+You also need to specify whether you want to clean output cache before debugging, to ensure Gradle doesn't skip any tasks due to output caching (this is most useful when debugging tests).
+
+> Output cache is cleaned by adding a `cleanTaskName` task (eg `cleanTest`) to the build.
+
+Example config:
 
 ```json
 "gradle.javaDebug": {
@@ -66,7 +72,8 @@ To enable this feature you need to specify which tasks can be debugged within yo
         "run",
         "test",
         "subproject:customJavaExecTask"
-    ]
+    ],
+    "clean": true
 }
 ```
 

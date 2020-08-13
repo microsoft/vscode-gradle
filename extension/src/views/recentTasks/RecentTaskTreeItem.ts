@@ -20,7 +20,7 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     task: vscode.Task,
     label: string,
     description: string,
-    javaDebug: JavaDebug = { tasks: [] },
+    javaDebug: JavaDebug = { tasks: [], clean: true },
     private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
     // On construction, don't set a description, this will be set in setContext

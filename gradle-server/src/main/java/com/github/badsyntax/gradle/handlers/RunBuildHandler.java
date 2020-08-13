@@ -71,7 +71,8 @@ public class RunBuildHandler {
             req.getGradleConfig(),
             req.getCancellationKey(),
             req.getShowOutputColors(),
-            req.getJavaDebugPort());
+            req.getJavaDebugPort(),
+            req.getJavaDebugCleanOutputCache());
     gradleRunner
         .setProgressListener(progressListener)
         .setStandardOutputStream(standardOutputListener)

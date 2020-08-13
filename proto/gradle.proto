@@ -46,6 +46,7 @@ message RunBuildRequest {
   GradleConfig gradle_config = 5;
   string input = 6;
   bool show_output_colors = 7;
+  bool java_debug_clean_output_cache = 8;
 }
 
 message RunBuildResult {

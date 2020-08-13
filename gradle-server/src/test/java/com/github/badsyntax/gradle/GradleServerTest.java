@@ -49,6 +49,7 @@ public class GradleServerTest {
   private File mockGradleUserHome;
   private File mockJavaHome;
   private List<String> mockJvmArgs;
+  private List<String> mockBuildArgs;
 
   @Before
   public void setUp() throws Exception {
@@ -63,6 +64,8 @@ public class GradleServerTest {
         new File(Files.createTempDirectory("mockGradleUserHome").toAbsolutePath().toString());
     mockJavaHome = new File("/path/to/jdk");
     mockJvmArgs = new ArrayList<>();
+    mockBuildArgs = new ArrayList<>();
+    mockBuildArgs.add("test");
     stub = GradleGrpc.newStub(inProcessChannel);
     setupMocks();
   }
@@ -306,13 +309,10 @@ public class GradleServerTest {
     StreamObserver<RunBuildReply> mockResponseObserver =
         (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
 
-    ArrayList<String> buildArgs = new ArrayList<>();
-    buildArgs.add("tasks");
-
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
-            .addAllArgs(buildArgs)
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .build();
 
@@ -329,6 +329,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(
                 GradleConfig.newBuilder()
                     .setUserHome(mockGradleUserHome.getAbsolutePath().toString())
@@ -348,6 +349,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false))
             .build();
 
@@ -365,6 +367,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false).setVersion("6.3"))
             .build();
 
@@ -384,6 +387,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(
                 GradleConfig.newBuilder().setJvmArguments(jvmArgs).setWrapperEnabled(true))
             .build();
@@ -402,6 +406,7 @@ public class GradleServerTest {
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
             .setJavaDebugPort(1111)
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .build();
 
@@ -424,6 +429,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .setInput("An input string")
             .build();
@@ -451,6 +457,7 @@ public class GradleServerTest {
     RunBuildRequest req1 =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .setShowOutputColors(false)
             .build();
@@ -462,6 +469,7 @@ public class GradleServerTest {
     RunBuildRequest req2 =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .setShowOutputColors(true)
             .build();
@@ -479,6 +487,7 @@ public class GradleServerTest {
     RunBuildRequest req =
         RunBuildRequest.newBuilder()
             .setProjectDir(mockProjectDir.getAbsolutePath().toString())
+            .addAllArgs(mockBuildArgs)
             .setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
             .setShowOutputColors(true)
             .build();

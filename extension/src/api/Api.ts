@@ -31,8 +31,9 @@ export class Api {
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
     const task = await this.findTask(opts.projectFolder, opts.taskName);
-    const buildArgs = [task.definition.script]
-      .concat(opts.args)
+    const definition = task.definition as GradleTaskDefinition;
+    const buildArgs = [definition.script]
+      .concat(opts.args || [])
       .filter(Boolean);
     const cancellationKey = getRunTaskCommandCancellationKey(
       opts.projectFolder,
