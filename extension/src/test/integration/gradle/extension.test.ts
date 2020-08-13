@@ -88,10 +88,10 @@ describe(getSuiteName('Extension'), () => {
       );
     });
 
-    it('should run a gradle task with custom args', async () => {
+    it('should run a gradle task with custom args that contain spaces', async () => {
       sinon
         .stub(vscode.window, 'showInputBox')
-        .returns(Promise.resolve('-PcustomProp=foo'));
+        .returns(Promise.resolve('-PcustomProp="foo bar"'));
 
       assert.ok(extension);
 
@@ -120,7 +120,9 @@ describe(getSuiteName('Extension'), () => {
           treeItem
         );
       });
-      assert.ok(spy.calledWith(sinon.match('Hello, Project Property!foo')));
+      assert.ok(
+        spy.calledWith(sinon.match('Hello, Project Property!"foo bar"'))
+      );
     });
   });
 
