@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +37,7 @@ public class GradleBuildRunner {
   private OutputStream standardErrorStream;
   private InputStream standardInputStream;
   private ProgressListener progressListener;
+  private Boolean javaDebugCleanOutputCache;
 
   public GradleBuildRunner(
       String projectDir,
@@ -42,18 +45,20 @@ public class GradleBuildRunner {
       GradleConfig gradleConfig,
       String cancellationKey,
       Boolean colorOutput,
-      int javaDebugPort) {
+      int javaDebugPort,
+      Boolean javaDebugCleanOutputCache) {
     this.projectDir = projectDir;
     this.args = args;
     this.gradleConfig = gradleConfig;
     this.cancellationKey = cancellationKey;
     this.colorOutput = colorOutput;
     this.javaDebugPort = javaDebugPort;
+    this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
   }
 
   public GradleBuildRunner(
       String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
-    this(projectDir, args, gradleConfig, cancellationKey, true, 0);
+    this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
   }
 
   public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -125,21 +130,26 @@ public class GradleBuildRunner {
   }
 
   private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
-    if (Boolean.FALSE.equals(isDebugging)) {
+    if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
       return args;
     }
     if (args.size() > 1) {
       throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
     }
-    // Prepend a clean task to ensure any build cache is cleared to ensure
-    // debugging can occur for test tasks.
-    String capitalizedTaskName =
-        args.get(0).substring(0, 1).toUpperCase() + args.get(0).substring(1);
-    String cleanTaskName = "clean" + capitalizedTaskName;
+
+    List<String> parts = new LinkedList<>(Arrays.asList(args.get(0).split(":")));
+    String taskName = parts.get(parts.size() - 1);
+    parts.remove(parts.size() - 1);
+
+    String capitalizedTaskName = taskName.substring(0, 1).toUpperCase() + taskName.substring(1);
+    parts.add("clean" + capitalizedTaskName);
+
+    String cleanTaskName = String.join(":", parts);
+
     List<String> newArgs = new ArrayList<>(args);
     newArgs.add(0, cleanTaskName);
 
-    logger.warn("Adding {} to ensure task output is cleared when debugging", cleanTaskName);
+    logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
 
     return newArgs;
   }

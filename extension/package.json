@@ -619,6 +619,11 @@
                 "integration"
               ],
               "description": "List of JavaExec tasks to debug"
+            },
+            "clean": {
+              "type": "boolean",
+              "default": true,
+              "description": "Clean the task output cache before debugging"
             }
           },
           "required": [
