@@ -3,7 +3,7 @@ plugins {
   id 'com.google.protobuf' version '0.8.12'
   id 'org.sonarqube' version '3.0'
   id 'com.github.jlouns.cpe' version '0.5.0'
-  id 'com.diffplug.spotless' version '5.1.0'
+  id 'com.diffplug.spotless' version '5.1.1'
 }
 
 project.ext.set('grpcVersion', '1.30.0')
