@@ -48,7 +48,7 @@ export class GradleServer implements vscode.Disposable {
       this.logger.debug('Starting server');
       this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
 
-      this.process = cp.spawn(cmd, args, { cwd, env, shell: true });
+      this.process = cp.spawn('"' + cmd + '"', args, { cwd, env, shell: true });
       this.process.stdout.on('data', this.logOutput);
       this.process.stderr.on('data', this.logOutput);
       this.process
