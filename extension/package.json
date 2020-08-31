@@ -751,7 +751,7 @@
     "grpc-tools": "^1.9.1",
     "minimatch": "^3.0.4",
     "mocha": "^8.1.1",
-    "prettier": "^2.0.5",
+    "prettier": "^2.1.1",
     "rollup": "^2.25.0",
     "rollup-plugin-terser": "^7.0.0",
     "sinon": "^9.0.3",
