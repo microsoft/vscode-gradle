@@ -45,7 +45,7 @@ protobuf {
           option 'grpc_js'
         }
         ts {
-          option 'service=grpc-node'
+          option 'service=grpc-node,mode=grpc-js'
         }
       }
       task.builtins {
@@ -99,9 +99,6 @@ task copyProtoTs(type: Copy) {
   description 'Copies proto TypeScript definitions into src dir'
   from "$protobuf.generatedFilesBaseDir/main/ts"
   into protoLib
-  filter { line ->
-    line.replaceAll('from \"grpc\"', 'from \"@grpc/grpc-js\"')
-  }
 }
 
 task npmInstall(type: CrossPlatformExec) {
