@@ -760,7 +760,7 @@
     "tree-kill": "^1.2.2",
     "ts-protoc-gen": "^0.13.0",
     "typescript": "^3.9.7",
-    "vsce": "^1.77.0",
+    "vsce": "^1.79.5",
     "vscode-test": "^1.4.0"
   },
   "snyk": true
