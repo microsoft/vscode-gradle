@@ -211,3 +211,4 @@ jobs:
           echo "Setting package version $tag"
           npm --no-git-tag-version version "$tag"
           npx vsce publish -p "$AZURE_TOKEN"
+          npx ovsx publish -p "$OPENVSX_TOKEN"
