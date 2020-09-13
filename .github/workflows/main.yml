@@ -205,6 +205,7 @@ jobs:
       - name: Publish extension
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
+          OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
         run: |
           cd extension
           tag=${GITHUB_REF#refs/tags/}
