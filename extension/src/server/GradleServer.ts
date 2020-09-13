@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cp from 'child_process';
 import getPort from 'get-port';
+import kill from 'tree-kill';
 import { getGradleServerCommand, getGradleServerEnv } from './serverUtil';
 import { isDebuggingServer } from '../util';
 import { Logger } from '../logger/index';
@@ -48,7 +49,11 @@ export class GradleServer implements vscode.Disposable {
       this.logger.debug('Starting server');
       this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(' ')}`);
 
-      this.process = cp.spawn('"' + cmd + '"', args, { cwd, env, shell: true });
+      this.process = cp.spawn(`"${cmd}"`, args, {
+        cwd,
+        env,
+        shell: true,
+      });
       this.process.stdout.on('data', this.logOutput);
       this.process.stderr.on('data', this.logOutput);
       this.process
@@ -112,7 +117,9 @@ export class GradleServer implements vscode.Disposable {
   };
 
   private killProcess(): void {
-    this.process?.kill('SIGTERM');
+    if (this.process) {
+      kill(this.process.pid, 'SIGTERM');
+    }
   }
 
   private async handleServerStartError(): Promise<void> {
