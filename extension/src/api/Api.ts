@@ -4,12 +4,23 @@ import { logger } from '../logger';
 import { GradleTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
-import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
+import {
+  getRunBuildCancellationKey,
+  getRunTaskCommandCancellationKey,
+} from '../client/CancellationKeys';
 
 export interface RunTaskOpts {
   projectFolder: string;
   taskName: string;
   args?: ReadonlyArray<string>;
+  input?: string;
+  onOutput?: (output: Output) => void;
+  showOutputColors: boolean;
+}
+
+export interface RunBuildOpts {
+  projectFolder: string;
+  args: ReadonlyArray<string>;
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
@@ -30,19 +41,25 @@ export class Api {
   ) {}
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
+    const taskArgs = (opts.args || []).filter(Boolean);
     const task = await this.findTask(opts.projectFolder, opts.taskName);
-    const definition = task.definition as GradleTaskDefinition;
-    const buildArgs = [definition.script]
-      .concat(opts.args || [])
-      .filter(Boolean);
-    const cancellationKey = getRunTaskCommandCancellationKey(
+    const runBuildArgs = [opts.taskName].concat(taskArgs);
+    const runBuildOpts = {
+      ...opts,
+      args: runBuildArgs,
+    };
+    return this.runBuild(runBuildOpts, task);
+  }
+
+  public async runBuild(opts: RunBuildOpts, task?: vscode.Task): Promise<void> {
+    const cancellationKey = getRunBuildCancellationKey(
       opts.projectFolder,
-      opts.taskName
+      opts.args
     );
     return this.client.runBuild(
       opts.projectFolder,
       cancellationKey,
-      buildArgs,
+      opts.args,
       opts.input,
       0,
       task,
