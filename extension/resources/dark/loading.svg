@@ -41,14 +41,14 @@
       }
     }
   </style>
-  <g style="fill: grey;">
-    <circle cx="5" cy="1" r="1" style="opacity: 0.3;" />
-    <circle cx="7.8284" cy="2.1716" r="1" style="opacity: 0.3;" />
-    <circle cx="9" cy="5" r="1" style="opacity: 0.3;" />
-    <circle cx="7.8284" cy="7.8284" r="1" style="opacity: 0.3;" />
-    <circle cx="5" cy="9" r="1" style="opacity: 0.3;" />
-    <circle cx="2.1716" cy="7.8284" r="1" style="opacity: 0.3;" />
-    <circle cx="1" cy="5" r="1" style="opacity: 0.3;" />
-    <circle cx="2.1716" cy="2.1716" r="1" style="opacity: 0.3;" />
+  <g style="fill: grey">
+    <circle cx="5" cy="1" r="1" style="opacity: 0.3" />
+    <circle cx="7.8284" cy="2.1716" r="1" style="opacity: 0.3" />
+    <circle cx="9" cy="5" r="1" style="opacity: 0.3" />
+    <circle cx="7.8284" cy="7.8284" r="1" style="opacity: 0.3" />
+    <circle cx="5" cy="9" r="1" style="opacity: 0.3" />
+    <circle cx="2.1716" cy="7.8284" r="1" style="opacity: 0.3" />
+    <circle cx="1" cy="5" r="1" style="opacity: 0.3" />
+    <circle cx="2.1716" cy="2.1716" r="1" style="opacity: 0.3" />
   </g>
 </svg>
