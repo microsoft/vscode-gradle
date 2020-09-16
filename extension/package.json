@@ -739,7 +739,7 @@
     "@types/node": "^12.12.39",
     "@types/sinon": "^9.0.4",
     "@types/vscode": "^1.45.0",
-    "@typescript-eslint/eslint-plugin": "^3.10.1",
+    "@typescript-eslint/eslint-plugin": "^4.0.0",
     "@typescript-eslint/parser": "^3.10.1",
     "eslint": "^7.6.0",
     "eslint-config-prettier": "^6.11.0",
