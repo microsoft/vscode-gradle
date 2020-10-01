@@ -1,7 +1,7 @@
 # VS Code Gradle Tasks
 
 [![Marketplace Version](https://vsmarketplacebadge.apphb.com/version-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
-[![Build status](https://img.shields.io/github/workflow/status/badsyntax/vscode-gradle/Build%20&%20Publish)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3A"Build+%26+Publish")
+![Build & Publish](https://github.com/badsyntax/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=badsyntax_vscode-gradle&metric=security_rating)](https://sonarcloud.io/dashboard?id=badsyntax_vscode-gradle)
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 [![GitHub bug issues](https://img.shields.io/github/issues/badsyntax/vscode-gradle/bug?label=bug%20reports)](https://github.com/badsyntax/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
