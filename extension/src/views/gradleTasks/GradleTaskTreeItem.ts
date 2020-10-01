@@ -22,7 +22,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
       title: 'Run Task',
-      command: 'gradle.openBuildFile',
+      command: 'gradle.openBuildFileDoubleClick',
       arguments: [this],
     };
     this.description = description;
