@@ -35,7 +35,9 @@ import {
   COMMAND_OPEN_SETTINGS,
   openSettingsCommand,
   COMMAND_OPEN_BUILD_FILE,
+  COMMAND_OPEN_BUILD_FILE_DOUBLE_CLICK,
   openBuildFileCommand,
+  openBuildFileDoubleClickCommand,
   COMMAND_CANCELLING_TREE_ITEM_TASK,
   cancellingTreeItemTaskCommand,
   COMMAND_SHOW_LOGS,
@@ -98,6 +100,10 @@ export function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       COMMAND_OPEN_BUILD_FILE,
       openBuildFileCommand
+    ),
+    vscode.commands.registerCommand(
+      COMMAND_OPEN_BUILD_FILE_DOUBLE_CLICK,
+      openBuildFileDoubleClickCommand
     ),
     vscode.commands.registerCommand(
       COMMAND_CANCELLING_TREE_ITEM_TASK,

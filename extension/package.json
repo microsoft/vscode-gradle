@@ -538,6 +538,11 @@
           "command": "gradle.stopDaemon",
           "when": "view == gradleDaemonsView && viewItem =~ /^busy$|^idle$/",
           "group": "contextGroup1@0"
+        },
+        {
+          "command": "gradle.openBuildFile",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
+          "group": "contextGroup5@0"
         }
       ],
       "explorer/context": [
