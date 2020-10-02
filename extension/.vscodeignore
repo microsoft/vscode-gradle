@@ -23,3 +23,4 @@ node_modules
 rollup.config.js
 .snyk
 beta/**
+ARCHITECTURE.md
