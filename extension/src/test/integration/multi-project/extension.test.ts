@@ -43,7 +43,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       assert.ok(extension);
       const task = tasks!.find(({ name }) => name === 'hello');
       assert.ok(task);
-      const spy = sinon.spy(extension.exports.logger, 'append');
+      const spy = sinon.spy(extension.exports.getLogger(), 'append');
       await new Promise(async (resolve) => {
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
@@ -68,7 +68,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           'subproject-example:sub-subproject-example:helloGroovySubSubProject'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension.exports.logger, 'append');
+      const spy = sinon.spy(extension.exports.getLogger(), 'append');
       // eslint-disable-next-line sonarjs/no-identical-functions
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
