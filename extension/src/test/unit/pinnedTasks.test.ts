@@ -125,7 +125,7 @@ describe(getSuiteName('Pinned tasks'), () => {
 
     describe('With no pinned tasks', () => {
       it('should build a "No Tasks" tree item when no pinned have been added', async () => {
-        const children = await await pinnedTasksTreeDataProvider.getChildren();
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const childTreeItem = children[0];
         assert.ok(
@@ -171,7 +171,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           'TreeItem is not a GradleTaskTreeItem'
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
-        const children = await await pinnedTasksTreeDataProvider.getChildren();
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const pinnedTaskTreeItem = children[0];
         assert.equal(
@@ -218,7 +218,7 @@ describe(getSuiteName('Pinned tasks'), () => {
         await new PinTaskWithArgsCommand(pinnedTasksTreeDataProvider).run(
           taskItem
         );
-        const children = await await pinnedTasksTreeDataProvider.getChildren();
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const pinnedTaskTreeItem = children[0];
         assert.equal(
@@ -265,7 +265,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           'TreeItem is not a GradleTaskTreeItem'
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
-        const childrenBefore = await await pinnedTasksTreeDataProvider.getChildren();
+        const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 1);
         const pinnedTask = childrenBefore[0];
         sinon.stub(vscode.window, 'showInputBox').resolves('--info '); // intentional trailing space
@@ -273,7 +273,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTask as PinnedTaskTreeItem
         );
 
-        const childrenAfter = await await pinnedTasksTreeDataProvider.getChildren();
+        const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 2);
         assert.ok(
           childrenAfter[0] instanceof PinnedTaskTreeItem,

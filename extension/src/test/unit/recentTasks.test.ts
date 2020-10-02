@@ -116,7 +116,7 @@ describe(getSuiteName('Recent tasks'), () => {
 
     describe('With no recent tasks', () => {
       it('should build a "No Tasks" tree item when no recent tasks have been run', async () => {
-        const children = await await recentTasksTreeDataProvider.getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const childTreeItem = children[0];
         assert.ok(
@@ -146,7 +146,7 @@ describe(getSuiteName('Recent tasks'), () => {
       });
 
       it('should build a recent task treeitem with no terminals', async () => {
-        const children = await await recentTasksTreeDataProvider.getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const recentTaskTreeItem = children[0] as RecentTaskTreeItem;
         assert.equal(
@@ -197,7 +197,7 @@ describe(getSuiteName('Recent tasks'), () => {
           mockTerminal
         );
 
-        const children = await await recentTasksTreeDataProvider.getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const recentTaskTreeItem = children[0] as RecentTaskTreeItem;
         assert.equal(
@@ -239,7 +239,7 @@ describe(getSuiteName('Recent tasks'), () => {
       });
 
       it('should clear all recent tasks', async () => {
-        const childrenBefore = await await recentTasksTreeDataProvider.getChildren();
+        const childrenBefore = await recentTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 1);
         assert.ok(
           childrenBefore[0] instanceof RecentTaskTreeItem,
@@ -260,7 +260,7 @@ describe(getSuiteName('Recent tasks'), () => {
           ),
           'Clear all recent tasks confirmation message not shown'
         );
-        const childrenAfter = await await recentTasksTreeDataProvider.getChildren();
+        const childrenAfter = await recentTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 1);
         const childTreeItem = childrenAfter[0];
         assert.ok(
