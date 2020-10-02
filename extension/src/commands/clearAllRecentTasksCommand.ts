@@ -1,14 +1,20 @@
-import { Extension } from '../extension';
 import { confirmModal } from '../input';
+import { RecentTasksStore } from '../stores';
+import { Command } from './Command';
 
 export const COMMAND_CLEAR_ALL_RECENT_TASKS = 'gradle.clearAllRecentTasks';
 
-export async function clearAllRecentTasksCommand(): Promise<void> {
-  const recentTasksStore = Extension.getInstance().getRecentTasksStore();
-  if (
-    recentTasksStore.getData().size &&
-    (await confirmModal('Are you sure you want to clear the recent tasks?'))
-  ) {
-    recentTasksStore.clear();
+export class ClearAllRecentTasksCommand extends Command {
+  constructor(private recentTasksStore: RecentTasksStore) {
+    super();
+  }
+
+  async run(): Promise<void> {
+    if (
+      this.recentTasksStore.getData().size &&
+      (await confirmModal('Are you sure you want to clear the recent tasks?'))
+    ) {
+      this.recentTasksStore.clear();
+    }
   }
 }

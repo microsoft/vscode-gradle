@@ -17,8 +17,10 @@ import {
   getProjectTreeItemMap,
   getPinnedTasksTreeItemMap,
   getRecentTaskTreeItemMap,
+  GradleTasksTreeDataProvider,
+  PinnedTasksTreeDataProvider,
+  RecentTasksTreeDataProvider,
 } from '.';
-import { Extension } from '../extension';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
@@ -67,32 +69,37 @@ export function getTreeItemForTask(
   return null;
 }
 
-export function updateGradleTreeItemStateForTask(task: vscode.Task): void {
+export function updateGradleTreeItemStateForTask(
+  task: vscode.Task,
+  gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+  pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
+  recentTasksTreeDataProvider: RecentTasksTreeDataProvider
+): void {
   const definition = task.definition as GradleTaskDefinition;
   const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
-  const extension = Extension.getInstance();
   if (gradleTaskTreeItem) {
     gradleTaskTreeItem.setContext();
-    extension.getGradleTasksTreeDataProvider().refresh(gradleTaskTreeItem);
+    gradleTasksTreeDataProvider.refresh(gradleTaskTreeItem);
   }
   const pinTaskTreeItem = getPinnedTasksTreeItemMap().get(
     definition.id + definition.args
   );
   if (pinTaskTreeItem) {
     pinTaskTreeItem.setContext();
-    extension.getPinnedTasksTreeDataProvider().refresh(pinTaskTreeItem);
+    pinnedTasksTreeDataProvider.refresh(pinTaskTreeItem);
   }
   const recentTaskTreeItem = getRecentTaskTreeItemMap().get(
     definition.id + definition.args
   );
   if (recentTaskTreeItem) {
     recentTaskTreeItem.setContext();
-    extension.getRecentTasksTreeDataProvider().refresh(recentTaskTreeItem);
+    recentTasksTreeDataProvider.refresh(recentTaskTreeItem);
   }
 }
 
 export async function focusTaskInGradleTasksTree(
-  task: vscode.Task
+  task: vscode.Task,
+  gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>
 ): Promise<void> {
   try {
     const definition = task.definition as GradleTaskDefinition;
@@ -100,11 +107,9 @@ export async function focusTaskInGradleTasksTree(
     if (treeItem === null || treeItem.constructor === GradleTaskTreeItem) {
       const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
       if (gradleTaskTreeItem) {
-        await Extension.getInstance()
-          .getGradleTasksTreeView()
-          .reveal(gradleTaskTreeItem, {
-            expand: true,
-          });
+        await gradleTasksTreeView.reveal(gradleTaskTreeItem, {
+          expand: true,
+        });
       }
     }
   } catch (err) {
@@ -113,7 +118,8 @@ export async function focusTaskInGradleTasksTree(
 }
 
 export async function focusProjectInGradleTasksTree(
-  uri: vscode.Uri
+  uri: vscode.Uri,
+  gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>
 ): Promise<void> {
   try {
     await vscode.commands.executeCommand(
@@ -121,7 +127,7 @@ export async function focusProjectInGradleTasksTree(
     );
     const treeItem = getProjectTreeItemMap().get(uri.fsPath);
     if (treeItem) {
-      await Extension.getInstance().getGradleTasksTreeView().reveal(treeItem, {
+      await gradleTasksTreeView.reveal(treeItem, {
         focus: true,
         expand: true,
         select: true,

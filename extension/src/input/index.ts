@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { TaskArgs } from '../stores/types';
 import { getDisableConfirmations } from '../config';
-import { Extension } from '../extension';
 import { RootProject } from '../rootProject/RootProject';
+import { RootProjectsStore } from '../stores';
 
 function returnTrimmedInput(value: string | undefined): string | undefined {
   if (value !== undefined) {
@@ -33,10 +33,10 @@ export function getGradleCommand(): Thenable<TaskArgs | undefined> {
     .then(returnTrimmedInput);
 }
 
-export async function getRootProjectFolder(): Promise<RootProject | undefined> {
-  const rootProjects = await Extension.getInstance()
-    .getRootProjectsStore()
-    .buildAndGetProjectRoots();
+export async function getRootProjectFolder(
+  rootProjectsStore: RootProjectsStore
+): Promise<RootProject | undefined> {
+  const rootProjects = await rootProjectsStore.buildAndGetProjectRoots();
   if (rootProjects.length === 1) {
     return Promise.resolve(rootProjects[0]);
   }

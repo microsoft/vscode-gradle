@@ -1,14 +1,19 @@
-import { Extension } from '../extension';
 import { confirmModal } from '../input';
+import { PinnedTasksStore } from '../stores';
+import { Command } from './Command';
 
 export const COMMAND_CLEAR_ALL_PINNED_TASKS = 'gradle.clearAllPinnedTasks';
 
-export async function clearAllPinnedTasksCommand(): Promise<void> {
-  const pinnedTasksStore = Extension.getInstance().getPinnedTasksStore();
-  if (
-    pinnedTasksStore.getData().size &&
-    (await confirmModal('Are you sure you want to clear the pinned tasks?'))
-  ) {
-    pinnedTasksStore.clear();
+export class ClearAllPinnedTasksCommand extends Command {
+  constructor(private pinnedTasksStore: PinnedTasksStore) {
+    super();
+  }
+  async run(): Promise<void> {
+    if (
+      this.pinnedTasksStore.getData().size &&
+      (await confirmModal('Are you sure you want to clear the pinned tasks?'))
+    ) {
+      this.pinnedTasksStore.clear();
+    }
   }
 }

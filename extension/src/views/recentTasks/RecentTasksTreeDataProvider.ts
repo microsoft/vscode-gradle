@@ -10,13 +10,14 @@ import {
   RecentTasksStore,
   RootProjectsStore,
 } from '../../stores';
-import { GradleTaskDefinition } from '../../tasks';
+import { GradleTaskDefinition, GradleTaskProvider } from '../../tasks';
 import { GradleTaskTreeItem } from '..';
 import { isWorkspaceFolder } from '../../util';
-import { Extension } from '../../extension';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 import { RootProject } from '../../rootProject/RootProject';
+import { GradleClient } from '../../client';
+import { Icons } from '../../icons';
 
 const recentTasksGradleProjectTreeItemMap: Map<
   string,
@@ -33,7 +34,8 @@ function buildTaskTreeItem(
   gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
   task: vscode.Task,
   rootProject: RootProject,
-  taskTerminalsStore: TaskTerminalsStore
+  taskTerminalsStore: TaskTerminalsStore,
+  icons: Icons
 ): RecentTaskTreeItem {
   const definition = task.definition as GradleTaskDefinition;
   const taskName = task.name;
@@ -42,6 +44,7 @@ function buildTaskTreeItem(
     task,
     taskName,
     definition.description || taskName, // used for tooltip
+    icons,
     rootProject.getJavaDebug(),
     taskTerminalsStore
   );
@@ -52,7 +55,8 @@ function buildTaskTreeItem(
 function buildGradleProjectTreeItem(
   task: vscode.Task,
   rootProject: RootProject,
-  taskTerminalsStore: TaskTerminalsStore
+  taskTerminalsStore: TaskTerminalsStore,
+  icons: Icons
 ): void {
   const definition = task.definition as GradleTaskDefinition;
   if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
@@ -73,7 +77,8 @@ function buildGradleProjectTreeItem(
       gradleProjectTreeItem,
       task,
       rootProject,
-      taskTerminalsStore
+      taskTerminalsStore,
+      icons
     );
     recentTasksTreeItemMap.set(
       definition.id + definition.args,
@@ -94,7 +99,10 @@ export class RecentTasksTreeDataProvider
     private readonly context: vscode.ExtensionContext,
     private readonly recentTasksStore: RecentTasksStore,
     private readonly taskTerminalsStore: TaskTerminalsStore,
-    private readonly rootProjectsStore: RootProjectsStore
+    private readonly rootProjectsStore: RootProjectsStore,
+    private readonly gradleTaskProvider: GradleTaskProvider,
+    private readonly client: GradleClient,
+    private readonly icons: Icons
   ) {
     this.recentTasksStore.onDidChange(() => this.refresh());
     this.taskTerminalsStore.onDidChange(this.handleTerminalsStoreChange);
@@ -164,12 +172,11 @@ export class RecentTasksTreeDataProvider
       return [];
     }
     const isMultiRoot = gradleProjects.length > 1;
-    const gradleTaskProvider = Extension.getInstance().getGradleTaskProvider();
-    await gradleTaskProvider.waitForTasksLoad();
+    await this.gradleTaskProvider.waitForTasksLoad();
 
     const recentTasks = this.recentTasksStore.getData();
     Array.from(recentTasks.keys()).forEach((taskId: TaskId) => {
-      const task = gradleTaskProvider.findByTaskId(taskId);
+      const task = this.gradleTaskProvider.findByTaskId(taskId);
       if (!task) {
         return;
       }
@@ -181,11 +188,19 @@ export class RecentTasksTreeDataProvider
       const taskArgs = recentTasks.get(taskId) || '';
       if (taskArgs) {
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
-          const recentTask = cloneTask(task, args, definition.javaDebug);
+          const recentTask = cloneTask(
+            this.rootProjectsStore,
+            this.taskTerminalsStore,
+            task,
+            args,
+            this.client,
+            definition.javaDebug
+          );
           buildGradleProjectTreeItem(
             recentTask,
             rootProject,
-            this.taskTerminalsStore
+            this.taskTerminalsStore,
+            this.icons
           );
         });
       }

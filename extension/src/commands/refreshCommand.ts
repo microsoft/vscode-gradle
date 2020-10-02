@@ -1,13 +1,27 @@
-import { Extension } from '../extension';
+import { GradleTaskProvider } from '../tasks';
+import {
+  GradleTasksTreeDataProvider,
+  PinnedTasksTreeDataProvider,
+  RecentTasksTreeDataProvider,
+} from '../views';
+import { Command } from './Command';
 export const COMMAND_REFRESH = 'gradle.refresh';
 
-export async function refreshCommand(): Promise<void> {
-  const extension = Extension.getInstance();
-  extension.getGradleTaskProvider().clearTasksCache();
-  // Explicitly load tasks as the views might not be visible
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  extension.getGradleTaskProvider().loadTasks();
-  extension.getGradleTasksTreeDataProvider().refresh();
-  extension.getPinnedTasksTreeDataProvider().refresh();
-  extension.getRecentTasksTreeDataProvider().refresh();
+export class RefreshCommand extends Command {
+  constructor(
+    private gradleTaskProvider: GradleTaskProvider,
+    private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
+    private pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
+    private recentTasksTreeDataProvider: RecentTasksTreeDataProvider
+  ) {
+    super();
+  }
+  async run(): Promise<void> {
+    this.gradleTaskProvider.clearTasksCache();
+    // Explicitly load tasks as the views might not be visible
+    void this.gradleTaskProvider.loadTasks();
+    this.gradleTasksTreeDataProvider.refresh();
+    this.pinnedTasksTreeDataProvider.refresh();
+    this.recentTasksTreeDataProvider.refresh();
+  }
 }

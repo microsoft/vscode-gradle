@@ -9,11 +9,11 @@ import {
   TreeItemWithTasksOrGroups,
 } from '..';
 
-import { GradleTaskDefinition } from '../../tasks';
+import { GradleTaskDefinition, GradleTaskProvider } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import { Extension } from '../../extension';
 import { isGradleTask } from '../../tasks/taskUtil';
 import { RootProjectsStore } from '../../stores';
+import { Icons } from '../../icons';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -45,7 +45,9 @@ export class GradleTasksTreeDataProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly rootProjectStore: RootProjectsStore
+    private readonly rootProjectStore: RootProjectsStore,
+    private readonly gradleTaskProvider: GradleTaskProvider,
+    private readonly icons: Icons
   ) {
     const collapsed = this.context.workspaceState.get(
       'gradleTasksCollapsed',
@@ -70,9 +72,7 @@ export class GradleTasksTreeDataProvider
     resetCachedTreeItems();
     // using vscode.tasks.fetchTasks({ type: 'gradle' }) is *incredibly slow* which
     // is why we get them directly from the task provider
-    const tasks = await Extension.getInstance()
-      .getGradleTaskProvider()
-      .loadTasks();
+    const tasks = await this.gradleTaskProvider.loadTasks();
     return tasks.length === 0
       ? [new NoGradleTasksTreeItem(this.context)]
       : this.buildItemsTreeFromTasks(tasks);
@@ -186,6 +186,7 @@ export class GradleTasksTreeDataProvider
           taskName,
           definition.description || taskName,
           '',
+          this.icons,
           rootProject.getJavaDebug()
         );
         taskTreeItem.setContext();

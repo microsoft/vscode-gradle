@@ -7,9 +7,9 @@ import { ServiceError, status } from '@grpc/grpc-js';
 import { RootProject } from '../rootProject/RootProject';
 import { isTaskRunning } from '../tasks/taskUtil';
 import getPort from 'get-port';
-import { Extension } from '../extension';
 import { COMMAND_CANCEL_BUILD } from '../commands';
 import { GradleTaskDefinition } from '../tasks';
+import { GradleClient } from '../client';
 
 const NL = '\n';
 const CR = '\r';
@@ -26,7 +26,8 @@ export class GradleRunnerTerminal {
   constructor(
     private readonly rootProject: RootProject,
     private readonly args: string[],
-    private readonly cancellationKey: string
+    private readonly cancellationKey: string,
+    private readonly client: GradleClient
   ) {
     // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
     this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
@@ -91,18 +92,16 @@ export class GradleRunnerTerminal {
       if (javaDebugEnabled) {
         this.startJavaDebug(javaDebugPort);
       }
-      const runTask = Extension.getInstance()
-        .getClient()
-        .runBuild(
-          this.rootProject.getProjectUri().fsPath,
-          this.cancellationKey,
-          this.args,
-          '',
-          javaDebugPort,
-          this.task,
-          this.handleOutput,
-          true
-        );
+      const runTask = this.client.runBuild(
+        this.rootProject.getProjectUri().fsPath,
+        this.cancellationKey,
+        this.args,
+        '',
+        javaDebugPort,
+        this.task,
+        this.handleOutput,
+        true
+      );
       await runTask;
     } catch (e) {
       this.handleError(e);

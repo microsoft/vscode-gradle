@@ -1,9 +1,15 @@
-import { Extension } from '../extension';
+import { GradleTasksTreeDataProvider } from '../views';
+import { Command } from './Command';
 
 export const COMMAND_EXPLORER_FLAT = 'gradle.explorerFlat';
 
-export async function explorerFlatCommand(): Promise<void> {
-  await Extension.getInstance()
-    .getGradleTasksTreeDataProvider()
-    .setCollapsed(true);
+export class ExplorerFlatCommand extends Command {
+  constructor(
+    private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider
+  ) {
+    super();
+  }
+  async run(): Promise<void> {
+    await this.gradleTasksTreeDataProvider.setCollapsed(true);
+  }
 }

@@ -1,15 +1,21 @@
-import { Extension } from '../extension';
-import { GradleTaskTreeItem } from '../views';
+import { GradleTaskTreeItem, PinnedTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
+import { Command } from './Command';
 
 export const COMMAND_PIN_TASK = 'gradle.pinTask';
 
-export function pinTaskCommand(treeItem: GradleTaskTreeItem): void {
-  if (treeItem && treeItem.task) {
-    const definition = treeItem.task.definition as GradleTaskDefinition;
-    Extension.getInstance()
-      .getPinnedTasksTreeDataProvider()
-      .getStore()
-      .addEntry(definition.id, definition.args);
+export class PinTaskCommand extends Command {
+  constructor(
+    private pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider
+  ) {
+    super();
+  }
+  async run(treeItem: GradleTaskTreeItem): Promise<void> {
+    if (treeItem && treeItem.task) {
+      const definition = treeItem.task.definition as GradleTaskDefinition;
+      this.pinnedTasksTreeDataProvider
+        .getStore()
+        .addEntry(definition.id, definition.args);
+    }
   }
 }
