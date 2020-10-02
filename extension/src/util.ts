@@ -59,6 +59,8 @@ export function isGradleRootProject(rootProject: RootProject): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isWorkspaceFolder(value: any): value is vscode.WorkspaceFolder {
+export function isWorkspaceFolder(
+  value: unknown
+): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
 }
