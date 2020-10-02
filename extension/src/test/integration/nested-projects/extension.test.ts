@@ -1,12 +1,13 @@
 /* eslint-disable sonarjs/no-identical-functions */
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import { Api } from '../../../api';
 
 import { getSuiteName, EXTENSION_NAME } from '../../testUtil';
 
 describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let extension: vscode.Extension<any> | undefined;
+  let extension: vscode.Extension<Api> | undefined;
 
   before(() => {
     extension = vscode.extensions.getExtension(EXTENSION_NAME);

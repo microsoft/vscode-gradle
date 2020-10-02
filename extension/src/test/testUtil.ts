@@ -80,7 +80,6 @@ export function buildMockExtension(): any {
     getClient: sinon.stub(),
     getRecentTasksTreeDataProvider: sinon.stub(),
     getRecentTasksStore: sinon.stub(),
-    getGradleTaskProvider: sinon.stub(),
     getTaskTerminalsStore: sinon.stub(),
     getIcons: sinon.stub(),
     getGradleDaemonsTreeDataProvider: sinon.stub(),

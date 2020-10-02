@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { Output } from '../proto/gradle_pb';
-import { logger } from '../logger';
+import { Logger, logger } from '../logger';
 import { GradleTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
 import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
+import { Icons } from '../icons';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -21,12 +22,10 @@ export interface CancelTaskOpts {
 }
 
 export class Api {
-  // To allow the tests to check for task logs
-  public readonly logger = logger;
-
   constructor(
     private readonly client: GradleClient,
-    private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider
+    private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider,
+    private readonly icons: Icons
   ) {}
 
   public async runTask(opts: RunTaskOpts): Promise<void> {
@@ -82,5 +81,13 @@ export class Api {
 
   public getTasksTreeProvider(): GradleTasksTreeDataProvider {
     return this.tasksTreeDataProvider;
+  }
+
+  public getIcons(): Icons {
+    return this.icons;
+  }
+
+  public getLogger(): Logger {
+    return logger;
   }
 }

@@ -1,11 +1,12 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import { Api } from '../../../api';
 
 const extensionName = 'richardwillis.vscode-gradle';
 
 describe('without any build file or local gradle wrapper', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let extension: vscode.Extension<any> | undefined;
+  let extension: vscode.Extension<Api> | undefined;
 
   before(() => {
     extension = vscode.extensions.getExtension(extensionName);

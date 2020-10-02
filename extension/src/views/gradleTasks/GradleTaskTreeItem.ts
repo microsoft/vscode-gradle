@@ -1,23 +1,18 @@
 import * as vscode from 'vscode';
 import { JavaDebug } from '../../config';
-import { Extension } from '../../extension';
+import { Icons } from '../../icons';
 import { TASK_STATE_RUNNING_REGEX } from '../constants';
 import { getTreeItemState } from '../viewUtil';
 
 export class GradleTaskTreeItem extends vscode.TreeItem {
-  public readonly task: vscode.Task;
-  public readonly parentTreeItem: vscode.TreeItem;
-  public readonly execution?: vscode.TaskExecution;
-  protected readonly gradleTaskDescription?: string;
-  protected readonly javaDebug?: JavaDebug;
-
   constructor(
-    parentTreeItem: vscode.TreeItem,
-    task: vscode.Task,
-    label: string,
-    tooltip: string,
-    description: string,
-    javaDebug?: JavaDebug
+    public readonly parentTreeItem: vscode.TreeItem,
+    public readonly task: vscode.Task,
+    public readonly label: string,
+    public tooltip: string,
+    public description: string,
+    protected readonly icons: Icons,
+    protected readonly javaDebug?: JavaDebug
   ) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.command = {
@@ -25,11 +20,6 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
       command: 'gradle.openBuildFileDoubleClick',
       arguments: [this],
     };
-    this.description = description;
-    this.tooltip = tooltip;
-    this.parentTreeItem = parentTreeItem;
-    this.task = task;
-    this.javaDebug = javaDebug;
   }
 
   public setContext(): void {
@@ -38,10 +28,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
   }
 
   protected setIconState(): void {
-    const {
-      iconPathRunning,
-      iconPathIdle,
-    } = Extension.getInstance().getIcons();
+    const { iconPathRunning, iconPathIdle } = this.icons;
     if (this.contextValue && TASK_STATE_RUNNING_REGEX.test(this.contextValue)) {
       this.iconPath = iconPathRunning;
     } else {

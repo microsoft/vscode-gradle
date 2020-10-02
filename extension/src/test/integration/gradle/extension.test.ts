@@ -6,7 +6,7 @@ import * as path from 'path';
 
 import { Output } from '../../../proto/gradle_pb';
 import { GradleTaskTreeItem } from '../../../views';
-import { RunTaskOpts, Api as ExtensionApi } from '../../../api';
+import { RunTaskOpts, Api as ExtensionApi, Api } from '../../../api';
 import { COMMAND_REFRESH, COMMAND_RUN_TASK_WITH_ARGS } from '../../../commands';
 import { getSuiteName, EXTENSION_NAME } from '../../testUtil';
 
@@ -17,7 +17,7 @@ const fixturePath = vscode.Uri.file(
 
 describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let extension: vscode.Extension<any> | undefined;
+  let extension: vscode.Extension<Api> | undefined;
 
   before(() => {
     extension = vscode.extensions.getExtension(EXTENSION_NAME);
@@ -64,9 +64,12 @@ describe(getSuiteName('Extension'), () => {
         ({ name }) => name === 'hello'
       );
       assert.ok(task);
-      const loggerAppendSpy = sinon.spy(extension?.exports.logger, 'append');
+      const loggerAppendSpy = sinon.spy(
+        extension!.exports.getLogger(),
+        'append'
+      );
       const loggerAppendLineSpy = sinon.spy(
-        extension?.exports.logger,
+        extension!.exports.getLogger(),
         'appendLine'
       );
       await new Promise(async (resolve) => {
@@ -99,7 +102,7 @@ describe(getSuiteName('Extension'), () => {
         ({ name }) => name === 'helloProjectProperty'
       );
       assert.ok(task);
-      const spy = sinon.spy(extension.exports.logger, 'append');
+      const spy = sinon.spy(extension.exports.getLogger(), 'append');
       await new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
@@ -113,7 +116,8 @@ describe(getSuiteName('Extension'), () => {
           task,
           task.name,
           '',
-          task.definition.description
+          task.definition.description,
+          extension!.exports.getIcons()
         );
         await vscode.commands.executeCommand(
           COMMAND_RUN_TASK_WITH_ARGS,

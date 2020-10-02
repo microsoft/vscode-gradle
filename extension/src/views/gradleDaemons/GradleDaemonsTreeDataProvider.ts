@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { GradleDaemonTreeItem } from '.';
-import { Extension } from '../../extension';
 import { Deferred } from '../../async';
 import { RootProjectsStore } from '../../stores';
+import { GradleClient } from '../../client';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -14,7 +14,8 @@ export class GradleDaemonsTreeDataProvider
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly rootProjectsStore: RootProjectsStore
+    private readonly rootProjectsStore: RootProjectsStore,
+    private readonly client: GradleClient
   ) {}
 
   public refresh(): void {
@@ -38,25 +39,25 @@ export class GradleDaemonsTreeDataProvider
     this.cancelDeferred.promise.then(() => cancellationToken.cancel());
 
     const projectRootFolders = await this.getProjectRootFolders();
-    const promises: Promise<GradleDaemonTreeItem[]>[] = projectRootFolders.map(
-      (projectRootFolder) =>
-        Extension.getInstance()
-          .getClient()
-          .getDaemonsStatus(projectRootFolder, cancellationToken.token)
-          .then((getDaemonsStatusReply) =>
-            getDaemonsStatusReply
-              ? getDaemonsStatusReply
-                  .getDaemonInfoList()
-                  .map(
-                    (daemonInfo) =>
-                      new GradleDaemonTreeItem(
-                        this.context,
-                        daemonInfo.getPid(),
-                        daemonInfo
-                      )
-                  )
-              : []
-          )
+    const promises: Promise<
+      GradleDaemonTreeItem[]
+    >[] = projectRootFolders.map((projectRootFolder) =>
+      this.client
+        .getDaemonsStatus(projectRootFolder, cancellationToken.token)
+        .then((getDaemonsStatusReply) =>
+          getDaemonsStatusReply
+            ? getDaemonsStatusReply
+                .getDaemonInfoList()
+                .map(
+                  (daemonInfo) =>
+                    new GradleDaemonTreeItem(
+                      this.context,
+                      daemonInfo.getPid(),
+                      daemonInfo
+                    )
+                )
+            : []
+        )
     );
     this.treeItems = await Promise.race([
       Promise.all(promises).then((items) => items.flat()),

@@ -1,13 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
 
-import { Extension } from '../../extension';
 import { logger } from '../../logger';
 import {
   getSuiteName,
-  buildMockExtension,
   buildMockContext,
   buildMockClient,
   buildMockWorkspaceFolder,
@@ -39,17 +38,16 @@ import {
 } from '../../views/constants';
 import {
   COMMAND_SHOW_LOGS,
-  explorerFlatCommand,
-  explorerTreeCommand,
   COMMAND_RENDER_TASK,
-  cancelBuildCommand,
+  CancelBuildCommand,
+  ExplorerTreeCommand,
+  ExplorerFlatCommand,
 } from '../../commands';
 import { removeCancellingTask } from '../../tasks/taskUtil';
-import { RootProjectsStore } from '../../stores';
+import { RootProjectsStore, TaskTerminalsStore } from '../../stores';
 import { getRunTaskCommandCancellationKey } from '../../client/CancellationKeys';
 
 const mockContext = buildMockContext();
-const mockExtension = buildMockExtension();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
 const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
@@ -100,23 +98,27 @@ const mockGradleBuildWithoutTasks = new GradleBuild();
 mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 
 describe(getSuiteName('Gradle tasks'), () => {
+  let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
+  let taskTerminalsStore: TaskTerminalsStore;
+  let gradleTaskProvider: GradleTaskProvider;
+  let client: any;
   beforeEach(() => {
-    const icons = new Icons(mockContext);
+    // const icons = new Icons(mockContext);
+    client = buildMockClient();
     const rootProjectsStore = new RootProjectsStore();
-    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
+
+    taskTerminalsStore = new TaskTerminalsStore();
+    gradleTaskProvider = new GradleTaskProvider(
+      rootProjectsStore,
+      taskTerminalsStore,
+      client
+    );
+    gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext,
-      rootProjectsStore
+      rootProjectsStore,
+      gradleTaskProvider,
+      new Icons(mockContext)
     );
-    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
-    const mockClient = buildMockClient();
-    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
-    mockExtension.getClient.returns(mockClient);
-    mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
-    mockExtension.getGradleTasksTreeDataProvider.returns(
-      gradleTasksTreeDataProvider
-    );
-    mockExtension.getIcons.returns(icons);
-    sinon.stub(Extension, 'getInstance').returns(mockExtension);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -131,12 +133,8 @@ describe(getSuiteName('Gradle tasks'), () => {
         stubWorkspaceFolders([mockWorkspaceFolder1]);
       });
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
-        mockExtension
-          .getClient()
-          .getBuild.resolves(mockGradleBuildWithoutTasks);
-        const children = await mockExtension
-          .getGradleTasksTreeDataProvider()
-          .getChildren();
+        client.getBuild.resolves(mockGradleBuildWithoutTasks);
+        const children = await gradleTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const noTasksTreeItem = children[0];
         assert.ok(
@@ -166,14 +164,13 @@ describe(getSuiteName('Gradle tasks'), () => {
     describe('With gradle tasks', () => {
       beforeEach(async () => {
         stubWorkspaceFolders([mockWorkspaceFolder1]);
-        mockExtension.getClient().getBuild.resolves(mockGradleBuildWithTasks);
+        client.getBuild.resolves(mockGradleBuildWithTasks);
       });
 
       describe('Expanded tree', () => {
         let gradleProjects: vscode.TreeItem[] = [];
         beforeEach(async () => {
-          const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-          gradleProjects = await gradleTaskTreeDataProvider.getChildren();
+          gradleProjects = await gradleTasksTreeDataProvider.getChildren();
         });
 
         it('should build project items at top level', () => {
@@ -281,9 +278,8 @@ describe(getSuiteName('Gradle tasks'), () => {
       describe('Collapsed tree', () => {
         let gradleProjects: vscode.TreeItem[] = [];
         beforeEach(async () => {
-          await explorerFlatCommand();
-          const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-          gradleProjects = await gradleTaskTreeDataProvider.getChildren();
+          await new ExplorerFlatCommand(gradleTasksTreeDataProvider).run();
+          gradleProjects = await gradleTasksTreeDataProvider.getChildren();
         });
 
         it('should build project items at top level', () => {
@@ -333,8 +329,7 @@ describe(getSuiteName('Gradle tasks'), () => {
 
       describe('Task state', () => {
         it('should show a running state', async () => {
-          const gradleTaskProvider = mockExtension.getGradleTaskProvider() as GradleTaskProvider;
-          await mockExtension.getGradleTaskProvider().loadTasks();
+          await gradleTaskProvider.loadTasks();
           const task = gradleTaskProvider.findByTaskId(
             mockTaskDefinition1ForFolder1.id
           );
@@ -344,8 +339,7 @@ describe(getSuiteName('Gradle tasks'), () => {
               task,
             },
           ]);
-          const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-          const gradleProjects = (await gradleTaskTreeDataProvider.getChildren()) as ProjectTreeItem[];
+          const gradleProjects = (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
@@ -366,8 +360,7 @@ describe(getSuiteName('Gradle tasks'), () => {
         });
 
         it('should show a cancelling state', async () => {
-          const gradleTaskProvider = mockExtension.getGradleTaskProvider() as GradleTaskProvider;
-          await mockExtension.getGradleTaskProvider().loadTasks();
+          await gradleTaskProvider.loadTasks();
           const task = gradleTaskProvider.findByTaskId(
             mockTaskDefinition1ForFolder1.id
           );
@@ -385,13 +378,12 @@ describe(getSuiteName('Gradle tasks'), () => {
             mockTaskDefinition1ForFolder1.projectFolder,
             task.name
           );
-          await cancelBuildCommand(cancellationKey, task);
+          await new CancelBuildCommand(client).run(cancellationKey, task);
           assert.ok(
             executeCommandStub.calledWith(COMMAND_RENDER_TASK, task),
             'Task was not rendered'
           );
-          const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-          const gradleProjects = (await gradleTaskTreeDataProvider.getChildren()) as ProjectTreeItem[];
+          const gradleProjects = (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
@@ -421,27 +413,20 @@ describe(getSuiteName('Gradle tasks'), () => {
 
     describe('Without gradle tasks', () => {
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
-        mockExtension
-          .getClient()
-          .getBuild.resolves(mockGradleBuildWithoutTasks);
-        const children = await mockExtension
-          .getGradleTasksTreeDataProvider()
-          .getChildren();
+        client.getBuild.resolves(mockGradleBuildWithoutTasks);
+        const children = await gradleTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
       });
     });
 
     describe('With gradle tasks', () => {
       beforeEach(async () => {
-        mockExtension
-          .getClient()
-          .getBuild.resolves(mockGradleBuildWithTasksForMultiRoot);
-        await explorerTreeCommand();
+        client.getBuild.resolves(mockGradleBuildWithTasksForMultiRoot);
+        await new ExplorerTreeCommand(gradleTasksTreeDataProvider).run();
       });
 
       it('should build root RootProject items at top level', async () => {
-        const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-        const rootProjectItems = await gradleTaskTreeDataProvider.getChildren();
+        const rootProjectItems = await gradleTasksTreeDataProvider.getChildren();
         assert.ok(rootProjectItems.length > 0, 'No root gradle projects found');
         assert.equal(
           rootProjectItems.length,

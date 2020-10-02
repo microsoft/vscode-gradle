@@ -3,11 +3,9 @@ import * as sinon from 'sinon';
 import * as assert from 'assert';
 import * as path from 'path';
 
-import { Extension } from '../../extension';
 import { logger } from '../../logger';
 import {
   getSuiteName,
-  buildMockExtension,
   buildMockContext,
   buildMockClient,
   buildMockWorkspaceFolder,
@@ -28,8 +26,13 @@ import {
   PinnedTaskTreeItem,
   TreeItemWithTasksOrGroups,
   RootProjectTreeItem,
+  PinnedTasksRootProjectTreeItem,
 } from '../../views';
-import { PinnedTasksStore, RootProjectsStore } from '../../stores';
+import {
+  PinnedTasksStore,
+  RootProjectsStore,
+  TaskTerminalsStore,
+} from '../../stores';
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
 import {
@@ -39,16 +42,15 @@ import {
   TREE_ITEM_STATE_FOLDER,
   TREE_ITEM_STATE_TASK_IDLE,
 } from '../../views/constants';
-import {
-  pinTaskCommand,
-  pinTaskWithArgsCommand,
-  removePinnedTaskCommand,
-  clearAllPinnedTasksCommand,
-} from '../../commands';
 import { SinonStub } from 'sinon';
+import {
+  ClearAllPinnedTasksCommand,
+  PinTaskCommand,
+  PinTaskWithArgsCommand,
+  RemovePinnedTaskCommand,
+} from '../../commands';
 
 const mockContext = buildMockContext();
-const mockExtension = buildMockExtension();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
 const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
@@ -76,34 +78,37 @@ const mockGradleBuild = new GradleBuild();
 mockGradleBuild.setProject(mockGradleProject);
 
 describe(getSuiteName('Pinned tasks'), () => {
+  let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
+  let pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider;
+  let gradleTaskProvider: GradleTaskProvider;
+  let pinnedTasksStore: PinnedTasksStore;
   beforeEach(() => {
-    const icons = new Icons(mockContext);
+    const client = buildMockClient();
     const rootProjectsStore = new RootProjectsStore();
-    const gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
-      mockContext,
-      rootProjectsStore
+    const taskTerminalsStore = new TaskTerminalsStore();
+    gradleTaskProvider = new GradleTaskProvider(
+      rootProjectsStore,
+      taskTerminalsStore,
+      client
     );
-    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
-    const pinnedTasksStore = new PinnedTasksStore(mockContext);
-    const pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
+    const icons = new Icons(mockContext);
+    gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
+      mockContext,
+      rootProjectsStore,
+      gradleTaskProvider,
+      icons
+    );
+    pinnedTasksStore = new PinnedTasksStore(mockContext);
+    pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
       mockContext,
       pinnedTasksStore,
-      rootProjectsStore
+      rootProjectsStore,
+      gradleTaskProvider,
+      taskTerminalsStore,
+      icons,
+      client
     );
-    const mockClient = buildMockClient();
-    mockClient.getBuild.resolves(mockGradleBuild);
-    mockExtension.getClient.returns(mockClient);
-    mockExtension.getPinnedTasksTreeDataProvider.returns(
-      pinnedTasksTreeDataProvider
-    );
-    mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
-    mockExtension.getPinnedTasksStore.returns(pinnedTasksStore);
-    mockExtension.getGradleTasksTreeDataProvider.returns(
-      gradleTasksTreeDataProvider
-    );
-    mockExtension.getIcons.returns(icons);
-    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
-    sinon.stub(Extension, 'getInstance').returns(mockExtension);
+    client.getBuild.resolves(mockGradleBuild);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -113,16 +118,14 @@ describe(getSuiteName('Pinned tasks'), () => {
   });
 
   describe('Without a multi-root workspace', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
-      mockExtension.getGradleTaskProvider().loadTasks();
+      await gradleTaskProvider.loadTasks();
     });
 
     describe('With no pinned tasks', () => {
       it('should build a "No Tasks" tree item when no pinned have been added', async () => {
-        const children = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const childTreeItem = children[0];
         assert.ok(
@@ -146,8 +149,7 @@ describe(getSuiteName('Pinned tasks'), () => {
     describe('With pinned tasks', () => {
       let gradleTasks: GradleTaskTreeItem[] = [];
       beforeEach(async () => {
-        const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-        const gradleProjects = await gradleTaskTreeDataProvider.getChildren();
+        const gradleProjects = await gradleTasksTreeDataProvider.getChildren();
         assert.ok(gradleProjects.length > 0, 'No gradle projects found');
         assert.ok(
           gradleProjects[0] instanceof ProjectTreeItem,
@@ -168,10 +170,8 @@ describe(getSuiteName('Pinned tasks'), () => {
           // eslint-disable-next-line sonarjs/no-duplicate-string
           'TreeItem is not a GradleTaskTreeItem'
         );
-        pinTaskCommand(taskItem);
-        const children = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const pinnedTaskTreeItem = children[0];
         assert.equal(
@@ -189,7 +189,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           mockTaskDefinition1.description
         );
         assert.equal(
-          pinnedTaskTreeItem.task.definition.id,
+          (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;
@@ -202,7 +202,8 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        const groupTreeItem = (pinnedTaskTreeItem as PinnedTaskTreeItem)
+          .parentTreeItem as TreeItemWithTasksOrGroups;
         assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
         assert.ok(groupTreeItem.tasks.length > 0);
       });
@@ -214,10 +215,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           'TreeItem is not a GradleTaskTreeItem'
         );
         sinon.stub(vscode.window, 'showInputBox').resolves('--info '); // intentional trailing space
-        await pinTaskWithArgsCommand(taskItem);
-        const children = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskWithArgsCommand(pinnedTasksTreeDataProvider).run(
+          taskItem
+        );
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const pinnedTaskTreeItem = children[0];
         assert.equal(
@@ -238,7 +239,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           `(args: --info) ${mockTaskDefinition1.description}`
         );
         assert.equal(
-          pinnedTaskTreeItem.task.definition.id,
+          (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;
@@ -251,7 +252,8 @@ describe(getSuiteName('Pinned tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const groupTreeItem = pinnedTaskTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        const groupTreeItem = (pinnedTaskTreeItem as PinnedTaskTreeItem)
+          .parentTreeItem as TreeItemWithTasksOrGroups;
         assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
         assert.ok(groupTreeItem.tasks.length > 0);
       });
@@ -262,18 +264,16 @@ describe(getSuiteName('Pinned tasks'), () => {
           taskItem instanceof GradleTaskTreeItem,
           'TreeItem is not a GradleTaskTreeItem'
         );
-        pinTaskCommand(taskItem);
-        const childrenBefore = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
+        const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 1);
         const pinnedTask = childrenBefore[0];
         sinon.stub(vscode.window, 'showInputBox').resolves('--info '); // intentional trailing space
-        await pinTaskWithArgsCommand(pinnedTask);
+        await new PinTaskWithArgsCommand(pinnedTasksTreeDataProvider).run(
+          pinnedTask as PinnedTaskTreeItem
+        );
 
-        const childrenAfter = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 2);
         assert.ok(
           childrenAfter[0] instanceof PinnedTaskTreeItem,
@@ -286,8 +286,8 @@ describe(getSuiteName('Pinned tasks'), () => {
           'Pinned task is not PinnedTaskTreeItem'
         );
         assert.equal(
-          childrenAfter[0].task.definition.script,
-          childrenAfter[1].task.definition.script
+          (childrenAfter[0] as PinnedTaskTreeItem).task.definition.script,
+          (childrenAfter[1] as PinnedTaskTreeItem).task.definition.script
         );
         const pinnedTaskWithArgsTreeItem = childrenAfter[1];
         assert.equal(
@@ -308,20 +308,19 @@ describe(getSuiteName('Pinned tasks'), () => {
           `(args: --info) ${mockTaskDefinition1.description}`
         );
         assert.equal(
-          pinnedTaskWithArgsTreeItem.task.definition.id,
+          (pinnedTaskWithArgsTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
-        const groupTreeItem = pinnedTaskWithArgsTreeItem.parentTreeItem as TreeItemWithTasksOrGroups;
+        const groupTreeItem = (pinnedTaskWithArgsTreeItem as PinnedTaskTreeItem)
+          .parentTreeItem as TreeItemWithTasksOrGroups;
         assertFolderTreeItem(groupTreeItem, mockWorkspaceFolder1);
         assert.ok(groupTreeItem.tasks.length > 0);
       });
 
       it('should remove a pinned task', async () => {
         const taskItem = gradleTasks[0];
-        pinTaskCommand(taskItem);
-        const childrenBefore = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
+        const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 1);
         const pinnedTask = childrenBefore[0];
         assert.ok(
@@ -329,10 +328,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           // eslint-disable-next-line sonarjs/no-duplicate-string
           'Pinned task is not PinnedTaskTreeItem'
         );
-        removePinnedTaskCommand(pinnedTask);
-        const childrenAfter = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new RemovePinnedTaskCommand(pinnedTasksTreeDataProvider).run(
+          pinnedTask
+        );
+        const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 1);
         const noPinnedTasks = childrenAfter[0];
         assert.ok(
@@ -342,11 +341,13 @@ describe(getSuiteName('Pinned tasks'), () => {
       });
 
       it('should remove all pinned tasks', async () => {
-        pinTaskCommand(gradleTasks[0]);
-        pinTaskCommand(gradleTasks[1]);
-        const childrenBefore = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(
+          gradleTasks[0]
+        );
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(
+          gradleTasks[1]
+        );
+        const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 2);
         assert.ok(
           childrenBefore[0] instanceof PinnedTaskTreeItem,
@@ -360,16 +361,14 @@ describe(getSuiteName('Pinned tasks'), () => {
           vscode.window,
           'showWarningMessage'
         ) as SinonStub).resolves('Yes');
-        await clearAllPinnedTasksCommand();
+        await new ClearAllPinnedTasksCommand(pinnedTasksStore).run();
         assert.ok(
           showWarningMessageStub.calledWith(
             'Are you sure you want to clear the pinned tasks?'
           ),
           'Clear all pinned tasks confirmation message not shown'
         );
-        const childrenAfter = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 1);
         const noPinnedTasks = childrenAfter[0];
         assert.ok(
@@ -381,15 +380,14 @@ describe(getSuiteName('Pinned tasks'), () => {
   });
 
   describe('With a multi-root workspace', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
-      mockExtension.getGradleTaskProvider().loadTasks();
+      await gradleTaskProvider.loadTasks();
     });
 
     describe('With pinned tasks', () => {
       it('should build a pinned task treeitem', async () => {
-        const gradleTaskTreeDataProvider = mockExtension.getGradleTasksTreeDataProvider() as GradleTasksTreeDataProvider;
-        const workspaceTreeItems = await gradleTaskTreeDataProvider.getChildren();
+        const workspaceTreeItems = await gradleTasksTreeDataProvider.getChildren();
         assert.ok(workspaceTreeItems.length > 0, 'No gradle projects found');
         const workspaceTreeItem = workspaceTreeItems[0] as RootProjectTreeItem;
         assert.ok(
@@ -411,12 +409,10 @@ describe(getSuiteName('Pinned tasks'), () => {
           taskItem instanceof GradleTaskTreeItem,
           'TreeItem is not a GradleTaskTreeItem'
         );
-        pinTaskCommand(taskItem);
-        const children = await mockExtension
-          .getPinnedTasksTreeDataProvider()
-          .getChildren();
+        await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
+        const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
-        const pinnedTasksRootProjectTreeItem = children[0];
+        const pinnedTasksRootProjectTreeItem = children[0] as PinnedTasksRootProjectTreeItem;
         assert.equal(
           pinnedTasksRootProjectTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
@@ -448,7 +444,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           mockTaskDefinition1.description
         );
         assert.equal(
-          pinnedTaskTreeItem.task.definition.id,
+          (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;

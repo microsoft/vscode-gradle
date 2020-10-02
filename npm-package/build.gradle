@@ -30,6 +30,15 @@ task copyRootProjectTypes(type: Copy) {
   into 'lib/rootProject'
 }
 
+task copyIconTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies stores types'
+  from file("../extension/dist/icons")
+  include "*.d.ts"
+  into 'lib/icons'
+}
+
 task copyStoreTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
@@ -142,7 +151,8 @@ task copyPublicApi(type: Copy) {
     copyServerTypes,
     copyLoggerTypes,
     copyRootProjectTypes,
-    copyApiTypes
+    copyApiTypes,
+    copyIconTypes
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/dist")

@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { parseArgsStringToArgv } from 'string-argv';
 import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
-import { Extension } from '../extension';
 import { GradleTaskDefinition } from '.';
 import { GradleRunnerTerminal } from '../terminal';
 import { logger } from '../logger';
@@ -19,6 +18,8 @@ import { getTaskArgs } from '../input';
 import { COMMAND_RENDER_TASK } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
 import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
+import { GradleClient } from '../client';
+import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -63,6 +64,7 @@ export function isTaskRunning(task: vscode.Task, args?: TaskArgs): boolean {
 }
 
 export async function cancelBuild(
+  client: GradleClient,
   cancellationKey: string,
   task?: vscode.Task
 ): Promise<void> {
@@ -70,7 +72,7 @@ export async function cancelBuild(
     cancellingTasks.set(task.definition.id, task);
     await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
   }
-  await Extension.getInstance().getClient().cancelBuild(cancellationKey, task);
+  await client.cancelBuild(cancellationKey, task);
 }
 
 export function isTaskCancelling(task: vscode.Task, args?: TaskArgs): boolean {
@@ -120,7 +122,10 @@ export function removeCancellingTask(task: vscode.Task): void {
   }
 }
 
-export async function queueRestartTask(task: vscode.Task): Promise<void> {
+export async function queueRestartTask(
+  client: GradleClient,
+  task: vscode.Task
+): Promise<void> {
   if (isTaskRunning(task)) {
     const definition = task.definition as GradleTaskDefinition;
     restartingTasks.set(definition.id, task);
@@ -129,7 +134,7 @@ export async function queueRestartTask(task: vscode.Task): Promise<void> {
       task.name
     );
     // Once the task is cancelled it will restart via onDidEndTask
-    await cancelBuild(cancellationKey, task);
+    await cancelBuild(client, cancellationKey, task);
   }
 }
 
@@ -147,10 +152,11 @@ export function buildTaskName(definition: GradleTaskDefinition): string {
 }
 
 export function createTaskFromDefinition(
+  taskTerminalsStore: TaskTerminalsStore,
   definition: Required<GradleTaskDefinition>,
-  rootProject: RootProject
+  rootProject: RootProject,
+  client: GradleClient
 ): vscode.Task {
-  const taskTerminalsStore = Extension.getInstance().getTaskTerminalsStore();
   const args = [definition.script]
     .concat(parseArgsStringToArgv(definition.args.trim()))
     .filter(Boolean);
@@ -159,7 +165,12 @@ export function createTaskFromDefinition(
     rootProject.getProjectUri().fsPath,
     definition.script
   );
-  const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey);
+  const terminal = new GradleRunnerTerminal(
+    rootProject,
+    args,
+    cancellationKey,
+    client
+  );
   const task = new vscode.Task(
     definition,
     rootProject.getWorkspaceFolder(),
@@ -194,8 +205,10 @@ export function createTaskFromDefinition(
 }
 
 function createVSCodeTaskFromGradleTask(
+  taskTerminalsStore: TaskTerminalsStore,
   gradleTask: GradleTask,
   rootProject: RootProject,
+  client: GradleClient,
   args = '',
   javaDebug = false
 ): vscode.Task {
@@ -219,19 +232,31 @@ function createVSCodeTaskFromGradleTask(
     args,
     javaDebug,
   };
-  return createTaskFromDefinition(definition, rootProject);
+  return createTaskFromDefinition(
+    taskTerminalsStore,
+    definition,
+    rootProject,
+    client
+  );
 }
 
 function getVSCodeTasksFromGradleProject(
+  taskTerminalsStore: TaskTerminalsStore,
   rootProject: RootProject,
-  gradleProject: GradleProject
+  gradleProject: GradleProject,
+  client: GradleClient
 ): vscode.Task[] {
   const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
   const vsCodeTasks = [];
   try {
     vsCodeTasks.push(
       ...gradleTasks.map((gradleTask) =>
-        createVSCodeTaskFromGradleTask(gradleTask, rootProject)
+        createVSCodeTaskFromGradleTask(
+          taskTerminalsStore,
+          gradleTask,
+          rootProject,
+          client
+        )
       )
     );
   } catch (err) {
@@ -241,30 +266,43 @@ function getVSCodeTasksFromGradleProject(
     );
   }
   gradleProject.getProjectsList().forEach((project) => {
-    vsCodeTasks.push(...getVSCodeTasksFromGradleProject(rootProject, project));
+    vsCodeTasks.push(
+      ...getVSCodeTasksFromGradleProject(
+        taskTerminalsStore,
+        rootProject,
+        project,
+        client
+      )
+    );
   });
   return vsCodeTasks;
 }
 
 async function getGradleBuild(
+  client: GradleClient,
   rootProject: RootProject
 ): Promise<GradleBuild | void> {
-  return Extension.getInstance()
-    .getClient()
-    .getBuild(rootProject, getGradleConfig());
+  return client.getBuild(rootProject, getGradleConfig());
 }
 
 export async function loadTasksForProjectRoots(
+  taskTerminalsStore: TaskTerminalsStore,
+  client: GradleClient,
   rootProjects: ReadonlyArray<RootProject>
 ): Promise<vscode.Task[]> {
   const allTasks: vscode.Task[] = [];
   for (const rootProject of rootProjects) {
     if (getConfigIsAutoDetectionEnabled(rootProject)) {
-      const gradleBuild = await getGradleBuild(rootProject);
+      const gradleBuild = await getGradleBuild(client, rootProject);
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
         allTasks.push(
-          ...getVSCodeTasksFromGradleProject(rootProject, gradleProject)
+          ...getVSCodeTasksFromGradleProject(
+            taskTerminalsStore,
+            rootProject,
+            gradleProject,
+            client
+          )
         );
       }
     }
@@ -273,7 +311,10 @@ export async function loadTasksForProjectRoots(
 }
 
 export async function runTask(
+  rootProjectsStore: RootProjectsStore,
+  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
+  client: GradleClient,
   args = '',
   debug = false
 ): Promise<void> {
@@ -309,7 +350,14 @@ export async function runTask(
   }
   try {
     if (debug || args) {
-      const clonedTask = cloneTask(task, args, debug);
+      const clonedTask = cloneTask(
+        rootProjectsStore,
+        taskTerminalsStore,
+        task,
+        args,
+        client,
+        debug
+      );
       await vscode.tasks.executeTask(clonedTask);
     } else {
       await vscode.tasks.executeTask(task);
@@ -320,20 +368,33 @@ export async function runTask(
 }
 
 export async function runTaskWithArgs(
+  rootProjectsStore: RootProjectsStore,
+  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
+  client: GradleClient,
   debug = false
 ): Promise<void> {
   const args = await getTaskArgs();
   if (args !== undefined) {
-    await runTask(task, args, debug);
+    await runTask(
+      rootProjectsStore,
+      taskTerminalsStore,
+      task,
+      client,
+      args,
+      debug
+    );
   } else {
     logger.error('Args not supplied');
   }
 }
 
 export function cloneTask(
+  rootProjectsStore: RootProjectsStore,
+  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
   args: string,
+  client: GradleClient,
   javaDebug = false
 ): vscode.Task {
   const definition: Required<GradleTaskDefinition> = {
@@ -341,8 +402,11 @@ export function cloneTask(
     args,
     javaDebug,
   };
-  const rootProject = Extension.getInstance()
-    .getRootProjectsStore()
-    .get(definition.projectFolder);
-  return createTaskFromDefinition(definition, rootProject!);
+  const rootProject = rootProjectsStore.get(definition.projectFolder);
+  return createTaskFromDefinition(
+    taskTerminalsStore,
+    definition,
+    rootProject!,
+    client
+  );
 }

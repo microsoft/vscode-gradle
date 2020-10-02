@@ -4,9 +4,10 @@ import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
-import { RootProjectsStore } from '../stores';
+import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
 import { getConfigJavaDebug } from '../config';
+import { GradleClient } from '../client';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
@@ -21,7 +22,11 @@ export class GradleTaskProvider
     null
   > = new vscode.EventEmitter<null>();
 
-  constructor(private readonly rootProjectsStore: RootProjectsStore) {}
+  constructor(
+    private readonly rootProjectsStore: RootProjectsStore,
+    private readonly taskTerminalsStore: TaskTerminalsStore,
+    private readonly client: GradleClient
+  ) {}
 
   public readonly onDidLoadTasks: vscode.Event<null> = this._onDidLoadTasks
     .event;
@@ -59,7 +64,12 @@ export class GradleTaskProvider
       vscode.Uri.file(gradleTaskDefinition.projectFolder),
       javaDebug
     );
-    return createTaskFromDefinition(gradleTaskDefinition, rootProject);
+    return createTaskFromDefinition(
+      this.taskTerminalsStore,
+      gradleTaskDefinition,
+      rootProject,
+      this.client
+    );
   }
 
   public async loadTasks(): Promise<vscode.Task[]> {
@@ -79,7 +89,11 @@ export class GradleTaskProvider
       return Promise.resolve(this.cachedTasks);
     }
 
-    this.loadTasksPromise = loadTasksForProjectRoots(folders)
+    this.loadTasksPromise = loadTasksForProjectRoots(
+      this.taskTerminalsStore,
+      this.client,
+      folders
+    )
       .then(
         (tasks) => {
           this.cachedTasks = tasks;

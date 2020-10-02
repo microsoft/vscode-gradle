@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { GradleTaskTreeItem } from '..';
 import { JavaDebug } from '../../config';
+import { Icons } from '../../icons';
 import { TaskTerminalsStore } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';
 import { getTreeItemState } from '../viewUtil';
@@ -20,11 +21,20 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     task: vscode.Task,
     label: string,
     description: string,
+    icons: Icons,
     javaDebug: JavaDebug = { tasks: [], clean: true },
     private readonly taskTerminalsStore: TaskTerminalsStore
   ) {
     // On construction, don't set a description, this will be set in setContext
-    super(parentTreeItem, task, label, description || label, '', javaDebug);
+    super(
+      parentTreeItem,
+      task,
+      label,
+      description || label,
+      '',
+      icons,
+      javaDebug
+    );
   }
 
   public setContext(): void {

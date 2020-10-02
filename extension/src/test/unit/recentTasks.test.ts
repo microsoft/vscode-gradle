@@ -1,14 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
 import * as assert from 'assert';
 
-import { Extension } from '../../extension';
 import { logger } from '../../logger';
 import {
   getSuiteName,
   buildMockTerminal,
-  buildMockExtension,
   buildMockContext,
   buildMockClient,
   buildMockWorkspaceFolder,
@@ -23,6 +22,7 @@ import {
   NoRecentTasksTreeItem,
   RecentTaskTreeItem,
   RecentTasksRootProjectTreeItem,
+  GradleTaskTreeItem,
 } from '../../views';
 import { GradleTaskProvider } from '../../tasks';
 import {
@@ -39,16 +39,15 @@ import {
   TREE_ITEM_STATE_FOLDER,
   TREE_ITEM_STATE_TASK_IDLE,
 } from '../../views/constants';
-import {
-  clearAllRecentTasksCommand,
-  closeAllTaskTerminalsCommand,
-  showTaskTerminalCommand,
-  closeTaskTerminalsCommand,
-} from '../../commands';
 import { SinonStub } from 'sinon';
+import {
+  ClearAllRecentTasksCommand,
+  CloseAllTaskTerminalsCommand,
+  CloseTaskTerminalsCommand,
+  ShowTaskTerminalCommand,
+} from '../../commands';
 
 const mockContext = buildMockContext();
-const mockExtension = buildMockExtension();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
 
@@ -77,31 +76,31 @@ const mockGradleBuild = new GradleBuild();
 mockGradleBuild.setProject(mockGradleProject);
 
 describe(getSuiteName('Recent tasks'), () => {
+  let recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
+  let gradleTaskProvider: GradleTaskProvider;
+  let recentTasksStore: RecentTasksStore;
+  let taskTerminalsStore: TaskTerminalsStore;
   beforeEach(() => {
+    const client = buildMockClient();
     const icons = new Icons(mockContext);
     const rootProjectsStore = new RootProjectsStore();
-    const gradleTaskProvider = new GradleTaskProvider(rootProjectsStore);
-    const recentTasksStore = new RecentTasksStore();
-    const taskTerminalsStore = new TaskTerminalsStore();
-    const recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
+    taskTerminalsStore = new TaskTerminalsStore();
+    gradleTaskProvider = new GradleTaskProvider(
+      rootProjectsStore,
+      taskTerminalsStore,
+      client
+    );
+    recentTasksStore = new RecentTasksStore();
+    recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       mockContext,
       recentTasksStore,
       taskTerminalsStore,
-      rootProjectsStore
+      rootProjectsStore,
+      gradleTaskProvider,
+      client,
+      icons
     );
-    const mockClient = buildMockClient();
-    mockClient.getBuild.resolves(mockGradleBuild);
-    mockExtension.getClient.returns(mockClient);
-    mockExtension.getRecentTasksTreeDataProvider.returns(
-      recentTasksTreeDataProvider
-    );
-    mockExtension.getRecentTasksStore.returns(recentTasksStore);
-    mockExtension.getGradleTaskProvider.returns(gradleTaskProvider);
-    mockExtension.getTaskTerminalsStore.returns(taskTerminalsStore);
-    mockExtension.getIcons.returns(icons);
-    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
-
-    sinon.stub(Extension, 'getInstance').returns(mockExtension);
+    client.getBuild.resolves(mockGradleBuild);
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
   });
@@ -111,16 +110,14 @@ describe(getSuiteName('Recent tasks'), () => {
   });
 
   describe('Without a multi-root workspace', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
-      mockExtension.getGradleTaskProvider().loadTasks();
+      await gradleTaskProvider.loadTasks();
     });
 
     describe('With no recent tasks', () => {
       it('should build a "No Tasks" tree item when no recent tasks have been run', async () => {
-        const children = await mockExtension
-          .getRecentTasksTreeDataProvider()
-          .getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const childTreeItem = children[0];
         assert.ok(
@@ -143,7 +140,6 @@ describe(getSuiteName('Recent tasks'), () => {
 
     describe('With recent tasks', () => {
       beforeEach(() => {
-        const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
         recentTasksStore.addEntry(
           mockTaskDefinition1.id,
           mockTaskDefinition1.args
@@ -151,11 +147,9 @@ describe(getSuiteName('Recent tasks'), () => {
       });
 
       it('should build a recent task treeitem with no terminals', async () => {
-        const children = await mockExtension
-          .getRecentTasksTreeDataProvider()
-          .getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
-        const recentTaskTreeItem = children[0];
+        const recentTaskTreeItem = children[0] as RecentTaskTreeItem;
         assert.equal(
           recentTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
@@ -184,30 +178,27 @@ describe(getSuiteName('Recent tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem;
+        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
         assert.ok(
           workspaceTreeItem,
           'parentTreeItem must reference a WorkSpace tree item'
         );
         assert.equal(workspaceTreeItem.contextValue, TREE_ITEM_STATE_FOLDER);
         assert.equal(workspaceTreeItem.label, mockWorkspaceFolder1.name);
-        assert.equal(workspaceTreeItem.iconPath.id, 'folder');
+        assert.equal((workspaceTreeItem.iconPath as any).id, 'folder');
         assert.equal(workspaceTreeItem.parentTreeItem, undefined);
         assert.equal(workspaceTreeItem.resourceUri, undefined);
         assert.equal(workspaceTreeItem.tasks.length, 1);
       });
 
       it('should build a recent task treeitem with a corresponding terminal', async () => {
-        const taskTerminalsStore = mockExtension.getTaskTerminalsStore() as TaskTerminalsStore;
         const mockTerminal = buildMockTerminal();
         taskTerminalsStore.addEntry(
           mockTaskDefinition1.id + mockTaskDefinition1.args,
           mockTerminal
         );
 
-        const children = await mockExtension
-          .getRecentTasksTreeDataProvider()
-          .getChildren();
+        const children = await recentTasksTreeDataProvider.getChildren();
         assert.equal(children.length, 1);
         const recentTaskTreeItem = children[0] as RecentTaskTreeItem;
         assert.equal(
@@ -249,9 +240,7 @@ describe(getSuiteName('Recent tasks'), () => {
       });
 
       it('should clear all recent tasks', async () => {
-        const childrenBefore = await mockExtension
-          .getRecentTasksTreeDataProvider()
-          .getChildren();
+        const childrenBefore = await recentTasksTreeDataProvider.getChildren();
         assert.equal(childrenBefore.length, 1);
         assert.ok(
           childrenBefore[0] instanceof RecentTaskTreeItem,
@@ -264,7 +253,7 @@ describe(getSuiteName('Recent tasks'), () => {
           'showWarningMessage'
         ) as SinonStub).resolves('Yes');
 
-        await clearAllRecentTasksCommand();
+        await new ClearAllRecentTasksCommand(recentTasksStore).run();
 
         assert.ok(
           showWarningMessageStub.calledWith(
@@ -272,9 +261,7 @@ describe(getSuiteName('Recent tasks'), () => {
           ),
           'Clear all recent tasks confirmation message not shown'
         );
-        const childrenAfter = await mockExtension
-          .getRecentTasksTreeDataProvider()
-          .getChildren();
+        const childrenAfter = await recentTasksTreeDataProvider.getChildren();
         assert.equal(childrenAfter.length, 1);
         const childTreeItem = childrenAfter[0];
         assert.ok(
@@ -286,9 +273,8 @@ describe(getSuiteName('Recent tasks'), () => {
   });
 
   describe('With multi-root workspace', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
-      const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,
         mockTaskDefinition1.args
@@ -297,15 +283,13 @@ describe(getSuiteName('Recent tasks'), () => {
         mockTaskDefinition2.id,
         mockTaskDefinition2.args
       );
-      mockExtension.getGradleTaskProvider().loadTasks();
+      await gradleTaskProvider.loadTasks();
     });
 
     it('should build nested recent task treeitems in a multi-root workspace', async () => {
-      const children = await mockExtension
-        .getRecentTasksTreeDataProvider()
-        .getChildren();
+      const children = await recentTasksTreeDataProvider.getChildren();
       assert.equal(children.length, 2);
-      const workspaceTreeItem1 = children[0];
+      const workspaceTreeItem1 = children[0] as RecentTasksRootProjectTreeItem;
       assert.equal(
         workspaceTreeItem1.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
@@ -318,7 +302,7 @@ describe(getSuiteName('Recent tasks'), () => {
       assert.equal(workspaceTask1.label, mockTaskDefinition1.script);
       assert.equal(workspaceTask1.task.definition.id, mockTaskDefinition1.id);
 
-      const workspaceTreeItem2 = children[1];
+      const workspaceTreeItem2 = children[1] as RecentTasksRootProjectTreeItem;
       assert.equal(
         workspaceTreeItem2.collapsibleState,
         vscode.TreeItemCollapsibleState.Expanded
@@ -342,15 +326,13 @@ describe(getSuiteName('Recent tasks'), () => {
   describe('Task terminals', () => {
     const mockTerminal1 = buildMockTerminal();
     const mockTerminal2 = buildMockTerminal();
-    beforeEach(() => {
+    beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
-      mockExtension.getGradleTaskProvider().loadTasks();
-      const recentTasksStore = mockExtension.getRecentTasksStore() as RecentTasksStore;
+      await gradleTaskProvider.loadTasks();
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,
         mockTaskDefinition1.args
       );
-      const taskTerminalsStore = mockExtension.getTaskTerminalsStore() as TaskTerminalsStore;
       taskTerminalsStore.addEntry(
         mockTaskDefinition1.id + mockTaskDefinition1.args,
         mockTerminal1
@@ -362,9 +344,7 @@ describe(getSuiteName('Recent tasks'), () => {
     });
 
     it('should close all recent task terminals', async () => {
-      const childrenBefore = await mockExtension
-        .getRecentTasksTreeDataProvider()
-        .getChildren();
+      const childrenBefore = await recentTasksTreeDataProvider.getChildren();
       assert.equal(childrenBefore.length, 1);
       const recentTaskTreeItemBefore = childrenBefore[0];
       assert.ok(
@@ -382,7 +362,7 @@ describe(getSuiteName('Recent tasks'), () => {
         'showWarningMessage'
       ) as SinonStub).resolves('Yes');
 
-      await closeAllTaskTerminalsCommand();
+      await new CloseAllTaskTerminalsCommand(taskTerminalsStore).run();
 
       assert.ok(
         showWarningMessageStub.calledWith(
@@ -391,9 +371,7 @@ describe(getSuiteName('Recent tasks'), () => {
         'Close all task terminals confirmation message not shown'
       );
 
-      const childrenAfter = await mockExtension
-        .getRecentTasksTreeDataProvider()
-        .getChildren();
+      const childrenAfter = await recentTasksTreeDataProvider.getChildren();
       assert.equal(childrenAfter.length, 1);
       const recentTaskTreeItemBeforeAfter = childrenAfter[0];
       assert.ok(
@@ -408,11 +386,9 @@ describe(getSuiteName('Recent tasks'), () => {
     });
 
     it('should show a recent task terminal', async () => {
-      const children = await mockExtension
-        .getRecentTasksTreeDataProvider()
-        .getChildren();
-      const treeItem = children[0];
-      showTaskTerminalCommand(treeItem);
+      const children = await recentTasksTreeDataProvider.getChildren();
+      const treeItem = children[0] as GradleTaskTreeItem;
+      await new ShowTaskTerminalCommand(taskTerminalsStore).run(treeItem);
       assert.ok(
         !mockTerminal1.show.called,
         'Previous task terminal was called'
@@ -424,11 +400,9 @@ describe(getSuiteName('Recent tasks'), () => {
     });
 
     it('should close a recent task terminal', async () => {
-      const children = await mockExtension
-        .getRecentTasksTreeDataProvider()
-        .getChildren();
-      const treeItem = children[0];
-      closeTaskTerminalsCommand(treeItem);
+      const children = await recentTasksTreeDataProvider.getChildren();
+      const treeItem = children[0] as GradleTaskTreeItem;
+      await new CloseTaskTerminalsCommand(taskTerminalsStore).run(treeItem);
       assert.ok(
         mockTerminal1.dispose.called,
         'Previous task terminal was not called'

@@ -18,13 +18,8 @@ import {
   GradleDaemonsTreeDataProvider,
   GradleDaemonTreeItem,
 } from '../../views';
-import { Extension } from '../../extension';
+// import { Extension } from '../../extension';
 import { SinonStub } from 'sinon';
-import {
-  stopDaemonCommand,
-  refreshDaemonStatusCommand,
-  stopDaemonsCommand,
-} from '../../commands';
 import { logger } from '../../logger';
 import {
   getSuiteName,
@@ -32,7 +27,6 @@ import {
   buildMockOutputChannel,
   buildMockWorkspaceFolder,
   buildMockClient,
-  buildMockExtension,
   buildMockContext,
 } from '../testUtil';
 import { IconPath } from '../../icons';
@@ -42,10 +36,14 @@ import {
   ICON_DAEMON_IDLE,
 } from '../../views/constants';
 import { RootProjectsStore } from '../../stores';
+import {
+  RefreshDaemonStatusCommand,
+  StopDaemonCommand,
+  StopDaemonsCommand,
+} from '../../commands';
 
 const mockContext = buildMockContext();
 const mockClient = buildMockClient();
-const mockExtension = buildMockExtension();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, 'folder1', 'folder1');
 const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, 'folder2', 'folder2');
@@ -54,19 +52,15 @@ const mockWorkspaceFolder3 = buildMockWorkspaceFolder(2, 'folder3', 'folder3');
 const mockOutputChannel = buildMockOutputChannel();
 
 describe(getSuiteName('Gradle daemons'), () => {
+  let gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
+  let rootProjectsStore: RootProjectsStore;
   beforeEach(async () => {
-    const rootProjectsStore = new RootProjectsStore();
-    const gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
+    rootProjectsStore = new RootProjectsStore();
+    gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
       mockContext,
-      rootProjectsStore
+      rootProjectsStore,
+      mockClient
     );
-    mockExtension.getClient.returns(mockClient);
-    mockExtension.getGradleDaemonsTreeDataProvider.returns(
-      gradleDaemonsTreeDataProvider
-    );
-    mockExtension.getRootProjectsStore.returns(rootProjectsStore);
-
-    sinon.stub(Extension, 'getInstance').returns(mockExtension as any);
     sinon
       .stub(vscode.workspace, 'workspaceFolders')
       .value([
@@ -129,8 +123,8 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should filter out projects with duplicate gradle versions', async () => {
-    const projects = await (mockExtension.getRootProjectsStore() as RootProjectsStore).buildAndGetProjectRootsWithUniqueVersions();
-    assert.equal(
+    const projects = await rootProjectsStore.buildAndGetProjectRootsWithUniqueVersions();
+    assert.strictEqual(
       projects.length,
       2,
       'There should only be two projects with unique gradle versions'
@@ -168,9 +162,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     // NOTE: no reason to mock reply for mockWorkspaceFolder3 as it should be ignored due to
     // dupicate gradle version
 
-    const children = await mockExtension
-      .getGradleDaemonsTreeDataProvider()
-      .getChildren();
+    const children = await gradleDaemonsTreeDataProvider.getChildren();
 
     assert.equal(children.length, 4, 'There should be 6 items in the tree');
 
@@ -256,7 +248,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       mockDaemonInfoBusy
     );
 
-    await stopDaemonCommand(mockGradleDaemonTreeItem);
+    await new StopDaemonCommand(mockClient).run(mockGradleDaemonTreeItem);
 
     assert.ok(
       showWarningMessageStub.calledWith(
@@ -295,7 +287,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       'showWarningMessage'
     ) as SinonStub).resolves('Yes');
 
-    await stopDaemonsCommand();
+    await new StopDaemonsCommand(mockClient, rootProjectsStore).run();
 
     assert.ok(
       showWarningMessageStub.calledWith(
@@ -304,7 +296,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       'Stop daemons confirmation message not shown'
     );
 
-    assert.equal(
+    assert.strictEqual(
       mockOutputChannel.appendLine.callCount,
       2,
       'Logger not called expected times'
@@ -319,11 +311,10 @@ describe(getSuiteName('Gradle daemons'), () => {
     );
   });
 
-  it('should refresh the daemons list', () => {
-    const gradleDaemonsTreeDataProvider = mockExtension.getGradleDaemonsTreeDataProvider();
+  it('should refresh the daemons list', async () => {
     const onDidChangeSpy = sinon.spy();
     gradleDaemonsTreeDataProvider.onDidChangeTreeData(onDidChangeSpy);
-    refreshDaemonStatusCommand();
+    await new RefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider).run();
     assert.ok(onDidChangeSpy.calledWith(), 'onDidChangeTreeData not called');
     assert.equal(onDidChangeSpy.callCount, 1);
   });
@@ -361,7 +352,6 @@ describe(getSuiteName('Gradle daemons'), () => {
       .withArgs(mockWorkspaceFolder1.uri.fsPath)
       .returns(quickReply);
 
-    const gradleDaemonsTreeDataProvider = mockExtension.getGradleDaemonsTreeDataProvider();
     const children = await gradleDaemonsTreeDataProvider.getChildren();
 
     assert.equal(children[0].description, 'BUSY');
