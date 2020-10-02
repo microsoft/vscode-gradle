@@ -151,7 +151,11 @@ export class Extension {
     this.gradleWrapperWatcher = new FileWatcher(
       '**/gradle/wrapper/gradle-wrapper.properties'
     );
-    this.api = new Api(this.client, this.gradleTasksTreeDataProvider);
+    this.api = new Api(
+      this.client,
+      this.gradleTasksTreeDataProvider,
+      this.icons
+    );
 
     this.commands = new Commands(
       this.context,
@@ -278,53 +282,5 @@ export class Extension {
 
   public getApi(): Api {
     return this.api;
-  }
-
-  // public getGradleTaskProvider(): GradleTaskProvider {
-  //   return this.gradleTaskProvider;
-  // }
-
-  // public getRootProjectsStore(): RootProjectsStore {
-  //   return this.rootProjectsStore;
-  // }
-
-  // public getClient(): GradleClient {
-  //   return this.client;
-  // }
-
-  // public getTaskTerminalsStore(): TaskTerminalsStore {
-  //   return this.taskTerminalsStore;
-  // }
-
-  // public getRecentTasksStore(): RecentTasksStore {
-  //   return this.recentTasksStore;
-  // }
-
-  // public getPinnedTasksStore(): PinnedTasksStore {
-  //   return this.pinnedTasksStore;
-  // }
-
-  // public getGradleTasksTreeDataProvider(): GradleTasksTreeDataProvider {
-  //   return this.gradleTasksTreeDataProvider;
-  // }
-
-  // public getPinnedTasksTreeDataProvider(): PinnedTasksTreeDataProvider {
-  //   return this.pinnedTasksTreeDataProvider;
-  // }
-
-  // public getRecentTasksTreeDataProvider(): RecentTasksTreeDataProvider {
-  //   return this.recentTasksTreeDataProvider;
-  // }
-
-  // public getGradleTasksTreeView(): vscode.TreeView<vscode.TreeItem> {
-  //   return this.gradleTasksTreeView;
-  // }
-
-  // public getGradleDaemonsTreeDataProvider(): GradleDaemonsTreeDataProvider {
-  //   return this.gradleDaemonsTreeDataProvider;
-  // }
-
-  public getIcons(): Icons {
-    return this.icons;
   }
 }
