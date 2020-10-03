@@ -15,6 +15,7 @@ const daemonStatusEnumMapByValue: StatusEnumMapByValue = Object.assign(
 );
 
 export class GradleDaemonTreeItem extends vscode.TreeItem {
+  private status: string;
   constructor(
     private readonly context: vscode.ExtensionContext,
     public readonly label: string,
@@ -30,19 +31,10 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
         path.join('resources', 'dark', iconName)
       ),
     };
+    this.status = daemonStatusEnumMapByValue[daemonInfo.getStatus()];
+    this.description = this.status;
     this.contextValue = this.status.toLowerCase();
-  }
-
-  public get tooltip(): string {
-    return `${this.status} - ${this.daemonInfo.getInfo()}`;
-  }
-
-  private get status(): string {
-    return daemonStatusEnumMapByValue[this.daemonInfo.getStatus()];
-  }
-
-  public get description(): string {
-    return this.status;
+    this.tooltip = `${this.status} - ${daemonInfo.getInfo()}`;
   }
 
   public get pid(): string {
