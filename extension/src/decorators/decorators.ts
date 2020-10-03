@@ -29,7 +29,7 @@ export interface DebounceReducer<T> {
   (previousValue: T, ...args: any[]): T;
 }
 
-export function debounce<T>(delay: number): Function {
+export function debounce(delay: number): Function {
   return createDecorator((fn, key) => {
     const timerKey = `$debounce$${key}`;
     return function (this: any, ...args: any[]): void {
