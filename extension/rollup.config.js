@@ -23,7 +23,9 @@ export default [
     plugins: [
       resolve({ preferBuiltins: true }),
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
-      commonjs({ ignore: ['encoding', 'google-auth-library', '@grpc/proto-loader'] }),
+      commonjs({
+        ignore: ['encoding', 'google-auth-library', '@grpc/proto-loader'],
+      }),
       json(),
     ],
   },
