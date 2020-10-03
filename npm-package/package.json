@@ -27,7 +27,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.1.7",
     "@types/google-protobuf": "^3.7.3",
-    "@types/vscode": "^1.49.0",
+    "@types/vscode": "1.45.0",
     "google-protobuf": "^4.0.0-rc.2"
   },
   "devDependencies": {
