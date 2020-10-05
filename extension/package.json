@@ -742,7 +742,7 @@
     "@types/google-protobuf": "^3.7.3",
     "@types/mocha": "^8.0.3",
     "@types/node": "^12.12.39",
-    "@types/sinon": "^9.0.7",
+    "@types/sinon": "^9.0.8",
     "@types/vscode": "1.45.0",
     "@typescript-eslint/eslint-plugin": "^4.3.0",
     "@typescript-eslint/parser": "^4.3.0",
