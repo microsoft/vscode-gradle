@@ -3,6 +3,7 @@ import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
 import builtins from 'builtin-modules';
+import ignore from "rollup-plugin-ignore"
 import { terser } from 'rollup-plugin-terser';
 
 const outputPlugins = [];
@@ -21,10 +22,11 @@ export default [
       plugins: outputPlugins,
     },
     plugins: [
+      ignore(['@grpc/proto-loader']),
       resolve({ preferBuiltins: true }),
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
       commonjs({
-        ignore: ['encoding', 'google-auth-library', '@grpc/proto-loader'],
+        ignore: ['encoding', 'google-auth-library'],
       }),
       json(),
     ],
