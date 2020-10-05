@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { parseArgsStringToArgv } from 'string-argv';
-import { GradleTask, GradleProject, GradleBuild } from '../proto/gradle_pb';
+import { GradleProject, GradleBuild, GradleTask } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { GradleTaskDefinition } from '.';
 import { GradleRunnerTerminal } from '../terminal';
@@ -246,35 +246,24 @@ function getVSCodeTasksFromGradleProject(
   gradleProject: GradleProject,
   client: GradleClient
 ): vscode.Task[] {
-  const gradleTasks: GradleTask[] | void = gradleProject.getTasksList();
-  const vsCodeTasks = [];
-  try {
-    vsCodeTasks.push(
-      ...gradleTasks.map((gradleTask) =>
+  let projects: Array<GradleProject> = [gradleProject];
+  const vsCodeTasks: vscode.Task[] = [];
+  while (projects.length) {
+    const project = projects.pop();
+    const gradleTasks: GradleTask[] | void = project!.getTasksList();
+    for (const gradleTask of gradleTasks) {
+      vsCodeTasks.push(
         createVSCodeTaskFromGradleTask(
           taskTerminalsStore,
           gradleTask,
           rootProject,
           client
         )
-      )
-    );
-  } catch (err) {
-    logger.error(
-      'Unable to generate vscode tasks from gradle tasks:',
-      err.message
-    );
+      );
+    }
+    projects = projects.concat(project!.getProjectsList());
   }
-  gradleProject.getProjectsList().forEach((project) => {
-    vsCodeTasks.push(
-      ...getVSCodeTasksFromGradleProject(
-        taskTerminalsStore,
-        rootProject,
-        project,
-        client
-      )
-    );
-  });
+
   return vsCodeTasks;
 }
 
@@ -290,20 +279,19 @@ export async function loadTasksForProjectRoots(
   client: GradleClient,
   rootProjects: ReadonlyArray<RootProject>
 ): Promise<vscode.Task[]> {
-  const allTasks: vscode.Task[] = [];
+  let allTasks: vscode.Task[] = [];
   for (const rootProject of rootProjects) {
     if (getConfigIsAutoDetectionEnabled(rootProject)) {
       const gradleBuild = await getGradleBuild(client, rootProject);
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
-        allTasks.push(
-          ...getVSCodeTasksFromGradleProject(
-            taskTerminalsStore,
-            rootProject,
-            gradleProject,
-            client
-          )
+        const vsCodeTasks = getVSCodeTasksFromGradleProject(
+          taskTerminalsStore,
+          rootProject,
+          gradleProject,
+          client
         );
+        allTasks = allTasks.concat(vsCodeTasks);
       }
     }
   }
