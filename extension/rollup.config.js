@@ -3,7 +3,7 @@ import typescript from '@rollup/plugin-typescript';
 import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
 import builtins from 'builtin-modules';
-import ignore from "rollup-plugin-ignore"
+import ignore from 'rollup-plugin-ignore';
 import { terser } from 'rollup-plugin-terser';
 
 const outputPlugins = [];
