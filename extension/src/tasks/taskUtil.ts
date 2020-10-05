@@ -246,7 +246,7 @@ function getVSCodeTasksFromGradleProject(
   gradleProject: GradleProject,
   client: GradleClient
 ): vscode.Task[] {
-  const projects: Array<GradleProject> = [gradleProject];
+  let projects: Array<GradleProject> = [gradleProject];
   const vsCodeTasks: vscode.Task[] = [];
   while (projects.length) {
     const project = projects.pop();
@@ -261,9 +261,7 @@ function getVSCodeTasksFromGradleProject(
         )
       );
     }
-    for (const childProject of project!.getProjectsList()) {
-      projects.push(childProject);
-    }
+    projects = projects.concat(project!.getProjectsList());
   }
 
   return vsCodeTasks;
@@ -287,14 +285,13 @@ export async function loadTasksForProjectRoots(
       const gradleBuild = await getGradleBuild(client, rootProject);
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
-        allTasks = allTasks.concat(
-          getVSCodeTasksFromGradleProject(
-            taskTerminalsStore,
-            rootProject,
-            gradleProject,
-            client
-          )
+        const vsCodeTasks = getVSCodeTasksFromGradleProject(
+          taskTerminalsStore,
+          rootProject,
+          gradleProject,
+          client
         );
+        allTasks = allTasks.concat(vsCodeTasks);
       }
     }
   }

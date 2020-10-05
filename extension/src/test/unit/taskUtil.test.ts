@@ -10,6 +10,23 @@ import { TaskTerminalsStore } from '../../stores';
 import { loadTasksForProjectRoots } from '../../tasks/taskUtil';
 import { buildMockClient, getSuiteName } from '../testUtil';
 
+const mockWorkspaceFolder: vscode.WorkspaceFolder = {
+  index: 0,
+  uri: vscode.Uri.file('folder1'),
+  name: 'folder1',
+};
+
+const mockRootProject = new RootProject(
+  mockWorkspaceFolder,
+  vscode.Uri.file('folder1'),
+  {
+    tasks: [],
+    clean: false,
+  }
+);
+const mockClient = buildMockClient();
+const mockTaskTerminalsStore = new TaskTerminalsStore();
+
 function buildProject(
   project: string,
   rootProject: string,
@@ -61,23 +78,6 @@ function getDeeplyNestedProjectTree(
   return projects;
 }
 
-const workspaceFolder: vscode.WorkspaceFolder = {
-  index: 0,
-  uri: vscode.Uri.file('folder1'),
-  name: 'folder1',
-};
-
-const rootProject = new RootProject(
-  workspaceFolder,
-  vscode.Uri.file('folder1'),
-  {
-    tasks: [],
-    clean: false,
-  }
-);
-const client = buildMockClient();
-const taskTerminalsStore = new TaskTerminalsStore();
-
 describe(getSuiteName('taskUtil'), () => {
   afterEach(() => {
     sinon.restore();
@@ -99,11 +99,13 @@ describe(getSuiteName('taskUtil'), () => {
     );
     rootGradleProject.setProjectsList([childGradleProject]);
     gradleBuild.setProject(rootGradleProject);
-    client.getBuild.resolves(Promise.resolve(gradleBuild));
+    mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(taskTerminalsStore, client, [
-      rootProject,
-    ]);
+    const tasks = await loadTasksForProjectRoots(
+      mockTaskTerminalsStore,
+      mockClient,
+      [mockRootProject]
+    );
     assert.strictEqual(tasks.length, 2);
   });
 
@@ -116,23 +118,17 @@ describe(getSuiteName('taskUtil'), () => {
       1
     );
 
-    const generateProjects = 50;
-    const generateLevels = 3;
-    const generateTasks = 3;
-
-    const projectsList = getDeeplyNestedProjectTree(
-      generateProjects,
-      generateTasks,
-      generateLevels
-    );
+    const projectsList = getDeeplyNestedProjectTree(50, 2, 3);
 
     rootGradleProject.setProjectsList(projectsList);
     gradleBuild.setProject(rootGradleProject);
-    client.getBuild.resolves(Promise.resolve(gradleBuild));
+    mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(taskTerminalsStore, client, [
-      rootProject,
-    ]);
-    assert.strictEqual(tasks.length, 382651);
+    const tasks = await loadTasksForProjectRoots(
+      mockTaskTerminalsStore,
+      mockClient,
+      [mockRootProject]
+    );
+    assert.strictEqual(tasks.length, 255101);
   });
 });

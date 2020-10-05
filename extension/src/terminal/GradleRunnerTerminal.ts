@@ -17,7 +17,7 @@ const nlRegExp = new RegExp(`${NL}([^${CR}]|$)`, 'g');
 
 export class GradleRunnerTerminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
-  private stdOutLoggerStream: LoggerStream;
+  private stdOutLoggerStream: LoggerStream | undefined;
   private readonly closeEmitter = new vscode.EventEmitter<void>();
   private task?: vscode.Task;
   public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
@@ -29,8 +29,10 @@ export class GradleRunnerTerminal {
     private readonly cancellationKey: string,
     private readonly client: GradleClient
   ) {
-    // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
-    this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+    if (isTest()) {
+      // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
+      this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+    }
   }
 
   public async open(): Promise<void> {
@@ -121,7 +123,7 @@ export class GradleRunnerTerminal {
   private handleOutput = (output: Output): void => {
     const messageBytes = output.getOutputBytes_asU8();
     if (messageBytes.length) {
-      if (isTest()) {
+      if (isTest() && this.stdOutLoggerStream) {
         this.stdOutLoggerStream.write(messageBytes);
       }
       this.write(new util.TextDecoder('utf-8').decode(messageBytes));
