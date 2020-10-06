@@ -68,8 +68,8 @@ export class GradleDaemonsTreeDataProvider
   }
 
   private async getProjectRootFolders(): Promise<string[]> {
-    return (
-      await this.rootProjectsStore.buildAndGetProjectRootsWithUniqueVersions()
-    ).map((rootProject) => rootProject.getProjectUri().fsPath);
+    return this.rootProjectsStore
+      .getProjectRootsWithUniqueVersions()
+      .map((rootProject) => rootProject.getProjectUri().fsPath);
   }
 }

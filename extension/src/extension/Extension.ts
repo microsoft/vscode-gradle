@@ -171,14 +171,6 @@ export class Extension {
       this.recentTasksStore,
       this.gradleTasksTreeView
     );
-
-    this.activate();
-    this.storeSubscriptions();
-    this.registerCommands();
-    this.handleTaskEvents();
-    this.handleWatchEvents();
-    this.handleEditorEvents();
-    this.loadTasks();
   }
 
   private storeSubscriptions(): void {
@@ -200,18 +192,33 @@ export class Extension {
     );
   }
 
-  private activate(): void {
-    // Used for showing the view container in the activity bar
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    vscode.commands.executeCommand('setContext', 'gradle:activated', true);
+  public async activate(): Promise<void> {
+    this.storeSubscriptions();
+    this.registerCommands();
+    this.handleTaskEvents();
+    this.handleWatchEvents();
+    this.handleEditorEvents();
+
+    this.client.onDidConnect(() => this.refresh());
+    await this.connect();
+  }
+
+  private async connect(): Promise<void> {
+    this.rootProjectsStore.clear();
+    await this.rootProjectsStore.populate();
+    const activated = !!this.rootProjectsStore.getProjectRoots().length;
+    if (activated) {
+      await this.client.connect();
+    }
+    await vscode.commands.executeCommand(
+      'setContext',
+      'gradle:activated',
+      activated
+    );
   }
 
   private registerCommands(): void {
     this.commands.register();
-  }
-
-  private loadTasks(): void {
-    this.client.onDidConnect(() => this.refresh());
   }
 
   private handleTaskEvents(): void {
@@ -240,8 +247,10 @@ export class Extension {
   }
 
   private async restartServer(): Promise<void> {
-    await this.client.cancelBuilds();
-    await this.server.restart();
+    if (this.server.isReady()) {
+      await this.client.cancelBuilds();
+      await this.server.restart();
+    }
   }
 
   private refresh(): Thenable<void> {
@@ -262,8 +271,7 @@ export class Extension {
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
-            this.rootProjectsStore.clear();
-            await this.refresh();
+            await this.connect();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();

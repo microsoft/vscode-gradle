@@ -4,7 +4,6 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import * as path from 'path';
-import * as fs from 'fs';
 
 import {
   GetDaemonsStatusReply,
@@ -28,6 +27,7 @@ import {
   buildMockWorkspaceFolder,
   buildMockClient,
   buildMockContext,
+  stubWorkspaceFolders,
 } from '../testUtil';
 import { IconPath } from '../../icons';
 import {
@@ -61,39 +61,16 @@ describe(getSuiteName('Gradle daemons'), () => {
       rootProjectsStore,
       mockClient
     );
-    sinon
-      .stub(vscode.workspace, 'workspaceFolders')
-      .value([
-        mockWorkspaceFolder1,
-        mockWorkspaceFolder2,
-        mockWorkspaceFolder3,
-      ]);
-    const existsSyncStub = sinon.stub(fs, 'existsSync');
-    existsSyncStub
-      .withArgs(path.join(mockWorkspaceFolder1.uri.fsPath, 'gradlew'))
-      .returns(true);
-    existsSyncStub
-      .withArgs(path.join(mockWorkspaceFolder2.uri.fsPath, 'gradlew'))
-      .returns(true);
-    existsSyncStub
-      .withArgs(path.join(mockWorkspaceFolder3.uri.fsPath, 'gradlew'))
-      .returns(true);
-    const getWorkspaceFolderStub = sinon.stub(
-      vscode.workspace,
-      'getWorkspaceFolder'
-    );
-    getWorkspaceFolderStub
-      .withArgs(mockWorkspaceFolder1.uri)
-      .returns(mockWorkspaceFolder1);
-    getWorkspaceFolderStub
-      .withArgs(mockWorkspaceFolder2.uri)
-      .returns(mockWorkspaceFolder2);
-    getWorkspaceFolderStub
-      .withArgs(mockWorkspaceFolder3.uri)
-      .returns(mockWorkspaceFolder3);
+    stubWorkspaceFolders([
+      mockWorkspaceFolder1,
+      mockWorkspaceFolder2,
+      mockWorkspaceFolder3,
+    ]);
+
+    await rootProjectsStore.populate();
 
     // GradleClient.getBuild() sets the gradle versions once it receives the gradle environment
-    const projectRoots = await rootProjectsStore.buildAndGetProjectRoots();
+    const projectRoots = rootProjectsStore.getProjectRoots();
     const gradleEnvironment1 = new GradleEnvironment();
     gradleEnvironment1.setGradleVersion('6.3');
     const environment1 = new Environment();
@@ -123,7 +100,7 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should filter out projects with duplicate gradle versions', async () => {
-    const projects = await rootProjectsStore.buildAndGetProjectRootsWithUniqueVersions();
+    const projects = rootProjectsStore.getProjectRootsWithUniqueVersions();
     assert.strictEqual(
       projects.length,
       2,

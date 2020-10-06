@@ -70,8 +70,12 @@ export class GradleClient implements vscode.Disposable {
   ) {
     this.server.onDidStart(this.handleServerStart);
     this.server.onDidStop(this.handleServerStop);
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.server.start();
+  }
+
+  public async connect(): Promise<void> {
+    if (!this.server.isReady()) {
+      await this.server.start();
+    }
   }
 
   private handleServerStop = (): void => {

@@ -82,9 +82,10 @@ describe(getSuiteName('Pinned tasks'), () => {
   let pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider;
   let gradleTaskProvider: GradleTaskProvider;
   let pinnedTasksStore: PinnedTasksStore;
-  beforeEach(() => {
+  let rootProjectsStore: RootProjectsStore;
+  beforeEach(async () => {
     const client = buildMockClient();
-    const rootProjectsStore = new RootProjectsStore();
+    rootProjectsStore = new RootProjectsStore();
     const taskTerminalsStore = new TaskTerminalsStore();
     gradleTaskProvider = new GradleTaskProvider(
       rootProjectsStore,
@@ -120,6 +121,7 @@ describe(getSuiteName('Pinned tasks'), () => {
   describe('Without a multi-root workspace', () => {
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
+      await rootProjectsStore.populate();
       await gradleTaskProvider.loadTasks();
     });
 
@@ -382,6 +384,7 @@ describe(getSuiteName('Pinned tasks'), () => {
   describe('With a multi-root workspace', () => {
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      await rootProjectsStore.populate();
       await gradleTaskProvider.loadTasks();
     });
 

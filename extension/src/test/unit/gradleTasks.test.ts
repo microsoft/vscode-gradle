@@ -102,10 +102,11 @@ describe(getSuiteName('Gradle tasks'), () => {
   let taskTerminalsStore: TaskTerminalsStore;
   let gradleTaskProvider: GradleTaskProvider;
   let client: any;
-  beforeEach(() => {
+  let rootProjectsStore: RootProjectsStore;
+  beforeEach(async () => {
     // const icons = new Icons(mockContext);
     client = buildMockClient();
-    const rootProjectsStore = new RootProjectsStore();
+    rootProjectsStore = new RootProjectsStore();
 
     taskTerminalsStore = new TaskTerminalsStore();
     gradleTaskProvider = new GradleTaskProvider(
@@ -129,8 +130,9 @@ describe(getSuiteName('Gradle tasks'), () => {
 
   describe('Without a multi-root workspace', () => {
     describe('With no gradle tasks', () => {
-      beforeEach(() => {
+      beforeEach(async () => {
         stubWorkspaceFolders([mockWorkspaceFolder1]);
+        await rootProjectsStore.populate();
       });
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
         client.getBuild.resolves(mockGradleBuildWithoutTasks);
@@ -165,6 +167,7 @@ describe(getSuiteName('Gradle tasks'), () => {
       beforeEach(async () => {
         stubWorkspaceFolders([mockWorkspaceFolder1]);
         client.getBuild.resolves(mockGradleBuildWithTasks);
+        await rootProjectsStore.populate();
       });
 
       describe('Expanded tree', () => {
@@ -409,6 +412,7 @@ describe(getSuiteName('Gradle tasks'), () => {
   describe('With a multi-root workspace', () => {
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      await rootProjectsStore.populate();
     });
 
     describe('Without gradle tasks', () => {
