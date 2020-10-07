@@ -7,7 +7,10 @@ import * as vscode from 'vscode';
 import { GradleBuild, GradleProject, GradleTask } from '../../proto/gradle_pb';
 import { RootProject } from '../../rootProject/RootProject';
 import { TaskTerminalsStore } from '../../stores';
-import { loadTasksForProjectRoots } from '../../tasks/taskUtil';
+import {
+  getVSCodeTasksFromGradleProject,
+  loadTasksForProjectRoots,
+} from '../../tasks/taskUtil';
 import { buildMockClient, getSuiteName } from '../testUtil';
 
 const mockWorkspaceFolder: vscode.WorkspaceFolder = {
@@ -130,5 +133,35 @@ describe(getSuiteName('taskUtil'), () => {
       [mockRootProject]
     );
     assert.strictEqual(tasks.length, 255101);
+  });
+
+  it('should not change the order of tasks when building vscode tasks from gradle tasks', () => {
+    const subProject1 = new GradleProject();
+    const task1 = new GradleTask();
+    task1.setBuildfile('A');
+    subProject1.setTasksList([task1]);
+
+    const subProject2 = new GradleProject();
+    const task2 = new GradleTask();
+    task2.setBuildfile('B');
+    subProject2.setTasksList([task2]);
+
+    const subProject3 = new GradleProject();
+    const task3 = new GradleTask();
+    task3.setBuildfile('C');
+    subProject3.setTasksList([task3]);
+
+    const gradleProject = new GradleProject();
+    gradleProject.setProjectsList([subProject1, subProject2, subProject3]);
+    const tasks = getVSCodeTasksFromGradleProject(
+      mockTaskTerminalsStore,
+      mockRootProject,
+      gradleProject,
+      mockClient
+    );
+
+    assert.strictEqual(tasks[0].definition.buildFile, 'A');
+    assert.strictEqual(tasks[1].definition.buildFile, 'B');
+    assert.strictEqual(tasks[2].definition.buildFile, 'C');
   });
 });

@@ -240,7 +240,7 @@ function createVSCodeTaskFromGradleTask(
   );
 }
 
-function getVSCodeTasksFromGradleProject(
+export function getVSCodeTasksFromGradleProject(
   taskTerminalsStore: TaskTerminalsStore,
   rootProject: RootProject,
   gradleProject: GradleProject,
@@ -249,7 +249,7 @@ function getVSCodeTasksFromGradleProject(
   let projects: Array<GradleProject> = [gradleProject];
   const vsCodeTasks: vscode.Task[] = [];
   while (projects.length) {
-    const project = projects.pop();
+    const project = projects.shift();
     const gradleTasks: GradleTask[] | void = project!.getTasksList();
     for (const gradleTask of gradleTasks) {
       vsCodeTasks.push(
