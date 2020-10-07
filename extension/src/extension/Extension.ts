@@ -269,8 +269,8 @@ export class Extension {
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
             this.rootProjectsStore.clear();
-            await this.activate();
             await this.refresh();
+            await this.activate();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();

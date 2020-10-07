@@ -18,7 +18,6 @@ export class RefreshCommand extends Command {
   }
   async run(): Promise<void> {
     this.gradleTaskProvider.clearTasksCache();
-    // Explicitly load tasks as the views might not be visible
     void this.gradleTaskProvider.loadTasks();
     this.gradleTasksTreeDataProvider.refresh();
     this.pinnedTasksTreeDataProvider.refresh();

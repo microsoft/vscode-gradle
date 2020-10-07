@@ -13,6 +13,18 @@ describe(getSuiteName('Extension'), () => {
     extension = vscode.extensions.getExtension(EXTENSION_NAME);
   });
 
+  before(async () => {
+    await vscode.workspace
+      .getConfiguration('gradle')
+      .update('nestedProjects', false);
+  });
+
+  after(async () => {
+    await vscode.workspace
+      .getConfiguration('gradle')
+      .update('nestedProjects', false);
+  });
+
   it('should be present', () => {
     assert.ok(extension);
   });
@@ -27,11 +39,6 @@ describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   describe('Task provider', () => {
     describe('Without nestedProjects enabled', () => {
-      before(async () => {
-        await vscode.workspace
-          .getConfiguration('gradle')
-          .update('nestedProjects', false);
-      });
       it('should not load any tasks', async () => {
         const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
         assert.equal(tasks.length, 0);
@@ -45,12 +52,6 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', true);
-      });
-
-      after(async () => {
-        await vscode.workspace
-          .getConfiguration('gradle')
-          .update('nestedProjects', false);
       });
 
       beforeEach(async () => {
@@ -92,12 +93,6 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', ['gradle-groovy-default-build-file']);
-      });
-
-      after(async () => {
-        await vscode.workspace
-          .getConfiguration('gradle')
-          .update('nestedProjects', false);
       });
 
       beforeEach(async () => {
