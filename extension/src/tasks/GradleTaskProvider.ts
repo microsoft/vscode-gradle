@@ -83,7 +83,7 @@ export class GradleTaskProvider
     }
     logger.debug('Refreshing tasks');
     this._onDidStartRefresh.fire(null);
-    const folders = this.rootProjectsStore.getProjectRoots();
+    const folders = await this.rootProjectsStore.getProjectRoots();
     if (!folders.length) {
       this.cachedTasks = [];
       return Promise.resolve(this.cachedTasks);

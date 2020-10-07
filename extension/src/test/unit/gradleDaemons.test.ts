@@ -70,7 +70,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     await rootProjectsStore.populate();
 
     // GradleClient.getBuild() sets the gradle versions once it receives the gradle environment
-    const projectRoots = rootProjectsStore.getProjectRoots();
+    const projectRoots = await rootProjectsStore.getProjectRoots();
     const gradleEnvironment1 = new GradleEnvironment();
     gradleEnvironment1.setGradleVersion('6.3');
     const environment1 = new Environment();
@@ -100,7 +100,7 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should filter out projects with duplicate gradle versions', async () => {
-    const projects = rootProjectsStore.getProjectRootsWithUniqueVersions();
+    const projects = await rootProjectsStore.getProjectRootsWithUniqueVersions();
     assert.strictEqual(
       projects.length,
       2,

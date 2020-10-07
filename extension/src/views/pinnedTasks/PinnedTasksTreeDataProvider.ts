@@ -144,7 +144,7 @@ export class PinnedTasksTreeDataProvider
     pinnedTasksTreeItemMap.clear();
     pinnedTasksGradleProjectTreeItemMap.clear();
 
-    const rootProjects = this.rootProjectsStore.getProjectRoots();
+    const rootProjects = await this.rootProjectsStore.getProjectRoots();
     if (!rootProjects.length) {
       return [];
     }

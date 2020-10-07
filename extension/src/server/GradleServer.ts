@@ -131,9 +131,14 @@ export class GradleServer implements vscode.Disposable {
     this._onDidStart.fire(null);
   }
 
-  public dispose(): void {
+  public stop(): void {
     this.process?.removeAllListeners();
     this.killProcess();
+    this.ready = false;
+  }
+
+  public dispose(): void {
+    this.stop();
     this._onDidStart.dispose();
     this._onDidStop.dispose();
   }

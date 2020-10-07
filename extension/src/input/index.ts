@@ -36,7 +36,7 @@ export function getGradleCommand(): Thenable<TaskArgs | undefined> {
 export async function getRootProjectFolder(
   rootProjectsStore: RootProjectsStore
 ): Promise<RootProject | undefined> {
-  const rootProjects = rootProjectsStore.getProjectRoots();
+  const rootProjects = await rootProjectsStore.getProjectRoots();
   if (rootProjects.length === 1) {
     return Promise.resolve(rootProjects[0]);
   }

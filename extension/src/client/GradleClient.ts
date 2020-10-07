@@ -72,12 +72,6 @@ export class GradleClient implements vscode.Disposable {
     this.server.onDidStop(this.handleServerStop);
   }
 
-  public async connect(): Promise<void> {
-    if (!this.server.isReady()) {
-      await this.server.start();
-    }
-  }
-
   private handleServerStop = (): void => {
     this.close();
   };

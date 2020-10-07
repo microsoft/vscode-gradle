@@ -22,7 +22,7 @@ export class StopDaemonsCommand extends Command {
     ) {
       return;
     }
-    const gradleRootFolders = this.rootProjectsStore.getProjectRootsWithUniqueVersions();
+    const gradleRootFolders = await this.rootProjectsStore.getProjectRootsWithUniqueVersions();
     const promises: Promise<StopDaemonsReply | void>[] = gradleRootFolders.map(
       (rootProject) =>
         this.client.stopDaemons(rootProject.getProjectUri().fsPath)

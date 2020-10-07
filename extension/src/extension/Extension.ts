@@ -171,6 +171,16 @@ export class Extension {
       this.recentTasksStore,
       this.gradleTasksTreeView
     );
+
+    this.storeSubscriptions();
+    this.registerCommands();
+    this.handleTaskEvents();
+    this.handleWatchEvents();
+    this.handleEditorEvents();
+
+    this.client.onDidConnect(() => this.refresh());
+
+    void this.activate();
   }
 
   private storeSubscriptions(): void {
@@ -192,23 +202,10 @@ export class Extension {
     );
   }
 
-  public async activate(): Promise<void> {
-    this.storeSubscriptions();
-    this.registerCommands();
-    this.handleTaskEvents();
-    this.handleWatchEvents();
-    this.handleEditorEvents();
-
-    this.client.onDidConnect(() => this.refresh());
-    await this.connect();
-  }
-
-  private async connect(): Promise<void> {
-    this.rootProjectsStore.clear();
-    await this.rootProjectsStore.populate();
-    const activated = !!this.rootProjectsStore.getProjectRoots().length;
-    if (activated) {
-      await this.client.connect();
+  private async activate(): Promise<void> {
+    const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
+    if (activated && !this.server.isReady()) {
+      await this.server.start();
     }
     await vscode.commands.executeCommand(
       'setContext',
@@ -271,10 +268,9 @@ export class Extension {
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
-            await this.client.cancelBuilds();
             this.rootProjectsStore.clear();
+            await this.activate();
             await this.refresh();
-            await this.connect();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();

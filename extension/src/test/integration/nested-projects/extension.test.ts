@@ -45,7 +45,6 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', true);
-        await new Promise((res) => setTimeout(res, 100));
       });
 
       after(async () => {
@@ -93,7 +92,6 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', ['gradle-groovy-default-build-file']);
-        await new Promise((res) => setTimeout(res, 100));
       });
 
       after(async () => {

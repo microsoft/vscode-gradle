@@ -40,6 +40,9 @@ function getGradleProjectFoldersOutsideRoot(
 }
 
 export class RootProjectsStore extends StoreMap<string, RootProject> {
+  private isPopulated = false;
+  private populatePromise: Promise<void> | undefined = undefined;
+
   public async populate(): Promise<void> {
     const workspaceFolders: ReadonlyArray<vscode.WorkspaceFolder> =
       vscode.workspace.workspaceFolders || [];
@@ -59,6 +62,7 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
         .map((folder) => buildRootFolder(vscode.Uri.file(folder)))
         .forEach(this.setRootProjectFolder);
     }
+    this.isPopulated = true;
     this.fireOnDidChange(null);
   }
 
@@ -68,13 +72,20 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
     }
   };
 
-  public getProjectRoots(): RootProject[] {
+  public async getProjectRoots(): Promise<RootProject[]> {
+    if (!this.isPopulated) {
+      if (!this.populatePromise) {
+        this.populatePromise = this.populate();
+      }
+      await this.populatePromise;
+      this.populatePromise = undefined;
+    }
     return [...this.getData().values()];
   }
 
-  public getProjectRootsWithUniqueVersions(): RootProject[] {
+  public async getProjectRootsWithUniqueVersions(): Promise<RootProject[]> {
     const gradleVersionIds: string[] = [];
-    return this.getProjectRoots().filter((rootProject) => {
+    return (await this.getProjectRoots()).filter((rootProject) => {
       const version = rootProject
         .getEnvironment()
         ?.getGradleEnvironment()
@@ -88,5 +99,10 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
       }
       return false;
     });
+  }
+
+  public clear(fireOnDidChange = true): void {
+    super.clear(fireOnDidChange);
+    this.isPopulated = false;
   }
 }
