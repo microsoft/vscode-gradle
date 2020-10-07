@@ -80,10 +80,11 @@ describe(getSuiteName('Recent tasks'), () => {
   let gradleTaskProvider: GradleTaskProvider;
   let recentTasksStore: RecentTasksStore;
   let taskTerminalsStore: TaskTerminalsStore;
-  beforeEach(() => {
+  let rootProjectsStore: RootProjectsStore;
+  beforeEach(async () => {
     const client = buildMockClient();
     const icons = new Icons(mockContext);
-    const rootProjectsStore = new RootProjectsStore();
+    rootProjectsStore = new RootProjectsStore();
     taskTerminalsStore = new TaskTerminalsStore();
     gradleTaskProvider = new GradleTaskProvider(
       rootProjectsStore,
@@ -112,6 +113,7 @@ describe(getSuiteName('Recent tasks'), () => {
   describe('Without a multi-root workspace', () => {
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
+      await rootProjectsStore.populate();
       await gradleTaskProvider.loadTasks();
     });
 
@@ -275,6 +277,7 @@ describe(getSuiteName('Recent tasks'), () => {
   describe('With multi-root workspace', () => {
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2]);
+      await rootProjectsStore.populate();
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,
         mockTaskDefinition1.args
@@ -328,6 +331,7 @@ describe(getSuiteName('Recent tasks'), () => {
     const mockTerminal2 = buildMockTerminal();
     beforeEach(async () => {
       stubWorkspaceFolders([mockWorkspaceFolder1]);
+      await rootProjectsStore.populate();
       await gradleTaskProvider.loadTasks();
       recentTasksStore.addEntry(
         mockTaskDefinition1.id,

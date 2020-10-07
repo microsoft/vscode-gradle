@@ -172,13 +172,15 @@ export class Extension {
       this.gradleTasksTreeView
     );
 
-    this.activate();
     this.storeSubscriptions();
     this.registerCommands();
     this.handleTaskEvents();
     this.handleWatchEvents();
     this.handleEditorEvents();
-    this.loadTasks();
+
+    this.client.onDidConnect(() => this.refresh());
+
+    void this.activate();
   }
 
   private storeSubscriptions(): void {
@@ -200,18 +202,20 @@ export class Extension {
     );
   }
 
-  private activate(): void {
-    // Used for showing the view container in the activity bar
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    vscode.commands.executeCommand('setContext', 'gradle:activated', true);
+  private async activate(): Promise<void> {
+    const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
+    if (activated && !this.server.isReady()) {
+      await this.server.start();
+    }
+    await vscode.commands.executeCommand(
+      'setContext',
+      'gradle:activated',
+      activated
+    );
   }
 
   private registerCommands(): void {
     this.commands.register();
-  }
-
-  private loadTasks(): void {
-    this.client.onDidConnect(() => this.refresh());
   }
 
   private handleTaskEvents(): void {
@@ -240,8 +244,10 @@ export class Extension {
   }
 
   private async restartServer(): Promise<void> {
-    await this.client.cancelBuilds();
-    await this.server.restart();
+    if (this.server.isReady()) {
+      await this.client.cancelBuilds();
+      await this.server.restart();
+    }
   }
 
   private refresh(): Thenable<void> {
@@ -264,6 +270,7 @@ export class Extension {
           ) {
             this.rootProjectsStore.clear();
             await this.refresh();
+            await this.activate();
           }
           if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();

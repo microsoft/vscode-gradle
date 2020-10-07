@@ -167,7 +167,7 @@ export class RecentTasksTreeDataProvider
     recentTasksGradleProjectTreeItemMap.clear();
     recentTasksTreeItemMap.clear();
 
-    const gradleProjects = await this.rootProjectsStore.buildAndGetProjectRoots();
+    const gradleProjects = await this.rootProjectsStore.getProjectRoots();
     if (!gradleProjects.length) {
       return [];
     }
