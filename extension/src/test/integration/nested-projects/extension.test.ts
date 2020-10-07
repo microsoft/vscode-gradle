@@ -27,6 +27,11 @@ describe(getSuiteName('Extension'), () => {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   describe('Task provider', () => {
     describe('Without nestedProjects enabled', () => {
+      before(async () => {
+        await vscode.workspace
+          .getConfiguration('gradle')
+          .update('nestedProjects', false);
+      });
       it('should not load any tasks', async () => {
         const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
         assert.equal(tasks.length, 0);
@@ -40,6 +45,7 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', true);
+        await new Promise((res) => setTimeout(res, 100));
       });
 
       after(async () => {
@@ -87,6 +93,7 @@ describe(getSuiteName('Extension'), () => {
         await vscode.workspace
           .getConfiguration('gradle')
           .update('nestedProjects', ['gradle-groovy-default-build-file']);
+        await new Promise((res) => setTimeout(res, 100));
       });
 
       after(async () => {

@@ -271,6 +271,9 @@ export class Extension {
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
+            await this.client.cancelBuilds();
+            this.rootProjectsStore.clear();
+            await this.refresh();
             await this.connect();
           }
           if (event.affectsConfiguration('gradle.debug')) {
