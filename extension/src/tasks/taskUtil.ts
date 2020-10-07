@@ -240,7 +240,7 @@ function createVSCodeTaskFromGradleTask(
   );
 }
 
-function getVSCodeTasksFromGradleProject(
+export function getVSCodeTasksFromGradleProject(
   taskTerminalsStore: TaskTerminalsStore,
   rootProject: RootProject,
   gradleProject: GradleProject,
