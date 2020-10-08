@@ -18,9 +18,9 @@ This extension provides a visual interface for your Gradle build. It supports wh
 
 ## Project Discovery
 
-Gradle projects are identified by the existance of Graddle Wrapper executables at the root of every Gradle project. 
+Gradle projects can exist at the root of your project, or nested within a sub-directory. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) at the root of a Gradle project. 
 
-A Gradle project can exist at the root of your project or nested within a sub-directory. (Nested project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
+Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.
 
 ## Feature Overview
 
