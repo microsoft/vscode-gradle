@@ -6,7 +6,7 @@
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 [![GitHub bug issues](https://img.shields.io/github/issues/badsyntax/vscode-gradle/bug?label=bug%20reports)](https://github.com/badsyntax/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
-Run Gradle tasks in VS Code.
+This extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 ![Gradle Tasks Screencast](images/screencast.gif)
 
@@ -22,9 +22,7 @@ Gradle projects are identified by the existance of Graddle Wrapper executables a
 
 A Gradle project can exist at the root of your project or nested within a sub-directory. (Nested project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
 
-## Features
-
-This extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
+## Feature Overview
 
 Once the extension is activated you will see a new Gradle icon in the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface). Clicking on this icon will reveal some tree views in the sidebar.
 
