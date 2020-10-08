@@ -18,7 +18,7 @@ This VS Code extension provides a visual interface for your Gradle build. It sup
 
 ## Project Discovery
 
-This extension support both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
+This extension supports both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
 
 ## Feature Overview
 
