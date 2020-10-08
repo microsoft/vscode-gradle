@@ -26,6 +26,8 @@ Once the extension is activated you will see a new Gradle icon in the [activity 
 
 > Protip: you can move drag & drop any of these treeviews into the main explorer view for easier access. This is especially useful for pinned tasks.
 
+You can also run any Gradle task as a [VS Code task](https://code.visualstudio.com/docs/editor/tasks). Access the Gradle VS Code tasks by running `Run Task` from the command palette.
+
 <details><summary>List projects and tasks</summary>
 
 A Gradle build can have one or more projects. Projects are listed in a flat list with the root project listed first, and sub-projects listed alphabetically thereafter.
