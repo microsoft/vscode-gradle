@@ -1,4 +1,4 @@
-# VS Code Gradle Tasks
+# Gradle Tasks
 
 [![Marketplace Version](https://vsmarketplacebadge.apphb.com/version-short/richardwillis.vscode-gradle.svg)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 ![Build & Publish](https://github.com/badsyntax/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)
@@ -6,7 +6,7 @@
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
 [![GitHub bug issues](https://img.shields.io/github/issues/badsyntax/vscode-gradle/bug?label=bug%20reports)](https://github.com/badsyntax/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
-Run Gradle tasks in VS Code.
+This VS Code extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 ![Gradle Tasks Screencast](images/screencast.gif)
 
@@ -14,13 +14,19 @@ Run Gradle tasks in VS Code.
 
 - [VS Code >= 1.45.0](https://code.visualstudio.com/download)
 - [Java >= 8](https://adoptopenjdk.net/)
-- Local Gradle wrapper executables must exist at the root of the workspace folders
+- Local [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) executables
 
-## Features
+## Project Discovery
 
-This extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
+This extension support both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
 
-Access the Gradle views by clicking on the Gradle icon the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface).
+## Feature Overview
+
+Once the extension is activated you will see a new Gradle icon in the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface). Clicking on this icon will reveal some tree views in the sidebar.
+
+> Protip: you can move drag & drop any of these treeviews into the main explorer view for easier access. This is especially useful for pinned tasks.
+
+You can also run any Gradle task as a [VS Code task](https://code.visualstudio.com/docs/editor/tasks). Access the Gradle VS Code tasks by running `Run Task` from the command palette.
 
 <details><summary>List projects and tasks</summary>
 
@@ -91,8 +97,6 @@ As there could be many tasks in a Gradle project, it can be useful to pin common
 To remove a pinned a task, access the task context menu and select `Remove Pinned Task`, or clear all pinned tasks by clicking on the `Clear Pinned Tasks` button in the treeview header.
 
 <img src="./images/remove-pinned-task.png" width="350" alt="Remove a pinned Gradle Task" />
-
-> Protip: for easier access to pinned tasks, drag and drop the `Pinned Gradle Tasks` view into the explorer view.
 
 </details>
 <details><summary>List recent tasks</summary>
