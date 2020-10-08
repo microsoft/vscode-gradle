@@ -20,7 +20,7 @@ Run Gradle tasks in VS Code.
 
 Gradle projects are identified by the existance of Graddle Wrapper executables at the root of every Gradle project. 
 
-A Gradle project can exist at the root of your project or nested within a sub-directory. Nested project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.
+A Gradle project can exist at the root of your project or nested within a sub-directory. (Nested project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
 
 ## Features
 
