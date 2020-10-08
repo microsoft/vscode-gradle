@@ -16,7 +16,7 @@ Run Gradle tasks in VS Code.
 - [Java >= 8](https://adoptopenjdk.net/)
 - Local [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) executables
 
-## Project discovery
+## Project Discovery
 
 Gradle projects are identified by the existance of Graddle Wrapper executables at the root of every Gradle project. 
 
