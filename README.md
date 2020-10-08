@@ -14,13 +14,19 @@ Run Gradle tasks in VS Code.
 
 - [VS Code >= 1.45.0](https://code.visualstudio.com/download)
 - [Java >= 8](https://adoptopenjdk.net/)
-- Local Gradle wrapper executables must exist at the root of the workspace folders
+- Local [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) executables
+
+## Project discovery
+
+Gradle projects are identified by the existance of Graddle Wrapper executables at the root of every Gradle project. A Gradle project can exist at the root of your project or nested within a sub-directory. By default nested Gradle projects are not discovered, but you can enable this with the setting `"gradle.nestedProjects": true`.
 
 ## Features
 
 This extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
-Access the Gradle views by clicking on the Gradle icon the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface).
+Once the extension is activated you will see a new Gradle icon in the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface). Clicking on this icon will reveal some tree views in the sidebar.
+
+> Protip: you can move drag & drop any of these treeviews into the main explorer view for easier access. This is especially useful for pinned tasks.
 
 <details><summary>List projects and tasks</summary>
 
@@ -91,8 +97,6 @@ As there could be many tasks in a Gradle project, it can be useful to pin common
 To remove a pinned a task, access the task context menu and select `Remove Pinned Task`, or clear all pinned tasks by clicking on the `Clear Pinned Tasks` button in the treeview header.
 
 <img src="./images/remove-pinned-task.png" width="350" alt="Remove a pinned Gradle Task" />
-
-> Protip: for easier access to pinned tasks, drag and drop the `Pinned Gradle Tasks` view into the explorer view.
 
 </details>
 <details><summary>List recent tasks</summary>
