@@ -579,17 +579,18 @@
           "anyOf": [
             {
               "type": "boolean",
-              "description": "Processs all nested projects",
+              "description": "Discover all nested projects",
               "default": false
             },
             {
               "type": "array",
-              "description": "Process specific nested projects",
+              "description": "Discover specific nested projects (by directory name)",
               "default": []
             }
           ],
           "scope": "window",
-          "default": false
+          "default": false,
+          "description": "Discover Gradle projects in nested sub-directories"
         },
         "gradle.debug": {
           "type": "boolean",
