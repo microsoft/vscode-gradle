@@ -22,15 +22,23 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.16.2
-      - name: Cache gradle
+      - name: Cache gradle home
         uses: actions/cache@v2
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-home-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-gradle-home-
+      - name: Cache gradle local
+        uses: actions/cache@v2
+        with:
+          path: |
+            .gradle
+          key: ${{ runner.os }}-gradle-local-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-local-
       - name: Cache npm cache directory
         uses: actions/cache@v2
         with:
