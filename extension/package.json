@@ -600,7 +600,7 @@
           ],
           "default": "task",
           "scope": "window",
-          "description": "Reuse terminals for tasks instead of creating a new terminal for each task run"
+          "description": "Reuse task terminals behaviour"
         },
         "gradle.debug": {
           "type": "boolean",
