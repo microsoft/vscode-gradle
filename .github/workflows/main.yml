@@ -115,7 +115,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ~/.vscode
+            extension/.vscode-test
           key: ${{ runner.os }}-vscode-${{ hashFiles('**/vscode-version.ts') }}
           restore-keys: |
             ${{ runner.os }}-vscode-
