@@ -25,6 +25,7 @@ async function runTestsWithGradle(
       extensionTestsPath: path.resolve(__dirname, 'integration', 'gradle'),
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+        '--disable-gpu',
         '--disable-extensions',
         `--user-data-dir=${userDir}`,
       ],
@@ -48,6 +49,7 @@ async function runNetworkTestsWithGradle(
     extensionTestsPath: path.resolve(__dirname, 'integration', 'gradle'),
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
@@ -74,6 +76,7 @@ async function runNestedProjectTests(
     ),
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures`),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
@@ -96,6 +99,7 @@ async function runUnitTests(
     extensionTestsPath: path.resolve(__dirname, 'unit'),
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures/${fixture}`),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
@@ -117,6 +121,7 @@ function runTestsWithoutGradle(
     extensionTestsPath: path.resolve(__dirname, 'integration', 'no-gradle'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
@@ -140,6 +145,7 @@ function runTestsWithMultiRoot(
         __dirname,
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
@@ -161,6 +167,7 @@ function runTestsWithMultiProject(
     extensionTestsPath: path.resolve(__dirname, 'integration', 'multi-project'),
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
+      '--disable-gpu',
       '--disable-extensions',
       `--user-data-dir=${userDir}`,
     ],
