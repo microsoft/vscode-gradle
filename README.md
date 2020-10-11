@@ -71,6 +71,8 @@ Use one terminal for each task type (default):
 
 <img src="./images/reuse-terminals-task.gif" />
 
+----
+
 Use one terminal for all tasks:
 
 
@@ -79,6 +81,8 @@ Use one terminal for all tasks:
 ```
 
 <img src="./images/reuse-terminals-all.gif" />
+
+----
 
 Don't re-use terminals for any tasks. A new terminal will be created for each task run:
 
