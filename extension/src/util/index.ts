@@ -71,3 +71,4 @@ export * from './decorators';
 export * from './Deferred';
 export * from './EventWaiter';
 export * from './input';
+export * from './FileWatcher';

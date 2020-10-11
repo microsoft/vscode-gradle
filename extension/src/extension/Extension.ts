@@ -29,7 +29,7 @@ import {
   RECENT_TASKS_VIEW,
 } from '../views/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
-import { FileWatcher } from '../watcher';
+import { FileWatcher } from '../util';
 import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
 import { Commands } from '../commands/Commands';
 
