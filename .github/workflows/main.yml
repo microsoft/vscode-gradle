@@ -22,6 +22,22 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.16.2
+      - name: Cache gradle
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Cache npm cache directory
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Lint
         uses: eskatos/gradle-command-action@v1
         with:
@@ -65,6 +81,14 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           architecture: x64
+      - name: Cache vscode
+        uses: actions/cache@v2
+        with:
+          path: |
+            extension/.vscode-test
+          key: ${{ runner.os }}-vscode-${{ hashFiles('**/vscode-version.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-vscode-
       - name: Build Extension
         uses: eskatos/gradle-command-action@v1
         with:
@@ -189,6 +213,22 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12.16.2
+      - name: Cache gradle
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      - name: Cache npm cache directory
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:

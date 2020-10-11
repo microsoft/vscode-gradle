@@ -4,10 +4,9 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
+import { VSCODE_TEST_VERSION } from './vscode-version';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
-// TODO: consider also testing using insiders
-const VSCODE_VERSION = '1.49.3';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
@@ -178,7 +177,9 @@ async function main(): Promise<void> {
     path.resolve(__dirname, '../../test-fixtures/vscode-user/User'),
     path.join(tmpDir, 'User')
   );
-  const vscodeExecutablePath = await downloadAndUnzipVSCode(VSCODE_VERSION);
+  const vscodeExecutablePath = await downloadAndUnzipVSCode(
+    VSCODE_TEST_VERSION
+  );
 
   let hasErr = false;
 

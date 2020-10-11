@@ -112,7 +112,7 @@ describe(getSuiteName('taskUtil'), () => {
     assert.strictEqual(tasks.length, 2);
   });
 
-  it('should create vscode tasks for a super-massive project without throwing a callstack error', async () => {
+  it.skip('should create vscode tasks for a super-massive project without throwing a callstack error', async () => {
     const gradleBuild = new GradleBuild();
     const rootGradleProject = buildProject(
       'root-project',
