@@ -16,7 +16,7 @@ jobs:
       - name: Use Java 8
         uses: actions/setup-java@v1
         with:
-          java-version: '8'
+          java-version: "8"
           architecture: x64
       - name: Use Node 12.16.2
         uses: actions/setup-node@v1
@@ -35,7 +35,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          JAVA_HOME: ''
+          JAVA_HOME: ""
       - name: Upload lib
         uses: actions/upload-artifact@v2
         with:
@@ -46,12 +46,12 @@ jobs:
   # lib generated in the previous step for a better real-world test.
   test-extension:
     needs: [build-and-analyse]
-    name: 'Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - ${{ matrix.os }}'
+    name: "Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         node-version: [12.16.2]
-        java-version: ['8', '11']
+        java-version: ["8", "11"]
         os: [ubuntu-latest, windows-latest]
         # os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
@@ -71,7 +71,7 @@ jobs:
           arguments: extension:build
           wrapper-cache-enabled: false
         env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
+          NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Download lib
         uses: actions/download-artifact@v2
         with:
@@ -113,8 +113,8 @@ jobs:
           arguments: testVsCode
           wrapper-cache-enabled: false
         env:
-          DISPLAY: ':99.0'
-          CI: 'true'
+          DISPLAY: ":99.0"
+          CI: "true"
       - name: Stop Gradle daemon for root project
         uses: eskatos/gradle-command-action@v1
         with:
