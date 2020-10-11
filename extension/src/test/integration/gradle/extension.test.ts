@@ -15,8 +15,23 @@ const fixturePath = vscode.Uri.file(
   path.resolve(__dirname, '../../../../test-fixtures', fixtureName)
 );
 
+const executeAndWaitForTask = (task: vscode.Task): Promise<void> => {
+  return new Promise(async (resolve) => {
+    const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+      if (e.execution.task === task) {
+        disposable.dispose();
+        resolve();
+      }
+    });
+    try {
+      await vscode.tasks.executeTask(task);
+    } catch (e) {
+      console.error('There was an error starting the task:', e.message);
+    }
+  });
+};
+
 describe(getSuiteName('Extension'), () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let extension: vscode.Extension<Api> | undefined;
 
   before(() => {
@@ -72,19 +87,7 @@ describe(getSuiteName('Extension'), () => {
         extension!.exports.getLogger(),
         'appendLine'
       );
-      await new Promise(async (resolve) => {
-        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
-          if (e.execution.task === task) {
-            disposable.dispose();
-            resolve();
-          }
-        });
-        try {
-          await vscode.tasks.executeTask(task);
-        } catch (e) {
-          console.error('There was an error starting the task:', e.message);
-        }
-      });
+      await executeAndWaitForTask(task);
       assert.ok(loggerAppendSpy.calledWith(sinon.match('Hello, World!')));
       assert.ok(
         loggerAppendLineSpy.calledWith(sinon.match('Completed build: hello'))
@@ -104,7 +107,6 @@ describe(getSuiteName('Extension'), () => {
       assert.ok(task);
       const spy = sinon.spy(extension.exports.getLogger(), 'append');
       await new Promise(async (resolve) => {
-        // eslint-disable-next-line sonarjs/no-identical-functions
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task.definition.script === task.definition.script) {
             endDisposable.dispose();
@@ -153,31 +155,13 @@ describe(getSuiteName('Extension'), () => {
   });
 
   describe('Reuse terminals config', () => {
-    const executeAndWaitForTask = (task: vscode.Task): Promise<void> => {
-      return new Promise(async (resolve) => {
-        // eslint-disable-next-line sonarjs/no-identical-functions
-        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
-          if (e.execution.task === task) {
-            disposable.dispose();
-            resolve();
-          }
-        });
-        await vscode.tasks.executeTask(task);
-      });
-    };
-
-    before(async () => {
+    const resetConfig = async (): Promise<void> =>
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'off');
-    });
 
-    // eslint-disable-next-line sonarjs/no-identical-functions
-    after(async () => {
-      await vscode.workspace
-        .getConfiguration('gradle')
-        .update('reuseTerminals', 'off');
-    });
+    before(async () => await resetConfig());
+    after(async () => await resetConfig());
 
     it('should generate a new terminal for every task run with reuseTerminals: "off"', async () => {
       await vscode.workspace
