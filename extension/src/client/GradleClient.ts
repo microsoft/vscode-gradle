@@ -29,7 +29,7 @@ import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
 import { EventWaiter } from '../events';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
-import { getGradleConfig, getConfigJavaDebug } from '../util/config';
+import { getGradleConfig, getConfigJavaDebug } from '../util';
 import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
 import {
   COMMAND_REFRESH_DAEMON_STATUS,

@@ -10,7 +10,7 @@ import {
   getConfigIsAutoDetectionEnabled,
   getConfigReuseTerminals,
   ReuseTerminalsValue,
-} from '../util/config';
+} from '../util';
 import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,

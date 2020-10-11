@@ -4,10 +4,7 @@ import { Api } from '../api';
 import { GradleClient } from '../client';
 import { GradleServer } from '../server';
 import { Icons } from '../icons';
-import {
-  getConfigFocusTaskInExplorer,
-  getConfigIsDebugEnabled,
-} from '../util/config';
+import { getConfigFocusTaskInExplorer, getConfigIsDebugEnabled } from '../util';
 import {
   GradleDaemonsTreeDataProvider,
   PinnedTasksTreeDataProvider,

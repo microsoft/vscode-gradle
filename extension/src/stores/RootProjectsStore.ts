@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { getNestedProjectsConfig, getConfigJavaDebug } from '../util/config';
+import { getNestedProjectsConfig, getConfigJavaDebug } from '../util';
 import { StoreMap } from '.';
 import { isGradleRootProject } from '../util';
 import { RootProject } from '../rootProject/RootProject';
