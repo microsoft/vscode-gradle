@@ -5,7 +5,11 @@ import { TaskArgs } from '../stores/types';
 import { GradleTaskDefinition } from '.';
 import { GradleRunnerTerminal } from '../terminal';
 import { logger } from '../logger';
-import { getGradleConfig, getConfigIsAutoDetectionEnabled } from '../config';
+import {
+  getGradleConfig,
+  getConfigIsAutoDetectionEnabled,
+  getConfigReuseTerminals,
+} from '../config';
 import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,
@@ -155,7 +159,8 @@ export function createTaskFromDefinition(
   taskTerminalsStore: TaskTerminalsStore,
   definition: Required<GradleTaskDefinition>,
   rootProject: RootProject,
-  client: GradleClient
+  client: GradleClient,
+  reuseTerminals: boolean
 ): vscode.Task {
   const args = [definition.script]
     .concat(parseArgsStringToArgv(definition.args.trim()))
@@ -165,6 +170,7 @@ export function createTaskFromDefinition(
     rootProject.getProjectUri().fsPath,
     definition.script
   );
+
   const terminal = new GradleRunnerTerminal(
     rootProject,
     args,
@@ -178,8 +184,19 @@ export function createTaskFromDefinition(
     'gradle',
     new vscode.CustomExecution(
       async (): Promise<vscode.Pseudoterminal> => {
+        if (reuseTerminals) {
+          const previousTerminals = taskTerminalsStore.get(
+            definition.id + definition.args
+          );
+          if (previousTerminals) {
+            for (const previousTerminal of previousTerminals.values()) {
+              previousTerminal.dispose();
+            }
+            previousTerminals.clear();
+          }
+        }
         const disposable = vscode.window.onDidOpenTerminal(
-          (openedTerminal: vscode.Terminal) => {
+          async (openedTerminal: vscode.Terminal) => {
             disposable.dispose();
             taskTerminalsStore.addEntry(
               definition.id + definition.args,
@@ -209,6 +226,7 @@ function createVSCodeTaskFromGradleTask(
   gradleTask: GradleTask,
   rootProject: RootProject,
   client: GradleClient,
+  reuseTerminals: boolean,
   args = '',
   javaDebug = false
 ): vscode.Task {
@@ -236,7 +254,8 @@ function createVSCodeTaskFromGradleTask(
     taskTerminalsStore,
     definition,
     rootProject,
-    client
+    client,
+    reuseTerminals
   );
 }
 
@@ -246,6 +265,7 @@ export function getVSCodeTasksFromGradleProject(
   gradleProject: GradleProject,
   client: GradleClient
 ): vscode.Task[] {
+  const reuseTerminals = getConfigReuseTerminals();
   let projects: Array<GradleProject> = [gradleProject];
   const vsCodeTasks: vscode.Task[] = [];
   while (projects.length) {
@@ -257,7 +277,8 @@ export function getVSCodeTasksFromGradleProject(
           taskTerminalsStore,
           gradleTask,
           rootProject,
-          client
+          client,
+          reuseTerminals
         )
       );
     }
@@ -383,6 +404,7 @@ export function cloneTask(
   task: vscode.Task,
   args: string,
   client: GradleClient,
+  reuseTerminals: boolean,
   javaDebug = false
 ): vscode.Task {
   const definition: Required<GradleTaskDefinition> = {
@@ -395,6 +417,7 @@ export function cloneTask(
     taskTerminalsStore,
     definition,
     rootProject!,
-    client
+    client,
+    reuseTerminals
   );
 }

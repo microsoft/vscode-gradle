@@ -15,7 +15,7 @@ const NL = '\n';
 const CR = '\r';
 const nlRegExp = new RegExp(`${NL}([^${CR}]|$)`, 'g');
 
-export class GradleRunnerTerminal {
+export class GradleRunnerTerminal implements vscode.Pseudoterminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
   private stdOutLoggerStream: LoggerStream | undefined;
   private readonly closeEmitter = new vscode.EventEmitter<void>();
