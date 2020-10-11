@@ -106,6 +106,15 @@ task copyClientTypes(type: Copy) {
   into 'lib/client'
 }
 
+task copyUtilTypes(type: Copy) {
+  dependsOn ':extension:buildProd'
+  group 'copy'
+  description 'Copies util'
+  from file("../extension/dist/util")
+  include "*.d.ts"
+  into 'lib/util'
+}
+
 task copyTasksTypes(type: Copy) {
   dependsOn ':extension:buildProd'
   group 'copy'
@@ -152,7 +161,8 @@ task copyPublicApi(type: Copy) {
     copyLoggerTypes,
     copyRootProjectTypes,
     copyApiTypes,
-    copyIconTypes
+    copyIconTypes,
+    copyUtilTypes
   group 'copy'
   description 'Copies publc API types'
   from file("../extension/dist")
