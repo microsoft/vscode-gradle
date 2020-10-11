@@ -152,7 +152,7 @@ describe(getSuiteName('Extension'), () => {
     });
   });
 
-  describe.only('Reuse terminals config', () => {
+  describe('Reuse terminals config', () => {
     const executeAndWaitForTask = (task: vscode.Task): Promise<void> => {
       return new Promise(async (resolve) => {
         // eslint-disable-next-line sonarjs/no-identical-functions
