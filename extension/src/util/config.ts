@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { GradleConfig } from './proto/gradle_pb';
-import { RootProject } from './rootProject/RootProject';
+import { GradleConfig } from '../proto/gradle_pb';
+import { RootProject } from '../rootProject/RootProject';
 
 type AutoDetect = 'on' | 'off';
 
