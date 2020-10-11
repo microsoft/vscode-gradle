@@ -63,6 +63,8 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 
 <details><summary>Control task terminal behaviour</summary>
     
+----
+    
 Use one terminal for each task type (default):
 
 ```json
