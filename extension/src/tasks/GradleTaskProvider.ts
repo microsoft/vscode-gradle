@@ -6,7 +6,7 @@ import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
-import { getConfigJavaDebug, getConfigReuseTerminals } from '../config';
+import { getConfigJavaDebug, getConfigReuseTerminals } from '../util/config';
 import { GradleClient } from '../client';
 
 export class GradleTaskProvider

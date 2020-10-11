@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { GradleDaemonTreeItem } from '.';
-import { Deferred } from '../../async';
+import { Deferred } from '../../util';
 import { RootProjectsStore } from '../../stores';
 import { GradleClient } from '../../client';
 

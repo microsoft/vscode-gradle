@@ -1,4 +1,4 @@
-import { getConfigGradleJavaHome } from '../config';
+import { getConfigGradleJavaHome } from '../util/config';
 
 export function getGradleServerCommand(): string {
   const platform = process.platform;

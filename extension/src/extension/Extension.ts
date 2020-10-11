@@ -7,7 +7,7 @@ import { Icons } from '../icons';
 import {
   getConfigFocusTaskInExplorer,
   getConfigIsDebugEnabled,
-} from '../config';
+} from '../util/config';
 import {
   GradleDaemonsTreeDataProvider,
   PinnedTasksTreeDataProvider,

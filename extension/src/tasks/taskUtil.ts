@@ -10,7 +10,7 @@ import {
   getConfigIsAutoDetectionEnabled,
   getConfigReuseTerminals,
   ReuseTerminalsValue,
-} from '../config';
+} from '../util/config';
 import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,
@@ -18,7 +18,7 @@ import {
   JAVA_DEBUGGER_EXTENSION_ID,
   isJavaDebuggerExtensionActivated,
   isJavaLanguageSupportExtensionActivated,
-} from '../compat';
+} from '../util/compat';
 import { getTaskArgs } from '../input';
 import { COMMAND_RENDER_TASK } from '../commands';
 import { RootProject } from '../rootProject/RootProject';

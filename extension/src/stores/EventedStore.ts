@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { debounce } from '../decorators';
+import { debounce } from '../util';
 
 export abstract class EventedStore<V> implements vscode.Disposable {
   private readonly _onDidChange: vscode.EventEmitter<V | null> = new vscode.EventEmitter<
