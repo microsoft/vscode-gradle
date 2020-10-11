@@ -7,7 +7,7 @@ import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 // TODO: consider also testing using insiders
-const VSCODE_VERSION = '1.49.3';
+const VSCODE_VERSION = '1.50.0';
 
 async function runTestsWithGradle(
   vscodeExecutablePath: string,
