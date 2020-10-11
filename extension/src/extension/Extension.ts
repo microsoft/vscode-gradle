@@ -263,16 +263,16 @@ export class Extension {
             event.affectsConfiguration('java.import.gradle.java.home')
           ) {
             await this.restartServer();
-          }
-          if (
+          } else if (
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
             this.rootProjectsStore.clear();
             await this.refresh();
             await this.activate();
-          }
-          if (event.affectsConfiguration('gradle.debug')) {
+          } else if (event.affectsConfiguration('gradle.reuseTerminals')) {
+            await this.refresh();
+          } else if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
             Logger.setLogVerbosity(
               debug ? LogVerbosity.DEBUG : LogVerbosity.INFO

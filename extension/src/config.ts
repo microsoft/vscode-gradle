@@ -60,10 +60,12 @@ export function getConfigIsDebugEnabled(): boolean {
     .get<boolean>('debug', false);
 }
 
-export function getConfigReuseTerminals(): boolean {
+export type ReuseTerminalsValue = 'task' | 'off' | 'all';
+
+export function getConfigReuseTerminals(): ReuseTerminalsValue {
   return vscode.workspace
     .getConfiguration('gradle')
-    .get<boolean>('reuseTerminals', true);
+    .get<ReuseTerminalsValue>('reuseTerminals', 'task');
 }
 
 export function getDisableConfirmations(): boolean {

@@ -151,4 +151,83 @@ describe(getSuiteName('Extension'), () => {
       assert.ok(hasMessage);
     });
   });
+
+  describe.only('Reuse terminals config', () => {
+    const executeAndWaitForTask = (task: vscode.Task): Promise<void> => {
+      return new Promise(async (resolve) => {
+        // eslint-disable-next-line sonarjs/no-identical-functions
+        const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
+          if (e.execution.task === task) {
+            disposable.dispose();
+            resolve();
+          }
+        });
+        await vscode.tasks.executeTask(task);
+      });
+    };
+
+    before(async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'off');
+    });
+
+    // eslint-disable-next-line sonarjs/no-identical-functions
+    after(async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'off');
+    });
+
+    it('should generate a new terminal for every task run with reuseTerminals: "off"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'off');
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+      const groovyDefaultTask = tasks.find(
+        ({ name }) => name === 'helloGroovyDefault'
+      );
+      assert.ok(groovyDefaultTask);
+      const helloTask = tasks.find(({ name }) => name === 'hello');
+      assert.ok(helloTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(helloTask);
+      assert.strictEqual(vscode.window.terminals.length, 3);
+    });
+
+    it('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'task');
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+      const groovyDefaultTask = tasks.find(
+        ({ name }) => name === 'helloGroovyDefault'
+      );
+      assert.ok(groovyDefaultTask);
+      const helloTask = tasks.find(({ name }) => name === 'hello');
+      assert.ok(helloTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(helloTask);
+      assert.strictEqual(vscode.window.terminals.length, 2);
+    });
+
+    it('should generate 1 terminal for all tasks with reuseTerminals: "all"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'all');
+      const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
+      const groovyDefaultTask = tasks.find(
+        ({ name }) => name === 'helloGroovyDefault'
+      );
+      assert.ok(groovyDefaultTask);
+      const helloTask = tasks.find(({ name }) => name === 'hello');
+      assert.ok(helloTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(helloTask);
+      assert.strictEqual(vscode.window.terminals.length, 1);
+    });
+  });
 });

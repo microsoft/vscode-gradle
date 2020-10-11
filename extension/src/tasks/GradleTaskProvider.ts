@@ -6,7 +6,7 @@ import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
-import { getConfigJavaDebug } from '../config';
+import { getConfigJavaDebug, getConfigReuseTerminals } from '../config';
 import { GradleClient } from '../client';
 
 export class GradleTaskProvider
@@ -64,11 +64,13 @@ export class GradleTaskProvider
       vscode.Uri.file(gradleTaskDefinition.projectFolder),
       javaDebug
     );
+    const reuseTerminals = getConfigReuseTerminals();
     return createTaskFromDefinition(
       this.taskTerminalsStore,
       gradleTaskDefinition,
       rootProject,
-      this.client
+      this.client,
+      reuseTerminals
     );
   }
 
