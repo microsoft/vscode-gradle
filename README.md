@@ -153,12 +153,13 @@ The extension uses the Gradle wrapper to list daemons, and is quite a slow proce
 
 This extension contributes the following settings:
 
-- `gradle.autoDetect`: Automatically detect Gradle tasks
-- `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
+- `gradle.autoDetect`: Automatically detect Gradle tasks ("on" or "off")
+- `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task (boolean)
 - `gradle.nestedProjects`: Process nested projects (boolean or an array of directories)
+- `gradle.reuseTerminals`: Reuse task terminals ("task" [default], "all", or "off")
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
-- `gradle.debug`: Show extra debug info in the output panel
-- `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc)
+- `gradle.debug`: Show extra debug info in the output panel (boolean)
+- `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
 
 ## Gradle & Java Settings
 
@@ -166,7 +167,7 @@ Set Gradle & Java options with standard environment variables or standard Gradle
 
 ### Example Environment Variables
 
-- `JAVE_HOME`
+- `JAVA_HOME`
 - `GRADLE_USER_HOME`
 
 _Note, the VS Code settings take precedence over the environment variables._
