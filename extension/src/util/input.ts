@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { TaskArgs } from '../stores/types';
-import { getDisableConfirmations } from '../config';
+import { getDisableConfirmations } from '../util';
 import { RootProject } from '../rootProject/RootProject';
 import { RootProjectsStore } from '../stores';
 

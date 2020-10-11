@@ -26,10 +26,10 @@ import {
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
 import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
-import { EventWaiter } from '../events';
+import { EventWaiter } from '../util';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
-import { getGradleConfig, getConfigJavaDebug } from '../config';
+import { getGradleConfig, getConfigJavaDebug } from '../util';
 import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
 import {
   COMMAND_REFRESH_DAEMON_STATUS,

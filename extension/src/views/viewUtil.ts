@@ -8,7 +8,7 @@ import {
 } from './constants';
 import { GradleTaskDefinition } from '../tasks';
 import { logger } from '../logger';
-import { JavaDebug } from '../config';
+import { JavaDebug } from '../util';
 import { TaskArgs } from '../stores/types';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 import {

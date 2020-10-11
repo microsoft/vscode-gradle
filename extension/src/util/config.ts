@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { GradleConfig } from './proto/gradle_pb';
-import { RootProject } from './rootProject/RootProject';
+import { GradleConfig } from '../proto/gradle_pb';
+import { RootProject } from '../rootProject/RootProject';
 
 type AutoDetect = 'on' | 'off';
 
@@ -58,6 +58,14 @@ export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
     .get<boolean>('debug', false);
+}
+
+export type ReuseTerminalsValue = 'task' | 'off' | 'all';
+
+export function getConfigReuseTerminals(): ReuseTerminalsValue {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<ReuseTerminalsValue>('reuseTerminals', 'task');
 }
 
 export function getDisableConfirmations(): boolean {

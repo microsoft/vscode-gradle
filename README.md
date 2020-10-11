@@ -34,7 +34,7 @@ A Gradle build can have one or more projects. Projects are listed in a flat list
 
 When you expand a project, tasks are listed in a tree, grouped by the task group. You can toggle the display of the tasks by clicking on the `Show Flat List`/`Show Tree` button in the treeview header.
 
-<img src="./images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
+<img src="images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
 
 </details>
 <details><summary>Run tasks</summary>
@@ -47,7 +47,7 @@ Tasks can be run via:
 
 A running task will be shown with an animated "spinner" icon in the treeviews, along with `Cancel Task` & `Restart Task` buttons. The `Cancel Task` button will gracefully cancel the task. The `Restart Task` button will first cancel the task, then restart it.
 
-<img src="./images/task-run.png" width="350" alt="Gradle Tasks Running" />
+<img src="images/task-run.png" width="350" alt="Gradle Tasks Running" />
 
 A task will be run a vscode terminal where you can view the task output.
 
@@ -60,6 +60,23 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 <img src="./images/run-build.png" width="650" alt="Run Gradle Build" />
 
 </details>
+
+<details><summary>Control task terminal behaviour</summary>
+
+`"gradle.reuseTerminals": "task"` (default):
+
+<img src="./images/reuse-terminals-task.gif" />
+
+`"gradle.reuseTerminals": "all"`:
+
+<img src="./images/reuse-terminals-all.gif" />
+
+`"gradle.reuseTerminals": "off"`:
+
+<img src="./images/reuse-terminals-off.gif" />
+
+</details>
+
 <details><summary>Debug JavaExec tasks</summary>
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
@@ -153,12 +170,13 @@ The extension uses the Gradle wrapper to list daemons, and is quite a slow proce
 
 This extension contributes the following settings:
 
-- `gradle.autoDetect`: Automatically detect Gradle tasks
-- `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task
+- `gradle.autoDetect`: Automatically detect Gradle tasks ("on" or "off")
+- `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task (boolean)
 - `gradle.nestedProjects`: Process nested projects (boolean or an array of directories)
+- `gradle.reuseTerminals`: Reuse task terminals ("task" [default], "all", or "off")
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
-- `gradle.debug`: Show extra debug info in the output panel
-- `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc)
+- `gradle.debug`: Show extra debug info in the output panel (boolean)
+- `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
 
 ## Gradle & Java Settings
 
@@ -166,7 +184,7 @@ Set Gradle & Java options with standard environment variables or standard Gradle
 
 ### Example Environment Variables
 
-- `JAVE_HOME`
+- `JAVA_HOME`
 - `GRADLE_USER_HOME`
 
 _Note, the VS Code settings take precedence over the environment variables._

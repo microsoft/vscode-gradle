@@ -4,10 +4,7 @@ import { Api } from '../api';
 import { GradleClient } from '../client';
 import { GradleServer } from '../server';
 import { Icons } from '../icons';
-import {
-  getConfigFocusTaskInExplorer,
-  getConfigIsDebugEnabled,
-} from '../config';
+import { getConfigFocusTaskInExplorer, getConfigIsDebugEnabled } from '../util';
 import {
   GradleDaemonsTreeDataProvider,
   PinnedTasksTreeDataProvider,
@@ -32,7 +29,7 @@ import {
   RECENT_TASKS_VIEW,
 } from '../views/constants';
 import { focusTaskInGradleTasksTree } from '../views/viewUtil';
-import { FileWatcher } from '../watcher';
+import { FileWatcher } from '../util';
 import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
 import { Commands } from '../commands/Commands';
 
@@ -263,16 +260,16 @@ export class Extension {
             event.affectsConfiguration('java.import.gradle.java.home')
           ) {
             await this.restartServer();
-          }
-          if (
+          } else if (
             event.affectsConfiguration('gradle.javaDebug') ||
             event.affectsConfiguration('gradle.nestedProjects')
           ) {
             this.rootProjectsStore.clear();
             await this.refresh();
             await this.activate();
-          }
-          if (event.affectsConfiguration('gradle.debug')) {
+          } else if (event.affectsConfiguration('gradle.reuseTerminals')) {
+            await this.refresh();
+          } else if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
             Logger.setLogVerbosity(
               debug ? LogVerbosity.DEBUG : LogVerbosity.INFO

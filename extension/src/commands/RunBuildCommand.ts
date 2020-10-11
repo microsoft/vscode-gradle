@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { parseArgsStringToArgv } from 'string-argv';
-import { getGradleCommand, getRootProjectFolder } from '../input';
+import { getGradleCommand, getRootProjectFolder } from '../util/input';
 import { GradleRunnerTerminal } from '../terminal';
 import { getRunBuildCancellationKey } from '../client/CancellationKeys';
 import { Command } from './Command';

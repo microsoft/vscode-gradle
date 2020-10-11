@@ -1,5 +1,5 @@
 import { GradleDaemonTreeItem } from '../views';
-import { confirmModal } from '../input';
+import { confirmModal } from '../util/input';
 import { logger } from '../logger';
 import { Command } from './Command';
 import { GradleClient } from '../client';

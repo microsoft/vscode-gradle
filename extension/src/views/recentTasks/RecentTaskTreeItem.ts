@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { GradleTaskTreeItem } from '..';
-import { JavaDebug } from '../../config';
+import { JavaDebug } from '../../util';
 import { Icons } from '../../icons';
 import { TaskTerminalsStore } from '../../stores';
 import { GradleTaskDefinition } from '../../tasks';

@@ -1,4 +1,4 @@
-import { confirmModal } from '../input';
+import { confirmModal } from '../util/input';
 import { TaskTerminalsStore } from '../stores';
 import { Command } from './Command';
 

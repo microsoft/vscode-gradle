@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as net from 'net';
 import * as path from 'path';
 import * as fs from 'fs';
-import { RootProject } from './rootProject/RootProject';
+import { RootProject } from '../rootProject';
 
 export const isTest = (): boolean =>
   process.env.VSCODE_TEST?.toLowerCase() === 'true';
@@ -64,3 +64,11 @@ export function isWorkspaceFolder(
 ): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
 }
+
+export * from './compat';
+export * from './config';
+export * from './decorators';
+export * from './Deferred';
+export * from './EventWaiter';
+export * from './input';
+export * from './FileWatcher';

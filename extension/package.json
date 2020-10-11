@@ -592,6 +592,16 @@
           "default": false,
           "description": "Discover Gradle projects in nested sub-directories"
         },
+        "gradle.reuseTerminals": {
+          "enum": [
+            "task",
+            "off",
+            "all"
+          ],
+          "default": "task",
+          "scope": "window",
+          "description": "Reuse task terminals behaviour"
+        },
         "gradle.debug": {
           "type": "boolean",
           "default": false,
