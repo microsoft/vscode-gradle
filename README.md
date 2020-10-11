@@ -34,7 +34,7 @@ A Gradle build can have one or more projects. Projects are listed in a flat list
 
 When you expand a project, tasks are listed in a tree, grouped by the task group. You can toggle the display of the tasks by clicking on the `Show Flat List`/`Show Tree` button in the treeview header.
 
-<img src="./images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
+<img src="images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
 
 </details>
 <details><summary>Run tasks</summary>
@@ -47,7 +47,7 @@ Tasks can be run via:
 
 A running task will be shown with an animated "spinner" icon in the treeviews, along with `Cancel Task` & `Restart Task` buttons. The `Cancel Task` button will gracefully cancel the task. The `Restart Task` button will first cancel the task, then restart it.
 
-<img src="./images/task-run.png" width="350" alt="Gradle Tasks Running" />
+<img src="images/task-run.png" width="350" alt="Gradle Tasks Running" />
 
 A task will be run a vscode terminal where you can view the task output.
 

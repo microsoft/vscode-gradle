@@ -1,6 +1,6 @@
 import { GradleTaskTreeItem, PinnedTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
-import { getTaskArgs } from '../input';
+import { getTaskArgs } from '../util/input';
 import { Command } from './Command';
 
 export const COMMAND_PIN_TASK_WITH_ARGS = 'gradle.pinTaskWithArgs';

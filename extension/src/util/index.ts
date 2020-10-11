@@ -65,7 +65,9 @@ export function isWorkspaceFolder(
   return value && typeof value !== 'number';
 }
 
-export * from './decorators';
-export * from './Deferred';
 export * from './compat';
 export * from './config';
+export * from './decorators';
+export * from './Deferred';
+export * from './EventWaiter';
+export * from './input';

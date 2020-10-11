@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { confirmModal } from '../input';
+import { confirmModal } from '../util/input';
 import { StopDaemonsReply } from '../proto/gradle_pb';
 import { logger } from '../logger';
 import { Command } from './Command';

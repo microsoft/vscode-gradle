@@ -26,7 +26,7 @@ import {
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
 import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
-import { EventWaiter } from '../events';
+import { EventWaiter } from '../util';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
 import { getGradleConfig, getConfigJavaDebug } from '../util';

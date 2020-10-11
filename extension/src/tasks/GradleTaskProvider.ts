@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { EventWaiter } from '../events';
+import { EventWaiter } from '../util';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';

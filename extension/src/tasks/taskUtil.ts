@@ -19,7 +19,7 @@ import {
   isJavaDebuggerExtensionActivated,
   isJavaLanguageSupportExtensionActivated,
 } from '../util/compat';
-import { getTaskArgs } from '../input';
+import { getTaskArgs } from '../util/input';
 import { COMMAND_RENDER_TASK } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
 import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
