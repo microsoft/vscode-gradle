@@ -62,16 +62,29 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 </details>
 
 <details><summary>Control task terminal behaviour</summary>
+    
+Use one terminal for each task type (default):
 
-`"gradle.reuseTerminals": "task"` (default):
+```json
+"gradle.reuseTerminals": "task"
+```
 
 <img src="./images/reuse-terminals-task.gif" />
 
-`"gradle.reuseTerminals": "all"`:
+Use one terminal for all tasks:
+
+
+```json
+"gradle.reuseTerminals": "all"
+```
 
 <img src="./images/reuse-terminals-all.gif" />
 
-`"gradle.reuseTerminals": "off"`:
+Don't re-use terminals for any tasks. A new terminal will be created for each task run:
+
+```json
+"gradle.reuseTerminals": "off"
+```
 
 <img src="./images/reuse-terminals-off.gif" />
 
