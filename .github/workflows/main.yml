@@ -111,6 +111,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
         if: matrix.os == 'windows-latest'
+      - name: Cache vscode
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.vscode
+          key: ${{ runner.os }}-vscode-${{ hashFiles('**/vscode-version.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-vscode-
       - name: Build Extension
         uses: eskatos/gradle-command-action@v1
         with:
