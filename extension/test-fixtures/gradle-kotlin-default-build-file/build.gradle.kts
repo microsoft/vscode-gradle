@@ -11,6 +11,12 @@ tasks.register("hello") {
     }
 }
 
+tasks.register("bye") {
+    doLast {
+        println("Goodbye cruel world")
+    }
+}
+
 tasks.register("helloKotlinDefault") {
     doLast {
         println("Hello, helloKotlinDefault!")

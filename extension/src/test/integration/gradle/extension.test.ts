@@ -162,14 +162,12 @@ describe(getSuiteName('Extension'), () => {
 
     const executeAndWaitForTasks = async (): Promise<void> => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-      const groovyDefaultTask = tasks.find(
-        ({ name }) => name === 'helloGroovyDefault'
-      );
-      assert.ok(groovyDefaultTask);
+      const byeTask = tasks.find(({ name }) => name === 'bye');
+      assert.ok(byeTask);
       const helloTask = tasks.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
-      await executeAndWaitForTask(groovyDefaultTask);
-      await executeAndWaitForTask(groovyDefaultTask);
+      await executeAndWaitForTask(byeTask);
+      await executeAndWaitForTask(byeTask);
       await executeAndWaitForTask(helloTask);
     };
 
