@@ -9,6 +9,7 @@
     "strict": true,
     "rootDir": "src",
     "noUnusedLocals": true,
+    "skipLibCheck": true,
     "allowJs": true, // to support compiling the generated proto js files
     "allowSyntheticDefaultImports": true
   },

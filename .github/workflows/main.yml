@@ -31,7 +31,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Cache node modules
+      - name: Cache npm cache directory
         uses: actions/cache@v2
         with:
           path: ~/.npm
@@ -90,7 +90,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
-      - name: Cache node modules linux
+      - name: Cache npm cache directory linux
         uses: actions/cache@v2
         with:
           path: ~/.npm
@@ -103,7 +103,7 @@ jobs:
         run: |
           echo "::set-output name=dir::$(npm config get cache)"
         if: matrix.os == 'windows-latest'
-      - name: Cache node modules windows
+      - name: Cache npm cache directory windows
         uses: actions/cache@v2
         with:
           path: ${{ steps.npm-cache.outputs.dir }}

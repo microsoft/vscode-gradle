@@ -9,7 +9,8 @@
     "rootDir": "./",
     "noUnusedLocals": true,
     "allowJs": false,
-    "declaration": true
+    "declaration": true,
+    "skipLibCheck": true
   },
   "exclude": ["node_modules", "lib", "build"],
   "include": ["./index.ts"]
