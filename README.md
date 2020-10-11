@@ -60,6 +60,23 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 <img src="./images/run-build.png" width="650" alt="Run Gradle Build" />
 
 </details>
+
+<details><summary>Control task terminal behaviour</summary>
+
+`"gradle.reuseTerminals": "task"` (default):
+
+<img src="./images/reuse-terminals-task.gif" />
+
+`"gradle.reuseTerminals": "all"`:
+
+<img src="./images/reuse-terminals-all.gif" />
+
+`"gradle.reuseTerminals": "off"`:
+
+<img src="./images/reuse-terminals-off.gif" />
+
+</details>
+
 <details><summary>Debug JavaExec tasks</summary>
 
 This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
