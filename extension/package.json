@@ -20,7 +20,7 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
-    "vscode": "^1.45.0",
+    "vscode": "^1.50.0",
     "node": "^12.10.0",
     "npm": "^6.10.3"
   },
