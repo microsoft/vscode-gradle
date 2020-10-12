@@ -51,6 +51,9 @@ jobs:
         with:
           arguments: lint
           wrapper-cache-enabled: false
+      - name: Fetch master
+        run: |
+          git fetch origin master
       - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
