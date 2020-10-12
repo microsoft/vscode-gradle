@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-// import { debounce } from '../util';
+import { debounce } from '../util/decorators';
 
 export abstract class EventedStore<V> implements vscode.Disposable {
   private readonly _onDidChange: vscode.EventEmitter<V | null> = new vscode.EventEmitter<
@@ -7,7 +7,7 @@ export abstract class EventedStore<V> implements vscode.Disposable {
   >();
   public readonly onDidChange: vscode.Event<V | null> = this._onDidChange.event;
 
-  // @debounce(0)
+  @debounce(0)
   public fireOnDidChange(value: V | null): void {
     this._onDidChange.fire(value);
   }
