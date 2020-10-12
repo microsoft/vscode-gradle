@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as fs from 'fs-extra';
 
 import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
-import { VSCODE_TEST_VERSION } from './vscode-version';
+import { VSCODE_TEST_VERSIONS } from './vscode-version';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
 
@@ -171,15 +171,14 @@ function runTestsWithMultiProject(
   });
 }
 
-async function main(): Promise<void> {
+async function runTestsForVsCodeVersion(version: string): Promise<void> {
+  console.log(`Running tests for VsCode version: ${version}`);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-user'));
   fs.copySync(
     path.resolve(__dirname, '../../test-fixtures/vscode-user/User'),
     path.join(tmpDir, 'User')
   );
-  const vscodeExecutablePath = await downloadAndUnzipVSCode(
-    VSCODE_TEST_VERSION
-  );
+  const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
 
   let hasErr = false;
 
@@ -199,6 +198,12 @@ async function main(): Promise<void> {
     if (hasErr) {
       process.exit(1);
     }
+  }
+}
+
+async function main(): Promise<void> {
+  for (const version of VSCODE_TEST_VERSIONS) {
+    await runTestsForVsCodeVersion(version);
   }
 }
 
