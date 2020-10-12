@@ -8,7 +8,6 @@ import {
 } from './constants';
 import { GradleTaskDefinition } from '../tasks';
 import { logger } from '../logger';
-import { JavaDebug } from '../util';
 import { TaskArgs } from '../stores/types';
 import { isTaskCancelling, isTaskRunning } from '../tasks/taskUtil';
 import {
@@ -21,6 +20,7 @@ import {
   PinnedTasksTreeDataProvider,
   RecentTasksTreeDataProvider,
 } from '.';
+import { JavaDebug } from '../util/config';
 
 export function treeItemSortCompareFunc(
   a: vscode.TreeItem,

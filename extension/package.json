@@ -736,7 +736,7 @@
     "lint:fix": "npm run lint:fix:prettier && npm run lint:eslint -- --fix",
     "lint:fix:prettier": "prettier --write '**/*.{ts,js,json,svg,md,yml}'",
     "compile": "rollup -c rollup.config.js",
-    "compile:test": "tsc -p ./",
+    "compile:test": "tsc -p .",
     "install:ext": "code --install-extension vscode-gradle-0.0.0.vsix --force",
     "preinstall:ext": "vsce package",
     "snyk-protect": "snyk protect",

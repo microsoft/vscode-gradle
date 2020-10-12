@@ -1,37 +1,40 @@
 import * as vscode from 'vscode';
-import { logger, LogVerbosity, Logger } from '../logger';
-import { Api } from '../api';
-import { GradleClient } from '../client';
-import { GradleServer } from '../server';
-import { Icons } from '../icons';
-import { getConfigFocusTaskInExplorer, getConfigIsDebugEnabled } from '../util';
+import { logger, LogVerbosity, Logger } from './logger';
+import { Api } from './api';
+import { GradleClient } from './client';
+import { GradleServer } from './server';
+import { Icons } from './icons';
 import {
   GradleDaemonsTreeDataProvider,
   PinnedTasksTreeDataProvider,
   RecentTasksTreeDataProvider,
   GradleTasksTreeDataProvider,
-} from '../views';
+} from './views';
 import {
   PinnedTasksStore,
   RecentTasksStore,
   TaskTerminalsStore,
   RootProjectsStore,
-} from '../stores';
+} from './stores';
 import {
   GradleTaskProvider,
   GradleTaskManager,
   GradleTaskDefinition,
-} from '../tasks';
+} from './tasks';
 import {
   GRADLE_TASKS_VIEW,
   PINNED_TASKS_VIEW,
   GRADLE_DAEMONS_VIEW,
   RECENT_TASKS_VIEW,
-} from '../views/constants';
-import { focusTaskInGradleTasksTree } from '../views/viewUtil';
-import { FileWatcher } from '../util';
-import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from '../commands';
-import { Commands } from '../commands/Commands';
+} from './views/constants';
+import { focusTaskInGradleTasksTree } from './views/viewUtil';
+import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from './commands';
+import { Commands } from './commands/Commands';
+import {
+  getConfigIsDebugEnabled,
+  getConfigFocusTaskInExplorer,
+} from './util/config';
+import { FileWatcher } from './util/FileWatcher';
 
 export class Extension {
   private readonly client: GradleClient;

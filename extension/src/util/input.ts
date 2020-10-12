@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { TaskArgs } from '../stores/types';
-import { getDisableConfirmations } from '../util';
 import { RootProject } from '../rootProject/RootProject';
 import { RootProjectsStore } from '../stores';
+import { getDisableConfirmations } from './config';
 
 function returnTrimmedInput(value: string | undefined): string | undefined {
   if (value !== undefined) {

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { GradleDaemonTreeItem } from '.';
-import { Deferred } from '../../util';
 import { RootProjectsStore } from '../../stores';
 import { GradleClient } from '../../client';
+import { Deferred } from '../../util/Deferred';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {

@@ -22,7 +22,7 @@
     "npm": "^6.10.3"
   },
   "scripts": {
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ."
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.1.7",
