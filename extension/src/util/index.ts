@@ -64,11 +64,3 @@ export function isWorkspaceFolder(
 ): value is vscode.WorkspaceFolder {
   return value && typeof value !== 'number';
 }
-
-export * from './compat';
-export * from './config';
-export * from './decorators';
-export * from './Deferred';
-export * from './EventWaiter';
-export * from './input';
-export * from './FileWatcher';

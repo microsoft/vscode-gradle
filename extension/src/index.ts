@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { Api } from './api';
-import { Extension } from './extension';
+import { Extension } from './Extension';
 
 export function activate(context: vscode.ExtensionContext): Api {
   return new Extension(context).getApi();

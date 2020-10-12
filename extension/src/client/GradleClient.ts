@@ -26,10 +26,8 @@ import {
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
 import { logger, LoggerStream, LogVerbosity, Logger } from '../logger';
-import { EventWaiter } from '../util';
 import { GradleServer } from '../server';
 import { ProgressHandler } from '../progress';
-import { getGradleConfig, getConfigJavaDebug } from '../util';
 import { removeCancellingTask, restartQueuedTask } from '../tasks/taskUtil';
 import {
   COMMAND_REFRESH_DAEMON_STATUS,
@@ -38,6 +36,8 @@ import {
 } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
 import { getBuildCancellationKey } from './CancellationKeys';
+import { EventWaiter } from '../util/EventWaiter';
+import { getGradleConfig, getConfigJavaDebug } from '../util/config';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;

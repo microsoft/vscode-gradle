@@ -1,3 +1,4 @@
 {
-  "update.mode": "none"
+  "update.mode": "none",
+  "window.restoreWindows": "none"
 }

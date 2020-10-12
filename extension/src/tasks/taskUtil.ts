@@ -6,12 +6,6 @@ import { GradleTaskDefinition } from '.';
 import { GradleRunnerTerminal } from '../terminal';
 import { logger } from '../logger';
 import {
-  getGradleConfig,
-  getConfigIsAutoDetectionEnabled,
-  getConfigReuseTerminals,
-  ReuseTerminalsValue,
-} from '../util';
-import {
   getJavaLanguageSupportExtension,
   getJavaDebuggerExtension,
   JAVA_LANGUAGE_EXTENSION_ID,
@@ -25,6 +19,12 @@ import { RootProject } from '../rootProject/RootProject';
 import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 import { GradleClient } from '../client';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
+import {
+  ReuseTerminalsValue,
+  getConfigReuseTerminals,
+  getGradleConfig,
+  getConfigIsAutoDetectionEnabled,
+} from '../util/config';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { JavaDebug } from '../../util';
 import { Icons } from '../../icons';
+import { JavaDebug } from '../../util/config';
 import { TASK_STATE_RUNNING_REGEX } from '../constants';
 import { getTreeItemState } from '../viewUtil';
 

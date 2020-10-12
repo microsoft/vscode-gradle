@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { EventWaiter } from '../util';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
-import { getConfigJavaDebug, getConfigReuseTerminals } from '../util';
 import { GradleClient } from '../client';
+import { getConfigJavaDebug, getConfigReuseTerminals } from '../util/config';
+import { EventWaiter } from '../util/EventWaiter';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {

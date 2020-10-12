@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Environment } from '../proto/gradle_pb';
-import { JavaDebug } from '../util';
+import { JavaDebug } from '../util/config';
 
 export class RootProject {
   private environment?: Environment;
