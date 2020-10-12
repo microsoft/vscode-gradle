@@ -45,8 +45,8 @@ function buildTaskTreeItem(
     taskName,
     definition.description || taskName, // used for tooltip
     icons,
-    rootProject.getJavaDebug(),
-    taskTerminalsStore
+    taskTerminalsStore,
+    rootProject.getJavaDebug()
   );
   recentTaskTreeItem.setContext();
   return recentTaskTreeItem;

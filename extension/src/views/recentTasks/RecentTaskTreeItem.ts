@@ -22,8 +22,8 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
     label: string,
     description: string,
     icons: Icons,
-    javaDebug: JavaDebug = { tasks: [], clean: true },
-    private readonly taskTerminalsStore: TaskTerminalsStore
+    private readonly taskTerminalsStore: TaskTerminalsStore,
+    protected readonly javaDebug: JavaDebug = { tasks: [], clean: true }
   ) {
     // On construction, don't set a description, this will be set in setContext
     super(
