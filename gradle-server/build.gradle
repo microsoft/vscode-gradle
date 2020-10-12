@@ -12,16 +12,16 @@ java {
 }
 
 dependencies {
-  compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
-  compileOnly 'javax.annotation:javax.annotation-api:1.3.2'
+  implementation "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
+  implementation 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
   implementation "io.grpc:grpc-stub:${grpcVersion}"
   runtimeOnly "io.grpc:grpc-netty:${grpcVersion}"
   runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha1'
   testImplementation "io.grpc:grpc-testing:${grpcVersion}"
   testImplementation 'junit:junit:4.13'
-  testCompile 'org.powermock:powermock-module-junit4:2.0.7'
-  testCompile 'org.powermock:powermock-api-mockito2:2.0.7'
+  testImplementation 'org.powermock:powermock-module-junit4:2.0.7'
+  testImplementation 'org.powermock:powermock-api-mockito2:2.0.7'
 }
 
 def mainJavaDir = 'src/main/java';

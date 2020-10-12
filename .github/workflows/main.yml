@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # required by sonarqube
       - name: Use Java 11
         uses: actions/setup-java@v1
         with:
@@ -53,10 +53,6 @@ jobs:
         with:
           arguments: lint
           wrapper-cache-enabled: false
-      # - name: Fetch master
-      #   run: |
-      #     git pull
-      #     git fetch origin master
       - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
