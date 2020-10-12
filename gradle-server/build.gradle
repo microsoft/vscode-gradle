@@ -6,8 +6,10 @@ plugins {
 
 description = 'vscode-gradle :: gradle-server'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 dependencies {
   compile "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
