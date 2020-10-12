@@ -25,6 +25,7 @@ async function runTestsWithGradle(
       launchArgs: [
         path.resolve(__dirname, `../../test-fixtures/${fixture}`),
         '--disable-extensions',
+        '--disable-gpu',
         `--user-data-dir=${userDir}`,
       ],
       extensionTestsEnv: {
@@ -48,6 +49,7 @@ async function runNetworkTestsWithGradle(
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures/${fixture}`),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
@@ -74,6 +76,7 @@ async function runNestedProjectTests(
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures`),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
@@ -96,6 +99,7 @@ async function runUnitTests(
     launchArgs: [
       path.resolve(__dirname, `../../test-fixtures/${fixture}`),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
@@ -117,6 +121,7 @@ function runTestsWithoutGradle(
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/no-gradle'),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
@@ -140,6 +145,7 @@ function runTestsWithMultiRoot(
         '../../test-fixtures/multi-root/multiple-project.code-workspace'
       ),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
@@ -161,6 +167,7 @@ function runTestsWithMultiProject(
     launchArgs: [
       path.resolve(__dirname, '../../test-fixtures/multi-project/'),
       '--disable-extensions',
+      '--disable-gpu',
       `--user-data-dir=${userDir}`,
     ],
     extensionTestsEnv: {
