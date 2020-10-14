@@ -2,13 +2,9 @@ import * as vscode from 'vscode';
 import { Output } from '../proto/gradle_pb';
 import { Logger, logger } from '../logger';
 import { GradleTasksTreeDataProvider } from '../views';
-import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
 import { Icons } from '../icons';
-import {
-  getRunBuildCancellationKey,
-  getRunTaskCommandCancellationKey,
-} from '../client/CancellationKeys';
+import { getRunBuildCancellationKey } from '../client/CancellationKeys';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -17,6 +13,7 @@ export interface RunTaskOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
+  cancellationKey?: string;
 }
 
 export interface RunBuildOpts {
@@ -25,11 +22,19 @@ export interface RunBuildOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
+  cancellationKey?: string;
 }
 
 export interface CancelTaskOpts {
-  projectFolder: string;
-  taskName: string;
+  projectFolder?: string;
+  taskName?: string;
+  cancellationKey?: string;
+}
+
+export interface CancelBuildOpts {
+  projectFolder?: string;
+  args?: ReadonlyArray<string>;
+  cancellationKey?: string;
 }
 
 export class Api {
@@ -39,61 +44,63 @@ export class Api {
     private readonly icons: Icons
   ) {}
 
-  public async runTask(opts: RunTaskOpts): Promise<void> {
+  public onReady(callback: () => void): vscode.Disposable {
+    return this.client.onDidConnect(callback);
+  }
+
+  public runTask(opts: RunTaskOpts): Promise<void> {
     const taskArgs = (opts.args || []).filter(Boolean);
-    const task = await this.findTask(opts.projectFolder, opts.taskName);
     const runBuildArgs = [opts.taskName].concat(taskArgs);
     const runBuildOpts = {
       ...opts,
       args: runBuildArgs,
     };
-    return this.runBuild(runBuildOpts, task);
+    return this.runBuild(runBuildOpts);
   }
 
-  public async runBuild(opts: RunBuildOpts, task?: vscode.Task): Promise<void> {
-    const cancellationKey = getRunBuildCancellationKey(
-      opts.projectFolder,
-      opts.args
-    );
+  public runBuild(opts: RunBuildOpts): Promise<void> {
     return this.client.runBuild(
       opts.projectFolder,
-      cancellationKey,
+      opts.cancellationKey ||
+        getRunBuildCancellationKey(opts.projectFolder, opts.args),
       opts.args,
       opts.input,
       0,
-      task,
+      undefined,
       opts.onOutput,
       opts.showOutputColors
     );
   }
 
-  public async cancelRunTask(opts: CancelTaskOpts): Promise<void> {
-    const task = await this.findTask(opts.projectFolder, opts.taskName);
-    const cancellationKey = getRunTaskCommandCancellationKey(
-      opts.projectFolder,
-      opts.taskName
-    );
-    return this.client.cancelBuild(cancellationKey, task);
+  public cancelRunTask(opts: CancelTaskOpts): Promise<void> {
+    const args = opts.taskName ? [opts.taskName] : [];
+    const cancelBuildOpts = {
+      projectFolder: opts.projectFolder,
+      args,
+      cancellationKey: opts.cancellationKey,
+    };
+    return this.cancelRunBuild(cancelBuildOpts);
   }
 
-  private async findTask(
-    projectFolder: string,
-    taskName: string
-  ): Promise<vscode.Task> {
-    const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-    if (!tasks) {
-      throw new Error('Unable to load gradle tasks');
+  public cancelRunBuild(opts: CancelBuildOpts): Promise<void> {
+    const cancellationKey = this.getRunBuildCancellationKey(opts);
+    return this.client.cancelBuild(cancellationKey);
+  }
+
+  public cancelAllBuilds(): Promise<void> {
+    return this.client.cancelBuilds();
+  }
+
+  private getRunBuildCancellationKey(opts: CancelBuildOpts): string {
+    if (opts.cancellationKey) {
+      return opts.cancellationKey;
     }
-    const foundTask = tasks.find((task) => {
-      const definition = task.definition as GradleTaskDefinition;
-      return (
-        task.name === taskName && definition.projectFolder === projectFolder
+    if (!opts.args || !opts.projectFolder) {
+      throw new Error(
+        'args and projectFolder are required to build the cancellation key'
       );
-    });
-    if (!foundTask) {
-      throw new Error(`Unable to find task: ${taskName}`);
     }
-    return foundTask;
+    return getRunBuildCancellationKey(opts.projectFolder, opts.args);
   }
 
   public getTasksTreeProvider(): GradleTasksTreeDataProvider {
