@@ -5,10 +5,7 @@ import { GradleTasksTreeDataProvider } from '../views';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
 import { Icons } from '../icons';
-import {
-  getRunBuildCancellationKey,
-  getRunTaskCommandCancellationKey,
-} from '../client/CancellationKeys';
+import { getRunBuildCancellationKey } from '../client/CancellationKeys';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -17,6 +14,7 @@ export interface RunTaskOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
+  cancellationKey?: string;
 }
 
 export interface RunBuildOpts {
@@ -25,11 +23,19 @@ export interface RunBuildOpts {
   input?: string;
   onOutput?: (output: Output) => void;
   showOutputColors: boolean;
+  cancellationKey?: string;
 }
 
 export interface CancelTaskOpts {
-  projectFolder: string;
-  taskName: string;
+  projectFolder?: string;
+  taskName?: string;
+  cancellationKey?: string;
+}
+
+export interface CancelBuildOpts {
+  projectFolder?: string;
+  args?: ReadonlyArray<string>;
+  cancellationKey?: string;
 }
 
 export class Api {
@@ -39,41 +45,64 @@ export class Api {
     private readonly icons: Icons
   ) {}
 
+  public onReady(callback: () => void): vscode.Disposable {
+    return this.client.onDidConnect(callback);
+  }
+
   public async runTask(opts: RunTaskOpts): Promise<void> {
     const taskArgs = (opts.args || []).filter(Boolean);
-    const task = await this.findTask(opts.projectFolder, opts.taskName);
+    await this.findTask(opts.projectFolder, opts.taskName);
     const runBuildArgs = [opts.taskName].concat(taskArgs);
     const runBuildOpts = {
       ...opts,
       args: runBuildArgs,
     };
-    return this.runBuild(runBuildOpts, task);
+    return this.runBuild(runBuildOpts);
   }
 
-  public async runBuild(opts: RunBuildOpts, task?: vscode.Task): Promise<void> {
-    const cancellationKey = getRunBuildCancellationKey(
-      opts.projectFolder,
-      opts.args
-    );
+  public async runBuild(opts: RunBuildOpts): Promise<void> {
     return this.client.runBuild(
       opts.projectFolder,
-      cancellationKey,
+      opts.cancellationKey ||
+        getRunBuildCancellationKey(opts.projectFolder, opts.args),
       opts.args,
       opts.input,
       0,
-      task,
+      undefined,
       opts.onOutput,
       opts.showOutputColors
     );
   }
 
   public async cancelRunTask(opts: CancelTaskOpts): Promise<void> {
-    const task = await this.findTask(opts.projectFolder, opts.taskName);
-    const cancellationKey = getRunTaskCommandCancellationKey(
-      opts.projectFolder,
-      opts.taskName
-    );
-    return this.client.cancelBuild(cancellationKey, task);
+    const args = opts.taskName ? [opts.taskName] : [];
+    const cancelBuildOpts = {
+      projectFolder: opts.projectFolder,
+      args,
+      cancellationKey: opts.cancellationKey,
+    };
+    return this.cancelRunBuild(cancelBuildOpts);
+  }
+
+  public cancelAllBuilds(): Promise<void> {
+    return this.client.cancelBuilds();
+  }
+
+  private getRunBuildCancellationKey(opts: CancelBuildOpts): string {
+    if (opts.cancellationKey) {
+      return opts.cancellationKey;
+    }
+    if (!opts.args || !opts.projectFolder) {
+      throw new Error(
+        'args and projectFolder are required to build the cancellation key'
+      );
+    }
+    return getRunBuildCancellationKey(opts.projectFolder, opts.args);
+  }
+
+  public async cancelRunBuild(opts: CancelBuildOpts): Promise<void> {
+    const cancellationKey = this.getRunBuildCancellationKey(opts);
+    return this.client.cancelBuild(cancellationKey);
   }
 
   private async findTask(

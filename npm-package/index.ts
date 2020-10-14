@@ -3,13 +3,22 @@ import {
   RunBuildRequest,
   CancelBuildRequest,
 } from './lib/proto/gradle_pb';
-import type { Api, RunTaskOpts, CancelTaskOpts } from './lib/api/Api';
+
+import type {
+  Api,
+  RunTaskOpts,
+  CancelTaskOpts,
+  CancelBuildOpts,
+  RunBuildOpts,
+} from './lib/api/Api';
 
 export {
   Output,
   RunBuildRequest,
+  RunBuildOpts,
   RunTaskOpts,
-  CancelTaskOpts,
   CancelBuildRequest,
+  CancelBuildOpts,
+  CancelTaskOpts,
   Api as ExtensionApi,
 };

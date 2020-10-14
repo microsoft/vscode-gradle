@@ -354,6 +354,7 @@ export class GradleClient implements vscode.Disposable {
         );
       });
       logger.info('Cancel build:', reply.getMessage());
+
       if (!reply.getBuildRunning() && task) {
         removeCancellingTask(task);
       }
