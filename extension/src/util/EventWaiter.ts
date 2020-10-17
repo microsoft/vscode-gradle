@@ -2,10 +2,10 @@ import * as vscode from 'vscode';
 
 type callback = () => void;
 
-export class EventWaiter {
+export class EventWaiter<T = null> {
   private eventRun = false;
 
-  constructor(private readonly event: vscode.Event<null>) {
+  constructor(private readonly event: vscode.Event<T>) {
     this.waitForEvent();
   }
 

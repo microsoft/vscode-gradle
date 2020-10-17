@@ -13,8 +13,8 @@ export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable {
   private cachedTasks: vscode.Task[] = [];
   private readonly _onDidLoadTasks: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
+    vscode.Task[]
+  > = new vscode.EventEmitter<vscode.Task[]>();
   private readonly _onDidStartRefresh: vscode.EventEmitter<
     null
   > = new vscode.EventEmitter<null>();
@@ -28,15 +28,17 @@ export class GradleTaskProvider
     private readonly client: GradleClient
   ) {}
 
-  public readonly onDidLoadTasks: vscode.Event<null> = this._onDidLoadTasks
-    .event;
+  public readonly onDidLoadTasks: vscode.Event<vscode.Task[]> = this
+    ._onDidLoadTasks.event;
   public readonly onDidStartRefresh: vscode.Event<null> = this
     ._onDidStartRefresh.event;
   public readonly onDidStopRefresh: vscode.Event<null> = this._onDidStopRefresh
     .event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
-  private readonly _waitForTasksLoad = new EventWaiter(this.onDidLoadTasks);
+  private readonly _waitForTasksLoad = new EventWaiter<vscode.Task[]>(
+    this.onDidLoadTasks
+  );
   public readonly waitForTasksLoad = this._waitForTasksLoad.wait;
 
   public provideTasks(): Promise<vscode.Task[] | undefined> {
@@ -75,8 +77,6 @@ export class GradleTaskProvider
   }
 
   public async loadTasks(): Promise<vscode.Task[]> {
-    // To accomodate calling loadTasks() on extension activate (when client is connected)
-    // and opening the treeview.
     if (this.loadTasksPromise) {
       return this.loadTasksPromise;
     }
@@ -109,7 +109,7 @@ export class GradleTaskProvider
       .then(() => this.cachedTasks);
 
     return this.loadTasksPromise.finally(() => {
-      this._onDidLoadTasks.fire(null);
+      this._onDidLoadTasks.fire(this.cachedTasks);
       this._onDidStopRefresh.fire(null);
       this.loadTasksPromise = undefined;
     });
