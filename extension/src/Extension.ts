@@ -154,6 +154,7 @@ export class Extension {
     this.api = new Api(
       this.client,
       this.gradleTasksTreeDataProvider,
+      this.gradleTaskProvider,
       this.icons
     );
 

@@ -5,6 +5,7 @@ import { GradleTasksTreeDataProvider } from '../views';
 import { GradleClient } from '../client';
 import { Icons } from '../icons';
 import { getRunBuildCancellationKey } from '../client/CancellationKeys';
+import { GradleTaskProvider } from '../tasks';
 
 export interface RunTaskOpts {
   projectFolder: string;
@@ -41,6 +42,7 @@ export class Api {
   constructor(
     private readonly client: GradleClient,
     private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider,
+    private readonly gradleTaskProvider: GradleTaskProvider,
     private readonly icons: Icons
   ) {}
 
@@ -105,6 +107,10 @@ export class Api {
 
   public getTasksTreeProvider(): GradleTasksTreeDataProvider {
     return this.tasksTreeDataProvider;
+  }
+
+  public getTaskProvider(): GradleTaskProvider {
+    return this.gradleTaskProvider;
   }
 
   public getIcons(): Icons {
