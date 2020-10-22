@@ -3,6 +3,7 @@ import { TaskArgs } from '../stores/types';
 import { RootProject } from '../rootProject/RootProject';
 import { RootProjectsStore } from '../stores';
 import { getDisableConfirmations } from './config';
+import { GradleTaskProvider } from '../tasks';
 
 function returnTrimmedInput(value: string | undefined): string | undefined {
   if (value !== undefined) {
@@ -31,6 +32,21 @@ export function getGradleCommand(): Thenable<TaskArgs | undefined> {
       ignoreFocusOut: true,
     })
     .then(returnTrimmedInput);
+}
+
+export function getFindTask(
+  gradleTaskProvider: GradleTaskProvider
+): Thenable<string | undefined> {
+  return vscode.window.showQuickPick(
+    gradleTaskProvider
+      .loadTasks()
+      .then((tasks) => tasks.map((task) => task.name)),
+    {
+      placeHolder: 'Search for a Gradle task',
+      ignoreFocusOut: false,
+      canPickMany: false,
+    }
+  );
 }
 
 export async function getRootProjectFolder(

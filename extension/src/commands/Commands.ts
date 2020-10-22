@@ -64,6 +64,8 @@ import {
   RemoveRecentTaskCommand,
   COMMAND_RUN_BUILD,
   RunBuildCommand,
+  COMMAND_FIND_TASK,
+  FindTaskCommand,
 } from '.';
 import { GradleClient } from '../client';
 import {
@@ -247,6 +249,10 @@ export class Commands {
     this.registerCommand(
       COMMAND_RUN_BUILD,
       new RunBuildCommand(this.rootProjectsStore, this.client)
+    );
+    this.registerCommand(
+      COMMAND_FIND_TASK,
+      new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider)
     );
   }
 }
