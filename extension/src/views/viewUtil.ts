@@ -109,6 +109,8 @@ export async function focusTaskInGradleTasksTree(
       if (gradleTaskTreeItem) {
         await gradleTasksTreeView.reveal(gradleTaskTreeItem, {
           expand: true,
+          select: true,
+          focus: true,
         });
       }
     }

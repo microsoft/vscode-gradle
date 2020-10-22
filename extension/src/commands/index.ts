@@ -29,3 +29,4 @@ export * from './ShowTasksCommand';
 export * from './StopDaemonCommand';
 export * from './StopDaemonsCommand';
 export * from './RunBuildCommand';
+export * from './FindTaskCommand';

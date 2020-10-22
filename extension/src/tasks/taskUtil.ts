@@ -446,3 +446,9 @@ export function cloneTask(
     reuseTerminals
   );
 }
+
+export function getGradleTasks(): Thenable<vscode.Task[]> {
+  return vscode.tasks.fetchTasks({
+    type: 'gradle',
+  });
+}
