@@ -772,7 +772,7 @@
     "fs-extra": "^9.0.1",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.13.0",
-    "grpc-tools": "^1.9.1",
+    "grpc-tools": "^1.10.0",
     "minimatch": "^3.0.4",
     "mocha": "^8.2.0",
     "prettier": "^2.1.2",
