@@ -751,7 +751,7 @@
     "prepare": "npm run snyk-protect"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.1.8",
+    "@grpc/grpc-js": "^1.2.2",
     "@rollup/plugin-commonjs": "^15.1.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^9.0.0",
