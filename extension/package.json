@@ -768,7 +768,7 @@
     "eslint": "^7.10.0",
     "eslint-config-prettier": "^6.12.0",
     "eslint-plugin-prettier": "^3.1.4",
-    "eslint-plugin-sonarjs": "^0.5.0",
+    "eslint-plugin-sonarjs": "^0.6.0",
     "fs-extra": "^9.0.1",
     "get-port": "^5.1.1",
     "google-protobuf": "^3.13.0",
