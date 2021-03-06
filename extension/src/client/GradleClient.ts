@@ -338,25 +338,30 @@ export class GradleClient implements vscode.Disposable {
     const request = new CancelBuildRequest();
     request.setCancellationKey(cancellationKey);
     try {
-      const reply: CancelBuildReply = await new Promise((resolve, reject) => {
-        this.grpcClient!.cancelBuild(
-          request,
-          (
-            err: grpc.ServiceError | null,
-            cancelRunBuildReply: CancelBuildReply | undefined
-          ) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(cancelRunBuildReply);
+      const reply: CancelBuildReply | undefined = await new Promise(
+        (resolve, reject) => {
+          console.log('cancel build');
+          this.grpcClient!.cancelBuild(
+            request,
+            (
+              err: grpc.ServiceError | null,
+              cancelRunBuildReply: CancelBuildReply | undefined
+            ) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(cancelRunBuildReply);
+              }
             }
-          }
-        );
-      });
-      logger.info('Cancel build:', reply.getMessage());
+          );
+        }
+      );
+      if (reply) {
+        logger.info('Cancel build:', reply.getMessage());
 
-      if (!reply.getBuildRunning() && task) {
-        removeCancellingTask(task);
+        if (!reply.getBuildRunning() && task) {
+          removeCancellingTask(task);
+        }
       }
     } catch (err) {
       logger.error('Error cancelling build:', err.details || err.message);
@@ -367,22 +372,26 @@ export class GradleClient implements vscode.Disposable {
     this.statusBarItem.hide();
     const request = new CancelBuildsRequest();
     try {
-      const reply: CancelBuildsReply = await new Promise((resolve, reject) => {
-        this.grpcClient!.cancelBuilds(
-          request,
-          (
-            err: grpc.ServiceError | null,
-            cancelRunBuildsReply: CancelBuildsReply | undefined
-          ) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(cancelRunBuildsReply);
+      const reply: CancelBuildsReply | undefined = await new Promise(
+        (resolve, reject) => {
+          this.grpcClient!.cancelBuilds(
+            request,
+            (
+              err: grpc.ServiceError | null,
+              cancelRunBuildsReply: CancelBuildsReply | undefined
+            ) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(cancelRunBuildsReply);
+              }
             }
-          }
-        );
-      });
-      logger.info('Cancel builds:', reply.getMessage());
+          );
+        }
+      );
+      if (reply) {
+        logger.info('Cancel builds:', reply.getMessage());
+      }
     } catch (err) {
       logger.error('Error cancelling builds:', err.details || err.message);
     }

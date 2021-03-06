@@ -190,7 +190,6 @@ export class RecentTasksTreeDataProvider
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const recentTask = cloneTask(
             this.rootProjectsStore,
-            this.taskTerminalsStore,
             task,
             args,
             this.client,

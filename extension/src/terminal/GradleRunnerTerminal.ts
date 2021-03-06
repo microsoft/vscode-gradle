@@ -45,6 +45,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
 
   public async close(): Promise<void> {
     if (this.task && isTaskRunning(this.task)) {
+      console.log('foo');
       await this.cancelCommand();
     }
   }

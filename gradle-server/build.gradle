@@ -47,7 +47,12 @@ sourceSets {
 protobuf {
   plugins {
     grpc {
-      artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+      // for apple m1, please add protoc_platform=osx-x86_64 in $HOME/.gradle/gradle.properties
+      if (project.hasProperty('protoc_platform')) {
+        artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}:${protoc_platform}"
+      } else {
+        artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+      }
     }
   }
   generateProtoTasks {

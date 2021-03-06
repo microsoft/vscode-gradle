@@ -44,7 +44,7 @@ import {
   ExplorerFlatCommand,
 } from '../../commands';
 import { removeCancellingTask } from '../../tasks/taskUtil';
-import { RootProjectsStore, TaskTerminalsStore } from '../../stores';
+import { RootProjectsStore } from '../../stores';
 import { getRunTaskCommandCancellationKey } from '../../client/CancellationKeys';
 
 const mockContext = buildMockContext();
@@ -99,21 +99,14 @@ mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 
 describe(getSuiteName('Gradle tasks'), () => {
   let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
-  let taskTerminalsStore: TaskTerminalsStore;
   let gradleTaskProvider: GradleTaskProvider;
   let client: any;
   let rootProjectsStore: RootProjectsStore;
   beforeEach(async () => {
-    // const icons = new Icons(mockContext);
     client = buildMockClient();
     rootProjectsStore = new RootProjectsStore();
 
-    taskTerminalsStore = new TaskTerminalsStore();
-    gradleTaskProvider = new GradleTaskProvider(
-      rootProjectsStore,
-      taskTerminalsStore,
-      client
-    );
+    gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
     gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext,
       rootProjectsStore,
@@ -137,20 +130,23 @@ describe(getSuiteName('Gradle tasks'), () => {
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
         client.getBuild.resolves(mockGradleBuildWithoutTasks);
         const children = await gradleTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
         const noTasksTreeItem = children[0];
         assert.ok(
           noTasksTreeItem instanceof NoGradleTasksTreeItem,
           'Tree item is not an instance of NoGradleTasksTreeItem'
         );
-        assert.equal(noTasksTreeItem.contextValue, TREE_ITEM_STATE_NO_TASKS);
-        assert.equal(noTasksTreeItem.label, 'No tasks found');
+        assert.strictEqual(
+          noTasksTreeItem.contextValue,
+          TREE_ITEM_STATE_NO_TASKS
+        );
+        assert.strictEqual(noTasksTreeItem.label, 'No tasks found');
         const iconPath = noTasksTreeItem.iconPath as IconPath;
-        assert.equal(
+        assert.strictEqual(
           iconPath.dark,
           path.join('resources', 'dark', ICON_WARNING)
         );
-        assert.equal(
+        assert.strictEqual(
           iconPath.light,
           path.join('resources', 'light', ICON_WARNING)
         );
@@ -158,8 +154,8 @@ describe(getSuiteName('Gradle tasks'), () => {
           noTasksTreeItem.command,
           'NoGradleTasksTreeItem should have a command'
         );
-        assert.equal(noTasksTreeItem.command.command, COMMAND_SHOW_LOGS);
-        assert.equal(noTasksTreeItem.command.title, 'Show Logs');
+        assert.strictEqual(noTasksTreeItem.command.command, COMMAND_SHOW_LOGS);
+        assert.strictEqual(noTasksTreeItem.command.title, 'Show Logs');
       });
     });
 
@@ -178,7 +174,7 @@ describe(getSuiteName('Gradle tasks'), () => {
 
         it('should build project items at top level', () => {
           assert.ok(gradleProjects.length > 0, 'No gradle projects found');
-          assert.equal(
+          assert.strictEqual(
             gradleProjects.length,
             1,
             'There should only be one project if two tasks share the same project & buildfile'
@@ -188,17 +184,17 @@ describe(getSuiteName('Gradle tasks'), () => {
             projectItem instanceof ProjectTreeItem,
             'Gradle project is not a ProjectTreeItem'
           );
-          assert.equal(
+          assert.strictEqual(
             projectItem.groups.length,
             1,
             'There should only be one group if there are multiple tasks that share the same group'
           );
-          assert.equal(
+          assert.strictEqual(
             projectItem.collapsibleState,
             vscode.TreeItemCollapsibleState.Expanded
           );
-          assert.equal(projectItem.contextValue, TREE_ITEM_STATE_FOLDER);
-          assert.equal(
+          assert.strictEqual(projectItem.contextValue, TREE_ITEM_STATE_FOLDER);
+          assert.strictEqual(
             projectItem.label,
             mockTaskDefinition1ForFolder1.project
           );
@@ -210,12 +206,12 @@ describe(getSuiteName('Gradle tasks'), () => {
             projectItem.resourceUri,
             'resourceUri must be set for a ProjectTreeItem'
           );
-          assert.equal(
+          assert.strictEqual(
             projectItem.resourceUri.fsPath,
             mockTaskDefinition1ForFolder1.buildFile
           );
-          assert.equal(projectItem.iconPath, vscode.ThemeIcon.File);
-          assert.equal(
+          assert.strictEqual(projectItem.iconPath, vscode.ThemeIcon.File);
+          assert.strictEqual(
             projectItem.tasks.length,
             0,
             'There should not be any tasks for a ProjectTreeItem if the tree is not collapsed'
@@ -229,19 +225,22 @@ describe(getSuiteName('Gradle tasks'), () => {
             groupItem instanceof GroupTreeItem,
             'Group is not a GroupTreeItem'
           );
-          assert.equal(groupItem.contextValue, TREE_ITEM_STATE_FOLDER);
-          assert.equal(
+          assert.strictEqual(groupItem.contextValue, TREE_ITEM_STATE_FOLDER);
+          assert.strictEqual(
             groupItem.collapsibleState,
             vscode.TreeItemCollapsibleState.Collapsed
           );
-          assert.equal(groupItem.label, mockTaskDefinition1ForFolder1.group);
-          assert.equal(groupItem.iconPath, vscode.ThemeIcon.Folder);
-          assert.equal(
+          assert.strictEqual(
+            groupItem.label,
+            mockTaskDefinition1ForFolder1.group
+          );
+          assert.strictEqual(groupItem.iconPath, vscode.ThemeIcon.Folder);
+          assert.strictEqual(
             groupItem.parentTreeItem,
             projectItem,
             'GroupTreeItem parentItem must be ProjectTreeItem'
           );
-          assert.equal(groupItem.tasks.length, 2);
+          assert.strictEqual(groupItem.tasks.length, 2);
         });
 
         it('should build task items', () => {
@@ -254,27 +253,30 @@ describe(getSuiteName('Gradle tasks'), () => {
             // eslint-disable-next-line sonarjs/no-duplicate-string
             'TreeItem is not a GradleTaskTreeItem'
           );
-          assert.equal(taskItem.contextValue, TREE_ITEM_STATE_TASK_IDLE);
-          assert.equal(taskItem.description, '');
-          assert.equal(taskItem.label, mockTaskDefinition1ForFolder1.script);
-          assert.equal(
+          assert.strictEqual(taskItem.contextValue, TREE_ITEM_STATE_TASK_IDLE);
+          assert.strictEqual(taskItem.description, '');
+          assert.strictEqual(
+            taskItem.label,
+            mockTaskDefinition1ForFolder1.script
+          );
+          assert.strictEqual(
             taskItem.tooltip,
             mockTaskDefinition1ForFolder1.description
           );
-          assert.equal(
+          assert.strictEqual(
             taskItem.task.definition.id,
             mockTaskDefinition1ForFolder1.id
           );
           const iconPath = taskItem.iconPath as IconPath;
-          assert.equal(
+          assert.strictEqual(
             iconPath.dark,
             path.join('resources', 'dark', ICON_GRADLE_TASK)
           );
-          assert.equal(
+          assert.strictEqual(
             iconPath.light,
             path.join('resources', 'light', ICON_GRADLE_TASK)
           );
-          assert.equal(taskItem.parentTreeItem, groupItem);
+          assert.strictEqual(taskItem.parentTreeItem, groupItem);
         });
       });
 
@@ -287,13 +289,13 @@ describe(getSuiteName('Gradle tasks'), () => {
 
         it('should build project items at top level', () => {
           assert.ok(gradleProjects.length > 0, 'No gradle projects found');
-          assert.equal(
+          assert.strictEqual(
             gradleProjects.length,
             1,
             'There should only be one project if two tasks share the same project & buildfile'
           );
           const projectItem = gradleProjects[0] as ProjectTreeItem;
-          assert.equal(
+          assert.strictEqual(
             projectItem.collapsibleState,
             vscode.TreeItemCollapsibleState.Expanded
           );
@@ -309,12 +311,12 @@ describe(getSuiteName('Gradle tasks'), () => {
 
         it('should build task items', () => {
           const projectItem = gradleProjects[0] as ProjectTreeItem;
-          assert.equal(
+          assert.strictEqual(
             projectItem.groups.length,
             0,
             'ProjectTreeItem should not have any groups'
           );
-          assert.equal(
+          assert.strictEqual(
             projectItem.tasks.length,
             2,
             'Tasks should be listed under projects'
@@ -346,17 +348,20 @@ describe(getSuiteName('Gradle tasks'), () => {
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
-          assert.equal(
+          assert.strictEqual(
             taskItem.task.definition.id,
             mockTaskDefinition1ForFolder1.id
           );
-          assert.equal(taskItem.contextValue, TREE_ITEM_STATE_TASK_RUNNING);
+          assert.strictEqual(
+            taskItem.contextValue,
+            TREE_ITEM_STATE_TASK_RUNNING
+          );
           const iconPath = taskItem.iconPath as IconPath;
-          assert.equal(
+          assert.strictEqual(
             iconPath.dark,
             path.join('resources', 'dark', ICON_LOADING)
           );
-          assert.equal(
+          assert.strictEqual(
             iconPath.light,
             path.join('resources', 'light', ICON_LOADING)
           );
@@ -390,17 +395,20 @@ describe(getSuiteName('Gradle tasks'), () => {
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
-          assert.equal(
+          assert.strictEqual(
             taskItem.task.definition.id,
             mockTaskDefinition1ForFolder1.id
           );
-          assert.equal(taskItem.contextValue, TREE_ITEM_STATE_TASK_CANCELLING);
+          assert.strictEqual(
+            taskItem.contextValue,
+            TREE_ITEM_STATE_TASK_CANCELLING
+          );
           const iconPath = taskItem.iconPath as IconPath;
-          assert.equal(
+          assert.strictEqual(
             iconPath.dark,
             path.join('resources', 'dark', ICON_GRADLE_TASK)
           );
-          assert.equal(
+          assert.strictEqual(
             iconPath.light,
             path.join('resources', 'light', ICON_GRADLE_TASK)
           );
@@ -419,7 +427,7 @@ describe(getSuiteName('Gradle tasks'), () => {
       it('should build a "No Tasks" tree item when no tasks are found', async () => {
         client.getBuild.resolves(mockGradleBuildWithoutTasks);
         const children = await gradleTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
       });
     });
 
@@ -432,7 +440,7 @@ describe(getSuiteName('Gradle tasks'), () => {
       it('should build root RootProject items at top level', async () => {
         const rootProjectItems = await gradleTasksTreeDataProvider.getChildren();
         assert.ok(rootProjectItems.length > 0, 'No root gradle projects found');
-        assert.equal(
+        assert.strictEqual(
           rootProjectItems.length,
           2,
           'There should multi RootProject items when there are multi tasks belonging to different root projects'
@@ -442,23 +450,26 @@ describe(getSuiteName('Gradle tasks'), () => {
           rootProjectItem instanceof RootProjectTreeItem,
           'Tree item is not a RootProjectTreeItem'
         );
-        assert.equal(
+        assert.strictEqual(
           rootProjectItem.projects.length,
           1,
           'There should only be one project belonging to this RootProject'
         );
-        assert.equal(
+        assert.strictEqual(
           rootProjectItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
         );
-        assert.equal(rootProjectItem.contextValue, TREE_ITEM_STATE_FOLDER);
-        assert.equal(rootProjectItem.label, mockWorkspaceFolder1.name);
-        assert.equal(rootProjectItem.iconPath, vscode.ThemeIcon.Folder);
+        assert.strictEqual(
+          rootProjectItem.contextValue,
+          TREE_ITEM_STATE_FOLDER
+        );
+        assert.strictEqual(rootProjectItem.label, mockWorkspaceFolder1.name);
+        assert.strictEqual(rootProjectItem.iconPath, vscode.ThemeIcon.Folder);
         assert.ok(
           rootProjectItem.resourceUri,
           'ResourceUri is not set on RootProject'
         );
-        assert.equal(
+        assert.strictEqual(
           rootProjectItem.resourceUri.fsPath,
           mockWorkspaceFolder1.uri.fsPath
         );

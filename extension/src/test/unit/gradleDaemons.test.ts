@@ -141,64 +141,68 @@ describe(getSuiteName('Gradle daemons'), () => {
 
     const children = await gradleDaemonsTreeDataProvider.getChildren();
 
-    assert.equal(children.length, 4, 'There should be 6 items in the tree');
+    assert.strictEqual(
+      children.length,
+      4,
+      'There should be 6 items in the tree'
+    );
 
     const treeItemBusy = children[0];
-    assert.equal(treeItemBusy.label, '41716');
-    assert.equal(treeItemBusy.description, 'BUSY');
-    assert.equal(treeItemBusy.contextValue, 'busy');
-    assert.equal(treeItemBusy.tooltip, 'BUSY - 6.3');
-    assert.equal(
+    assert.strictEqual(treeItemBusy.label, '41716');
+    assert.strictEqual(treeItemBusy.description, 'BUSY');
+    assert.strictEqual(treeItemBusy.contextValue, 'busy');
+    assert.strictEqual(treeItemBusy.tooltip, 'BUSY - 6.3');
+    assert.strictEqual(
       treeItemBusy.collapsibleState,
       vscode.TreeItemCollapsibleState.None
     );
     const busyIconPath = treeItemBusy.iconPath as IconPath;
-    assert.equal(
+    assert.strictEqual(
       busyIconPath.dark,
       path.join('resources', 'dark', ICON_DAEMON_BUSY)
     );
-    assert.equal(
+    assert.strictEqual(
       busyIconPath.light,
       path.join('resources', 'light', ICON_DAEMON_BUSY)
     );
 
     const treeItemStopped = children[1];
-    assert.equal(treeItemStopped.label, '41718');
-    assert.equal(treeItemStopped.description, 'STOPPED');
-    assert.equal(treeItemStopped.contextValue, 'stopped');
-    assert.equal(
+    assert.strictEqual(treeItemStopped.label, '41718');
+    assert.strictEqual(treeItemStopped.description, 'STOPPED');
+    assert.strictEqual(treeItemStopped.contextValue, 'stopped');
+    assert.strictEqual(
       treeItemStopped.tooltip,
       'STOPPED - (by user or operating system)'
     );
-    assert.equal(
+    assert.strictEqual(
       treeItemStopped.collapsibleState,
       vscode.TreeItemCollapsibleState.None
     );
     const stoppedIconPath = treeItemStopped.iconPath as IconPath;
-    assert.equal(
+    assert.strictEqual(
       stoppedIconPath.dark,
       path.join('resources', 'dark', ICON_DAEMON_STOPPED)
     );
-    assert.equal(
+    assert.strictEqual(
       stoppedIconPath.light,
       path.join('resources', 'light', ICON_DAEMON_STOPPED)
     );
 
     const treeItemIdle = children[2];
-    assert.equal(treeItemIdle.label, '41717');
-    assert.equal(treeItemIdle.description, 'IDLE');
-    assert.equal(treeItemIdle.contextValue, 'idle');
-    assert.equal(treeItemIdle.tooltip, 'IDLE - 6.4');
-    assert.equal(
+    assert.strictEqual(treeItemIdle.label, '41717');
+    assert.strictEqual(treeItemIdle.description, 'IDLE');
+    assert.strictEqual(treeItemIdle.contextValue, 'idle');
+    assert.strictEqual(treeItemIdle.tooltip, 'IDLE - 6.4');
+    assert.strictEqual(
       treeItemIdle.collapsibleState,
       vscode.TreeItemCollapsibleState.None
     );
     const idleIconPath = treeItemIdle.iconPath as IconPath;
-    assert.equal(
+    assert.strictEqual(
       idleIconPath.dark,
       path.join('resources', 'dark', ICON_DAEMON_IDLE)
     );
-    assert.equal(
+    assert.strictEqual(
       idleIconPath.light,
       path.join('resources', 'light', ICON_DAEMON_IDLE)
     );
@@ -233,17 +237,17 @@ describe(getSuiteName('Gradle daemons'), () => {
       ),
       'Stop daemon confirmation message not shown'
     );
-    assert.equal(showWarningMessageStub.callCount, 1);
+    assert.strictEqual(showWarningMessageStub.callCount, 1);
     assert.ok(
       mockClient.stopDaemon.calledWith(mockDaemonInfoBusy.getPid()),
       'Client stopDaemon not called with daemon PID'
     );
-    assert.equal(mockClient.stopDaemon.callCount, 1);
+    assert.strictEqual(mockClient.stopDaemon.callCount, 1);
     assert.ok(
       mockOutputChannel.appendLine.calledWith('[info] Stopped'),
       'Output channel appendLine not called with correct message'
     );
-    assert.equal(mockOutputChannel.appendLine.callCount, 1);
+    assert.strictEqual(mockOutputChannel.appendLine.callCount, 1);
   });
 
   it('should stop all daemons', async () => {
@@ -293,7 +297,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     gradleDaemonsTreeDataProvider.onDidChangeTreeData(onDidChangeSpy);
     await new RefreshDaemonStatusCommand(gradleDaemonsTreeDataProvider).run();
     assert.ok(onDidChangeSpy.calledWith(), 'onDidChangeTreeData not called');
-    assert.equal(onDidChangeSpy.callCount, 1);
+    assert.strictEqual(onDidChangeSpy.callCount, 1);
   });
 
   it('should prevent queing of daemon status requests', async () => {
@@ -331,7 +335,7 @@ describe(getSuiteName('Gradle daemons'), () => {
 
     const children = await gradleDaemonsTreeDataProvider.getChildren();
 
-    assert.equal(children[0].description, 'BUSY');
+    assert.strictEqual(children[0].description, 'BUSY');
 
     mockClient.getDaemonsStatus
       .withArgs(mockWorkspaceFolder1.uri.fsPath)
@@ -344,7 +348,7 @@ describe(getSuiteName('Gradle daemons'), () => {
       gradleDaemonsTreeDataProvider
         .getChildren()
         .then((_children: vscode.TreeItem[]) => {
-          assert.equal(_children[0].description, 'BUSY');
+          assert.strictEqual(_children[0].description, 'BUSY');
         })
         .catch(reject);
       // This call will return the correct results (longReply)
@@ -352,8 +356,8 @@ describe(getSuiteName('Gradle daemons'), () => {
       gradleDaemonsTreeDataProvider
         .getChildren()
         .then((_children: vscode.TreeItem[]) => {
-          assert.equal(_children[0].description, 'IDLE');
-          resolve();
+          assert.strictEqual(_children[0].description, 'IDLE');
+          resolve(undefined);
         })
         .catch(reject);
     });

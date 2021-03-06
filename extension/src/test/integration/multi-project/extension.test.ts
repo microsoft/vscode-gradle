@@ -25,7 +25,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
   it('should be activated', () => {
     assert.ok(extension);
-    assert.equal(extension.isActive, true);
+    assert.strictEqual(extension.isActive, true);
   });
 
   describe('tasks', () => {
@@ -36,7 +36,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
     });
 
     it('should load tasks', async () => {
-      assert.equal(tasks!.length > 0, true);
+      assert.strictEqual(tasks!.length > 0, true);
     });
 
     it('should run a gradle task', async () => {
@@ -48,7 +48,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
             disposable.dispose();
-            resolve();
+            resolve(undefined);
           }
         });
         try {

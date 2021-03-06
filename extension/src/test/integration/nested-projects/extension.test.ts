@@ -32,7 +32,7 @@ describe(getSuiteName('Extension'), () => {
   it('should be activated', () => {
     assert.ok(extension);
     if (extension) {
-      assert.equal(extension.isActive, true);
+      assert.strictEqual(extension.isActive, true);
     }
   });
 
@@ -41,7 +41,7 @@ describe(getSuiteName('Extension'), () => {
     describe('Without nestedProjects enabled', () => {
       it('should not load any tasks', async () => {
         const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
-        assert.equal(tasks.length, 0);
+        assert.strictEqual(tasks.length, 0);
       });
     });
 
@@ -63,7 +63,7 @@ describe(getSuiteName('Extension'), () => {
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
-        assert.equal(groovyDefaultTask.definition.project, 'gradle');
+        assert.strictEqual(groovyDefaultTask.definition.project, 'gradle');
       });
 
       it('should load kotlin default build file tasks', () => {
@@ -71,7 +71,7 @@ describe(getSuiteName('Extension'), () => {
           ({ name }) => name === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
-        assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
+        assert.strictEqual(kotlinTask.definition.project, 'gradle-kotlin');
       });
 
       it('should load groovy custom build file tasks', () => {
@@ -79,7 +79,7 @@ describe(getSuiteName('Extension'), () => {
           ({ name }) => name === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
-        assert.equal(
+        assert.strictEqual(
           groovyCustomTask.definition.project,
           'gradle-groovy-custom-build-file'
         );
@@ -104,7 +104,7 @@ describe(getSuiteName('Extension'), () => {
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
-        assert.equal(groovyDefaultTask.definition.project, 'gradle');
+        assert.strictEqual(groovyDefaultTask.definition.project, 'gradle');
       });
 
       it('should not load kotlin default build file tasks', () => {

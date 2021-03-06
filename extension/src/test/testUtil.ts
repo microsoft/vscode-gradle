@@ -206,8 +206,8 @@ export function assertFolderTreeItem(
   workspaceFolder: vscode.WorkspaceFolder
 ): void {
   assert.ok(workspaceTreeItem);
-  assert.equal(workspaceTreeItem.contextValue, TREE_ITEM_STATE_FOLDER);
-  assert.equal(workspaceTreeItem.label, workspaceFolder.name);
-  assert.equal(workspaceTreeItem.iconPath, vscode.ThemeIcon.Folder);
-  assert.equal(workspaceTreeItem.resourceUri, undefined);
+  assert.strictEqual(workspaceTreeItem.contextValue, TREE_ITEM_STATE_FOLDER);
+  assert.strictEqual(workspaceTreeItem.label, workspaceFolder.name);
+  assert.strictEqual(workspaceTreeItem.iconPath, vscode.ThemeIcon.Folder);
+  assert.strictEqual(workspaceTreeItem.resourceUri, undefined);
 }

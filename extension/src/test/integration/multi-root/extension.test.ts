@@ -23,7 +23,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
 
     it('should be activated', () => {
       assert.ok(extension);
-      assert.equal(extension.isActive, true);
+      assert.strictEqual(extension.isActive, true);
     });
 
     describe('tasks', () => {
@@ -38,7 +38,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           ({ name }) => name === 'helloGroovyDefault'
         );
         assert.ok(groovyDefaultTask);
-        assert.equal(groovyDefaultTask.definition.project, 'gradle');
+        assert.strictEqual(groovyDefaultTask.definition.project, 'gradle');
       });
 
       it('should load kotlin default build file tasks', () => {
@@ -46,7 +46,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           ({ name }) => name === 'helloKotlinDefault'
         );
         assert.ok(kotlinTask);
-        assert.equal(kotlinTask.definition.project, 'gradle-kotlin');
+        assert.strictEqual(kotlinTask.definition.project, 'gradle-kotlin');
       });
 
       it('should load groovy custom build file tasks', () => {
@@ -54,7 +54,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           ({ name }) => name === 'helloGroovyCustom'
         );
         assert.ok(groovyCustomTask);
-        assert.equal(
+        assert.strictEqual(
           groovyCustomTask.definition.project,
           'gradle-groovy-custom-build-file'
         );
@@ -71,7 +71,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
           const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
             if (e.execution.task === task) {
               disposable.dispose();
-              resolve();
+              resolve(undefined);
             }
           });
           try {

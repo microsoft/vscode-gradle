@@ -3,10 +3,10 @@ import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
 import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
 import { TaskId } from '../stores/types';
-import { RootProjectsStore, TaskTerminalsStore } from '../stores';
+import { RootProjectsStore } from '../stores';
 import { RootProject } from '../rootProject/RootProject';
 import { GradleClient } from '../client';
-import { getConfigJavaDebug, getConfigReuseTerminals } from '../util/config';
+import { getConfigJavaDebug } from '../util/config';
 import { EventWaiter } from '../util/EventWaiter';
 
 export class GradleTaskProvider
@@ -24,7 +24,6 @@ export class GradleTaskProvider
 
   constructor(
     private readonly rootProjectsStore: RootProjectsStore,
-    private readonly taskTerminalsStore: TaskTerminalsStore,
     private readonly client: GradleClient
   ) {}
 
@@ -66,13 +65,10 @@ export class GradleTaskProvider
       vscode.Uri.file(gradleTaskDefinition.projectFolder),
       javaDebug
     );
-    const reuseTerminals = getConfigReuseTerminals();
     return createTaskFromDefinition(
-      this.taskTerminalsStore,
       gradleTaskDefinition,
       rootProject,
-      this.client,
-      reuseTerminals
+      this.client
     );
   }
 
@@ -91,11 +87,7 @@ export class GradleTaskProvider
       return Promise.resolve(this.cachedTasks);
     }
 
-    this.loadTasksPromise = loadTasksForProjectRoots(
-      this.taskTerminalsStore,
-      this.client,
-      folders
-    )
+    this.loadTasksPromise = loadTasksForProjectRoots(this.client, folders)
       .then(
         (tasks) => {
           this.cachedTasks = tasks;

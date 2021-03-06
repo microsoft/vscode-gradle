@@ -6,7 +6,6 @@ import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { GradleBuild, GradleProject, GradleTask } from '../../proto/gradle_pb';
 import { RootProject } from '../../rootProject/RootProject';
-import { TaskTerminalsStore } from '../../stores';
 import {
   getVSCodeTasksFromGradleProject,
   loadTasksForProjectRoots,
@@ -28,7 +27,6 @@ const mockRootProject = new RootProject(
   }
 );
 const mockClient = buildMockClient();
-const mockTaskTerminalsStore = new TaskTerminalsStore();
 
 function buildProject(
   project: string,
@@ -104,11 +102,7 @@ describe(getSuiteName('taskUtil'), () => {
     gradleBuild.setProject(rootGradleProject);
     mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(
-      mockTaskTerminalsStore,
-      mockClient,
-      [mockRootProject]
-    );
+    const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
     assert.strictEqual(tasks.length, 2);
   });
 
@@ -127,11 +121,7 @@ describe(getSuiteName('taskUtil'), () => {
     gradleBuild.setProject(rootGradleProject);
     mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(
-      mockTaskTerminalsStore,
-      mockClient,
-      [mockRootProject]
-    );
+    const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
     assert.strictEqual(tasks.length, 255101);
   });
 
@@ -154,7 +144,6 @@ describe(getSuiteName('taskUtil'), () => {
     const gradleProject = new GradleProject();
     gradleProject.setProjectsList([subProject1, subProject2, subProject3]);
     const tasks = getVSCodeTasksFromGradleProject(
-      mockTaskTerminalsStore,
       mockRootProject,
       gradleProject,
       mockClient

@@ -8,11 +8,7 @@ import {
 import { GradleTaskTreeItem } from '..';
 import { GradleTaskDefinition, GradleTaskProvider } from '../../tasks';
 import { isWorkspaceFolder } from '../../util';
-import {
-  PinnedTasksStore,
-  RootProjectsStore,
-  TaskTerminalsStore,
-} from '../../stores';
+import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { TaskId, TaskArgs } from '../../stores/types';
 import { cloneTask, isGradleTask } from '../../tasks/taskUtil';
 import { RootProject } from '../../rootProject/RootProject';
@@ -97,7 +93,6 @@ export class PinnedTasksTreeDataProvider
     private readonly pinnedTasksStore: PinnedTasksStore,
     private readonly rootProjectsStore: RootProjectsStore,
     private readonly gradleTaskProvider: GradleTaskProvider,
-    private readonly taskTerminalsStore: TaskTerminalsStore,
     private readonly icons: Icons,
     private readonly client: GradleClient
   ) {
@@ -168,7 +163,6 @@ export class PinnedTasksTreeDataProvider
         Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
           const pinnedTask = cloneTask(
             this.rootProjectsStore,
-            this.taskTerminalsStore,
             task,
             args,
             this.client
