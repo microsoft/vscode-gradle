@@ -33,6 +33,7 @@ import { Commands } from './commands/Commands';
 import {
   getConfigIsDebugEnabled,
   getConfigFocusTaskInExplorer,
+  getConfigReuseTerminals,
 } from './util/config';
 import { FileWatcher } from './util/FileWatcher';
 
@@ -59,6 +60,7 @@ export class Extension {
   private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   private readonly api: Api;
   private readonly commands: Commands;
+  private recentTerminal?: vscode.Terminal;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
     const loggingChannel = vscode.window.createOutputChannel('Gradle Tasks');
@@ -87,7 +89,6 @@ export class Extension {
     this.rootProjectsStore = new RootProjectsStore();
     this.gradleTaskProvider = new GradleTaskProvider(
       this.rootProjectsStore,
-      this.taskTerminalsStore,
       this.client
     );
     this.taskProvider = vscode.tasks.registerTaskProvider(
@@ -123,7 +124,6 @@ export class Extension {
       this.pinnedTasksStore,
       this.rootProjectsStore,
       this.gradleTaskProvider,
-      this.taskTerminalsStore,
       this.icons,
       this.client
     );
@@ -221,10 +221,32 @@ export class Extension {
 
   private handleTaskEvents(): void {
     this.gradleTaskManager.onDidStartTask(async (task: vscode.Task) => {
+      const reuseTerminals = getConfigReuseTerminals();
+
+      const definition = task.definition as GradleTaskDefinition;
+
+      // Close previously opened task terminals
+      this.taskTerminalsStore.disposeTaskTerminals(
+        task.definition as GradleTaskDefinition,
+        reuseTerminals
+      );
+      // Add this task terminal to the store
+      if (this.recentTerminal) {
+        const terminalTaskName = this.recentTerminal.name.replace(
+          'Task - ',
+          ''
+        );
+        if (terminalTaskName === definition.script) {
+          this.taskTerminalsStore.addEntry(
+            terminalTaskName,
+            this.recentTerminal
+          );
+        }
+      }
+
       if (this.gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
         await focusTaskInGradleTasksTree(task, this.gradleTasksTreeView);
       }
-      const definition = task.definition as GradleTaskDefinition;
       this.recentTasksStore.addEntry(definition.id, definition.args);
       await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     });
@@ -284,7 +306,10 @@ export class Extension {
       vscode.window.onDidCloseTerminal((terminal: vscode.Terminal) => {
         this.taskTerminalsStore.removeTerminal(terminal);
       }),
-      vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh())
+      vscode.workspace.onDidChangeWorkspaceFolders(() => this.refresh()),
+      vscode.window.onDidOpenTerminal((terminal: vscode.Terminal) => {
+        this.recentTerminal = terminal;
+      })
     );
   }
 

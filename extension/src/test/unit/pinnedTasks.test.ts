@@ -28,11 +28,7 @@ import {
   RootProjectTreeItem,
   PinnedTasksRootProjectTreeItem,
 } from '../../views';
-import {
-  PinnedTasksStore,
-  RootProjectsStore,
-  TaskTerminalsStore,
-} from '../../stores';
+import { PinnedTasksStore, RootProjectsStore } from '../../stores';
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
 import {
@@ -86,12 +82,7 @@ describe(getSuiteName('Pinned tasks'), () => {
   beforeEach(async () => {
     const client = buildMockClient();
     rootProjectsStore = new RootProjectsStore();
-    const taskTerminalsStore = new TaskTerminalsStore();
-    gradleTaskProvider = new GradleTaskProvider(
-      rootProjectsStore,
-      taskTerminalsStore,
-      client
-    );
+    gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
     const icons = new Icons(mockContext);
     gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext,
@@ -105,7 +96,6 @@ describe(getSuiteName('Pinned tasks'), () => {
       pinnedTasksStore,
       rootProjectsStore,
       gradleTaskProvider,
-      taskTerminalsStore,
       icons,
       client
     );

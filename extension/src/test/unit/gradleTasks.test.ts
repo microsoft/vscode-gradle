@@ -44,7 +44,7 @@ import {
   ExplorerFlatCommand,
 } from '../../commands';
 import { removeCancellingTask } from '../../tasks/taskUtil';
-import { RootProjectsStore, TaskTerminalsStore } from '../../stores';
+import { RootProjectsStore } from '../../stores';
 import { getRunTaskCommandCancellationKey } from '../../client/CancellationKeys';
 
 const mockContext = buildMockContext();
@@ -99,7 +99,6 @@ mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 
 describe(getSuiteName('Gradle tasks'), () => {
   let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
-  let taskTerminalsStore: TaskTerminalsStore;
   let gradleTaskProvider: GradleTaskProvider;
   let client: any;
   let rootProjectsStore: RootProjectsStore;
@@ -108,12 +107,7 @@ describe(getSuiteName('Gradle tasks'), () => {
     client = buildMockClient();
     rootProjectsStore = new RootProjectsStore();
 
-    taskTerminalsStore = new TaskTerminalsStore();
-    gradleTaskProvider = new GradleTaskProvider(
-      rootProjectsStore,
-      taskTerminalsStore,
-      client
-    );
+    gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
     gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext,
       rootProjectsStore,

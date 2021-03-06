@@ -86,11 +86,7 @@ describe(getSuiteName('Recent tasks'), () => {
     const icons = new Icons(mockContext);
     rootProjectsStore = new RootProjectsStore();
     taskTerminalsStore = new TaskTerminalsStore();
-    gradleTaskProvider = new GradleTaskProvider(
-      rootProjectsStore,
-      taskTerminalsStore,
-      client
-    );
+    gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
     recentTasksStore = new RecentTasksStore();
     recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       mockContext,

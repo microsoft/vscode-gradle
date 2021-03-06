@@ -175,7 +175,12 @@ task npmInstall(type: CrossPlatformExec) {
   inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
   outputs.cacheIf { true }
-  commandLine 'npm', 'install'
+  // for apple m1, please add npm_arch=x64 in $HOME/.gradle/gradle.properties
+  if (project.hasProperty('npm_arch')) {
+    commandLine 'npm', "--target_arch=${npm_arch}", 'install'
+  } else {
+    commandLine 'npm', 'install'
+  }
 }
 
 task compileTypeScript(type: CrossPlatformExec) {

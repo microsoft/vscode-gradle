@@ -20,8 +20,6 @@ import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 import { GradleClient } from '../client';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import {
-  ReuseTerminalsValue,
-  getConfigReuseTerminals,
   getGradleConfig,
   getConfigIsAutoDetectionEnabled,
 } from '../util/config';
@@ -156,55 +154,10 @@ export function buildTaskName(definition: GradleTaskDefinition): string {
   return `${definition.script}${argsLabel}`;
 }
 
-function disposePreviousTerminals(
-  definition: GradleTaskDefinition,
-  taskTerminalsStore: TaskTerminalsStore,
-  reuseTerminals: ReuseTerminalsValue
-): void {
-  if (reuseTerminals === 'task') {
-    const previousTerminals = taskTerminalsStore.get(
-      definition.id + definition.args
-    );
-    if (previousTerminals) {
-      for (const previousTerminal of previousTerminals.values()) {
-        previousTerminal.dispose();
-      }
-      previousTerminals.clear();
-    }
-  } else if (reuseTerminals === 'all') {
-    const store = taskTerminalsStore.getData();
-    for (const taskTerminals of store.values()) {
-      for (const previousTerminal of taskTerminals.values()) {
-        previousTerminal.dispose();
-      }
-      taskTerminals.clear();
-    }
-  }
-}
-
-function handleTaskStart(
-  definition: GradleTaskDefinition,
-  taskTerminalsStore: TaskTerminalsStore,
-  reuseTerminals: ReuseTerminalsValue
-): void {
-  disposePreviousTerminals(definition, taskTerminalsStore, reuseTerminals);
-  const disposable = vscode.window.onDidOpenTerminal(
-    (openedTerminal: vscode.Terminal) => {
-      disposable.dispose();
-      taskTerminalsStore.addEntry(
-        definition.id + definition.args,
-        openedTerminal
-      );
-    }
-  );
-}
-
 export function createTaskFromDefinition(
-  taskTerminalsStore: TaskTerminalsStore,
   definition: Required<GradleTaskDefinition>,
   rootProject: RootProject,
-  client: GradleClient,
-  reuseTerminals: ReuseTerminalsValue
+  client: GradleClient
 ): vscode.Task {
   const args = [definition.script]
     .concat(parseArgsStringToArgv(definition.args.trim()))
@@ -227,10 +180,7 @@ export function createTaskFromDefinition(
     taskName,
     'gradle',
     new vscode.CustomExecution(
-      async (): Promise<vscode.Pseudoterminal> => {
-        handleTaskStart(definition, taskTerminalsStore, reuseTerminals);
-        return terminal;
-      }
+      async (): Promise<vscode.Pseudoterminal> => terminal
     ),
     ['$gradle']
   );
@@ -247,11 +197,9 @@ export function createTaskFromDefinition(
 }
 
 function createVSCodeTaskFromGradleTask(
-  taskTerminalsStore: TaskTerminalsStore,
   gradleTask: GradleTask,
   rootProject: RootProject,
   client: GradleClient,
-  reuseTerminals: ReuseTerminalsValue,
   args = '',
   javaDebug = false
 ): vscode.Task {
@@ -275,22 +223,14 @@ function createVSCodeTaskFromGradleTask(
     args,
     javaDebug,
   };
-  return createTaskFromDefinition(
-    taskTerminalsStore,
-    definition,
-    rootProject,
-    client,
-    reuseTerminals
-  );
+  return createTaskFromDefinition(definition, rootProject, client);
 }
 
 export function getVSCodeTasksFromGradleProject(
-  taskTerminalsStore: TaskTerminalsStore,
   rootProject: RootProject,
   gradleProject: GradleProject,
   client: GradleClient
 ): vscode.Task[] {
-  const reuseTerminals = getConfigReuseTerminals();
   let projects: Array<GradleProject> = [gradleProject];
   const vsCodeTasks: vscode.Task[] = [];
   while (projects.length) {
@@ -298,13 +238,7 @@ export function getVSCodeTasksFromGradleProject(
     const gradleTasks: GradleTask[] | void = project!.getTasksList();
     for (const gradleTask of gradleTasks) {
       vsCodeTasks.push(
-        createVSCodeTaskFromGradleTask(
-          taskTerminalsStore,
-          gradleTask,
-          rootProject,
-          client,
-          reuseTerminals
-        )
+        createVSCodeTaskFromGradleTask(gradleTask, rootProject, client)
       );
     }
     projects = projects.concat(project!.getProjectsList());
@@ -321,7 +255,6 @@ async function getGradleBuild(
 }
 
 export async function loadTasksForProjectRoots(
-  taskTerminalsStore: TaskTerminalsStore,
   client: GradleClient,
   rootProjects: ReadonlyArray<RootProject>
 ): Promise<vscode.Task[]> {
@@ -332,7 +265,6 @@ export async function loadTasksForProjectRoots(
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
         const vsCodeTasks = getVSCodeTasksFromGradleProject(
-          taskTerminalsStore,
           rootProject,
           gradleProject,
           client
@@ -386,7 +318,6 @@ export async function runTask(
     if (debug || args) {
       const clonedTask = cloneTask(
         rootProjectsStore,
-        taskTerminalsStore,
         task,
         args,
         client,
@@ -425,7 +356,6 @@ export async function runTaskWithArgs(
 
 export function cloneTask(
   rootProjectsStore: RootProjectsStore,
-  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
   args: string,
   client: GradleClient,
@@ -437,14 +367,7 @@ export function cloneTask(
     javaDebug,
   };
   const rootProject = rootProjectsStore.get(definition.projectFolder);
-  const reuseTerminals = getConfigReuseTerminals();
-  return createTaskFromDefinition(
-    taskTerminalsStore,
-    definition,
-    rootProject!,
-    client,
-    reuseTerminals
-  );
+  return createTaskFromDefinition(definition, rootProject!, client);
 }
 
 export function getGradleTasks(): Thenable<vscode.Task[]> {
