@@ -188,13 +188,12 @@ describe(getSuiteName('Extension'), () => {
       assert.strictEqual(vscode.window.terminals.length, 3);
     });
 
-    it.only('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
+    it('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'task');
       await executeAndWaitForTasks();
       assert.strictEqual(vscode.window.terminals.length, 2);
-      console.log('FOO');
     });
 
     it('should generate 1 terminal for all tasks with reuseTerminals: "all"', async () => {

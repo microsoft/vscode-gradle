@@ -103,7 +103,6 @@ describe(getSuiteName('Gradle tasks'), () => {
   let client: any;
   let rootProjectsStore: RootProjectsStore;
   beforeEach(async () => {
-    // const icons = new Icons(mockContext);
     client = buildMockClient();
     rootProjectsStore = new RootProjectsStore();
 
