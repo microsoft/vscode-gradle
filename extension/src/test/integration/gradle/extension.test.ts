@@ -45,7 +45,7 @@ describe(getSuiteName('Extension'), () => {
   it('should be activated', () => {
     assert.ok(extension);
     if (extension) {
-      assert.equal(extension.isActive, true);
+      assert.strictEqual(extension.isActive, true);
     }
   });
 
@@ -57,10 +57,10 @@ describe(getSuiteName('Extension'), () => {
     it('should load gradle tasks', async () => {
       const tasks = await vscode.tasks.fetchTasks({ type: 'gradle' });
       assert.ok(tasks);
-      assert.equal(tasks.length > 0, true);
+      assert.strictEqual(tasks.length > 0, true);
       const helloTask = tasks.find(({ name }) => name === 'hello');
       assert.ok(helloTask);
-      assert.equal(
+      assert.strictEqual(
         path.basename(helloTask.definition.projectFolder),
         fixtureName
       );
@@ -110,7 +110,7 @@ describe(getSuiteName('Extension'), () => {
         const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task.definition.script === task.definition.script) {
             endDisposable.dispose();
-            resolve();
+            resolve(undefined);
           }
         });
         const treeItem = new GradleTaskTreeItem(
@@ -188,12 +188,13 @@ describe(getSuiteName('Extension'), () => {
       assert.strictEqual(vscode.window.terminals.length, 3);
     });
 
-    it('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
+    it.only('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'task');
       await executeAndWaitForTasks();
       assert.strictEqual(vscode.window.terminals.length, 2);
+      console.log('FOO');
     });
 
     it('should generate 1 terminal for all tasks with reuseTerminals: "all"', async () => {

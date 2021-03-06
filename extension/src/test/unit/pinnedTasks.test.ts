@@ -118,20 +118,23 @@ describe(getSuiteName('Pinned tasks'), () => {
     describe('With no pinned tasks', () => {
       it('should build a "No Tasks" tree item when no pinned have been added', async () => {
         const children = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
         const childTreeItem = children[0];
         assert.ok(
           childTreeItem instanceof NoPinnedTasksTreeItem,
           'Tree item is not an instance of NoPinnedTasksTreeItem'
         );
-        assert.equal(childTreeItem.contextValue, TREE_ITEM_STATE_NO_TASKS);
-        assert.equal(childTreeItem.label, 'No pinned tasks');
+        assert.strictEqual(
+          childTreeItem.contextValue,
+          TREE_ITEM_STATE_NO_TASKS
+        );
+        assert.strictEqual(childTreeItem.label, 'No pinned tasks');
         const iconPath = childTreeItem.iconPath as IconPath;
-        assert.equal(
+        assert.strictEqual(
           iconPath.dark,
           path.join('resources', 'dark', ICON_WARNING)
         );
-        assert.equal(
+        assert.strictEqual(
           iconPath.light,
           path.join('resources', 'light', ICON_WARNING)
         );
@@ -164,32 +167,35 @@ describe(getSuiteName('Pinned tasks'), () => {
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
         const children = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
         const pinnedTaskTreeItem = children[0];
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.contextValue,
           TREE_ITEM_STATE_TASK_IDLE
         );
-        assert.equal(pinnedTaskTreeItem.description, '');
-        assert.equal(pinnedTaskTreeItem.label, mockTaskDefinition1.script);
-        assert.equal(
+        assert.strictEqual(pinnedTaskTreeItem.description, '');
+        assert.strictEqual(
+          pinnedTaskTreeItem.label,
+          mockTaskDefinition1.script
+        );
+        assert.strictEqual(
           pinnedTaskTreeItem.tooltip,
           mockTaskDefinition1.description
         );
-        assert.equal(
+        assert.strictEqual(
           (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;
-        assert.equal(
+        assert.strictEqual(
           iconPath.dark,
           path.join('resources', 'dark', ICON_GRADLE_TASK)
         );
-        assert.equal(
+        assert.strictEqual(
           iconPath.light,
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
@@ -211,35 +217,35 @@ describe(getSuiteName('Pinned tasks'), () => {
           taskItem
         );
         const children = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
         const pinnedTaskTreeItem = children[0];
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.contextValue,
           TREE_ITEM_STATE_TASK_IDLE + 'WithArgs'
         );
-        assert.equal(pinnedTaskTreeItem.description, '');
-        assert.equal(
+        assert.strictEqual(pinnedTaskTreeItem.description, '');
+        assert.strictEqual(
           pinnedTaskTreeItem.label,
           `${mockTaskDefinition1.script} --info`
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.tooltip,
           `(args: --info) ${mockTaskDefinition1.description}`
         );
-        assert.equal(
+        assert.strictEqual(
           (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;
-        assert.equal(
+        assert.strictEqual(
           iconPath.dark,
           path.join('resources', 'dark', ICON_GRADLE_TASK)
         );
-        assert.equal(
+        assert.strictEqual(
           iconPath.light,
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
@@ -258,7 +264,7 @@ describe(getSuiteName('Pinned tasks'), () => {
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
         const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenBefore.length, 1);
+        assert.strictEqual(childrenBefore.length, 1);
         const pinnedTask = childrenBefore[0];
         sinon.stub(vscode.window, 'showInputBox').resolves('--info '); // intentional trailing space
         await new PinTaskWithArgsCommand(pinnedTasksTreeDataProvider).run(
@@ -266,7 +272,7 @@ describe(getSuiteName('Pinned tasks'), () => {
         );
 
         const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenAfter.length, 2);
+        assert.strictEqual(childrenAfter.length, 2);
         assert.ok(
           childrenAfter[0] instanceof PinnedTaskTreeItem,
           // eslint-disable-next-line sonarjs/no-duplicate-string
@@ -277,29 +283,29 @@ describe(getSuiteName('Pinned tasks'), () => {
           // eslint-disable-next-line sonarjs/no-duplicate-string
           'Pinned task is not PinnedTaskTreeItem'
         );
-        assert.equal(
+        assert.strictEqual(
           (childrenAfter[0] as PinnedTaskTreeItem).task.definition.script,
           (childrenAfter[1] as PinnedTaskTreeItem).task.definition.script
         );
         const pinnedTaskWithArgsTreeItem = childrenAfter[1];
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskWithArgsTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskWithArgsTreeItem.contextValue,
           TREE_ITEM_STATE_TASK_IDLE + 'WithArgs'
         );
-        assert.equal(pinnedTaskWithArgsTreeItem.description, '');
-        assert.equal(
+        assert.strictEqual(pinnedTaskWithArgsTreeItem.description, '');
+        assert.strictEqual(
           pinnedTaskWithArgsTreeItem.label,
           `${mockTaskDefinition1.script} --info`
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskWithArgsTreeItem.tooltip,
           `(args: --info) ${mockTaskDefinition1.description}`
         );
-        assert.equal(
+        assert.strictEqual(
           (pinnedTaskWithArgsTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
@@ -313,7 +319,7 @@ describe(getSuiteName('Pinned tasks'), () => {
         const taskItem = gradleTasks[0];
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
         const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenBefore.length, 1);
+        assert.strictEqual(childrenBefore.length, 1);
         const pinnedTask = childrenBefore[0];
         assert.ok(
           pinnedTask instanceof PinnedTaskTreeItem,
@@ -324,7 +330,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           pinnedTask
         );
         const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenAfter.length, 1);
+        assert.strictEqual(childrenAfter.length, 1);
         const noPinnedTasks = childrenAfter[0];
         assert.ok(
           noPinnedTasks instanceof NoPinnedTasksTreeItem,
@@ -340,7 +346,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           gradleTasks[1]
         );
         const childrenBefore = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenBefore.length, 2);
+        assert.strictEqual(childrenBefore.length, 2);
         assert.ok(
           childrenBefore[0] instanceof PinnedTaskTreeItem,
           'Pinned task is not PinnedTaskTreeItem'
@@ -361,7 +367,7 @@ describe(getSuiteName('Pinned tasks'), () => {
           'Clear all pinned tasks confirmation message not shown'
         );
         const childrenAfter = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(childrenAfter.length, 1);
+        assert.strictEqual(childrenAfter.length, 1);
         const noPinnedTasks = childrenAfter[0];
         assert.ok(
           noPinnedTasks instanceof NoPinnedTasksTreeItem,
@@ -404,48 +410,54 @@ describe(getSuiteName('Pinned tasks'), () => {
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
         const children = await pinnedTasksTreeDataProvider.getChildren();
-        assert.equal(children.length, 1);
+        assert.strictEqual(children.length, 1);
         const pinnedTasksRootProjectTreeItem = children[0] as PinnedTasksRootProjectTreeItem;
-        assert.equal(
+        assert.strictEqual(
           pinnedTasksRootProjectTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTasksRootProjectTreeItem.contextValue,
           TREE_ITEM_STATE_FOLDER
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTasksRootProjectTreeItem.label,
           mockWorkspaceFolder1.name
         );
-        assert.equal(pinnedTasksRootProjectTreeItem.parentTreeItem, undefined);
-        assert.equal(pinnedTasksRootProjectTreeItem.tasks.length, 1);
+        assert.strictEqual(
+          pinnedTasksRootProjectTreeItem.parentTreeItem,
+          undefined
+        );
+        assert.strictEqual(pinnedTasksRootProjectTreeItem.tasks.length, 1);
 
         const pinnedTaskTreeItem = pinnedTasksRootProjectTreeItem.tasks[0];
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.None
         );
-        assert.equal(
+        assert.strictEqual(
           pinnedTaskTreeItem.contextValue,
           TREE_ITEM_STATE_TASK_IDLE
         );
-        assert.equal(pinnedTaskTreeItem.description, '');
-        assert.equal(pinnedTaskTreeItem.label, mockTaskDefinition1.script);
-        assert.equal(
+        assert.strictEqual(pinnedTaskTreeItem.description, '');
+        assert.strictEqual(
+          pinnedTaskTreeItem.label,
+          mockTaskDefinition1.script
+        );
+        assert.strictEqual(
           pinnedTaskTreeItem.tooltip,
           mockTaskDefinition1.description
         );
-        assert.equal(
+        assert.strictEqual(
           (pinnedTaskTreeItem as PinnedTaskTreeItem).task.definition.id,
           mockTaskDefinition1.id
         );
         const iconPath = pinnedTaskTreeItem.iconPath as IconPath;
-        assert.equal(
+        assert.strictEqual(
           iconPath.dark,
           path.join('resources', 'dark', ICON_GRADLE_TASK)
         );
-        assert.equal(
+        assert.strictEqual(
           iconPath.light,
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
