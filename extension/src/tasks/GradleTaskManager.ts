@@ -2,15 +2,9 @@ import * as vscode from 'vscode';
 import { isGradleTask, getRunningGradleTasks } from './taskUtil';
 
 export class GradleTaskManager implements vscode.Disposable {
-  private readonly _onDidStartTask: vscode.EventEmitter<
-    vscode.Task
-  > = new vscode.EventEmitter<vscode.Task>();
-  private readonly _onDidEndTask: vscode.EventEmitter<
-    vscode.Task
-  > = new vscode.EventEmitter<vscode.Task>();
-  private readonly _onDidEndAllTasks: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
+  private readonly _onDidStartTask: vscode.EventEmitter<vscode.Task> = new vscode.EventEmitter<vscode.Task>();
+  private readonly _onDidEndTask: vscode.EventEmitter<vscode.Task> = new vscode.EventEmitter<vscode.Task>();
+  private readonly _onDidEndAllTasks: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
 
   public readonly onDidStartTask: vscode.Event<vscode.Task> = this
     ._onDidStartTask.event;
