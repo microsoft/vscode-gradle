@@ -15,12 +15,8 @@ export class GradleTaskProvider
   private readonly _onDidLoadTasks: vscode.EventEmitter<
     vscode.Task[]
   > = new vscode.EventEmitter<vscode.Task[]>();
-  private readonly _onDidStartRefresh: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
-  private readonly _onDidStopRefresh: vscode.EventEmitter<
-    null
-  > = new vscode.EventEmitter<null>();
+  private readonly _onDidStartRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidStopRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
 
   constructor(
     private readonly rootProjectsStore: RootProjectsStore,

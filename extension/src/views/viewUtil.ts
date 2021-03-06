@@ -26,7 +26,7 @@ export function treeItemSortCompareFunc(
   a: vscode.TreeItem,
   b: vscode.TreeItem
 ): number {
-  return a.label!.localeCompare(b.label!);
+  return a.label!.toString().localeCompare(b.label!.toString());
 }
 
 export function gradleTaskTreeItemSortCompareFunc(

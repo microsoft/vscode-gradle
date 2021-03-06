@@ -1,3 +1,3 @@
 export abstract class Command {
-  public abstract async run(...args: unknown[]): Promise<unknown>;
+  public abstract run(...args: unknown[]): Promise<unknown>;
 }

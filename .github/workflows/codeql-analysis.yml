@@ -38,10 +38,10 @@ jobs:
         with:
           java-version: "11"
           architecture: x64
-      - name: Use Node 12.16.2
+      - name: Use Node 14.15.4
         uses: actions/setup-node@v1
         with:
-          node-version: 12.16.2
+          node-version: 14.15.4
       - name: Build
         uses: eskatos/gradle-command-action@v1
         with:

@@ -20,10 +20,10 @@ jobs:
         with:
           java-version: "11"
           architecture: x64
-      - name: Use Node 12.16.2
+      - name: Use Node 14.15.4
         uses: actions/setup-node@v1
         with:
-          node-version: 12.16.2
+          node-version: 14.15.4
       - name: Cache gradle home
         uses: actions/cache@v2
         with:
@@ -76,7 +76,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [12.16.2]
+        node-version: [14.15.4]
         java-version: ["8", "11", "15"]
         os: [ubuntu-latest, windows-latest]
         # os: [ubuntu-latest, windows-latest, macos-latest]
@@ -183,10 +183,10 @@ jobs:
     if: github.event_name == 'push' && contains(github.ref, '/release/')
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node 12.16.2
+      - name: Use Node 14.15.4
         uses: actions/setup-node@v1
         with:
-          node-version: 12.16.2
+          node-version: 14.15.4
       - name: Build & prepare extension
         uses: eskatos/gradle-command-action@v1
         with:
@@ -219,10 +219,10 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/checkout@v2
-      - name: Use Node 12.16.2
+      - name: Use Node 14.15.4
         uses: actions/setup-node@v1
         with:
-          node-version: 12.16.2
+          node-version: 14.15.4
       - name: Cache gradle
         uses: actions/cache@v2
         with:

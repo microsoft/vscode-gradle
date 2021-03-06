@@ -75,7 +75,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
             disposable.dispose();
-            resolve();
+            resolve(undefined);
           }
         });
         try {
