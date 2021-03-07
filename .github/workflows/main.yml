@@ -277,16 +277,6 @@ jobs:
         with:
           arguments: prepareForRelease --no-daemon
           wrapper-cache-enabled: false
-      - name: Publish types
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd npm-package
-          tag=${GITHUB_REF#refs/tags/}
-          echo "Setting package version $tag"
-          npm --no-git-tag-version version "$tag"
-          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
-          npm publish
       - name: Publish extension
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
@@ -298,3 +288,13 @@ jobs:
           npm --no-git-tag-version version "$tag"
           npx vsce publish -p "$AZURE_TOKEN"
           npx ovsx publish -p "$OPENVSX_TOKEN"
+      - name: Publish types
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd npm-package
+          tag=${GITHUB_REF#refs/tags/}
+          echo "Setting package version $tag"
+          npm --no-git-tag-version version "$tag"
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
+          npm publish
