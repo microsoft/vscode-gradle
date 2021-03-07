@@ -175,13 +175,10 @@ jobs:
           DISPLAY: ":99.0"
           CI: "true"
       - name: Set test extension status
-        if: always()
+        if: ${{ steps.test.outcome=='failure' || steps.retry1.outcome=='failure' || steps.retry2.outcome=='failure' }}
         run: |
-          if (${{ steps.test.outcome=='success' || steps.retry1.outcome=='success' || steps.retry2.outcome=='success' }}); then
-             echo fine
-          else
-             exit 1
-          fi
+          echo "Tests failed"
+          exit 1
       - name: Stop Gradle daemon for root project
         uses: eskatos/gradle-command-action@v1
         with:
