@@ -86,7 +86,7 @@ public class GetBuildHandler {
 
     try (ProjectConnection connection = gradleConnector.connect()) {
       replyWithBuildEnvironment(buildEnvironment(connection));
-      org.gradle.tooling.model.GradleProject gradleProject = buildGradleProject(connection);
+      org.gradle.tooling.model.GradleProject gradleProject = getGradleProject(connection);
       replyWithProject(getProjectData(gradleProject, gradleProject));
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
@@ -135,7 +135,7 @@ public class GetBuildHandler {
     }
   }
 
-  private org.gradle.tooling.model.GradleProject buildGradleProject(ProjectConnection connection)
+  private org.gradle.tooling.model.GradleProject getGradleProject(ProjectConnection connection)
       throws IOException {
 
     ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder =
