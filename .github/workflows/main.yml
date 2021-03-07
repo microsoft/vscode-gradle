@@ -10,7 +10,7 @@ on:
 jobs:
   build-and-analyse:
     name: Build & Analyse
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -78,8 +78,7 @@ jobs:
       matrix:
         node-version: [14.15.4]
         java-version: ["8", "11", "15"]
-        os: [ubuntu-latest, windows-latest]
-        # os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, windows-2019, macos-10.15]
     steps:
       - uses: actions/checkout@v2
       - name: Use Node ${{ matrix.node-version }}
@@ -114,12 +113,12 @@ jobs:
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-20.04'
       - name: Set permissions
         run: |
           chmod +x extension/lib/gradle-server
           unset npm_config_prefix
-        if: matrix.os != 'windows-latest'
+        if: matrix.os != 'windows-2019'
       - name: Prepare gradle-groovy-custom-build-file
         uses: eskatos/gradle-command-action@v1
         with:
@@ -143,12 +142,43 @@ jobs:
           wrapper-cache-enabled: false
       - name: Test extension
         uses: eskatos/gradle-command-action@v1
+        continue-on-error: true
+        id: test
         with:
           arguments: testVsCode
           wrapper-cache-enabled: false
         env:
           DISPLAY: ":99.0"
           CI: "true"
+
+      - name: Retry test extension attempt 1
+        uses: eskatos/gradle-command-action@v1
+        continue-on-error: true
+        if: steps.test.outcome=='failure'
+        id: retry1
+        with:
+          arguments: testVsCode
+          wrapper-cache-enabled: false
+        env:
+          DISPLAY: ":99.0"
+          CI: "true"
+
+      - name: Retry test extension attempt 2
+        uses: eskatos/gradle-command-action@v1
+        continue-on-error: true
+        if: steps.retry1.outcome=='failure'
+        id: retry2
+        with:
+          arguments: testVsCode
+          wrapper-cache-enabled: false
+        env:
+          DISPLAY: ":99.0"
+          CI: "true"
+      - name: Set test extension status
+        if: ${{ steps.test.outcome=='failure' || steps.retry1.outcome=='failure' || steps.retry2.outcome=='failure' }}
+        run: |
+          echo "Tests failed"
+          exit 1
       - name: Stop Gradle daemon for root project
         uses: eskatos/gradle-command-action@v1
         with:
@@ -179,7 +209,7 @@ jobs:
   publish-beta-extension:
     needs: [test-extension]
     name: Publish BETA extension
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: github.event_name == 'push' && contains(github.ref, '/release/')
     steps:
       - uses: actions/checkout@v2
@@ -215,7 +245,7 @@ jobs:
   publish-extension:
     needs: [test-extension]
     name: Publish extension
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/checkout@v2
@@ -244,16 +274,6 @@ jobs:
         with:
           arguments: prepareForRelease --no-daemon
           wrapper-cache-enabled: false
-      - name: Publish types
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd npm-package
-          tag=${GITHUB_REF#refs/tags/}
-          echo "Setting package version $tag"
-          npm --no-git-tag-version version "$tag"
-          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
-          npm publish
       - name: Publish extension
         env:
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
@@ -265,3 +285,13 @@ jobs:
           npm --no-git-tag-version version "$tag"
           npx vsce publish -p "$AZURE_TOKEN"
           npx ovsx publish -p "$OPENVSX_TOKEN"
+      - name: Publish types
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd npm-package
+          tag=${GITHUB_REF#refs/tags/}
+          echo "Setting package version $tag"
+          npm --no-git-tag-version version "$tag"
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
+          npm publish

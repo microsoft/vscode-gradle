@@ -10,7 +10,10 @@ Start by opening an issue using one of the issue templates, or propose a change 
 2. Install [Java version >= 8](https://adoptopenjdk.net/)
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
-5. Build project files: `./gradlew build`
+5. If using an Apple M1:
+   - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
+   - Add `protoc_platform=osx-x86_64` to $HOME/.gradle/gradle.properties
+6. Build project files: `./gradlew build`
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 

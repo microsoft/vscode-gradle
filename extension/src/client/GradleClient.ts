@@ -336,7 +336,6 @@ export class GradleClient implements vscode.Disposable {
     try {
       const reply: CancelBuildReply | undefined = await new Promise(
         (resolve, reject) => {
-          console.log('cancel build');
           this.grpcClient!.cancelBuild(
             request,
             (
