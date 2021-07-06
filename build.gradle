@@ -43,9 +43,9 @@ subprojects {
 
   protobuf {
     protoc {
-      // for apple m1, please add protoc_platform=osx-x86_64 in $HOME/.gradle/gradle.properties
-      if (project.hasProperty('protoc_platform')) {
-        artifact = "com.google.protobuf:protoc:${protocVersion}:${protoc_platform}"
+      if (osdetector.os == 'osx') {
+        // Required for arm64 support on MacOS
+        artifact = "com.google.protobuf:protoc:${protocVersion}:osx-x86_64"
       } else {
         artifact = "com.google.protobuf:protoc:${protocVersion}"
       }
