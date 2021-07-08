@@ -18,10 +18,10 @@ const nlRegExp = new RegExp(`${NL}([^${CR}]|$)`, 'g');
 export class GradleRunnerTerminal implements vscode.Pseudoterminal {
   private readonly writeEmitter = new vscode.EventEmitter<string>();
   private stdOutLoggerStream: LoggerStream | undefined;
-  private readonly closeEmitter = new vscode.EventEmitter<void>();
+  private readonly closeEmitter = new vscode.EventEmitter<number>();
   private task?: vscode.Task;
   public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
-  public readonly onDidClose: vscode.Event<void> = this.closeEmitter.event;
+  public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
 
   constructor(
     private readonly rootProject: RootProject,
@@ -108,7 +108,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     } catch (e) {
       this.handleError(e);
     } finally {
-      this.closeEmitter.fire();
+      this.closeEmitter.fire(0);
     }
   }
 
