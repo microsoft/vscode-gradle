@@ -376,6 +376,8 @@ Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the
 
 ## Credits
 
+This project was originally started by [@badsyntax](https://github.com/badsyntax) and is now currently maintained by Microsoft. Huge thanks to [@badsyntax](https://github.com/badsyntax) who started it all and made this Gradle extension available.
+
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
 - Inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm)
 - Thanks to [@hanct](https://github.com/hanct) for providing feature suggestions and BETA testing
