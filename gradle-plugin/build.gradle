@@ -1,0 +1,15 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+task copyJar(type: Copy) {
+  from "build/libs/gradle-plugin.jar"
+  into "../gradle-server/src/main/resources"
+}
+
+tasks.build.dependsOn tasks.copyJar
