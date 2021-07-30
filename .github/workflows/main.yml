@@ -56,7 +56,7 @@ jobs:
       - name: Build & Analyse
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: gradle-server:build sonarqube -x :test -x extension:test -x npm-package:test
+          arguments: gradle-server:build -x :test -x extension:test -x npm-package:test
           wrapper-cache-enabled: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}

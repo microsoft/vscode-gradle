@@ -93,17 +93,6 @@ distTar.enabled = false
 shadowDistZip.enabled = false;
 shadowDistTar.enabled = false;
 
-sonarqube {
-  properties {
-    property "sonar.projectKey", "gradle-server"
-    property "sonar.projectName", "Tasks Server"
-    property "sonar.language", "java"
-    property "sonar.java.binaries", "build/classes/java"
-    property "sonar.junit.reportsPath", "build/test-results"
-    property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
-  }
-}
-
 spotless {
   java {
     googleJavaFormat()
