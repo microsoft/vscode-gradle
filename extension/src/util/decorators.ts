@@ -1,4 +1,4 @@
-// Taken from https://github.com/microsoft/vscode/blob/master/src/vs/base/common/decorators.ts
+// Taken from https://github.com/microsoft/vscode/blob/main/src/vs/base/common/decorators.ts
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */

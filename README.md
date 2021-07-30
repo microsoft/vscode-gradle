@@ -61,9 +61,9 @@ Tasks run via the `Run a Gradle Build` command are not reflected in any of the t
 </details>
 
 <details><summary>Control task terminal behaviour</summary>
-    
+
 ----
-    
+
 Use one terminal for each task type (default):
 
 ```json
@@ -379,7 +379,7 @@ Refer to [CONTRIBUTING.md](./CONTRIBUTING.md) for instructions on how to run the
 This project was originally started by [@badsyntax](https://github.com/badsyntax) and is now currently maintained by Microsoft. Huge thanks to [@badsyntax](https://github.com/badsyntax) who started it all and made this Gradle extension available.
 
 - Originally forked from [Cazzar/vscode-gradle](https://github.com/Cazzar/vscode-gradle)
-- Inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/master/extensions/npm)
+- Inspired by the built-in [npm extension](https://github.com/microsoft/vscode/tree/main/extensions/npm)
 - Thanks to [@hanct](https://github.com/hanct) for providing feature suggestions and BETA testing
 - Thanks to [@dcermak](https://github.com/dcermak) for providing inspiration to write some unit tests
 - Thanks to all who have submitted bug reports and feedback
