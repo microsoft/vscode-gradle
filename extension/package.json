@@ -2,21 +2,18 @@
   "name": "vscode-gradle",
   "displayName": "Gradle Tasks",
   "description": "Run Gradle tasks in VS Code",
-  "version": "0.0.0",
+  "version": "3.6.1",
   "private": true,
-  "publisher": "richardwillis",
+  "publisher": "vscjava",
+  "aiKey": "b4aae7d0-c65b-4819-92bf-1d2f537ae7ce",
   "icon": "icon.png",
   "readme": "README.md",
-  "author": "Richard Willis <willis.rh@gmail.com>",
-  "maintainers": [
-    "Richard Willis <willis.rh@gmail.com>"
-  ],
   "bugs": {
-    "url": "https://github.com/badsyntax/vscode-gradle/issues"
+    "url": "https://github.com/microsoft/vscode-gradle/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/badsyntax/vscode-gradle/"
+    "url": "https://github.com/microsoft/vscode-gradle/"
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
