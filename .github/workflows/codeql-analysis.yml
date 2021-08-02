@@ -48,8 +48,6 @@ jobs:
           arguments: build -x test
           wrapper-cache-enabled: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_SONARCLOUD_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           JAVA_HOME: ""
 
       - name: Perform CodeQL Analysis

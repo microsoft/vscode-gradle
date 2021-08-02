@@ -59,16 +59,6 @@ protobuf {
   }
 }
 
-sonarqube {
-  properties {
-    property "sonar.projectKey", "extension"
-    property "sonar.projectName", "Extension"
-    property "sonar.language", "typescript"
-    property "sonar.sources", "src"
-    property "sonar.typescript.tsconfigPath", "tsconfig.json"
-  }
-}
-
 test.enabled = false;
 jar.enabled = false;
 compileJava.enabled = false
