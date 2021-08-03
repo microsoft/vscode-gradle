@@ -10,7 +10,7 @@ import { GradleTaskDefinition } from '../tasks';
 import { GradleTask } from '../proto/gradle_pb';
 import { TREE_ITEM_STATE_FOLDER } from '../views/constants';
 
-export const EXTENSION_NAME = 'richardwillis.vscode-gradle';
+export const EXTENSION_NAME = 'vscjava.vscode-gradle';
 
 export function createTestRunner(pattern: string) {
   return function run(
