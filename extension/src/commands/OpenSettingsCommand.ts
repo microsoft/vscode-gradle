@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { Command } from './Command';
 
 export const COMMAND_OPEN_SETTINGS = 'gradle.openSettings';
-const EXTENSION_NAME = 'richardwillis.vscode-gradle';
+const EXTENSION_NAME = 'vscjava.vscode-gradle';
 
 export class OpenSettingsCommand extends Command {
   async run(): Promise<void> {

@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { Api } from '../../../api';
+import { EXTENSION_NAME } from '../../testUtil';
 
-const extensionName = 'richardwillis.vscode-gradle';
 const fixtureName = process.env.FIXTURE_NAME || '(unknown fixture)';
 const suiteName = process.env.SUITE_NAME || '(unknown suite)';
 
@@ -12,7 +12,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
   let extension: vscode.Extension<Api> | undefined;
 
   before(() => {
-    extension = vscode.extensions.getExtension(extensionName);
+    extension = vscode.extensions.getExtension(EXTENSION_NAME);
   });
 
   afterEach(() => {
