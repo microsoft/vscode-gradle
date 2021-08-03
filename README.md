@@ -1,10 +1,9 @@
 # Gradle Tasks
 
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/vscjava.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-gradle)
 [![Build & Publish](https://github.com/microsoft/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/microsoft/vscode-gradle/actions/workflows/main.yml?query=workflow%3A%22%5C%22Build%22)
-[![CodeQL](https://github.com/microsoft/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/microsoft/vscode-gradle/actions?query=workflow%3ACodeQL)
+[![CodeQL](https://github.com/badsyntax/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3ACodeQL)
 [![GitHub bug issues](https://img.shields.io/github/issues/microsoft/vscode-gradle/bug?label=bug%20reports)](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-
 This VS Code extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
 ![Gradle Tasks Screencast](images/screencast.gif)

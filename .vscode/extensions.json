@@ -8,7 +8,7 @@
     "sonarsource.sonarlint-vscode",
     "zxh404.vscode-proto3",
     "streetsidesoftware.code-spell-checker",
-    "richardwillis.vscode-gradle",
+    "vscjava.vscode-gradle",
     "esbenp.prettier-vscode"
   ]
 }
