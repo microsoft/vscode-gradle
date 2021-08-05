@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { instrumentOperationAsVsCodeCommand } from 'vscode-extension-telemetry-wrapper';
 import {
   COMMAND_SHOW_TASKS,
   ShowTasksCommand,
@@ -101,7 +102,7 @@ export class Commands {
 
   private registerCommand(commandId: string, command: Command): void {
     this.context.subscriptions.push(
-      vscode.commands.registerCommand(commandId, (...args: unknown[]) => {
+      instrumentOperationAsVsCodeCommand(commandId, (...args: unknown[]) => {
         return command.run(...args);
       })
     );
