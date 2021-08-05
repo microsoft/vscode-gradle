@@ -1,3 +1,3 @@
 # Change Log
 
-Detailed release notes can be found here: https://github.com/badsyntax/vscode-gradle/releases
+Detailed release notes can be found here: https://github.com/microsoft/vscode-gradle/releases

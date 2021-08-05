@@ -1,9 +1,9 @@
 # Gradle Tasks
 
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/richardwillis.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=richardwillis.vscode-gradle)
-[![Build & Publish](https://github.com/badsyntax/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3A%22Build+%26+Publish%22)
-[![CodeQL](https://github.com/badsyntax/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/badsyntax/vscode-gradle/actions?query=workflow%3ACodeQL)
-[![GitHub bug issues](https://img.shields.io/github/issues/badsyntax/vscode-gradle/bug?label=bug%20reports)](https://github.com/badsyntax/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+[![Build & Publish](https://github.com/microsoft/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/microsoft/vscode-gradle/actions/workflows/main.yml?query=workflow%3A%22%5C%22Build%22)
+[![CodeQL](https://github.com/microsoft/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/microsoft/vscode-gradle/actions?query=workflow%3ACodeQL)
+[![GitHub bug issues](https://img.shields.io/github/issues/microsoft/vscode-gradle/bug?label=bug%20reports)](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
 This VS Code extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
 
@@ -364,9 +364,13 @@ The reason for the incompatibility is due to the extensions providing the same t
 
 ## Support
 
-- 👉 [Submit a bug report](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=bug&template=bug_report.md&title=)
-- 👉 [Submit a feature request](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax&labels=enhancement&template=feature_request.md&title=)
-- 👉 [Submit any feedback](https://github.com/badsyntax/vscode-gradle/issues/new?assignees=badsyntax)
+- 👉 [Submit a bug report](https://github.com/microsoft/vscode-gradle/issues/new?assignees=&labels=bug&template=bug_report.md&title=)
+- 👉 [Submit a feature request](https://github.com/microsoft/vscode-gradle/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=)
+- 👉 [Submit any feedback](https://github.com/microsoft/vscode-gradle/issues/new/choose)
+
+## Data/Telemetry
+
+VS Code collects usage data and sends it to Microsoft to help improve our products and services. Read our [privacy statement](http://go.microsoft.com/fwlink/?LinkId=521839) to learn more. If you don’t wish to send usage data to Microsoft, you can set the `telemetry.enableTelemetry` setting to `false`. Learn more in our [FAQ](https://code.visualstudio.com/docs/supporting/faq#_how-to-disable-telemetry-reporting).
 
 ## Contributing
 
