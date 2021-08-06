@@ -25,7 +25,10 @@ export default [
     plugins: [
       ignore(['@grpc/proto-loader']),
       // https://github.com/rollup/plugins/issues/202
-      replace({"if (!process.addAsyncListener) require('async-listener": "require('async-listener"}),
+      replace({
+        "if (!process.addAsyncListener) require('async-listener":
+          "require('async-listener",
+      }),
       resolve({ preferBuiltins: true }),
       typescript({ module: 'ES2015', outDir: 'dist', declaration: true }),
       commonjs({
