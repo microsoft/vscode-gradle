@@ -15,7 +15,7 @@ if (process.env.NODE_ENV === 'production') {
 export default [
   {
     input: 'src/index.ts',
-    external: builtins.concat(['vscode']),
+    external: builtins.concat(['vscode', 'vscode-extension-telemetry-wrapper']),
     output: {
       dir: './dist',
       format: 'cjs',
