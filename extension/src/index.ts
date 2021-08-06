@@ -12,10 +12,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   return instrumentOperation('activation', activateExtension)(context);
 }
 
-async function activateExtension(
+function activateExtension(
   _operationId: string,
   context: vscode.ExtensionContext
-): Promise<Api> {
+): Api {
   return new Extension(context).getApi();
 }
 
