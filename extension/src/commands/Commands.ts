@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { instrumentOperationAsVsCodeCommand } from 'vscode-extension-telemetry-wrapper';
 import {
   COMMAND_SHOW_TASKS,
   ShowTasksCommand,
@@ -101,6 +102,17 @@ export class Commands {
 
   private registerCommand(commandId: string, command: Command): void {
     this.context.subscriptions.push(
+      instrumentOperationAsVsCodeCommand(commandId, (...args: unknown[]) => {
+        return command.run(...args);
+      })
+    );
+  }
+
+  private registerCommandWithoutInstrument(
+    commandId: string,
+    command: Command
+  ): void {
+    this.context.subscriptions.push(
       vscode.commands.registerCommand(commandId, (...args: unknown[]) => {
         return command.run(...args);
       })
@@ -148,7 +160,7 @@ export class Commands {
         this.client
       )
     );
-    this.registerCommand(
+    this.registerCommandWithoutInstrument(
       COMMAND_RENDER_TASK,
       new RenderTaskCommand(
         this.gradleTasksTreeDataProvider,
@@ -164,7 +176,7 @@ export class Commands {
       COMMAND_CANCEL_TREE_ITEM_TASK,
       new CancelTreeItemTaskCommand()
     );
-    this.registerCommand(
+    this.registerCommandWithoutInstrument(
       COMMAND_REFRESH,
       new RefreshCommand(
         this.gradleTaskProvider,
@@ -177,7 +189,7 @@ export class Commands {
       COMMAND_LOAD_TASKS,
       new LoadTasksCommand(this.gradleTaskProvider)
     );
-    this.registerCommand(
+    this.registerCommandWithoutInstrument(
       COMMAND_REFRESH_DAEMON_STATUS,
       new RefreshDaemonStatusCommand(this.gradleDaemonsTreeDataProvider)
     );
