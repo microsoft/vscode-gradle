@@ -7,7 +7,7 @@ trigger:
 - main
 
 pool:
-      vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-latest'
 
 steps:
 - task: JavaToolInstaller@0
@@ -28,7 +28,6 @@ steps:
     tasks: 'build'
 - task: CmdLine@2
   displayName: Start Xvfb
-  condition: eq(variables['imageName'], 'ubuntu-latest')
   inputs:
     script: |
       sudo apt-get update
