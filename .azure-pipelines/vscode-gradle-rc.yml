@@ -57,6 +57,7 @@ steps:
     npx json@latest -I -f package.json -e "this.aiKey=\"%AI_KEY%\""
   displayName: Replace AI Key
 - bash: |
+    cd $(Build.SourcesDirectory)/extension
     npx vsce@latest package
   displayName: Package VSIX
 - task: CopyFiles@2
