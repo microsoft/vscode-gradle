@@ -25,6 +25,10 @@ steps:
     gradleWrapperFile: 'gradlew'
     gradleOptions: '-Xmx3072m'
     tasks: 'build'
+- bash: |
+    cd $(Build.SourcesDirectory)/extension
+    chmod +x gradle-server
+  displayName: Set permission
 - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
   displayName: 'ESRP CodeSigning'
   inputs:

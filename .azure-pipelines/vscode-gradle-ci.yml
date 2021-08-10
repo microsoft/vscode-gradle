@@ -43,6 +43,10 @@ steps:
     tasks: 'testVsCode'
 - bash: |
     cd $(Build.SourcesDirectory)/extension
+    chmod +x gradle-server
+  displayName: Set permission
+- bash: |
+    cd $(Build.SourcesDirectory)/extension
     npx vsce@latest package
   displayName: Package VSIX
 - task: CopyFiles@2
