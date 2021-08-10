@@ -2,4 +2,5 @@ rootProject.name = 'vscode-gradle'
 include('gradle-server')
 include('extension')
 include('npm-package')
+include('gradle-plugin-api')
 include('gradle-plugin')
