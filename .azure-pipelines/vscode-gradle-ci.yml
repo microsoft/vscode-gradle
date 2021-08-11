@@ -6,55 +6,75 @@
 trigger:
 - main
 
-pool:
-  vmImage: 'ubuntu-latest'
+jobs:
+  - job: cred_scan
+    displayName: Cred Scan
+    pool:
+      name: Azure Pipelines
+    steps:
+    - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+      displayName: 'Run CredScan'
+      inputs:
+        toolMajorVersion: V2
+        verboseOutput: true
+        debugMode: false
 
-steps:
-- task: JavaToolInstaller@0
-  displayName: Install Java 11
-  inputs:
-    versionSpec: '11'
-    jdkArchitectureOption: 'x64'
-    jdkSourceOption: 'PreInstalled'
-- task: NodeTool@0
-  displayName: Install Node 14.15.4
-  inputs:
-    versionSpec: '14.15.4'
-- task: Gradle@2
-  displayName: Build
-  inputs:
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    tasks: 'build'
-- task: CmdLine@2
-  displayName: Start Xvfb
-  inputs:
-    script: |
-      sudo apt-get update
-      sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
-      sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-- task: Gradle@2
-  displayName: Test VSCode
-  env:
-    DISPLAY: ":99.0"
-  inputs:
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    tasks: 'testVsCode'
-- bash: |
-    cd $(Build.SourcesDirectory)/extension/lib
-    chmod +x gradle-server
-  displayName: Set permission
-- bash: |
-    cd $(Build.SourcesDirectory)/extension
-    npx vsce@latest package
-  displayName: Package VSIX
-- task: CopyFiles@2
-  displayName: Copy VSIX
-  inputs:
-    Contents: 'extension/*.vsix'
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'
-- task: PublishBuildArtifacts@1
-  displayName: Publish VSIX
-  inputs:
-    ArtifactName: extension
+    - task: securedevelopmentteam.vss-secure-development-tools.build-task-postanalysis.PostAnalysis@1
+      displayName: 'Post Analysis'
+      inputs:
+        CredScan: true
+
+  - job: ci
+    dependsOn: cred_scan
+    displayName: VSCode-Gradle-CI
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: JavaToolInstaller@0
+      displayName: Install Java 11
+      inputs:
+        versionSpec: '11'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
+    - task: NodeTool@0
+      displayName: Install Node 14.15.4
+      inputs:
+        versionSpec: '14.15.4'
+    - task: Gradle@2
+      displayName: Build
+      inputs:
+        gradleWrapperFile: 'gradlew'
+        gradleOptions: '-Xmx3072m'
+        tasks: 'build'
+    - task: CmdLine@2
+      displayName: Start Xvfb
+      inputs:
+        script: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
+          sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+    - task: Gradle@2
+      displayName: Test VSCode
+      env:
+        DISPLAY: ":99.0"
+      inputs:
+        gradleWrapperFile: 'gradlew'
+        gradleOptions: '-Xmx3072m'
+        tasks: 'testVsCode'
+    - bash: |
+        cd $(Build.SourcesDirectory)/extension/lib
+        chmod +x gradle-server
+      displayName: Set permission
+    - bash: |
+        cd $(Build.SourcesDirectory)/extension
+        npx vsce@latest package
+      displayName: Package VSIX
+    - task: CopyFiles@2
+      displayName: Copy VSIX
+      inputs:
+        Contents: 'extension/*.vsix'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'
+    - task: PublishBuildArtifacts@1
+      displayName: Publish VSIX
+      inputs:
+        ArtifactName: extension
