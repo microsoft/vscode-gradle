@@ -10,7 +10,7 @@ jobs:
   - job: cred_scan
     displayName: Cred Scan
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'windows-latest'
     steps:
     - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
       displayName: 'Run CredScan'
