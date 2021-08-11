@@ -7,8 +7,26 @@ trigger:
 - main
 
 jobs:
-  - job: build_server_lib
-    displayName: Build Server Lib
+  - job: cred_scan
+    displayName: Cred Scan
+    pool:
+      vmImage: 'windows-latest'
+    steps:
+    - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+      displayName: 'Run CredScan'
+      inputs:
+        toolMajorVersion: V2
+        verboseOutput: true
+        debugMode: false
+
+    - task: securedevelopmentteam.vss-secure-development-tools.build-task-postanalysis.PostAnalysis@1
+      displayName: 'Post Analysis'
+      inputs:
+        CredScan: true
+
+  - job: ci
+    dependsOn: cred_scan
+    displayName: VSCode-Gradle-CI
     pool:
       vmImage: 'ubuntu-latest'
     steps:
@@ -23,107 +41,30 @@ jobs:
       inputs:
         versionSpec: '14.15.4'
     - task: Gradle@2
-      displayName: Linting
+      displayName: Build
       inputs:
         gradleWrapperFile: 'gradlew'
         gradleOptions: '-Xmx3072m'
-        tasks: 'lint'
-    - task: Gradle@2
-      displayName: Build without Test
-      inputs:
-        gradleWrapperFile: 'gradlew'
-        gradleOptions: '-Xmx3072m'
-        tasks: 'gradle-server:build -x :test -x extension:test -x npm-package:test'
-    - task: PublishPipelineArtifact@1
-      displayName: Save lib
-      inputs:
-        targetPath: $(System.DefaultWorkingDirectory)/extension/lib
-        artifactName: lib
-
-  - job: test_extension
-    dependsOn: build_server_lib
-    displayName: Test Extension
-    strategy:
-      matrix:
-        linux - Java 8:
-          imageName: 'ubuntu-latest'
-          java-version: '8'
-        linux - Java 11:
-          imageName: 'ubuntu-latest'
-          java-version: '11'
-        mac - Java 8:
-          imageName: 'macos-latest'
-          java-version: '8'
-        mac - Java 11:
-          imageName: 'macos-latest'
-          java-version: '11'
-        windows - Java 8:
-          imageName: 'windows-latest'
-          java-version: '8'
-        windows - Java 11:
-          imageName: 'windows-latest'
-          java-version: '11'
-    pool:
-      vmImage: $(imageName)
-    steps:
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        artifact: lib
-        path: $(System.DefaultWorkingDirectory)/extension/lib
-    - task: JavaToolInstaller@0
-      displayName: Install Java $(java-version)
-      inputs:
-        versionSpec: $(java-version)
-        jdkArchitectureOption: 'x64'
-        jdkSourceOption: 'PreInstalled'
-    - task: NodeTool@0
-      displayName: Install Node 14.15.4
-      inputs:
-        versionSpec: '14.15.4'
-    - task: Gradle@2
-      displayName: Build Extension
-      inputs:
-        gradleWrapperFile: 'gradlew'
-        gradleOptions: '-Xmx3072m'
-        tasks: 'extension:build'
+        tasks: 'build'
     - task: CmdLine@2
       displayName: Start Xvfb
-      condition: eq(variables['imageName'], 'ubuntu-latest')
       inputs:
         script: |
           sudo apt-get update
           sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
           sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-    - task: CmdLine@2
-      displayName: Set permissions
-      condition: ne(variables['imageName'], 'windows-latest')
-      inputs:
-        script: chmod +x extension/lib/gradle-server
     - task: Gradle@2
-      displayName: Run Tests
+      displayName: Test VSCode
       env:
         DISPLAY: ":99.0"
       inputs:
         gradleWrapperFile: 'gradlew'
         gradleOptions: '-Xmx3072m'
         tasks: 'testVsCode'
-
-  - job: publish_vsix
-    dependsOn: test_extension
-    displayName: Publish VSIX
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        artifact: lib
-        path: $(System.DefaultWorkingDirectory)/extension/lib
-    - task: Gradle@2
-      displayName: Build Extension
-      inputs:
-        gradleWrapperFile: 'gradlew'
-        gradleOptions: '-Xmx3072m'
-        tasks: 'extension:build'
+    - bash: |
+        cd $(Build.SourcesDirectory)/extension/lib
+        chmod +x gradle-server
+      displayName: Set permission
     - bash: |
         cd $(Build.SourcesDirectory)/extension
         npx vsce@latest package
