@@ -235,7 +235,6 @@ describe(getSuiteName('Gradle tasks'), () => {
             groupItem.label,
             mockTaskDefinition1ForFolder1.group
           );
-          assert.strictEqual(groupItem.iconPath, vscode.ThemeIcon.Folder);
           assert.strictEqual(
             groupItem.parentTreeItem,
             projectItem,
