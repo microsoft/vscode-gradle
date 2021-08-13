@@ -1,0 +1,34 @@
+plugins {
+  id 'java-gradle-plugin'
+}
+
+configurations {
+  bundled
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+  compile project(":gradle-plugin-api")
+  bundled(project(":gradle-plugin-api")) {
+    transitive = false
+  }
+}
+
+jar {
+  from {
+    configurations.bundled.collect {
+      it.isDirectory() ? it : zipTree(it)
+    }
+  }
+}
+
+task copyJar(type: Copy) {
+  from "build/libs/gradle-plugin.jar"
+  into "../gradle-server/src/main/resources"
+}
+
+tasks.build.dependsOn tasks.copyJar
