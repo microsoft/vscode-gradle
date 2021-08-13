@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cp from 'child_process';
-import getPort from 'get-port';
-import kill from 'tree-kill';
+import * as getPort from 'get-port';
+import * as kill from 'tree-kill';
 import { getGradleServerCommand, getGradleServerEnv } from './serverUtil';
 import { isDebuggingServer } from '../util';
 import { Logger } from '../logger/index';

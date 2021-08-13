@@ -131,7 +131,7 @@ task buildDev(type: CrossPlatformExec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
-  inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.files(fileTree('src').matching {
     exclude 'test'
   }).withPathSensitivity(PathSensitivity.RELATIVE)
@@ -145,7 +145,7 @@ task buildProd(type: CrossPlatformExec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
-  inputs.file('rollup.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
+  inputs.file('webpack.config.js').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.files(fileTree('src').matching {
     exclude 'test'
   }).withPathSensitivity(PathSensitivity.RELATIVE)

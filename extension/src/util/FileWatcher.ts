@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import minimatch from 'minimatch';
+import * as minimatch from 'minimatch';
 
 export class FileWatcher implements vscode.Disposable {
   private readonly _onDidChange: vscode.EventEmitter<vscode.Uri> = new vscode.EventEmitter<vscode.Uri>();

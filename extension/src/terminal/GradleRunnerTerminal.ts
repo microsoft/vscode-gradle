@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as util from 'util';
+import * as getPort from 'get-port';
 import { isTest, waitOnTcp } from '../util';
 import { logger, LoggerStream, LogVerbosity } from '../logger';
 import { Output } from '../proto/gradle_pb';
 import { ServiceError, status } from '@grpc/grpc-js';
 import { RootProject } from '../rootProject/RootProject';
 import { isTaskRunning } from '../tasks/taskUtil';
-import getPort from 'get-port';
 import { COMMAND_CANCEL_BUILD } from '../commands';
 import { GradleTaskDefinition } from '../tasks';
 import { GradleClient } from '../client';
