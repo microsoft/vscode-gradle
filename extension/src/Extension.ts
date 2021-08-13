@@ -182,8 +182,6 @@ export class Extension {
     this.handleWatchEvents();
     this.handleEditorEvents();
 
-    this.client.onDidConnect(() => this.refresh());
-
     void this.activate();
   }
 
