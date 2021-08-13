@@ -56,7 +56,7 @@
       "gradleContainerView": [
         {
           "id": "gradleTasksView",
-          "name": "Gradle Tasks",
+          "name": "Gradle Projects",
           "when": "gradle:activated"
         },
         {
@@ -216,7 +216,7 @@
       },
       {
         "command": "gradle.explorerFlat",
-        "title": "Show Flat List",
+        "title": "Show Flat Tasks",
         "icon": {
           "light": "resources/light/list-flat.svg",
           "dark": "resources/dark/list-flat.svg"
@@ -224,7 +224,7 @@
       },
       {
         "command": "gradle.explorerTree",
-        "title": "Show Tree",
+        "title": "Show Hierarchical Tasks",
         "icon": {
           "light": "resources/light/list-tree.svg",
           "dark": "resources/dark/list-tree.svg"
@@ -285,6 +285,11 @@
           "light": "resources/light/loading.svg",
           "dark": "resources/dark/loading.svg"
         }
+      },
+      {
+        "command": "gradle.omitted.reveal",
+        "title": "Go to Omitted Dependency",
+        "icon": "$(go-to-file)"
       }
     ],
     "menus": {
@@ -395,6 +400,10 @@
         },
         {
           "command": "gradle.removeRecentTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.omitted.reveal",
           "when": "false"
         }
       ],
@@ -537,6 +546,11 @@
         {
           "command": "gradle.stopDaemon",
           "when": "view == gradleDaemonsView && viewItem =~ /^busy$|^idle$/",
+          "group": "inline@0"
+        },
+        {
+          "command": "gradle.omitted.reveal",
+          "when": "view == gradleTasksView && viewItem == omitted",
           "group": "inline@0"
         },
         {

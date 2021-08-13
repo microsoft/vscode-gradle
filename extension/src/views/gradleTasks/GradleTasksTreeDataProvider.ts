@@ -14,6 +14,13 @@ import { isWorkspaceFolder } from '../../util';
 import { isGradleTask } from '../../tasks/taskUtil';
 import { RootProjectsStore } from '../../stores';
 import { Icons } from '../../icons';
+import { GradleClient } from '../../client';
+import { getGradleConfig } from '../../util/config';
+import { DependencyConfigurationTreeItem } from './DependencyConfigurationTreeItem';
+import { DependencyTreeItem } from './DependencyTreeItem';
+import { protocolItem2ProjectDependencyTreeItem } from './DependencyUtils';
+import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
+import { ProjectTaskTreeItem } from './ProjectTaskTreeItem';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -47,7 +54,8 @@ export class GradleTasksTreeDataProvider
     private readonly context: vscode.ExtensionContext,
     private readonly rootProjectStore: RootProjectsStore,
     private readonly gradleTaskProvider: GradleTaskProvider,
-    private readonly icons: Icons
+    private readonly icons: Icons,
+    private readonly client: GradleClient
   ) {
     const collapsed = this.context.workspaceState.get(
       'gradleTasksCollapsed',
@@ -91,7 +99,10 @@ export class GradleTasksTreeDataProvider
       element instanceof RootProjectTreeItem ||
       element instanceof ProjectTreeItem ||
       element instanceof TreeItemWithTasksOrGroups ||
-      element instanceof GradleTaskTreeItem
+      element instanceof GradleTaskTreeItem ||
+      element instanceof ProjectTreeItem ||
+      element instanceof DependencyConfigurationTreeItem ||
+      element instanceof DependencyTreeItem
     ) {
       return element.parentTreeItem || null;
     }
@@ -105,7 +116,32 @@ export class GradleTasksTreeDataProvider
       return element.projects;
     }
     if (element instanceof ProjectTreeItem) {
-      return [...element.groups, ...element.tasks];
+      const projectTaskItem = new ProjectTaskTreeItem(
+        'Tasks',
+        vscode.TreeItemCollapsibleState.Collapsed,
+        element
+      );
+      projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+      const results: vscode.TreeItem[] = [projectTaskItem];
+      const resourceUri = element.resourceUri;
+      if (!resourceUri) {
+        return results;
+      }
+      const dependencyItem = await this.client.getDependencies(
+        path.dirname(resourceUri.fsPath),
+        getGradleConfig()
+      );
+      if (!dependencyItem) {
+        return results;
+      }
+      const projectDependencyItem = protocolItem2ProjectDependencyTreeItem(
+        dependencyItem,
+        element
+      );
+      if (projectDependencyItem) {
+        results.push(projectDependencyItem);
+      }
+      return results;
     }
     if (element instanceof GroupTreeItem) {
       return element.tasks;
@@ -115,6 +151,14 @@ export class GradleTasksTreeDataProvider
       element instanceof NoGradleTasksTreeItem
     ) {
       return [];
+    }
+    if (
+      element instanceof ProjectTaskTreeItem ||
+      element instanceof ProjectDependencyTreeItem ||
+      element instanceof DependencyConfigurationTreeItem ||
+      element instanceof DependencyTreeItem
+    ) {
+      return element.getChildren() || [];
     }
     if (!element) {
       return await this.buildTreeItems();

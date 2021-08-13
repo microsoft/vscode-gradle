@@ -30,7 +30,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[java]": {
-    "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle",
+    "editor.defaultFormatter": "redhat.java",
     "editor.codeActionsOnSave": {
       "source.fixAll.spotlessGradle": true
     }

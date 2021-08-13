@@ -111,7 +111,8 @@ describe(getSuiteName('Gradle tasks'), () => {
       mockContext,
       rootProjectsStore,
       gradleTaskProvider,
-      new Icons(mockContext)
+      new Icons(mockContext),
+      client
     );
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
