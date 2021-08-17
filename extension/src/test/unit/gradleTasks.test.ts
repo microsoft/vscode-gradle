@@ -111,7 +111,8 @@ describe(getSuiteName('Gradle tasks'), () => {
       mockContext,
       rootProjectsStore,
       gradleTaskProvider,
-      new Icons(mockContext)
+      new Icons(mockContext),
+      client
     );
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
@@ -234,7 +235,6 @@ describe(getSuiteName('Gradle tasks'), () => {
             groupItem.label,
             mockTaskDefinition1ForFolder1.group
           );
-          assert.strictEqual(groupItem.iconPath, vscode.ThemeIcon.Folder);
           assert.strictEqual(
             groupItem.parentTreeItem,
             projectItem,

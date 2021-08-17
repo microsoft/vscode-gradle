@@ -88,7 +88,8 @@ describe(getSuiteName('Pinned tasks'), () => {
       mockContext,
       rootProjectsStore,
       gradleTaskProvider,
-      icons
+      icons,
+      client
     );
     pinnedTasksStore = new PinnedTasksStore(mockContext);
     pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(

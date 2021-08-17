@@ -12,6 +12,7 @@ java {
 }
 
 dependencies {
+  implementation project(":gradle-plugin-api")
   implementation "org.gradle:gradle-tooling-api:${gradlingToolingApi}"
   implementation 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
@@ -76,8 +77,18 @@ clean {
   delete libsDirName
 }
 
+task shadowBugWorkaround(type: Jar) {
+  // https://github.com/johnrengelman/shadow/issues/111
+  dependsOn tasks.getByPath(':gradle-plugin:jar')
+  destinationDir file('build/shadow-bug-workaround')
+  baseName = 'nested-content'
+  from tasks.getByPath(':gradle-plugin:jar')
+}
+
 shadowJar {
+  dependsOn shadowBugWorkaround
   classifier = null
+  from shadowBugWorkaround
   // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
   // minimize()
 }

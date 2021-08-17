@@ -22,6 +22,9 @@ import {
   CancelBuildReply,
   CancelBuildsRequest,
   CancelBuildsReply,
+  DependencyItem,
+  GetDependenciesRequest,
+  GetDependenciesReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -221,6 +224,42 @@ export class GradleClient implements vscode.Disposable {
         }
       }
     );
+  }
+
+  public async getDependencies(
+    projectDir: string,
+    gradleConfig: GradleConfig
+  ): Promise<DependencyItem | undefined> {
+    await this.waitForConnect();
+    const request = new GetDependenciesRequest();
+    request.setProjectDir(projectDir);
+    request.setGradleConfig(gradleConfig);
+    try {
+      return await new Promise((resolve, reject) => {
+        this.grpcClient!.getDependencies(
+          request,
+          (
+            err: grpc.ServiceError | null,
+            getDependenciesReply: GetDependenciesReply | undefined
+          ) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(getDependenciesReply?.getItem());
+            }
+          }
+        );
+      });
+    } catch (err) {
+      logger.error(
+        `Error getting dependencies for ${projectDir}: ${
+          err.details || err.message
+        }`
+      );
+      this.statusBarItem.command = COMMAND_SHOW_LOGS;
+      this.statusBarItem.text = '$(warning) Gradle: Get Dependencies Error';
+      this.statusBarItem.show();
+    }
   }
 
   public async runBuild(

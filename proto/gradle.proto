@@ -9,6 +9,7 @@ package gradle;
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
+  rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
@@ -36,6 +37,28 @@ message GetBuildReply {
 message GetBuildResult {
   string message = 1;
   GradleBuild build = 2;
+}
+
+message GetDependenciesRequest {
+  string project_dir = 1;
+  GradleConfig gradle_config = 2;
+}
+
+message GetDependenciesReply {
+  DependencyItem item = 1;
+}
+
+enum GradleDependencyType
+{
+  PROJECT = 0;
+  CONFIGURATION = 1;
+  DEPENDENCY = 2;
+}
+
+message DependencyItem {
+  string name = 1;
+  GradleDependencyType type = 2;
+  repeated DependencyItem children = 3;
 }
 
 message RunBuildRequest {

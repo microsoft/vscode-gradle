@@ -36,6 +36,8 @@ import {
   getConfigReuseTerminals,
 } from './util/config';
 import { FileWatcher } from './util/FileWatcher';
+import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
+import { GRADLE_OMITTED_REVEAL } from './views/gradleTasks/DependencyUtils';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -104,7 +106,8 @@ export class Extension {
       this.context,
       this.rootProjectsStore,
       this.gradleTaskProvider,
-      this.icons
+      this.icons,
+      this.client
     );
     this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
       treeDataProvider: this.gradleTasksTreeDataProvider,
@@ -181,6 +184,16 @@ export class Extension {
     this.handleTaskEvents();
     this.handleWatchEvents();
     this.handleEditorEvents();
+
+    vscode.commands.registerCommand(
+      GRADLE_OMITTED_REVEAL,
+      async (item: DependencyTreeItem) => {
+        const omittedTreeItem = item.getOmittedTreeItem();
+        if (omittedTreeItem) {
+          await this.gradleTasksTreeView.reveal(omittedTreeItem);
+        }
+      }
+    );
 
     void this.activate();
   }
