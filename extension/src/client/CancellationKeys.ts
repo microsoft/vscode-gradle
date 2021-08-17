@@ -15,3 +15,7 @@ export function getRunTaskCommandCancellationKey(
 ): string {
   return 'runTask' + rootProjectFolder + taskName;
 }
+
+export function getDependenciesCancellationKey(projectDir: string): string {
+  return 'getDependencies' + projectDir;
+}

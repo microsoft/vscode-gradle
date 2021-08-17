@@ -127,9 +127,11 @@ export class GradleTasksTreeDataProvider
       if (!resourceUri) {
         return results;
       }
+      const dirname = path.dirname(resourceUri.fsPath);
       const dependencyItem = await this.client.getDependencies(
-        path.dirname(resourceUri.fsPath),
-        getGradleConfig()
+        dirname,
+        getGradleConfig(),
+        element.label || dirname
       );
       if (!dependencyItem) {
         return results;

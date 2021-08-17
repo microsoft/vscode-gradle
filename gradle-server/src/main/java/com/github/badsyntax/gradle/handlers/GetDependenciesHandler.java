@@ -15,6 +15,7 @@ import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetDependenciesReply;
 import com.github.badsyntax.gradle.GetDependenciesRequest;
+import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.microsoft.gradle.api.GradleDependencyNode;
@@ -29,6 +30,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import org.gradle.tooling.BuildActionExecuter;
+import org.gradle.tooling.BuildCancelledException;
+import org.gradle.tooling.CancellationToken;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
 import org.slf4j.Logger;
@@ -66,6 +69,9 @@ public class GetDependenciesHandler {
       createPluginJar("/gradle-plugin.jar", pluginFile);
       createTemplateScript(pluginFile, initScript);
       action.withArguments("--init-script", initScript.getAbsolutePath());
+      CancellationToken cancellationToken =
+          GradleBuildCancellation.buildToken(req.getCancellationKey());
+      action.withCancellationToken(cancellationToken);
       GradleToolingModel gradleModel = action.run();
       GradleDependencyNode root = gradleModel.getDependencyNode();
       responseObserver.onNext(
@@ -74,6 +80,10 @@ public class GetDependenciesHandler {
     } catch (IOException e) {
       logger.error(e.getMessage());
       responseObserver.onError(ErrorMessageBuilder.build(e));
+    } catch (BuildCancelledException e) {
+      replyWithCancelled();
+    } finally {
+      GradleBuildCancellation.clearToken(req.getCancellationKey());
     }
   }
 
@@ -113,5 +123,10 @@ public class GetDependenciesHandler {
             + "    apply plugin: com.microsoft.gradle.GradlePlugin\n"
             + "}\n";
     Files.writeString(outputFile.toPath(), template);
+  }
+
+  private void replyWithCancelled() {
+    responseObserver.onNext(GetDependenciesReply.newBuilder().build());
+    responseObserver.onCompleted();
   }
 }

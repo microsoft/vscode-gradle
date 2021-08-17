@@ -12,6 +12,7 @@ service Gradle {
   rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
+  rpc CancelDependencies(CancelDependenciesRequest) returns (CancelDependenciesReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
@@ -42,6 +43,7 @@ message GetBuildResult {
 message GetDependenciesRequest {
   string project_dir = 1;
   GradleConfig gradle_config = 2;
+  string cancellation_key = 3;
 }
 
 message GetDependenciesReply {
@@ -97,6 +99,14 @@ message CancelBuildReply {
 }
 
 message CancelBuildsReply {
+  string message = 1;
+}
+
+message CancelDependenciesRequest {
+  string cancellation_key = 1;
+}
+
+message CancelDependenciesReply {
   string message = 1;
 }
 
