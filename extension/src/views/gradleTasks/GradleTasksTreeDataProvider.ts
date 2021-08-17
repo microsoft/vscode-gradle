@@ -116,34 +116,7 @@ export class GradleTasksTreeDataProvider
       return element.projects;
     }
     if (element instanceof ProjectTreeItem) {
-      const projectTaskItem = new ProjectTaskTreeItem(
-        'Tasks',
-        vscode.TreeItemCollapsibleState.Collapsed,
-        element
-      );
-      projectTaskItem.setChildren([...element.groups, ...element.tasks]);
-      const results: vscode.TreeItem[] = [projectTaskItem];
-      const resourceUri = element.resourceUri;
-      if (!resourceUri) {
-        return results;
-      }
-      const dirname = path.dirname(resourceUri.fsPath);
-      const dependencyItem = await this.client.getDependencies(
-        dirname,
-        getGradleConfig(),
-        element.label || dirname
-      );
-      if (!dependencyItem) {
-        return results;
-      }
-      const projectDependencyItem = protocolItem2ProjectDependencyTreeItem(
-        dependencyItem,
-        element
-      );
-      if (projectDependencyItem) {
-        results.push(projectDependencyItem);
-      }
-      return results;
+      return this.getChildrenForProjectTreeItem(element);
     }
     if (element instanceof GroupTreeItem) {
       return element.tasks;
@@ -166,6 +139,39 @@ export class GradleTasksTreeDataProvider
       return await this.buildTreeItems();
     }
     return [];
+  }
+
+  public async getChildrenForProjectTreeItem(
+    element: ProjectTreeItem
+  ): Promise<vscode.TreeItem[]> {
+    const projectTaskItem = new ProjectTaskTreeItem(
+      'Tasks',
+      vscode.TreeItemCollapsibleState.Collapsed,
+      element
+    );
+    projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+    const results: vscode.TreeItem[] = [projectTaskItem];
+    const resourceUri = element.resourceUri;
+    if (!resourceUri) {
+      return results;
+    }
+    const dirname = path.dirname(resourceUri.fsPath);
+    const dependencyItem = await this.client.getDependencies(
+      dirname,
+      getGradleConfig(),
+      element.label || dirname
+    );
+    if (!dependencyItem) {
+      return results;
+    }
+    const projectDependencyItem = protocolItem2ProjectDependencyTreeItem(
+      dependencyItem,
+      element
+    );
+    if (projectDependencyItem) {
+      results.push(projectDependencyItem);
+    }
+    return results;
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
