@@ -39,7 +39,7 @@ export function protocolItem2ProjectDependencyTreeItem(
   return projectItem;
 }
 
-export function protocolItem2DependencyConfigurationTreeItem(
+function protocolItem2DependencyConfigurationTreeItem(
   protocolItem: DependencyItem,
   parent: vscode.TreeItem
 ): DependencyConfigurationTreeItem | undefined {
@@ -67,7 +67,7 @@ export function protocolItem2DependencyConfigurationTreeItem(
   return configurationItem;
 }
 
-export function protocolItem2DependencyTreeItem(
+function protocolItem2DependencyTreeItem(
   protocolItem: DependencyItem,
   parent: vscode.TreeItem,
   storageMap: Map<string, vscode.TreeItem>
