@@ -248,7 +248,7 @@ export class GradleClient implements vscode.Disposable {
         token: vscode.CancellationToken
       ) => {
         progress.report({
-          message: `Getting Dependencies for ${projectName}`,
+          message: `Getting dependencies for ${projectName}`,
         });
         const request = new GetDependenciesRequest();
         request.setProjectDir(projectDir);
@@ -281,7 +281,7 @@ export class GradleClient implements vscode.Disposable {
             }`
           );
           this.statusBarItem.command = COMMAND_SHOW_LOGS;
-          this.statusBarItem.text = '$(warning) Gradle: Get Dependencies Error';
+          this.statusBarItem.text = '$(warning) Gradle: Get dependencies Error';
           this.statusBarItem.show();
         }
       }
@@ -481,11 +481,11 @@ export class GradleClient implements vscode.Disposable {
         }
       );
       if (reply) {
-        logger.info('Cancel getting dependencies:', reply.getMessage());
+        logger.info('Cancel dependencies:', reply.getMessage());
       }
     } catch (err) {
       logger.error(
-        'Error cancelling getting dependencies:',
+        'Error cancelling dependencies:',
         err.details || err.message
       );
     }
