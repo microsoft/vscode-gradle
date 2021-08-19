@@ -11,6 +11,7 @@
 
 package com.microsoft.gradle;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import com.microsoft.gradle.api.GradleDependencyNode;
@@ -52,9 +53,11 @@ public class GradleToolingModelBuilder implements ToolingModelBuilder {
       ResolutionResult resolutionResult = incoming.getResolutionResult();
       ResolvedComponentResult rootResult = resolutionResult.getRoot();
       Set<? extends DependencyResult> dependencies = rootResult.getDependencies();
+      Set<String> dependencySet = new HashSet<>();
       for (DependencyResult dependency : dependencies) {
         if (dependency instanceof ResolvedDependencyResult) {
-          DefaultGradleDependencyNode dependencyNode = resolveDependency((ResolvedDependencyResult) dependency);
+          DefaultGradleDependencyNode dependencyNode = resolveDependency((ResolvedDependencyResult) dependency,
+              dependencySet);
           configNode.addChildren(dependencyNode);
         }
       }
@@ -65,16 +68,19 @@ public class GradleToolingModelBuilder implements ToolingModelBuilder {
     return rootNode;
   }
 
-  private DefaultGradleDependencyNode resolveDependency(ResolvedDependencyResult result) {
+  private DefaultGradleDependencyNode resolveDependency(ResolvedDependencyResult result, Set<String> dependencySet) {
     DefaultGradleDependencyNode dependencyNode = new DefaultGradleDependencyNode(
         result.getSelected().getModuleVersion().getGroup() + ":" + result.getSelected().getModuleVersion().getName()
             + ":" + result.getSelected().getModuleVersion().getVersion(),
         GradleDependencyType.DEPENDENCY);
-    Set<? extends DependencyResult> dependencies = result.getSelected().getDependencies();
-    for (DependencyResult dependency : dependencies) {
-      if (dependency instanceof ResolvedDependencyResult) {
-        DefaultGradleDependencyNode childNode = resolveDependency((ResolvedDependencyResult) dependency);
-        dependencyNode.addChildren(childNode);
+    if (dependencySet.add(dependencyNode.getName())) {
+      Set<? extends DependencyResult> dependencies = result.getSelected().getDependencies();
+      for (DependencyResult dependency : dependencies) {
+        if (dependency instanceof ResolvedDependencyResult) {
+          DefaultGradleDependencyNode childNode = resolveDependency((ResolvedDependencyResult) dependency,
+              dependencySet);
+          dependencyNode.addChildren(childNode);
+        }
       }
     }
     return dependencyNode;
