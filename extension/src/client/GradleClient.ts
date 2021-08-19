@@ -25,6 +25,8 @@ import {
   DependencyItem,
   GetDependenciesRequest,
   GetDependenciesReply,
+  CancelDependenciesRequest,
+  CancelDependenciesReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -38,7 +40,10 @@ import {
   COMMAND_CANCEL_BUILD,
 } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
-import { getBuildCancellationKey } from './CancellationKeys';
+import {
+  getBuildCancellationKey,
+  getDependenciesCancellationKey,
+} from './CancellationKeys';
 import { EventWaiter } from '../util/EventWaiter';
 import { getGradleConfig, getConfigJavaDebug } from '../util/config';
 
@@ -228,38 +233,59 @@ export class GradleClient implements vscode.Disposable {
 
   public async getDependencies(
     projectDir: string,
-    gradleConfig: GradleConfig
+    gradleConfig: GradleConfig,
+    projectName: string
   ): Promise<DependencyItem | undefined> {
     await this.waitForConnect();
-    const request = new GetDependenciesRequest();
-    request.setProjectDir(projectDir);
-    request.setGradleConfig(gradleConfig);
-    try {
-      return await new Promise((resolve, reject) => {
-        this.grpcClient!.getDependencies(
-          request,
-          (
-            err: grpc.ServiceError | null,
-            getDependenciesReply: GetDependenciesReply | undefined
-          ) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(getDependenciesReply?.getItem());
-            }
-          }
+    return vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: 'Gradle',
+        cancellable: true,
+      },
+      async (
+        progress: vscode.Progress<{ message?: string }>,
+        token: vscode.CancellationToken
+      ) => {
+        progress.report({
+          message: `Getting dependencies for ${projectName}`,
+        });
+        const request = new GetDependenciesRequest();
+        request.setProjectDir(projectDir);
+        request.setGradleConfig(gradleConfig);
+        const cancellationKey = getDependenciesCancellationKey(projectDir);
+        request.setCancellationKey(cancellationKey);
+        token.onCancellationRequested(() =>
+          this.cancelDependencies(cancellationKey)
         );
-      });
-    } catch (err) {
-      logger.error(
-        `Error getting dependencies for ${projectDir}: ${
-          err.details || err.message
-        }`
-      );
-      this.statusBarItem.command = COMMAND_SHOW_LOGS;
-      this.statusBarItem.text = '$(warning) Gradle: Get Dependencies Error';
-      this.statusBarItem.show();
-    }
+        try {
+          return await new Promise((resolve, reject) => {
+            this.grpcClient!.getDependencies(
+              request,
+              (
+                err: grpc.ServiceError | null,
+                getDependenciesReply: GetDependenciesReply | undefined
+              ) => {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(getDependenciesReply?.getItem());
+                }
+              }
+            );
+          });
+        } catch (err) {
+          logger.error(
+            `Error getting dependencies for ${projectDir}: ${
+              err.details || err.message
+            }`
+          );
+          this.statusBarItem.command = COMMAND_SHOW_LOGS;
+          this.statusBarItem.text = '$(warning) Gradle: Get dependencies Error';
+          this.statusBarItem.show();
+        }
+      }
+    );
   }
 
   public async runBuild(
@@ -428,6 +454,40 @@ export class GradleClient implements vscode.Disposable {
       }
     } catch (err) {
       logger.error('Error cancelling builds:', err.details || err.message);
+    }
+  }
+
+  public async cancelDependencies(cancellationKey: string): Promise<void> {
+    await this.waitForConnect();
+    this.statusBarItem.hide();
+    const request = new CancelDependenciesRequest();
+    request.setCancellationKey(cancellationKey);
+    try {
+      const reply: CancelDependenciesReply | undefined = await new Promise(
+        (resolve, reject) => {
+          this.grpcClient!.cancelDependencies(
+            request,
+            (
+              err: grpc.ServiceError | null,
+              cancelDependenciesReply: CancelDependenciesReply | undefined
+            ) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(cancelDependenciesReply);
+              }
+            }
+          );
+        }
+      );
+      if (reply) {
+        logger.info('Cancel dependencies:', reply.getMessage());
+      }
+    } catch (err) {
+      logger.error(
+        'Error cancelling dependencies:',
+        err.details || err.message
+      );
     }
   }
 

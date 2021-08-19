@@ -2,6 +2,7 @@ package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.handlers.CancelBuildHandler;
 import com.github.badsyntax.gradle.handlers.CancelBuildsHandler;
+import com.github.badsyntax.gradle.handlers.CancelDependenciesHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetDaemonsStatusHandler;
 import com.github.badsyntax.gradle.handlers.GetDependenciesHandler;
@@ -44,6 +45,14 @@ public class GradleService extends GradleGrpc.GradleImplBase {
       CancelBuildsRequest req, StreamObserver<CancelBuildsReply> responseObserver) {
     CancelBuildsHandler cancelRunBuildsHandler = new CancelBuildsHandler(responseObserver);
     cancelRunBuildsHandler.run();
+  }
+
+  @Override
+  public void cancelDependencies(
+      CancelDependenciesRequest req, StreamObserver<CancelDependenciesReply> responseObserver) {
+    CancelDependenciesHandler cancelDependenciesHandler =
+        new CancelDependenciesHandler(req, responseObserver);
+    cancelDependenciesHandler.run();
   }
 
   @Override
