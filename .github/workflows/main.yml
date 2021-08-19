@@ -173,7 +173,7 @@ jobs:
           DISPLAY: ":99.0"
           CI: "true"
       - name: Set test extension status
-        if: ${{ steps.test.outcome=='failure' || steps.retry1.outcome=='failure' || steps.retry2.outcome=='failure' }}
+        if: ${{ steps.test.outcome=='failure' && steps.retry1.outcome=='failure' && steps.retry2.outcome=='failure' }}
         run: |
           echo "Tests failed"
           exit 1
