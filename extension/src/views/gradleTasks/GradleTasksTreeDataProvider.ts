@@ -129,9 +129,8 @@ export class GradleTasksTreeDataProvider
       return [];
     }
     if (element instanceof ProjectDependencyTreeItem) {
-      const dirname = path.dirname(element.getResourceUri().fsPath);
       const dependencyItem = await this.client.getDependencies(
-        dirname,
+        element.getProjectPath(),
         getGradleConfig(),
         element.getProjectName()
       );
@@ -178,7 +177,7 @@ export class GradleTasksTreeDataProvider
       'Dependencies',
       vscode.TreeItemCollapsibleState.Collapsed,
       element,
-      resourceUri,
+      path.dirname(resourceUri.fsPath),
       element.label || resourceUri.fsPath
     );
     return [...results, projectDependencyTreeItem];

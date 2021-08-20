@@ -9,7 +9,7 @@ export class ProjectDependencyTreeItem extends vscode.TreeItem {
     name: string,
     collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly parentTreeItem: vscode.TreeItem,
-    readonly resourceUri: vscode.Uri,
+    readonly projectPath: string,
     readonly projectName: string,
     // TODO: https://github.com/microsoft/vscode-codicons/issues/77
     iconPath: vscode.ThemeIcon = new vscode.ThemeIcon('file-submodule')
@@ -26,8 +26,8 @@ export class ProjectDependencyTreeItem extends vscode.TreeItem {
     return this.children;
   }
 
-  public getResourceUri(): vscode.Uri {
-    return this.resourceUri;
+  public getProjectPath(): string {
+    return this.projectPath;
   }
 
   public getProjectName(): string {
