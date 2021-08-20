@@ -18,9 +18,10 @@ import { GradleClient } from '../../client';
 import { getGradleConfig } from '../../util/config';
 import { DependencyConfigurationTreeItem } from './DependencyConfigurationTreeItem';
 import { DependencyTreeItem } from './DependencyTreeItem';
-import { protocolItem2ProjectDependencyTreeItem } from './DependencyUtils';
+import { getDependencyConfigurationTreeItems } from './DependencyUtils';
 import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
 import { ProjectTaskTreeItem } from './ProjectTaskTreeItem';
+import { HintItem } from './HintItem';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -127,9 +128,27 @@ export class GradleTasksTreeDataProvider
     ) {
       return [];
     }
+    if (element instanceof ProjectDependencyTreeItem) {
+      const dirname = path.dirname(element.getResourceUri().fsPath);
+      const dependencyItem = await this.client.getDependencies(
+        dirname,
+        getGradleConfig(),
+        element.getProjectName()
+      );
+      if (!dependencyItem) {
+        return [new HintItem('No dependencies')];
+      }
+      const configItems = getDependencyConfigurationTreeItems(
+        dependencyItem,
+        element
+      );
+      if (!configItems) {
+        return [new HintItem('No dependencies')];
+      }
+      return configItems;
+    }
     if (
       element instanceof ProjectTaskTreeItem ||
-      element instanceof ProjectDependencyTreeItem ||
       element instanceof DependencyConfigurationTreeItem ||
       element instanceof DependencyTreeItem
     ) {
@@ -150,28 +169,19 @@ export class GradleTasksTreeDataProvider
       element
     );
     projectTaskItem.setChildren([...element.groups, ...element.tasks]);
-    const results: vscode.TreeItem[] = [projectTaskItem];
+    const results = [projectTaskItem];
     const resourceUri = element.resourceUri;
     if (!resourceUri) {
       return results;
     }
-    const dirname = path.dirname(resourceUri.fsPath);
-    const dependencyItem = await this.client.getDependencies(
-      dirname,
-      getGradleConfig(),
-      element.label || dirname
+    const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
+      'Dependencies',
+      vscode.TreeItemCollapsibleState.Collapsed,
+      element,
+      resourceUri,
+      element.label || resourceUri.fsPath
     );
-    if (!dependencyItem) {
-      return results;
-    }
-    const projectDependencyItem = protocolItem2ProjectDependencyTreeItem(
-      dependencyItem,
-      element
-    );
-    if (projectDependencyItem) {
-      results.push(projectDependencyItem);
-    }
-    return results;
+    return [...results, projectDependencyTreeItem];
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
