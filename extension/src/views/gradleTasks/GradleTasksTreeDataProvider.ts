@@ -18,9 +18,10 @@ import { GradleClient } from '../../client';
 import { getGradleConfig } from '../../util/config';
 import { DependencyConfigurationTreeItem } from './DependencyConfigurationTreeItem';
 import { DependencyTreeItem } from './DependencyTreeItem';
-import { protocolItem2ProjectDependencyTreeItem } from './DependencyUtils';
+import { getDependencyConfigurationTreeItems } from './DependencyUtils';
 import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
 import { ProjectTaskTreeItem } from './ProjectTaskTreeItem';
+import { HintItem } from './HintItem';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -127,9 +128,26 @@ export class GradleTasksTreeDataProvider
     ) {
       return [];
     }
+    if (element instanceof ProjectDependencyTreeItem) {
+      const dependencyItem = await this.client.getDependencies(
+        element.getProjectPath(),
+        getGradleConfig(),
+        element.getProjectName()
+      );
+      if (!dependencyItem) {
+        return [new HintItem('No dependencies')];
+      }
+      const configItems = getDependencyConfigurationTreeItems(
+        dependencyItem,
+        element
+      );
+      if (!configItems) {
+        return [new HintItem('No dependencies')];
+      }
+      return configItems;
+    }
     if (
       element instanceof ProjectTaskTreeItem ||
-      element instanceof ProjectDependencyTreeItem ||
       element instanceof DependencyConfigurationTreeItem ||
       element instanceof DependencyTreeItem
     ) {
@@ -155,23 +173,14 @@ export class GradleTasksTreeDataProvider
     if (!resourceUri) {
       return results;
     }
-    const dirname = path.dirname(resourceUri.fsPath);
-    const dependencyItem = await this.client.getDependencies(
-      dirname,
-      getGradleConfig(),
-      element.label || dirname
+    const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
+      'Dependencies',
+      vscode.TreeItemCollapsibleState.Collapsed,
+      element,
+      path.dirname(resourceUri.fsPath),
+      element.label || resourceUri.fsPath
     );
-    if (!dependencyItem) {
-      return results;
-    }
-    const projectDependencyItem = protocolItem2ProjectDependencyTreeItem(
-      dependencyItem,
-      element
-    );
-    if (projectDependencyItem) {
-      results.push(projectDependencyItem);
-    }
-    return results;
+    return [...results, projectDependencyTreeItem];
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity

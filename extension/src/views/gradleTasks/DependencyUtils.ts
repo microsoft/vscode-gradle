@@ -8,35 +8,28 @@ import { DependencyTreeItem } from './DependencyTreeItem';
 import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
 export const GRADLE_OMITTED_REVEAL = 'gradle.omitted.reveal';
 
-export function protocolItem2ProjectDependencyTreeItem(
+export function getDependencyConfigurationTreeItems(
   protocolItem: DependencyItem,
-  parent: vscode.TreeItem
-): ProjectDependencyTreeItem | undefined {
-  const name = 'Dependencies';
-  const projectItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
-    name,
-    vscode.TreeItemCollapsibleState.Collapsed,
-    parent
-  );
+  parent: ProjectDependencyTreeItem
+): DependencyConfigurationTreeItem[] | undefined {
   const children = protocolItem.getChildrenList();
-  const treeChildren = [];
+  const configItems = [];
   for (const child of children) {
     if (child.getType() !== GradleDependencyType.CONFIGURATION) {
       continue;
     }
     const configurationItem = protocolItem2DependencyConfigurationTreeItem(
       child,
-      projectItem
+      parent
     );
     if (configurationItem) {
-      treeChildren.push(configurationItem);
+      configItems.push(configurationItem);
     }
   }
-  if (!treeChildren.length) {
+  if (!configItems.length) {
     return undefined;
   }
-  projectItem.setChildren(treeChildren);
-  return projectItem;
+  return configItems;
 }
 
 function protocolItem2DependencyConfigurationTreeItem(
