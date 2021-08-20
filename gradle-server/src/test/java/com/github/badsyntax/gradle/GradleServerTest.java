@@ -200,7 +200,8 @@ public class GradleServerTest {
   }
 
   @Test
-  public void getBuild_shouldThrowIfWrapperNotEnabledAndNoVersionSpecified() throws IOException {
+  public void getBuild_shouldThrowIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
+      throws IOException {
     StreamObserver<GetBuildReply> mockResponseObserver =
         (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
 
@@ -213,7 +214,9 @@ public class GradleServerTest {
     ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
     stub.getBuild(req, mockResponseObserver);
     verify(mockResponseObserver).onError(onError.capture());
-    assertEquals("INTERNAL: Gradle version is required", onError.getValue().getMessage());
+    assertEquals(
+        "INTERNAL: java.import.gradle.home is invalid, please check it again.",
+        onError.getValue().getMessage());
   }
 
   @Test
@@ -342,7 +345,8 @@ public class GradleServerTest {
   }
 
   @Test
-  public void runBuild_shouldThrowIfWrapperNotEnabledAndNoVersionSpecified() throws IOException {
+  public void runBuild_shouldThrowIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
+      throws IOException {
     StreamObserver<RunBuildReply> mockResponseObserver =
         (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
 
@@ -356,7 +360,9 @@ public class GradleServerTest {
     ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
     stub.runBuild(req, mockResponseObserver);
     verify(mockResponseObserver).onError(onError.capture());
-    assertEquals("INTERNAL: Gradle version is required", onError.getValue().getMessage());
+    assertEquals(
+        "INTERNAL: java.import.gradle.home is invalid, please check it again.",
+        onError.getValue().getMessage());
   }
 
   @Test

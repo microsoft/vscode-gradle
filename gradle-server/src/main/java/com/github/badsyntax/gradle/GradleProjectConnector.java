@@ -25,11 +25,15 @@ public class GradleProjectConnector {
       gradleConnector.useGradleUserHomeDir(
           buildGradleUserHomeFile(config.getUserHome(), projectDir));
     }
-    if (!config.getWrapperEnabled() && Strings.isNullOrEmpty(config.getVersion())) {
-      throw new GradleConnectionException("Gradle version is required");
-    }
-    if (!Strings.isNullOrEmpty(config.getVersion())) {
-      gradleConnector.useGradleVersion(config.getVersion());
+    if (!config.getWrapperEnabled()) {
+      if (!Strings.isNullOrEmpty(config.getVersion())) {
+        gradleConnector.useGradleVersion(config.getVersion());
+      } else if (!Strings.isNullOrEmpty(config.getGradleHome())) {
+        gradleConnector.useInstallation(new File(config.getGradleHome()));
+      } else {
+        throw new GradleConnectionException(
+            "java.import.gradle.home is invalid, please check it again.");
+      }
     }
   }
 

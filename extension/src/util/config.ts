@@ -54,6 +54,12 @@ export function getConfigJavaImportGradleVersion(): string | null {
     .get<string | null>('import.gradle.version', null);
 }
 
+export function getConfigJavaImportGradleHome(): string | null {
+  return vscode.workspace
+    .getConfiguration('java')
+    .get<string | null>('import.gradle.home', null);
+}
+
 export function getConfigIsDebugEnabled(): boolean {
   return vscode.workspace
     .getConfiguration('gradle')
@@ -107,9 +113,13 @@ export function getConfigJavaDebug(
 
 export function getGradleConfig(): GradleConfig {
   const gradleConfig = new GradleConfig();
+  const gradleHome = getConfigJavaImportGradleHome();
   const gradleUserHome = getConfigJavaImportGradleUserHome();
   const gradleJvmArguments = getConfigJavaImportGradleJvmArguments();
   const gradleVersion = getConfigJavaImportGradleVersion();
+  if (gradleHome !== null) {
+    gradleConfig.setGradleHome(gradleHome);
+  }
   if (gradleUserHome !== null) {
     gradleConfig.setUserHome(gradleUserHome);
   }

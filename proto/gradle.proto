@@ -148,6 +148,7 @@ message DaemonInfo {
 }
 
 message GradleConfig {
+  string gradle_home = 1;
   string user_home = 2;
   string jvm_arguments = 3;
   bool wrapper_enabled = 4;
