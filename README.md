@@ -223,6 +223,7 @@ This extension supports the following settings which are contributed by the [Jav
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
 - `java.import.gradle.version`: Gradle version, used if the Gradle wrapper is missing or disabled
+- `java.import.gradle.home`: Use Gradle from the specified local installation directory or GRADLE_HOME if the Gradle wrapper is missing or disabled and no 'java.import.gradle.version' is specified.
 
 ### Class References
 
