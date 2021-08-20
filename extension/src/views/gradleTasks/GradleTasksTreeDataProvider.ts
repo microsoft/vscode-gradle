@@ -169,7 +169,7 @@ export class GradleTasksTreeDataProvider
       element
     );
     projectTaskItem.setChildren([...element.groups, ...element.tasks]);
-    const results = [projectTaskItem];
+    const results: vscode.TreeItem[] = [projectTaskItem];
     const resourceUri = element.resourceUri;
     if (!resourceUri) {
       return results;
