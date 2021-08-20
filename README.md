@@ -36,6 +36,14 @@ When you expand a project, tasks are listed in a tree, grouped by the task group
 <img src="images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
 
 </details>
+
+<details><summary>List project dependencies</summary>
+
+The project's dependencies are included in the `Dependencies` item under the project. The dependencies are grouped by Gradle configurations and you can expand each configuration to find the corresponding ones. For omitted dependency (marked with a `(*)`), you can use the inline button `Go to Omitted Dependency` to go to the previously listed dependency.
+
+<img src="images/dependencies.png" width="650" alt="Gradle Dependencies" />
+
+</details>
 <details><summary>Run tasks</summary>
 
 Tasks can be run via:
