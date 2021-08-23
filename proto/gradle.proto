@@ -32,6 +32,7 @@ message GetBuildReply {
     Output output = 3;
     Cancelled cancelled = 4;
     Environment environment = 5;
+    string compatibility_check_error = 6;
   }
 }
 
