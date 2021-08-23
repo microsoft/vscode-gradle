@@ -5,7 +5,6 @@ export const ICON_GRADLE_TASK = 'script.svg';
 export const ICON_DAEMON_BUSY = 'circle-filled.svg';
 export const ICON_DAEMON_IDLE = 'circle-outline.svg';
 export const ICON_DAEMON_STOPPED = 'close.svg';
-export const ICON_WARNING = 'warning.svg';
 
 export const GRADLE_CONTAINER_VIEW = 'gradleContainerView';
 export const GRADLE_TASKS_VIEW = 'gradleTasksView';

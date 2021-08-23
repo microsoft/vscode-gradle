@@ -126,7 +126,6 @@ export class Extension {
       }
     );
     this.pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
-      this.context,
       this.pinnedTasksStore,
       this.rootProjectsStore,
       this.gradleTaskProvider,
@@ -139,7 +138,6 @@ export class Extension {
     });
 
     this.recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
-      this.context,
       this.recentTasksStore,
       this.taskTerminalsStore,
       this.rootProjectsStore,
