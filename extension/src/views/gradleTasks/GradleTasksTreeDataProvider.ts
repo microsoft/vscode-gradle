@@ -14,14 +14,11 @@ import { isWorkspaceFolder } from '../../util';
 import { isGradleTask } from '../../tasks/taskUtil';
 import { RootProjectsStore } from '../../stores';
 import { Icons } from '../../icons';
-import { GradleClient } from '../../client';
-import { getGradleConfig } from '../../util/config';
 import { DependencyConfigurationTreeItem } from './DependencyConfigurationTreeItem';
 import { DependencyTreeItem } from './DependencyTreeItem';
-import { getDependencyConfigurationTreeItems } from './DependencyUtils';
 import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
 import { ProjectTaskTreeItem } from './ProjectTaskTreeItem';
-import { HintItem } from './HintItem';
+import { GradleDependencyProvider } from '../../dependencies/GradleDependencyProvider';
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -55,8 +52,8 @@ export class GradleTasksTreeDataProvider
     private readonly context: vscode.ExtensionContext,
     private readonly rootProjectStore: RootProjectsStore,
     private readonly gradleTaskProvider: GradleTaskProvider,
-    private readonly icons: Icons,
-    private readonly client: GradleClient
+    private readonly gradleDependencyProvider: GradleDependencyProvider,
+    private readonly icons: Icons
   ) {
     const collapsed = this.context.workspaceState.get(
       'gradleTasksCollapsed',
@@ -129,22 +126,7 @@ export class GradleTasksTreeDataProvider
       return [];
     }
     if (element instanceof ProjectDependencyTreeItem) {
-      const dependencyItem = await this.client.getDependencies(
-        element.getProjectPath(),
-        getGradleConfig(),
-        element.getProjectName()
-      );
-      if (!dependencyItem) {
-        return [new HintItem('No dependencies')];
-      }
-      const configItems = getDependencyConfigurationTreeItems(
-        dependencyItem,
-        element
-      );
-      if (!configItems) {
-        return [new HintItem('No dependencies')];
-      }
-      return configItems;
+      return this.gradleDependencyProvider.getDependencies(element);
     }
     if (
       element instanceof ProjectTaskTreeItem ||
