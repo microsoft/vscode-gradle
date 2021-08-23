@@ -1,10 +1,9 @@
-import * as vscode from 'vscode';
 import { NoTasksTreeItem } from '..';
 import { COMMAND_SHOW_LOGS } from '../../commands';
 
 export class NoGradleTasksTreeItem extends NoTasksTreeItem {
-  constructor(context: vscode.ExtensionContext) {
-    super('No tasks found', context);
+  constructor() {
+    super('No tasks found');
     this.command = {
       title: 'Show Logs',
       command: COMMAND_SHOW_LOGS,

@@ -89,7 +89,6 @@ export class PinnedTasksTreeDataProvider
     ._onDidChangeTreeData.event;
 
   constructor(
-    private readonly context: vscode.ExtensionContext,
     private readonly pinnedTasksStore: PinnedTasksStore,
     private readonly rootProjectsStore: RootProjectsStore,
     private readonly gradleTaskProvider: GradleTaskProvider,
@@ -127,7 +126,7 @@ export class PinnedTasksTreeDataProvider
     if (!element) {
       const treeItems = await this.buildTreeItems();
       if (!treeItems.length) {
-        return [new NoPinnedTasksTreeItem(this.context)];
+        return [new NoPinnedTasksTreeItem()];
       } else {
         return treeItems;
       }

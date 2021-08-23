@@ -96,7 +96,6 @@ export class RecentTasksTreeDataProvider
     ._onDidChangeTreeData.event;
 
   constructor(
-    private readonly context: vscode.ExtensionContext,
     private readonly recentTasksStore: RecentTasksStore,
     private readonly taskTerminalsStore: TaskTerminalsStore,
     private readonly rootProjectsStore: RootProjectsStore,
@@ -155,7 +154,7 @@ export class RecentTasksTreeDataProvider
     if (!element) {
       const treeItems = await this.buildTreeItems();
       if (!treeItems.length) {
-        return [new NoRecentTasksTreeItem(this.context)];
+        return [new NoRecentTasksTreeItem()];
       } else {
         return treeItems;
       }

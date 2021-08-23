@@ -83,7 +83,7 @@ export class GradleTasksTreeDataProvider
     // is why we get them directly from the task provider
     const tasks = await this.gradleTaskProvider.loadTasks();
     return tasks.length === 0
-      ? [new NoGradleTasksTreeItem(this.context)]
+      ? [new NoGradleTasksTreeItem()]
       : this.buildItemsTreeFromTasks(tasks);
   }
 
