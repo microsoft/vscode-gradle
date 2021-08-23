@@ -6,7 +6,7 @@ import { DependencyItem, GradleDependencyType } from '../../proto/gradle_pb';
 import { DependencyConfigurationTreeItem } from './DependencyConfigurationTreeItem';
 import { DependencyTreeItem } from './DependencyTreeItem';
 import { ProjectDependencyTreeItem } from './ProjectDependencyTreeItem';
-export const GRADLE_OMITTED_REVEAL = 'gradle.omitted.reveal';
+export const GRADLE_DEPENDENCY_REVEAL = 'gradle.dependency.reveal';
 
 export function getDependencyConfigurationTreeItems(
   protocolItem: DependencyItem,
@@ -79,6 +79,8 @@ function protocolItem2DependencyTreeItem(
     dependencyItem.contextValue = 'omitted';
     dependencyItem.label = dependencyItem.label + ' (*)';
     dependencyItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
+    dependencyItem.tooltip =
+      'Dependency omitted. Click "Go to Dependency" to reveal the previously listed dependency.';
   } else {
     storageMap.set(name, dependencyItem);
     const children = protocolItem.getChildrenList();
