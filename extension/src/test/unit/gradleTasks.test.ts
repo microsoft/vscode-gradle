@@ -27,7 +27,6 @@ import {
 import { GradleTaskProvider } from '../../tasks';
 import { IconPath, Icons } from '../../icons';
 import {
-  ICON_WARNING,
   ICON_GRADLE_TASK,
   ICON_LOADING,
   TREE_ITEM_STATE_NO_TASKS,
@@ -141,16 +140,7 @@ describe(getSuiteName('Gradle tasks'), () => {
           noTasksTreeItem.contextValue,
           TREE_ITEM_STATE_NO_TASKS
         );
-        assert.strictEqual(noTasksTreeItem.label, 'No tasks found');
-        const iconPath = noTasksTreeItem.iconPath as IconPath;
-        assert.strictEqual(
-          iconPath.dark,
-          path.join('resources', 'dark', ICON_WARNING)
-        );
-        assert.strictEqual(
-          iconPath.light,
-          path.join('resources', 'light', ICON_WARNING)
-        );
+        assert.strictEqual(noTasksTreeItem.description, 'No tasks found');
         assert.ok(
           noTasksTreeItem.command,
           'NoGradleTasksTreeItem should have a command'
