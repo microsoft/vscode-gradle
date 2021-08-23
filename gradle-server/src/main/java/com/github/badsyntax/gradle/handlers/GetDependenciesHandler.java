@@ -122,7 +122,7 @@ public class GetDependenciesHandler {
             + "allprojects {\n"
             + "    apply plugin: com.microsoft.gradle.GradlePlugin\n"
             + "}\n";
-    Files.writeString(outputFile.toPath(), template);
+    Files.write(outputFile.toPath(), template.getBytes());
   }
 
   private void replyWithCancelled() {

@@ -211,17 +211,11 @@ export class GradleClient implements vscode.Disposable {
                     break;
                   case GetBuildReply.KindCase.COMPATIBILITY_CHECK_ERROR:
                     const message = getBuildReply.getCompatibilityCheckError()!;
-                    const javaPack = vscode.extensions.getExtension(
-                      'vscjava.vscode-java-pack'
-                    );
-                    const options = javaPack ? ['Configure Java Runtime'] : [];
-                    options.push('Open Gradle Settings');
+                    const options = ['Open Gradle Settings'];
                     await vscode.window
                       .showErrorMessage(message, ...options)
                       .then((choice) => {
-                        if (choice === 'Configure Java Runtime') {
-                          void vscode.commands.executeCommand('java.runtime');
-                        } else if (choice === 'Open Gradle Settings') {
+                        if (choice === 'Open Gradle Settings') {
                           void vscode.commands.executeCommand(
                             'workbench.action.openSettings',
                             'java.import.gradle'

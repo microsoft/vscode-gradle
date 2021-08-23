@@ -137,9 +137,9 @@ public class GetBuildHandler {
     // Ref: https://docs.gradle.org/current/userguide/compatibility.html
     Version gradleVer = createVersion(gradleVersion);
     if (gradleVer.lessThan(Version.valueOf("2.0.0"))) {
-      return Version.valueOf("7.0.0");
+      return Version.valueOf("1.7.0");
     } else if (gradleVer.lessThan(Version.valueOf("4.3.0"))) {
-      return Version.valueOf("8.0.0");
+      return Version.valueOf("1.8.0");
     } else if (gradleVer.lessThan(Version.valueOf("4.7.0"))) {
       return Version.valueOf("9.0.0");
     } else if (gradleVer.lessThan(Version.valueOf("5.0.0"))) {
@@ -161,17 +161,13 @@ public class GetBuildHandler {
   private Version createVersion(String version) {
     String[] versions = version.split("\\.");
     switch (versions.length) {
+      case 0:
+        return Version.forIntegers(0);
       case 1:
         return Version.forIntegers(Integer.parseInt(versions[0]));
-      case 2:
-        return Version.forIntegers(Integer.parseInt(versions[0]), Integer.parseInt(versions[1]));
-      case 3:
-        return Version.forIntegers(
-            Integer.parseInt(versions[0]),
-            Integer.parseInt(versions[1]),
-            Integer.parseInt(versions[2]));
       default:
-        return Version.forIntegers(0);
+        // Patch version doesn't affect compatibility
+        return Version.forIntegers(Integer.parseInt(versions[0]), Integer.parseInt(versions[1]));
     }
   }
 
