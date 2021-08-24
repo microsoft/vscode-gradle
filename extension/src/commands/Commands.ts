@@ -84,6 +84,14 @@ import {
   RecentTasksTreeDataProvider,
 } from '../views';
 import { Command } from './Command';
+import {
+  HideStoppedDaemonsCommand,
+  HIDE_STOPPED_DAEMONS,
+} from './HideStoppedDaemonsCommand';
+import {
+  ShowStoppedDaemonsCommand,
+  SHOW_STOPPED_DAEMONS,
+} from './ShowStoppedDaemonsCommand';
 
 export class Commands {
   constructor(
@@ -268,6 +276,14 @@ export class Commands {
     this.registerCommand(
       COMMAND_FIND_TASK,
       new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider)
+    );
+    this.registerCommand(
+      SHOW_STOPPED_DAEMONS,
+      new ShowStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider)
+    );
+    this.registerCommand(
+      HIDE_STOPPED_DAEMONS,
+      new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider)
     );
   }
 }
