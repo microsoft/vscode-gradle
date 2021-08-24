@@ -287,9 +287,9 @@
         }
       },
       {
-        "command": "gradle.omitted.reveal",
-        "title": "Go to Omitted Dependency",
-        "icon": "$(go-to-file)"
+        "command": "gradle.dependency.reveal",
+        "title": "Go to Dependency",
+        "icon": "$(references)"
       }
     ],
     "menus": {
@@ -403,7 +403,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.omitted.reveal",
+          "command": "gradle.dependency.reveal",
           "when": "false"
         }
       ],
@@ -549,7 +549,7 @@
           "group": "inline@0"
         },
         {
-          "command": "gradle.omitted.reveal",
+          "command": "gradle.dependency.reveal",
           "when": "view == gradleTasksView && viewItem == omitted",
           "group": "inline@0"
         },
