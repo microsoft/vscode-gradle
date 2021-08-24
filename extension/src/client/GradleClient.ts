@@ -211,7 +211,7 @@ export class GradleClient implements vscode.Disposable {
                     break;
                   case GetBuildReply.KindCase.COMPATIBILITY_CHECK_ERROR:
                     const message = getBuildReply.getCompatibilityCheckError()!;
-                    const options = ['Open Gradle Settings'];
+                    const options = ['Open Gradle Settings', 'Learn More'];
                     await vscode.window
                       .showErrorMessage(message, ...options)
                       .then((choice) => {
@@ -219,6 +219,12 @@ export class GradleClient implements vscode.Disposable {
                           void vscode.commands.executeCommand(
                             'workbench.action.openSettings',
                             'java.import.gradle'
+                          );
+                        } else if (choice === 'Learn More') {
+                          void vscode.env.openExternal(
+                            vscode.Uri.parse(
+                              'https://docs.gradle.org/current/userguide/compatibility.html'
+                            )
                           );
                         }
                       });

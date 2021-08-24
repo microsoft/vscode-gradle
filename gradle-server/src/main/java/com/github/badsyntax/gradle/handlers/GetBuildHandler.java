@@ -330,7 +330,7 @@ public class GetBuildHandler {
             + gradleVersion
             + " and Java version "
             + javaVersion
-            + " to configure the build. Please consider either to change your Java Runtime to no more than Java "
+            + " to configure the build. Please consider either to change your Java Runtime to no higher than Java "
             + jdkMajorVersion
             + " or to change your Gradle settings.";
     responseObserver.onNext(
