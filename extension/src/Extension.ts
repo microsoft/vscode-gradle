@@ -38,6 +38,7 @@ import {
 import { FileWatcher } from './util/FileWatcher';
 import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
+import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -47,6 +48,7 @@ export class Extension {
   private readonly taskTerminalsStore: TaskTerminalsStore;
   private readonly rootProjectsStore: RootProjectsStore;
   private readonly gradleTaskProvider: GradleTaskProvider;
+  private readonly gradleDependencyProvider: GradleDependencyProvider;
   private readonly taskProvider: vscode.Disposable;
   private readonly gradleTaskManager: GradleTaskManager;
   private readonly icons: Icons;
@@ -96,6 +98,7 @@ export class Extension {
       this.rootProjectsStore,
       this.client
     );
+    this.gradleDependencyProvider = new GradleDependencyProvider(this.client);
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
       this.gradleTaskProvider
@@ -106,8 +109,8 @@ export class Extension {
       this.context,
       this.rootProjectsStore,
       this.gradleTaskProvider,
-      this.icons,
-      this.client
+      this.gradleDependencyProvider,
+      this.icons
     );
     this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
       treeDataProvider: this.gradleTasksTreeDataProvider,
@@ -166,6 +169,7 @@ export class Extension {
       this.context,
       this.pinnedTasksStore,
       this.gradleTaskProvider,
+      this.gradleDependencyProvider,
       this.gradleTasksTreeDataProvider,
       this.pinnedTasksTreeDataProvider,
       this.recentTasksTreeDataProvider,

@@ -45,6 +45,7 @@ import {
 import { removeCancellingTask } from '../../tasks/taskUtil';
 import { RootProjectsStore } from '../../stores';
 import { getRunTaskCommandCancellationKey } from '../../client/CancellationKeys';
+import { GradleDependencyProvider } from '../../dependencies/GradleDependencyProvider';
 
 const mockContext = buildMockContext();
 
@@ -99,19 +100,20 @@ mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 describe(getSuiteName('Gradle tasks'), () => {
   let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   let gradleTaskProvider: GradleTaskProvider;
+  let gradleDependencyProvider: GradleDependencyProvider;
   let client: any;
   let rootProjectsStore: RootProjectsStore;
   beforeEach(async () => {
     client = buildMockClient();
     rootProjectsStore = new RootProjectsStore();
-
     gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
+    gradleDependencyProvider = new GradleDependencyProvider(client);
     gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
       mockContext,
       rootProjectsStore,
       gradleTaskProvider,
-      new Icons(mockContext),
-      client
+      gradleDependencyProvider,
+      new Icons(mockContext)
     );
     logger.reset();
     logger.setLoggingChannel(buildMockOutputChannel());
