@@ -290,6 +290,14 @@
         "command": "gradle.dependency.reveal",
         "title": "Go to Dependency",
         "icon": "$(references)"
+      },
+      {
+        "command": "gradle.showStoppedDaemons",
+        "title": "Show Stopped Daemons"
+      },
+      {
+        "command": "gradle.hideStoppedDaemons",
+        "title": "Hide Stopped Daemons"
       }
     ],
     "menus": {
@@ -405,6 +413,14 @@
         {
           "command": "gradle.dependency.reveal",
           "when": "false"
+        },
+        {
+          "command": "gradle.showStoppedDaemons",
+          "when": "false"
+        },
+        {
+          "command": "gradle.hideStoppedDaemons",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -455,6 +471,16 @@
           "command": "gradle.refreshDaemonStatus",
           "when": "view == gradleDaemonsView",
           "group": "navigation@2"
+        },
+        {
+          "command": "gradle.showStoppedDaemons",
+          "when": "view == gradleDaemonsView && config.gradle.showStoppedDaemons == false",
+          "group": "overflow_0@0"
+        },
+        {
+          "command": "gradle.hideStoppedDaemons",
+          "when": "view == gradleDaemonsView && config.gradle.showStoppedDaemons == true",
+          "group": "overflow_0@0"
         },
         {
           "command": "gradle.clearAllRecentTasks",
@@ -673,6 +699,12 @@
               "integration"
             ]
           }
+        },
+        "gradle.showStoppedDaemons": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Show stopped daemons in the Gradle Daemons view"
         }
       }
     },

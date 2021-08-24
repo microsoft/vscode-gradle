@@ -109,6 +109,10 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should build the daemon treeitems', async () => {
+    await vscode.workspace
+      .getConfiguration('gradle')
+      .update('showStoppedDaemons', true, true);
+
     const mockDaemonInfoBusy = new DaemonInfo();
     mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
     mockDaemonInfoBusy.setPid('41716');
@@ -139,12 +143,12 @@ describe(getSuiteName('Gradle daemons'), () => {
     // NOTE: no reason to mock reply for mockWorkspaceFolder3 as it should be ignored due to
     // dupicate gradle version
 
-    const children = await gradleDaemonsTreeDataProvider.getChildren();
+    let children = await gradleDaemonsTreeDataProvider.getChildren();
 
     assert.strictEqual(
       children.length,
       4,
-      'There should be 6 items in the tree'
+      'There should be 4 items in the tree'
     );
 
     const treeItemBusy = children[0];
@@ -205,6 +209,19 @@ describe(getSuiteName('Gradle daemons'), () => {
     assert.strictEqual(
       idleIconPath.light,
       path.join('resources', 'light', ICON_DAEMON_IDLE)
+    );
+
+    // test for hide stopped daemons
+    await vscode.workspace
+      .getConfiguration('gradle')
+      .update('showStoppedDaemons', false, true);
+
+    children = await gradleDaemonsTreeDataProvider.getChildren();
+
+    assert.strictEqual(
+      children.length,
+      2,
+      'There should be 2 items in the tree'
     );
   });
 

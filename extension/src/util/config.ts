@@ -94,6 +94,18 @@ export function getNestedProjectsConfig(
     .get<boolean | ReadonlyArray<string>>('nestedProjects', false);
 }
 
+export function getShowStoppedDaemons(): boolean {
+  return vscode.workspace
+    .getConfiguration('gradle')
+    .get<boolean>('showStoppedDaemons', false);
+}
+
+export function setShowStoppedDaemons(value: boolean): void {
+  void vscode.workspace
+    .getConfiguration('gradle')
+    .update('showStoppedDaemons', value, true);
+}
+
 export type JavaDebug = {
   tasks: ReadonlyArray<string>;
   clean: boolean;
