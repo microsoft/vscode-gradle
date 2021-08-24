@@ -37,7 +37,7 @@ import {
 } from './util/config';
 import { FileWatcher } from './util/FileWatcher';
 import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
-import { GRADLE_OMITTED_REVEAL } from './views/gradleTasks/DependencyUtils';
+import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -184,7 +184,7 @@ export class Extension {
     this.handleEditorEvents();
 
     vscode.commands.registerCommand(
-      GRADLE_OMITTED_REVEAL,
+      GRADLE_DEPENDENCY_REVEAL,
       async (item: DependencyTreeItem) => {
         const omittedTreeItem = item.getOmittedTreeItem();
         if (omittedTreeItem) {
