@@ -103,7 +103,7 @@ export function getShowStoppedDaemons(): boolean {
 export function setShowStoppedDaemons(value: boolean): void {
   void vscode.workspace
     .getConfiguration('gradle')
-    .update('showStoppedDaemons', value);
+    .update('showStoppedDaemons', value, true);
 }
 
 export type JavaDebug = {
