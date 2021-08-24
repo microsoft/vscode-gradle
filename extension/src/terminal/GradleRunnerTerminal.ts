@@ -105,10 +105,10 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         true
       );
       await runTask;
+      this.closeEmitter.fire(0);
     } catch (e) {
       this.handleError(e);
-    } finally {
-      this.closeEmitter.fire(0);
+      this.closeEmitter.fire(1);
     }
   }
 
