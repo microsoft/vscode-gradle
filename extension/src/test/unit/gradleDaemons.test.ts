@@ -111,7 +111,7 @@ describe(getSuiteName('Gradle daemons'), () => {
   it('should build the daemon treeitems', async () => {
     await vscode.workspace
       .getConfiguration('gradle')
-      .update('showStoppedDaemons', true);
+      .update('showStoppedDaemons', true, true);
 
     const mockDaemonInfoBusy = new DaemonInfo();
     mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
@@ -214,7 +214,7 @@ describe(getSuiteName('Gradle daemons'), () => {
     // test for hide stopped daemons
     await vscode.workspace
       .getConfiguration('gradle')
-      .update('showStoppedDaemons', false);
+      .update('showStoppedDaemons', false, true);
 
     children = await gradleDaemonsTreeDataProvider.getChildren();
 
