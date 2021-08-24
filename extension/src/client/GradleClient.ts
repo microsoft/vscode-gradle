@@ -149,6 +149,7 @@ export class GradleClient implements vscode.Disposable {
       async (
         progress: vscode.Progress<{ message?: string }>,
         token: vscode.CancellationToken
+        // eslint-disable-next-line sonarjs/cognitive-complexity
       ) => {
         const progressHandler = new ProgressHandler(
           progress,
@@ -207,6 +208,26 @@ export class GradleClient implements vscode.Disposable {
                     await vscode.commands.executeCommand(
                       COMMAND_REFRESH_DAEMON_STATUS
                     );
+                    break;
+                  case GetBuildReply.KindCase.COMPATIBILITY_CHECK_ERROR:
+                    const message = getBuildReply.getCompatibilityCheckError()!;
+                    const options = ['Open Gradle Settings', 'Learn More'];
+                    await vscode.window
+                      .showErrorMessage(message, ...options)
+                      .then((choice) => {
+                        if (choice === 'Open Gradle Settings') {
+                          void vscode.commands.executeCommand(
+                            'workbench.action.openSettings',
+                            'java.import.gradle'
+                          );
+                        } else if (choice === 'Learn More') {
+                          void vscode.env.openExternal(
+                            vscode.Uri.parse(
+                              'https://docs.gradle.org/current/userguide/compatibility.html'
+                            )
+                          );
+                        }
+                      });
                     break;
                 }
               })

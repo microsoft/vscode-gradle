@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class Process implements AutoCloseable {
   public static final Boolean IS_WINDOWS =
@@ -43,6 +44,9 @@ public class Process implements AutoCloseable {
   public synchronized void exec(String... args) throws IOException, ProcessException {
     ProcessBuilder processBuilder = new ProcessBuilder(buildCommand(args));
     processBuilder.directory(workingDir);
+    Map<String, String> env = processBuilder.environment();
+    // use the same java runtime to execute wrapper
+    env.put("JAVA_HOME", System.getProperty("java.home"));
     java.lang.Process process = processBuilder.start();
     this.processOutput =
         new ProcessOutput(

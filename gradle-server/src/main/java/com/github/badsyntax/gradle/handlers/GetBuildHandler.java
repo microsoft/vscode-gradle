@@ -17,6 +17,7 @@ import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
+import com.github.zafarkhaja.semver.Version;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
@@ -44,6 +45,7 @@ public class GetBuildHandler {
   private ProgressListener progressListener;
   private ByteBufferOutputStream standardOutputListener;
   private ByteBufferOutputStream standardErrorListener;
+  private Environment environment;
 
   public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
     this.req = req;
@@ -85,7 +87,8 @@ public class GetBuildHandler {
     }
 
     try (ProjectConnection connection = gradleConnector.connect()) {
-      replyWithBuildEnvironment(buildEnvironment(connection));
+      this.environment = buildEnvironment(connection);
+      replyWithBuildEnvironment(this.environment);
       org.gradle.tooling.model.GradleProject gradleProject = getGradleProject(connection);
       replyWithProject(getProjectData(gradleProject, gradleProject));
     } catch (BuildCancelledException e) {
@@ -94,10 +97,77 @@ public class GetBuildHandler {
         | IOException
         | IllegalStateException
         | org.gradle.tooling.GradleConnectionException e) {
+      if (this.environment != null) {
+        String gradleVersion = this.environment.getGradleEnvironment().getGradleVersion();
+        String javaVersion = System.getProperty("java.version");
+        Version highestJDKVersion = getHighestJDKVersion(gradleVersion);
+        if (highestJDKVersion.lessThan(createVersion(javaVersion))) {
+          replyWithCompatibilityCheckError(
+              gradleVersion, javaVersion, highestJDKVersion.getMajorVersion());
+        }
+      } else {
+        String rootCause = getRootCause(e);
+        if (rootCause.contains("Could not determine java version")) {
+          // Current Gradle version requires no more than Java 8.
+          // Since the language server requires JDK11+,
+          // We recommend the user to change gradle settings
+          replyWithCompatibilityCheckError();
+        }
+      }
       logger.error(e.getMessage());
       replyWithError(e);
     } finally {
       GradleBuildCancellation.clearToken(req.getCancellationKey());
+    }
+  }
+
+  private String getRootCause(Throwable error) {
+    Throwable rootCause = error;
+    while (true) {
+      Throwable cause = rootCause.getCause();
+      if (cause == null || cause.getMessage() == null && !(cause instanceof StackOverflowError)) {
+        break;
+      }
+      rootCause = cause;
+    }
+    return rootCause.toString();
+  }
+
+  private Version getHighestJDKVersion(String gradleVersion) {
+    // Ref: https://docs.gradle.org/current/userguide/compatibility.html
+    Version gradleVer = createVersion(gradleVersion);
+    if (gradleVer.lessThan(Version.valueOf("2.0.0"))) {
+      return Version.valueOf("1.7.0");
+    } else if (gradleVer.lessThan(Version.valueOf("4.3.0"))) {
+      return Version.valueOf("1.8.0");
+    } else if (gradleVer.lessThan(Version.valueOf("4.7.0"))) {
+      return Version.valueOf("9.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("5.0.0"))) {
+      return Version.valueOf("10.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("5.4.0"))) {
+      return Version.valueOf("11.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("6.0.0"))) {
+      return Version.valueOf("12.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("6.3.0"))) {
+      return Version.valueOf("13.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("6.7.0"))) {
+      return Version.valueOf("14.0.0");
+    } else if (gradleVer.lessThan(Version.valueOf("7.0.0"))) {
+      return Version.valueOf("15.0.0");
+    }
+    return Version.valueOf("16.0.0");
+  }
+
+  private Version createVersion(String version) {
+    String[] versions = version.split("\\.");
+    switch (versions.length) {
+      case 0:
+        return Version.forIntegers(0);
+      case 1:
+        return Version.forIntegers(Integer.parseInt(versions[0]));
+      default:
+        // Patch version doesn't affect compatibility
+        return Version.forIntegers(Integer.parseInt(versions[0]), Integer.parseInt(versions[1]));
     }
   }
 
@@ -251,5 +321,26 @@ public class GetBuildHandler {
                     .setOutputType(Output.OutputType.STDERR)
                     .setOutputBytes(byteString))
             .build());
+  }
+
+  private void replyWithCompatibilityCheckError(
+      String gradleVersion, String javaVersion, int jdkMajorVersion) {
+    String errorMessage =
+        "Could not use Gradle version "
+            + gradleVersion
+            + " and Java version "
+            + javaVersion
+            + " to configure the build. Please consider either to change your Java Runtime to no higher than Java "
+            + jdkMajorVersion
+            + " or to change your Gradle settings.";
+    responseObserver.onNext(
+        GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
+  }
+
+  private void replyWithCompatibilityCheckError() {
+    String errorMessage =
+        "The current Gradle version requires Java 8 or lower. Please consider to change your Gradle settings.";
+    responseObserver.onNext(
+        GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
   }
 }
