@@ -184,6 +184,7 @@ describe(getSuiteName('Extension'), () => {
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'off');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       await executeAndWaitForTasks();
       assert.strictEqual(vscode.window.terminals.length, 3);
     });
@@ -192,6 +193,7 @@ describe(getSuiteName('Extension'), () => {
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'task');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       await executeAndWaitForTasks();
       assert.strictEqual(vscode.window.terminals.length, 2);
     });
@@ -200,6 +202,7 @@ describe(getSuiteName('Extension'), () => {
       await vscode.workspace
         .getConfiguration('gradle')
         .update('reuseTerminals', 'all');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
       await executeAndWaitForTasks();
       assert.strictEqual(vscode.window.terminals.length, 1);
     });

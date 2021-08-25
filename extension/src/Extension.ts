@@ -314,8 +314,6 @@ export class Extension {
             this.rootProjectsStore.clear();
             await this.refresh();
             await this.activate();
-          } else if (event.affectsConfiguration('gradle.reuseTerminals')) {
-            await this.refresh();
           } else if (event.affectsConfiguration('gradle.debug')) {
             const debug = getConfigIsDebugEnabled();
             Logger.setLogVerbosity(
