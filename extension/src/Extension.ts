@@ -33,7 +33,6 @@ import { Commands } from './commands/Commands';
 import {
   getConfigIsDebugEnabled,
   getConfigFocusTaskInExplorer,
-  getConfigReuseTerminals,
 } from './util/config';
 import { FileWatcher } from './util/FileWatcher';
 import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
@@ -239,10 +238,6 @@ export class Extension {
     definition: GradleTaskDefinition,
     terminal: vscode.Terminal
   ): void {
-    const reuseTerminals = getConfigReuseTerminals();
-
-    // Close previously opened task terminals
-    this.taskTerminalsStore.disposeTaskTerminals(definition, reuseTerminals);
     // Add this task terminal to the store
     const terminalTaskName = terminal.name.replace('Task - ', '');
     if (terminalTaskName === definition.script) {

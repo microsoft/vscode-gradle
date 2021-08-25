@@ -643,6 +643,11 @@
             "off",
             "all"
           ],
+          "enumDescriptions": [
+            "Use a dedicated terminal for a specific task. The terminal is not shared with other tasks.",
+            "Create a new terminal when a task is executed.",
+            "Share the terminal with other tasks."
+          ],
           "default": "task",
           "scope": "window",
           "description": "Reuse task terminals behaviour"

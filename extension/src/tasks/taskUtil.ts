@@ -22,6 +22,7 @@ import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import {
   getGradleConfig,
   getConfigIsAutoDetectionEnabled,
+  getConfigReuseTerminals,
 } from '../util/config';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
@@ -184,12 +185,20 @@ export function createTaskFromDefinition(
     ),
     ['$gradle']
   );
+
+  const reuseTerminals = getConfigReuseTerminals();
+  let panelKind = vscode.TaskPanelKind.Dedicated;
+  if (reuseTerminals === 'off') {
+    panelKind = vscode.TaskPanelKind.New;
+  } else if (reuseTerminals === 'all') {
+    panelKind = vscode.TaskPanelKind.Shared;
+  }
   task.presentationOptions = {
     showReuseMessage: false,
     clear: true,
     echo: true,
     focus: true,
-    panel: vscode.TaskPanelKind.Shared,
+    panel: panelKind,
     reveal: vscode.TaskRevealKind.Always,
   };
   terminal.setTask(task);
