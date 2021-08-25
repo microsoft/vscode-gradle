@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Support dependency view. [PR#887](https://github.com/microsoft/vscode-gradle/pull/887)
 - Support local Gradle installation. [PR#926](https://github.com/microsoft/vscode-gradle/pull/926)
 ### Changed
-- The view `Gradle Tasks` was renamed to `Gradle Projects`.
-- `STOPPED` daemons in Gradle Daemons view are hidden by default. [PR#940](https://github.com/microsoft/vscode-gradle/pull/940)
-- Refine UX when there is no item in pinned and recent view. [PR#937](https://github.com/microsoft/vscode-gradle/pull/937)
+- Rename `Gradle Tasks` view to `Gradle Projects` view.
+- Hide `STOPPED` daemons in Gradle Daemons view by default. [PR#940](https://github.com/microsoft/vscode-gradle/pull/940)
+- Refine UX when there is no item in pinned tasks and recent tasks view. [PR#937](https://github.com/microsoft/vscode-gradle/pull/937)
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.7.0+is%3Aclosed)
 
