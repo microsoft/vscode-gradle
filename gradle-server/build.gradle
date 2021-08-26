@@ -104,6 +104,7 @@ spotless {
 
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn jar
+  dependsOn 'copyRuntimeLibs'
   outputDir = file(libsDirName)
   mainClassName = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
@@ -121,5 +122,5 @@ task copyRuntimeLibs(type: Copy) {
   from configurations.runtimeClasspath
 }
 
-compileJava.dependsOn 'generateProto', 'spotlessCheck', 'copyRuntimeLibs'
+compileJava.dependsOn 'generateProto', 'spotlessCheck'
 assemble.dependsOn serverStartScripts
