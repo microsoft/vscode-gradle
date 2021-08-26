@@ -1,10 +1,14 @@
 package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
+import com.github.badsyntax.gradle.GradleExecution;
+import com.github.badsyntax.gradle.GradleLocalInstallation;
+import com.github.badsyntax.gradle.GradleProjectConnectionType;
+import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GradleWrapper;
 import com.github.badsyntax.gradle.StopDaemonsReply;
 import com.github.badsyntax.gradle.StopDaemonsRequest;
-import com.github.badsyntax.gradle.exceptions.GradleWrapperException;
+import com.github.badsyntax.gradle.exceptions.GradleExecutionException;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
 import org.slf4j.Logger;
@@ -25,11 +29,27 @@ public class StopDaemonsHandler {
   public void run() {
     File projectRoot = new File(req.getProjectDir());
     try {
-      GradleWrapper gradleWrapper = new GradleWrapper(projectRoot);
-      String stopOutput = gradleWrapper.exec("--stop");
+      GradleExecution gradleExecution = null;
+      GradleProjectConnectionType connectionType = GradleProjectConnector.getConnectionType();
+      if (connectionType == GradleProjectConnectionType.WRAPPER) {
+        gradleExecution = new GradleWrapper(projectRoot);
+      } else if (connectionType == GradleProjectConnectionType.LOCALINSTALLATION) {
+        String localInstallation = GradleProjectConnector.getLocalInstallation();
+        gradleExecution = new GradleLocalInstallation(new File(localInstallation));
+      } else if (connectionType == GradleProjectConnectionType.SPECIFICVERSION) {
+        // We disabled stop all daemons in the client when specifies a gradle version
+        // So here will not be reached
+        replyWithError(new Exception("Unsupported operation."));
+        return;
+      }
+      if (gradleExecution == null) {
+        replyWithError(new Exception("Stop daemons failed. Please check your Gradle Settings."));
+        return;
+      }
+      String stopOutput = gradleExecution.exec("--stop");
       replyWithSuccess(stopOutput);
       responseObserver.onCompleted();
-    } catch (GradleWrapperException e) {
+    } catch (GradleExecutionException e) {
       logger.error(e.getMessage());
       replyWithError(e);
     }

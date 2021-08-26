@@ -252,6 +252,7 @@
       },
       {
         "command": "gradle.stopDaemons",
+        "enablement": "!gradle:specificGradleVersion",
         "title": "Stop Daemons",
         "icon": {
           "light": "resources/light/stop-daemons.svg",

@@ -8,11 +8,14 @@ import {
   setShowStoppedDaemons,
 } from '../../util/config';
 import { Deferred } from '../../util/Deferred';
+import { HintItem } from '../gradleTasks/HintItem';
+import { getSpecificVersionStatus } from './util';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem> {
   private cancelDeferred?: Deferred<vscode.TreeItem[]>;
   private treeItems: vscode.TreeItem[] = [];
+  private specificVersion = false;
   private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
   public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
     ._onDidChangeTreeData.event;
@@ -21,7 +24,22 @@ export class GradleDaemonsTreeDataProvider
     private readonly context: vscode.ExtensionContext,
     private readonly rootProjectsStore: RootProjectsStore,
     private readonly client: GradleClient
-  ) {}
+  ) {
+    void this.setSpecificVersion(getSpecificVersionStatus());
+  }
+
+  public async setSpecificVersion(specificVersion: boolean): Promise<void> {
+    if (this.specificVersion === specificVersion) {
+      return;
+    }
+    this.specificVersion = specificVersion;
+    await vscode.commands.executeCommand(
+      'setContext',
+      'gradle:specificGradleVersion',
+      specificVersion
+    );
+    this.refresh();
+  }
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -75,7 +93,16 @@ export class GradleDaemonsTreeDataProvider
       this.cancelDeferred.promise,
     ]);
     this.cancelDeferred = undefined;
-    return this.treeItems;
+    if (this.treeItems.length) {
+      return this.treeItems;
+    }
+    return this.specificVersion
+      ? [
+          new HintItem(
+            'Gradle Daemons view is not available when specifying a Gradle version'
+          ),
+        ]
+      : [new HintItem('No Gradle Daemons')];
   }
 
   private async getProjectRootFolders(): Promise<string[]> {

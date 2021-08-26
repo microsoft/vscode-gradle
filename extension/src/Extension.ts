@@ -38,6 +38,7 @@ import { FileWatcher } from './util/FileWatcher';
 import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
+import { getSpecificVersionStatus } from './views/gradleDaemons/util';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -320,6 +321,15 @@ export class Extension {
             const debug = getConfigIsDebugEnabled();
             Logger.setLogVerbosity(
               debug ? LogVerbosity.DEBUG : LogVerbosity.INFO
+            );
+          } else if (
+            event.affectsConfiguration('java.import.gradle.home') ||
+            event.affectsConfiguration('java.import.gradle.version') ||
+            event.affectsConfiguration('java.import.gradle.wrapper.enabled')
+          ) {
+            await this.refresh();
+            void this.gradleDaemonsTreeDataProvider.setSpecificVersion(
+              getSpecificVersionStatus()
             );
           }
         }
