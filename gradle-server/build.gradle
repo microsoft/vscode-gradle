@@ -1,7 +1,6 @@
 plugins {
   id 'java'
   id 'application'
-  id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
 description = 'vscode-gradle :: gradle-server'
@@ -78,20 +77,11 @@ clean {
   delete libsDirName
 }
 
-task shadowBugWorkaround(type: Jar) {
-  // https://github.com/johnrengelman/shadow/issues/111
-  dependsOn tasks.getByPath(':gradle-plugin:jar')
-  destinationDir file('build/shadow-bug-workaround')
-  baseName = 'nested-content'
-  from tasks.getByPath(':gradle-plugin:jar')
-}
-
-shadowJar {
-  dependsOn shadowBugWorkaround
-  classifier = null
-  from shadowBugWorkaround
-  // https://github.com/grpc/grpc-java/issues/5794#issuecomment-497976351
-  // minimize()
+jar {
+  manifest {
+    attributes(
+      "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.join(' '))
+  }
 }
 
 application {
@@ -99,11 +89,9 @@ application {
 }
 
 startScripts.enabled = false
-jar.enabled = false
+jar.enabled = true
 distZip.enabled = false
 distTar.enabled = false
-shadowDistZip.enabled = false;
-shadowDistTar.enabled = false;
 
 spotless {
   java {
@@ -115,17 +103,23 @@ spotless {
 }
 
 task serverStartScripts(type: CreateStartScripts) {
-  dependsOn shadowJar
+  dependsOn jar
+  dependsOn 'copyRuntimeLibs'
   outputDir = file(libsDirName)
   mainClassName = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
-  classpath = shadowJar.outputs.files
+  classpath = jar.outputs.files
   unixStartScriptGenerator.template = resources.text.fromFile(
     "$mainResourcesDir/startScriptTemplates/unixStartScript.txt"
   )
   windowsStartScriptGenerator.template = resources.text.fromFile(
     "$mainResourcesDir/startScriptTemplates/windowsStartScript.txt"
   )
+}
+
+task copyRuntimeLibs(type: Copy) {
+  into "../extension/lib"
+  from configurations.runtimeClasspath
 }
 
 compileJava.dependsOn 'generateProto', 'spotlessCheck'
