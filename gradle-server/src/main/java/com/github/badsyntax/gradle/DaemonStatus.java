@@ -1,6 +1,6 @@
 package com.github.badsyntax.gradle;
 
-import com.github.badsyntax.gradle.exceptions.GradleWrapperException;
+import com.github.badsyntax.gradle.exceptions.GradleExecutionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -8,20 +8,20 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class DaemonStatus {
-  private GradleWrapper gradleWrapper;
+  private GradleExecution gradleExecution;
 
   //  56783 IDLE     6.4
   //  39762 STOPPED  (other compatible daemons were started ...)
   private static final Pattern STATUS_REGEX =
       Pattern.compile("^\\s+([0-9]+)\\s+([A-Z]+)\\s+([\\p{ASCII}]+)$");
 
-  public DaemonStatus(GradleWrapper gradleWrapper) {
-    this.gradleWrapper = gradleWrapper;
+  public DaemonStatus(GradleExecution gradleExecution) {
+    this.gradleExecution = gradleExecution;
   }
 
-  public synchronized List<DaemonInfo> get() throws GradleWrapperException {
+  public synchronized List<DaemonInfo> get() throws GradleExecutionException {
     ArrayList<DaemonInfo> daemonStatus = new ArrayList<>();
-    String processOutput = gradleWrapper.exec("--status", "--quiet");
+    String processOutput = gradleExecution.exec("--status", "--quiet");
     Stream.of(processOutput.split("\n"))
         .forEach(
             line -> {

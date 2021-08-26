@@ -10,6 +10,9 @@ public class GradleProjectConnector {
 
   private GradleProjectConnector() {}
 
+  private static GradleProjectConnectionType connectionType = GradleProjectConnectionType.WRAPPER;
+  private static String localInstallation;
+
   public static GradleConnector build(String projectDir, GradleConfig config)
       throws GradleConnectionException {
     GradleConnector connector =
@@ -27,13 +30,18 @@ public class GradleProjectConnector {
     }
     if (!config.getWrapperEnabled()) {
       if (!Strings.isNullOrEmpty(config.getVersion())) {
+        GradleProjectConnector.connectionType = GradleProjectConnectionType.SPECIFICVERSION;
         gradleConnector.useGradleVersion(config.getVersion());
       } else if (!Strings.isNullOrEmpty(config.getGradleHome())) {
-        gradleConnector.useInstallation(new File(config.getGradleHome()));
+        GradleProjectConnector.connectionType = GradleProjectConnectionType.LOCALINSTALLATION;
+        GradleProjectConnector.localInstallation = config.getGradleHome();
+        gradleConnector.useInstallation(new File(GradleProjectConnector.localInstallation));
       } else {
         throw new GradleConnectionException(
             "java.import.gradle.home is invalid, please check it again.");
       }
+    } else {
+      GradleProjectConnector.connectionType = GradleProjectConnectionType.WRAPPER;
     }
   }
 
@@ -43,5 +51,13 @@ public class GradleProjectConnector {
             ? gradleUserHome
             : Paths.get(projectDir, gradleUserHome).toAbsolutePath().toString();
     return new File(gradleUserHomePath);
+  }
+
+  public static GradleProjectConnectionType getConnectionType() {
+    return GradleProjectConnector.connectionType;
+  }
+
+  public static String getLocalInstallation() {
+    return GradleProjectConnector.localInstallation;
   }
 }
