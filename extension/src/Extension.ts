@@ -39,6 +39,7 @@ import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
 import { getSpecificVersionStatus } from './views/gradleDaemons/util';
+import { startLanguageServer } from './languageServer/languageServer';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -198,6 +199,7 @@ export class Extension {
     );
 
     void this.activate();
+    void startLanguageServer(this.context);
   }
 
   private storeSubscriptions(): void {
