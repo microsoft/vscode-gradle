@@ -37,6 +37,18 @@
   ],
   "main": "./dist/index.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "gradle",
+        "extensions": [
+          ".gradle"
+        ],
+        "aliases": [
+          "Gradle"
+        ],
+        "configuration": "./gradle-language-configuration.json"
+      }
+    ],
     "problemMatchers": [
       {
         "owner": "gradle",
@@ -835,6 +847,7 @@
   },
   "snyk": true,
   "dependencies": {
-    "vscode-extension-telemetry-wrapper": "^0.9.0"
+    "vscode-extension-telemetry-wrapper": "^0.9.0",
+    "vscode-languageclient": "7.0.0"
   }
 }
