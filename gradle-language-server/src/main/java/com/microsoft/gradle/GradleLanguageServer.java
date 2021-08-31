@@ -13,11 +13,21 @@ package com.microsoft.gradle;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
+import com.microsoft.gradle.semantictokens.TokenModifier;
+import com.microsoft.gradle.semantictokens.TokenType;
+
+import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.SaveOptions;
+import org.eclipse.lsp4j.SemanticTokensLegend;
+import org.eclipse.lsp4j.SemanticTokensServerFull;
+import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
@@ -61,6 +71,14 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
   @Override
   public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
     ServerCapabilities serverCapabilities = new ServerCapabilities();
+    SemanticTokensWithRegistrationOptions semanticOptions = new SemanticTokensWithRegistrationOptions();
+    semanticOptions.setFull(new SemanticTokensServerFull(false));
+    semanticOptions.setRange(false);
+    semanticOptions.setDocumentSelector(List.of(new DocumentFilter("gradle", "file", null)));
+    semanticOptions.setLegend(new SemanticTokensLegend(
+        Arrays.stream(TokenType.values()).map(TokenType::toString).collect(Collectors.toList()),
+        Arrays.stream(TokenModifier.values()).map(TokenModifier::toString).collect(Collectors.toList())));
+    serverCapabilities.setSemanticTokensProvider(semanticOptions);
     TextDocumentSyncOptions textDocumentSyncOptions = new TextDocumentSyncOptions();
     textDocumentSyncOptions.setOpenClose(Boolean.TRUE);
     textDocumentSyncOptions.setSave(new SaveOptions(Boolean.TRUE));

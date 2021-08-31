@@ -18,9 +18,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.manager.GradleFilesManager;
+import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.utils.LSPUtils;
 
 import org.codehaus.groovy.control.CompilationFailedException;
@@ -39,6 +41,8 @@ import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.SemanticTokens;
+import org.eclipse.lsp4j.SemanticTokensParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -102,6 +106,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     Set<PublishDiagnosticsParams> diagnostics = new HashSet<>();
     try {
       unit.compile(Phases.CANONICALIZATION);
+      unit.getVisitor().visitCompilationUnit();
       // Send empty diagnostic if there is no error
       diagnostics.add(new PublishDiagnosticsParams(uri.toString(), new ArrayList<>()));
     } catch (CompilationFailedException e) {
@@ -117,7 +122,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     Map<String, List<Diagnostic>> diagnosticsStorage = new HashMap<>();
     for (Message error : collector.getErrors()) {
       if (error instanceof SyntaxErrorMessage) {
-        SyntaxException exp = ((SyntaxErrorMessage)error).getCause();
+        SyntaxException exp = ((SyntaxErrorMessage) error).getCause();
         Range range = LSPUtils.toRange(exp);
         Diagnostic diagnostic = new Diagnostic();
         diagnostic.setRange(range);
@@ -138,5 +143,16 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       diagnosticsParams.add(new PublishDiagnosticsParams(entry.getKey(), entry.getValue()));
     }
     return diagnosticsParams;
+  }
+
+  @Override
+  public CompletableFuture<SemanticTokens> semanticTokensFull(SemanticTokensParams params) {
+    URI uri = URI.create(params.getTextDocument().getUri());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
+    if (unit == null) {
+      return CompletableFuture.completedFuture(new SemanticTokens(new ArrayList<>()));
+    }
+    return CompletableFuture
+        .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(unit.getVisitor().getSemanticTokens())));
   }
 }
