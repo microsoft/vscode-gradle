@@ -18,25 +18,27 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.lsp4j.DidChangeTextDocumentParams;
-import org.eclipse.lsp4j.DidCloseTextDocumentParams;
-import org.eclipse.lsp4j.DidOpenTextDocumentParams;
+import com.microsoft.gradle.compile.GradleCompilationUnit;
+
+import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.control.io.StringReaderSource;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 
+import groovy.lang.GroovyClassLoader;
+
 public class GradleFilesManager {
   private Map<URI, String> openFiles = new HashMap<>();
+  private Map<URI, GradleCompilationUnit> unitStorage = new HashMap<>();
 
-  public void didOpen(DidOpenTextDocumentParams params) {
-    URI uri = URI.create(params.getTextDocument().getUri());
-    openFiles.put(uri, params.getTextDocument().getText());
+  public void didOpen(URI uri, String content) {
+    openFiles.put(uri, content);
   }
 
-  public void didChange(DidChangeTextDocumentParams params) {
-    URI uri = URI.create(params.getTextDocument().getUri());
+  public void didChange(URI uri, TextDocumentContentChangeEvent change) {
     String oldText = openFiles.get(uri);
-    TextDocumentContentChangeEvent change = params.getContentChanges().get(0);
     Range range = change.getRange();
     if (range == null) {
       openFiles.put(uri, change.getText());
@@ -51,8 +53,7 @@ public class GradleFilesManager {
     }
   }
 
-  public void didClose(DidCloseTextDocumentParams params) {
-    URI uri = URI.create(params.getTextDocument().getUri());
+  public void didClose(URI uri) {
     openFiles.remove(uri);
   }
 
@@ -91,4 +92,20 @@ public class GradleFilesManager {
     }
     return currentIndex + character;
   }
+
+  public synchronized GradleCompilationUnit getCompilationUnit(URI uri, Integer version) {
+    if (this.unitStorage.containsKey(uri) && this.unitStorage.get(uri).getVersion().equals(version)) {
+      return this.unitStorage.get(uri);
+    }
+    CompilerConfiguration config = new CompilerConfiguration();
+    GroovyClassLoader classLoader = new GroovyClassLoader(ClassLoader.getSystemClassLoader().getParent(), config, true);
+    GradleCompilationUnit unit = new GradleCompilationUnit(config, null, classLoader, version);
+    SourceUnit sourceUnit = new SourceUnit(uri.toString(),
+        new StringReaderSource(getContents(uri), unit.getConfiguration()),
+        unit.getConfiguration(), unit.getClassLoader(), unit.getErrorCollector());
+    unit.addSource(sourceUnit);
+    this.unitStorage.put(uri, unit);
+    return unit;
+  }
+
 }
