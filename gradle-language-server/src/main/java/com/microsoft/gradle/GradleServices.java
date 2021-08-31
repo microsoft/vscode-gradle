@@ -13,7 +13,6 @@ package com.microsoft.gradle;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.Set;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.manager.GradleFilesManager;
-import com.microsoft.gradle.utils.GradleUtils;
+import com.microsoft.gradle.utils.LSPUtils;
 
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.control.ErrorCollector;
@@ -119,7 +118,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     for (Message error : collector.getErrors()) {
       if (error instanceof SyntaxErrorMessage) {
         SyntaxException exp = ((SyntaxErrorMessage)error).getCause();
-        Range range = GradleUtils.getExpressionLSPRange(exp);
+        Range range = LSPUtils.toRange(exp);
         Diagnostic diagnostic = new Diagnostic();
         diagnostic.setRange(range);
         diagnostic.setSeverity(DiagnosticSeverity.Error);

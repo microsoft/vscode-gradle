@@ -15,8 +15,8 @@ import org.codehaus.groovy.syntax.SyntaxException;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 
-public class GradleUtils {
-  public static Range getExpressionLSPRange(SyntaxException exp) {
+public class LSPUtils {
+  public static Range toRange(SyntaxException exp) {
     // LSP Range start from 0, while groovy classes start from 1
     return new Range(new Position(exp.getStartLine() - 1, exp.getStartColumn() - 1),
         new Position(exp.getEndLine() - 1, exp.getEndColumn() - 1));
