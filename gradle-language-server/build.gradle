@@ -14,6 +14,7 @@ repositories  {
 dependencies {
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.12.0"
+  implementation "org.codehaus.groovy:groovy-eclipse-batch:3.0.8-01"
 }
 
 ext.mainClass = "com.microsoft.gradle.GradleLanguageServer"
