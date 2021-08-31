@@ -93,7 +93,7 @@ public class GradleFilesManager {
     return currentIndex + character;
   }
 
-  public synchronized GradleCompilationUnit getCompilationUnit(URI uri, Integer version) {
+  public GradleCompilationUnit getCompilationUnit(URI uri, Integer version) {
     if (this.unitStorage.containsKey(uri) && this.unitStorage.get(uri).getVersion().equals(version)) {
       return this.unitStorage.get(uri);
     }
