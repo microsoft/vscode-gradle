@@ -49,6 +49,13 @@
         "configuration": "./gradle-language-configuration.json"
       }
     ],
+    "grammars": [
+      {
+        "language": "gradle",
+        "scopeName": "source.groovy",
+        "path": "./syntaxes/groovy.tmLanguage.json"
+      }
+    ],
     "problemMatchers": [
       {
         "owner": "gradle",
