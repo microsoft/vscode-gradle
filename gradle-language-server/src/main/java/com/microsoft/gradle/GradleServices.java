@@ -13,6 +13,7 @@ package com.microsoft.gradle;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.gradle.compile.SemanticTokenVisitor;
+import com.microsoft.gradle.compile.DocumentSymbolVisitor;
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.manager.GradleFilesManager;
 import com.microsoft.gradle.semantictokens.SemanticToken;
@@ -40,10 +42,14 @@ import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensParams;
+import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -54,10 +60,12 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
   private SemanticTokenVisitor semanticTokenVisitor;
+  private DocumentSymbolVisitor documentSymbolVisitor;
 
   public GradleServices() {
     this.gradleFilesManager = new GradleFilesManager();
     this.semanticTokenVisitor = new SemanticTokenVisitor();
+    this.documentSymbolVisitor = new DocumentSymbolVisitor();
   }
 
   @Override
@@ -110,7 +118,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     try {
       unit.compile(Phases.CANONICALIZATION);
       // Send empty diagnostic if there is no error
-      diagnostics.add(new PublishDiagnosticsParams(uri.toString(), new ArrayList<>()));
+      diagnostics.add(new PublishDiagnosticsParams(uri.toString(), Collections.emptyList()));
     } catch (CompilationFailedException e) {
       diagnostics = generateDiagnostics(unit.getErrorCollector());
     }
@@ -152,10 +160,26 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     URI uri = URI.create(params.getTextDocument().getUri());
     GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
     if (unit == null) {
-      return CompletableFuture.completedFuture(new SemanticTokens(new ArrayList<>()));
+      return CompletableFuture.completedFuture(new SemanticTokens(Collections.emptyList()));
     }
     this.semanticTokenVisitor.visitCompilationUnit(uri, unit);
-    return CompletableFuture
-        .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
+    return CompletableFuture.completedFuture(
+        new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
+  }
+
+  @Override
+  public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
+      DocumentSymbolParams params) {
+    URI uri = URI.create(params.getTextDocument().getUri());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
+    if (unit == null) {
+      return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+    this.documentSymbolVisitor.visitCompilationUnit(uri, unit);
+    List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
+    for (DocumentSymbol symbol : this.documentSymbolVisitor.getDocumentSymbols(uri)) {
+      result.add(Either.forRight(symbol));
+    }
+    return CompletableFuture.completedFuture(result);
   }
 }
