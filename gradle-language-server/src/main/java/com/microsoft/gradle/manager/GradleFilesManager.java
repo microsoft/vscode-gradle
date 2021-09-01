@@ -108,4 +108,12 @@ public class GradleFilesManager {
     return unit;
   }
 
+  public GradleCompilationUnit getCompilationUnit(URI uri) {
+    // if there is no version info provided, we return the newest version
+    // when the previous cu exists, otherwise return null
+    if (this.unitStorage.containsKey(uri)) {
+      return this.unitStorage.get(uri);
+    }
+    return null;
+  }
 }
