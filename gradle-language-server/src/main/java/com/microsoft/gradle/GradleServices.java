@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import com.microsoft.gradle.compile.GradleASTVisitor;
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.manager.GradleFilesManager;
 import com.microsoft.gradle.semantictokens.SemanticToken;
@@ -52,9 +53,11 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
+  private GradleASTVisitor visitor;
 
   public GradleServices() {
     this.gradleFilesManager = new GradleFilesManager();
+    this.visitor = new GradleASTVisitor();
   }
 
   @Override
@@ -106,7 +109,8 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     Set<PublishDiagnosticsParams> diagnostics = new HashSet<>();
     try {
       unit.compile(Phases.CANONICALIZATION);
-      unit.getVisitor().visitCompilationUnit();
+      // If fatal error occurs and no AST generated, the visitCompilationUnit() will be ignored.
+      this.visitor.visitCompilationUnit(uri, unit);
       // Send empty diagnostic if there is no error
       diagnostics.add(new PublishDiagnosticsParams(uri.toString(), new ArrayList<>()));
     } catch (CompilationFailedException e) {
@@ -153,6 +157,6 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       return CompletableFuture.completedFuture(new SemanticTokens(new ArrayList<>()));
     }
     return CompletableFuture
-        .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(unit.getVisitor().getSemanticTokens())));
+        .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(this.visitor.getSemanticTokens(uri))));
   }
 }

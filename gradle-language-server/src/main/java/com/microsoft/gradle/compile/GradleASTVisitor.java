@@ -10,8 +10,11 @@
  *******************************************************************************/
 package com.microsoft.gradle.compile;
 
+import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.semantictokens.TokenModifier;
@@ -28,20 +31,16 @@ import org.codehaus.groovy.control.SourceUnit;
 
 public class GradleASTVisitor extends ClassCodeVisitorSupport {
 
-  public GradleASTVisitor(GradleCompilationUnit unit) {
-    this.compilationUnit = unit;
-  }
+  private URI currentUri;
+  private Map<URI, List<SemanticToken>> tokens = new HashMap<>();
 
-  private GradleCompilationUnit compilationUnit;
-  private List<SemanticToken> tokens = new ArrayList<>();
-
-  public List<SemanticToken> getSemanticTokens() {
-    return this.tokens;
+  public List<SemanticToken> getSemanticTokens(URI uri) {
+    return this.tokens.get(uri);
   }
 
   private void addToken(int line, int column, int length, TokenType tokenType, int modifiers) {
     if (length > 0) {
-      tokens.add(new SemanticToken(line, column, length, tokenType, modifiers));
+      tokens.get(currentUri).add(new SemanticToken(line, column, length, tokenType, modifiers));
     }
   }
 
@@ -53,13 +52,15 @@ public class GradleASTVisitor extends ClassCodeVisitorSupport {
     addToken(node.getLineNumber(), node.getColumnNumber(), node.getLength(), tokenType, 0);
   }
 
-  public void visitCompilationUnit() {
-    this.compilationUnit.iterator().forEachRemaining(unit -> visitSourceUnit(unit));
+  public void visitCompilationUnit(URI uri, GradleCompilationUnit compilationUnit) {
+    this.currentUri = uri;
+    compilationUnit.iterator().forEachRemaining(unit -> visitSourceUnit(uri, unit));
   }
 
-  public void visitSourceUnit(SourceUnit unit) {
+  public void visitSourceUnit(URI uri, SourceUnit unit) {
     ModuleNode moduleNode = unit.getAST();
     if (moduleNode != null) {
+      this.tokens.put(uri, new ArrayList<>());
       visitModule(moduleNode);
     }
   }

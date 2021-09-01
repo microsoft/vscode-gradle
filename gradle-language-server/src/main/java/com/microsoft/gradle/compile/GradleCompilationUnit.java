@@ -20,19 +20,13 @@ import groovy.lang.GroovyClassLoader;
 
 public class GradleCompilationUnit extends CompilationUnit {
   private Integer version;
-  private GradleASTVisitor visitor;
 
   public GradleCompilationUnit(CompilerConfiguration configuration, CodeSource codeSource, GroovyClassLoader loader, Integer version) {
     super(configuration, codeSource, loader);
     this.version = version;
-    this.visitor = new GradleASTVisitor(this);
   }
 
   public Integer getVersion() {
     return this.version;
-  }
-
-  public GradleASTVisitor getVisitor() {
-    return this.visitor;
   }
 }
