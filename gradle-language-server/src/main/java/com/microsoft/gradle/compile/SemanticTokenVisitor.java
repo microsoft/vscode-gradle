@@ -29,7 +29,7 @@ import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.control.SourceUnit;
 
-public class GradleASTVisitor extends ClassCodeVisitorSupport {
+public class SemanticTokenVisitor extends ClassCodeVisitorSupport {
 
   private URI currentUri;
   private Map<URI, List<SemanticToken>> tokens = new HashMap<>();

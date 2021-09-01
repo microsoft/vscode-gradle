@@ -49,6 +49,7 @@ public class SemanticToken {
     return length;
   }
 
+  // Note: similar logics as JDT.LS, but in groovy AST ranges start from 1
   public static List<Integer> encodedTokens(List<SemanticToken> tokens) {
     tokens.sort(new Comparator<SemanticToken>() {
       @Override
