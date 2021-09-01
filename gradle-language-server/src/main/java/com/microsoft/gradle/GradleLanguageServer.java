@@ -13,13 +13,19 @@ package com.microsoft.gradle;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.microsoft.gradle.semantictokens.TokenModifier;
 import com.microsoft.gradle.semantictokens.TokenType;
+import com.microsoft.gradle.utils.LSPUtils;
 
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
@@ -32,6 +38,7 @@ import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
+import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -71,6 +78,16 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 
   @Override
   public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
+    Map<?, ?> initOptions = new Gson().fromJson((JsonElement) params.getInitializationOptions(), Map.class);
+    // TODO: support multiple workspace folders
+    List<WorkspaceFolder> workspaceFolders = params.getWorkspaceFolders();
+    for (WorkspaceFolder folder : workspaceFolders) {
+      URI uri = URI.create(folder.getUri());
+      this.gradleServices.getLibraryResolver().setWorkspacePath(Paths.get(uri));
+      break;
+    }
+    Object settings = initOptions.get("settings");
+    LSPUtils.applySetting(this.gradleServices, settings);
     ServerCapabilities serverCapabilities = new ServerCapabilities();
     SemanticTokensWithRegistrationOptions semanticOptions = new SemanticTokensWithRegistrationOptions();
     semanticOptions.setFull(new SemanticTokensServerFull(false));
