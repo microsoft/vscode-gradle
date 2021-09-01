@@ -18,7 +18,6 @@ import java.util.Map;
 
 import com.microsoft.gradle.utils.LSPUtils;
 
-import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
 import org.codehaus.groovy.ast.ModuleNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BinaryExpression;
@@ -34,7 +33,7 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.SymbolKind;
 
-public class DocumentSymbolVisitor extends ClassCodeVisitorSupport {
+public class DocumentSymbolVisitor {
 
   private URI currentUri;
   private Map<URI, List<DocumentSymbol>> documentSymbols = new HashMap<>();
@@ -136,7 +135,7 @@ public class DocumentSymbolVisitor extends ClassCodeVisitorSupport {
     } else if (objectExpression instanceof PropertyExpression) {
       // for case: a.b.c.d("string"), we show "a.b.c.d" in outline
       StringBuilder builder = new StringBuilder();
-      builder.append(getSymbolName((PropertyExpression)objectExpression));
+      builder.append(getSymbolName((PropertyExpression) objectExpression));
       builder.append(".");
       builder.append(expression.getMethodAsString());
       return builder.toString();
@@ -149,7 +148,7 @@ public class DocumentSymbolVisitor extends ClassCodeVisitorSupport {
     Expression property = expression.getProperty();
     StringBuilder builder = new StringBuilder();
     if (objectExpression instanceof PropertyExpression) {
-      builder.append(getSymbolName((PropertyExpression)objectExpression));
+      builder.append(getSymbolName((PropertyExpression) objectExpression));
     } else if (objectExpression instanceof VariableExpression) {
       builder.append(objectExpression.getText());
     }

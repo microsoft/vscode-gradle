@@ -162,8 +162,8 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       return CompletableFuture.completedFuture(new SemanticTokens(new ArrayList<>()));
     }
     this.semanticTokenVisitor.visitCompilationUnit(uri, unit);
-    return CompletableFuture
-        .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
+    return CompletableFuture.completedFuture(
+        new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
   }
 
   @Override
