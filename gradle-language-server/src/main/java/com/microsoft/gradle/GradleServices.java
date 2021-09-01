@@ -13,6 +13,7 @@ package com.microsoft.gradle;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -117,7 +118,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     try {
       unit.compile(Phases.CANONICALIZATION);
       // Send empty diagnostic if there is no error
-      diagnostics.add(new PublishDiagnosticsParams(uri.toString(), new ArrayList<>()));
+      diagnostics.add(new PublishDiagnosticsParams(uri.toString(), Collections.emptyList()));
     } catch (CompilationFailedException e) {
       diagnostics = generateDiagnostics(unit.getErrorCollector());
     }
@@ -159,7 +160,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     URI uri = URI.create(params.getTextDocument().getUri());
     GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
     if (unit == null) {
-      return CompletableFuture.completedFuture(new SemanticTokens(new ArrayList<>()));
+      return CompletableFuture.completedFuture(new SemanticTokens(Collections.emptyList()));
     }
     this.semanticTokenVisitor.visitCompilationUnit(uri, unit);
     return CompletableFuture.completedFuture(
@@ -172,7 +173,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     URI uri = URI.create(params.getTextDocument().getUri());
     GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
     if (unit == null) {
-      return CompletableFuture.completedFuture(new ArrayList<>());
+      return CompletableFuture.completedFuture(Collections.emptyList());
     }
     this.documentSymbolVisitor.visitCompilationUnit(uri, unit);
     List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
