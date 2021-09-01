@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.gradle.compile.SemanticTokenVisitor;
+import com.microsoft.gradle.compile.DocumentSymbolVisitor;
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.manager.GradleFilesManager;
 import com.microsoft.gradle.semantictokens.SemanticToken;
@@ -58,10 +59,12 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
   private SemanticTokenVisitor semanticTokenVisitor;
+  private DocumentSymbolVisitor documentSymbolVisitor;
 
   public GradleServices() {
     this.gradleFilesManager = new GradleFilesManager();
     this.semanticTokenVisitor = new SemanticTokenVisitor();
+    this.documentSymbolVisitor = new DocumentSymbolVisitor();
   }
 
   @Override
@@ -167,8 +170,13 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
       DocumentSymbolParams params) {
     URI uri = URI.create(params.getTextDocument().getUri());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
+    if (unit == null) {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
+    this.documentSymbolVisitor.visitCompilationUnit(uri, unit);
     List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
-    for (DocumentSymbol symbol : this.visitor.getDocumentSymbols(uri)) {
+    for (DocumentSymbol symbol : this.documentSymbolVisitor.getDocumentSymbols(uri)) {
       result.add(Either.forRight(symbol));
     }
     return CompletableFuture.completedFuture(result);
