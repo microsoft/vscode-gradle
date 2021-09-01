@@ -40,10 +40,14 @@ import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensParams;
+import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -157,5 +161,16 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     this.semanticTokenVisitor.visitCompilationUnit(uri, unit);
     return CompletableFuture
         .completedFuture(new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
+  }
+
+  @Override
+  public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
+      DocumentSymbolParams params) {
+    URI uri = URI.create(params.getTextDocument().getUri());
+    List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
+    for (DocumentSymbol symbol : this.visitor.getDocumentSymbols(uri)) {
+      result.add(Either.forRight(symbol));
+    }
+    return CompletableFuture.completedFuture(result);
   }
 }

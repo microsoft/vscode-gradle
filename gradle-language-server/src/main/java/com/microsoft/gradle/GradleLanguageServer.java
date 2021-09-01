@@ -79,6 +79,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
         Arrays.stream(TokenType.values()).map(TokenType::toString).collect(Collectors.toList()),
         Arrays.stream(TokenModifier.values()).map(TokenModifier::toString).collect(Collectors.toList())));
     serverCapabilities.setSemanticTokensProvider(semanticOptions);
+    serverCapabilities.setDocumentSymbolProvider(true);
     TextDocumentSyncOptions textDocumentSyncOptions = new TextDocumentSyncOptions();
     textDocumentSyncOptions.setOpenClose(Boolean.TRUE);
     textDocumentSyncOptions.setSave(new SaveOptions(Boolean.TRUE));
