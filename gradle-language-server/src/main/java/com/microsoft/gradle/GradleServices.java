@@ -23,7 +23,10 @@ import java.util.concurrent.CompletableFuture;
 
 import com.microsoft.gradle.compile.SemanticTokenVisitor;
 import com.microsoft.gradle.compile.DocumentSymbolVisitor;
+import com.microsoft.gradle.compile.CompletionVisitor;
 import com.microsoft.gradle.compile.GradleCompilationUnit;
+import com.microsoft.gradle.compile.CompletionVisitor.DependencyItem;
+import com.microsoft.gradle.handlers.DependencyCompletionHandler;
 import com.microsoft.gradle.manager.GradleFilesManager;
 import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.utils.LSPUtils;
@@ -34,6 +37,9 @@ import org.codehaus.groovy.control.Phases;
 import org.codehaus.groovy.control.messages.Message;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
@@ -54,6 +60,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
+import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
@@ -61,11 +68,13 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   private GradleFilesManager gradleFilesManager;
   private SemanticTokenVisitor semanticTokenVisitor;
   private DocumentSymbolVisitor documentSymbolVisitor;
+  private CompletionVisitor completionVisitor;
 
   public GradleServices() {
     this.gradleFilesManager = new GradleFilesManager();
     this.semanticTokenVisitor = new SemanticTokenVisitor();
     this.documentSymbolVisitor = new DocumentSymbolVisitor();
+    this.completionVisitor = new CompletionVisitor();
   }
 
   @Override
@@ -181,5 +190,24 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       result.add(Either.forRight(symbol));
     }
     return CompletableFuture.completedFuture(result);
+  }
+
+  @Override
+  public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+    URI uri = URI.create(params.getTextDocument().getUri());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
+    if (unit == null) {
+      return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+    }
+    this.completionVisitor.visitCompilationUnit(uri, unit);
+    List<DependencyItem> dependencies = this.completionVisitor.getDependencies(uri);
+    for (DependencyItem dependency : dependencies) {
+      if (Ranges.containsPosition(dependency.getRange(), params.getPosition())) {
+        DependencyCompletionHandler handler = new DependencyCompletionHandler();
+        return CompletableFuture
+            .completedFuture(Either.forLeft(handler.getDependencyCompletionItems(dependency, params.getPosition())));
+      }
+    }
+    return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
   }
 }
