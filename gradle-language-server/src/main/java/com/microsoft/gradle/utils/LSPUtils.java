@@ -8,7 +8,6 @@
  * Contributors:
  *    Microsoft Corporation - initial API and implementation
  *******************************************************************************/
-
 package com.microsoft.gradle.utils;
 
 import org.codehaus.groovy.ast.expr.Expression;
@@ -27,5 +26,20 @@ public class LSPUtils {
     // LSP Range start from 0, while groovy expressions start from 1
     return new Range(new Position(expression.getLineNumber() - 1, expression.getColumnNumber() - 1),
         new Position(expression.getLastLineNumber() - 1, expression.getLastColumnNumber() - 1));
+  }
+
+  public static Range toDependencyRange(Expression expression) {
+    // For dependency, the string includes open/close quotes should be excluded
+    return new Range(new Position(expression.getLineNumber() - 1, expression.getColumnNumber()),
+        new Position(expression.getLastLineNumber() - 1, expression.getLastColumnNumber() - 2));
+  }
+
+  public static String getStringBeforePosition(String text, Range range, Position position) {
+    Position start = range.getStart();
+    // Since it's used for extract dependency info, we doesn't support multiple line
+    if (start.getLine() != position.getLine()) {
+      return text;
+    }
+    return text.substring(0, position.getCharacter() - start.getCharacter());
   }
 }

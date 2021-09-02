@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.microsoft.gradle.semantictokens.TokenModifier;
 import com.microsoft.gradle.semantictokens.TokenType;
 
+import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
@@ -85,6 +86,8 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
     textDocumentSyncOptions.setSave(new SaveOptions(Boolean.TRUE));
     textDocumentSyncOptions.setChange(TextDocumentSyncKind.Incremental);
     serverCapabilities.setTextDocumentSync(textDocumentSyncOptions);
+    CompletionOptions completionOptions = new CompletionOptions(false, Arrays.asList(".", ":"));
+    serverCapabilities.setCompletionProvider(completionOptions);
     InitializeResult initializeResult = new InitializeResult(serverCapabilities);
     return CompletableFuture.completedFuture(initializeResult);
   }
