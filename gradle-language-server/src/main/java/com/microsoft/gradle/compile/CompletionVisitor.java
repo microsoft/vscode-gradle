@@ -12,6 +12,8 @@ package com.microsoft.gradle.compile;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +93,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     if (argument instanceof ArgumentListExpression) {
       return getDependencies((ArgumentListExpression) argument);
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 
   private List<DependencyItem> getDependencies(ArgumentListExpression argumentListExpression) {
@@ -116,7 +118,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     if (code instanceof BlockStatement) {
       return getDependencies((BlockStatement) code);
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 
   private List<DependencyItem> getDependencies(BlockStatement blockStatement) {
@@ -135,6 +137,6 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     if (expression instanceof MethodCallExpression) {
       return getDependencies((MethodCallExpression) expression);
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 }

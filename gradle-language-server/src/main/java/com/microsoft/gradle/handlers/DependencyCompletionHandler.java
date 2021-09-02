@@ -13,6 +13,7 @@ package com.microsoft.gradle.handlers;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import com.google.gson.Gson;
@@ -51,13 +52,13 @@ public class DependencyCompletionHandler {
       case 3:
         return getDependenciesForVersion(validTexts[0], validTexts[1]);
       default:
-        return new ArrayList<>();
+        return Collections.emptyList();
     }
   }
 
   private List<CompletionItem> getDependenciesForInCompleteGroup(String group) {
     if (group.length() < 3) {
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
     StringBuilder builder = new StringBuilder();
     builder.append(URL_BASIC_SEARCH);
@@ -68,7 +69,7 @@ public class DependencyCompletionHandler {
 
   private List<CompletionItem> getDependenciesForInCompleteArtifact(String group) {
     if (group.length() < 3) {
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
     StringBuilder builder = new StringBuilder();
     builder.append(URL_BASIC_SEARCH);
@@ -80,7 +81,7 @@ public class DependencyCompletionHandler {
 
   private List<CompletionItem> getDependenciesForVersion(String group, String artifact) {
     if (group.length() < 3 || artifact.length() < 3) {
-      return new ArrayList<>();
+      return Collections.emptyList();
     }
     StringBuilder builder = new StringBuilder();
     builder.append(URL_BASIC_SEARCH);
@@ -126,6 +127,6 @@ public class DependencyCompletionHandler {
     } catch (Exception e) {
       // TODO
     }
-    return new ArrayList<>();
+    return Collections.emptyList();
   }
 }
