@@ -197,7 +197,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     URI uri = URI.create(params.getTextDocument().getUri());
     GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
     if (unit == null) {
-      return CompletableFuture.completedFuture(null);
+      return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
     }
     this.completionVisitor.visitCompilationUnit(uri, unit);
     List<DependencyItem> dependencies = this.completionVisitor.getDependencies(uri);
@@ -208,6 +208,6 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
             .completedFuture(Either.forLeft(handler.getDependencyCompletionItems(dependency, params.getPosition())));
       }
     }
-    return CompletableFuture.completedFuture(null);
+    return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
   }
 }
