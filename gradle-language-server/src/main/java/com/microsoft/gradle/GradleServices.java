@@ -172,8 +172,12 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       return CompletableFuture.completedFuture(new SemanticTokens(Collections.emptyList()));
     }
     this.semanticTokenVisitor.visitCompilationUnit(uri, unit);
+    List<SemanticToken> semanticTokens = this.semanticTokenVisitor.getSemanticTokens(uri);
+    if (semanticTokens == null) {
+      return CompletableFuture.completedFuture(new SemanticTokens(Collections.emptyList()));
+    }
     return CompletableFuture.completedFuture(
-        new SemanticTokens(SemanticToken.encodedTokens(this.semanticTokenVisitor.getSemanticTokens(uri))));
+        new SemanticTokens(SemanticToken.encodedTokens(semanticTokens)));
   }
 
   @Override
@@ -185,8 +189,12 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       return CompletableFuture.completedFuture(Collections.emptyList());
     }
     this.documentSymbolVisitor.visitCompilationUnit(uri, unit);
+    List<DocumentSymbol> documentSymbols = this.documentSymbolVisitor.getDocumentSymbols(uri);
+    if (documentSymbols == null) {
+      return CompletableFuture.completedFuture(Collections.emptyList());
+    }
     List<Either<SymbolInformation, DocumentSymbol>> result = new ArrayList<>();
-    for (DocumentSymbol symbol : this.documentSymbolVisitor.getDocumentSymbols(uri)) {
+    for (DocumentSymbol symbol : documentSymbols) {
       result.add(Either.forRight(symbol));
     }
     return CompletableFuture.completedFuture(result);
