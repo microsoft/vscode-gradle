@@ -153,6 +153,13 @@ public class GradleLibraryResolver {
         return file;
       }
     }
+    // For Gradle version under 5.6, the name of library file is like gradle-core-${version}.jar
+    for (File file : folder.listFiles()) {
+      String name = file.getName();
+      if (name.startsWith("gradle-core") && name.endsWith(".jar")) {
+        return file;
+      }
+    }
     return null;
   }
 
