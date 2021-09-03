@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.microsoft.gradle.delegate.GradleDelegate;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
 
 import org.apache.bcel.classfile.JavaClass;
@@ -29,78 +30,17 @@ import org.eclipse.lsp4j.InsertTextFormat;
 
 public class CompletionHandler {
 
-  public List<CompletionItem> getRootCompletionItems(GradleLibraryResolver resolver) {
-    List<CompletionItem> result = new ArrayList<>();
-    List<String> candidateClasses = new ArrayList<>();
-    candidateClasses.add("org.gradle.api.Project");
-    candidateClasses.add("org.gradle.api.plugins.PluginAware");
-    for (String candidateClass : candidateClasses) {
-      result.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(candidateClass)));
+  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, GradleLibraryResolver resolver) {
+    String delegateClassName = (containingCall == null) ? GradleDelegate.getDefault()
+        : GradleDelegate.getDelegateMap().get(containingCall.getMethodAsString());
+    if (delegateClassName == null) {
+      return Collections.emptyList();
     }
-    return result;
-  }
-
-  public List<CompletionItem> getCompletionItems(List<MethodCallExpression> containingCalls,
-      GradleLibraryResolver resolver) {
-    List<String> candidateClasses = new ArrayList<>();
-    candidateClasses.add("org.gradle.api.Project");
-    candidateClasses.add("org.gradle.api.plugins.PluginAware");
-    List<Method> matchedMethods = new ArrayList<>();
-    for (int i = 0; i < containingCalls.size(); i++) {
-      matchedMethods.clear();
-      MethodCallExpression call = containingCalls.get(i);
-      String methodName = call.getMethodAsString();
-      for (String candidateClass : candidateClasses) {
-        JavaClass javaClass = resolver.getGradleLibraries().get(candidateClass);
-        if (javaClass == null) {
-          continue;
-        }
-        matchedMethods.addAll(findMatchedMethods(methodName, javaClass));
-      }
-      if (i == containingCalls.size() - 1) {
-        // current is the last Closure
-        List<CompletionItem> results = new ArrayList<>();
-        // make sure result type is unique
-        Set<Type> typeSets = new HashSet<>();
-        for (Method method : matchedMethods) {
-          Type returnType = method.getReturnType();
-          if (checkValidMethod(method) && typeSets.add(returnType)) {
-            String className = ((ObjectType) returnType).getClassName();
-            results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(className)));
-          }
-        }
-        return results;
-      }
-      candidateClasses.clear();
-      for (Method method : matchedMethods) {
-        candidateClasses.add(((ObjectType)method.getReturnType()).getClassName());
-      }
+    JavaClass delegateClass = resolver.getGradleLibraries().get(delegateClassName);
+    if (delegateClass == null) {
+      return Collections.emptyList();
     }
-    return Collections.emptyList();
-  }
-
-  private List<Method> findMatchedMethods(String methodName, JavaClass javaClass) {
-    List<Method> matchedMethods = new ArrayList<>();
-    Method[] methods = javaClass.getMethods();
-    for (Method method : methods) {
-      String name = method.getName();
-      if (!checkValidMethod(method)) {
-        continue;
-      }
-      if (name.equals(methodName)) {
-        // full match
-        matchedMethods.add(method);
-      } else if (methodName.length() > 0
-          && name.equals("get" + methodName.substring(0, 1).toUpperCase() + methodName.substring(1))) {
-        // matches dependencies -> getDependencies()
-        matchedMethods.add(method);
-      }
-    }
-    return matchedMethods;
-  }
-
-  private static boolean checkValidMethod(Method method) {
-    return method.getReturnType() instanceof ObjectType;
+    return getCompletionItemsFromClass(delegateClass);
   }
 
   private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass) {
@@ -114,6 +54,9 @@ public class CompletionHandler {
     for (Method method : methods) {
       StringBuilder labelBuilder = new StringBuilder();
       String methodName = method.getName();
+      if (methodName.contains("<")) {
+        continue;
+      }
       methodNames.add(methodName);
       labelBuilder.append(methodName);
       labelBuilder.append("(");
@@ -135,16 +78,16 @@ public class CompletionHandler {
       String label = labelBuilder.toString();
       CompletionItem item = new CompletionItem(label);
       item.setKind(CompletionItemKind.Function);
+      item.setInsertTextFormat(InsertTextFormat.Snippet);
+      StringBuilder builder = new StringBuilder();
+      builder.append(methodName);
       if (label.endsWith("(Closure c)")) {
-        // handle single closure case
-        StringBuilder closureInsertBuilder = new StringBuilder();
-        closureInsertBuilder.append(methodName);
-        closureInsertBuilder.append(" {$0}");
-        item.setInsertText(closureInsertBuilder.toString());
-        item.setInsertTextFormat(InsertTextFormat.Snippet);
+        // for single closure, we offer curly brackets
+        builder.append(" {$0}");
       } else {
-        item.setInsertText(methodName);
+        builder.append("($0)");
       }
+      item.setInsertText(builder.toString());
       if (resultSet.add(label)) {
         results.add(item);
       }

@@ -63,29 +63,35 @@ public class GradleLibraryResolver {
   public void resolve() {
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
         : Path.of(this.gradleUserHome);
-    File gradleLibFile = null;
+    File libFile = null;
     if (this.gradleWrapperEnabled) {
-      gradleLibFile = findGradleLibFileWithWrapper(gradleUserHomePath);
+      libFile = findLibWithWrapper(gradleUserHomePath);
     } else if (this.gradleVersion != null) {
-      gradleLibFile = findGradleLibFileWithGradleDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
+      libFile = findLibWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
     } else if (this.gradleHome != null) {
       Path libPath = Path.of(this.gradleHome).resolve("lib");
-      gradleLibFile = findGradleLibFile(libPath.toFile());
+      libFile = findLibFile(libPath.toFile());
     } else {
       return;
     }
-    if (gradleLibFile == null || !gradleLibFile.exists()) {
+    if (libFile == null || !libFile.exists()) {
       return;
     }
     try {
-      JarFile jarFile = new JarFile(gradleLibFile);
-      getGradleLibraries(gradleLibFile.toPath(), jarFile);
+      JarFile libJar = new JarFile(libFile);
+      getGradleLibraries(libFile.toPath(), libJar);
+      File pluginLibFile = findPluginLibFile(libFile.toPath().getParent().resolve(Path.of("plugins")).toFile());
+      if (pluginLibFile == null) {
+        return;
+      }
+      JarFile pluginLibJar = new JarFile(pluginLibFile);
+      getGradleLibraries(pluginLibFile.toPath(), pluginLibJar);
     } catch (Exception e) {
       // Do Nothing
     }
   }
 
-  private File findGradleLibFileWithWrapper(Path gradleUserHomePath) {
+  private File findLibWithWrapper(Path gradleUserHomePath) {
     if (this.workspacePath == null) {
       return null;
     }
@@ -104,7 +110,7 @@ public class GradleLibraryResolver {
           Matcher matcher = p.matcher(content);
           if (matcher.find()) {
             String gradleDist = matcher.group(1);
-            return findGradleLibFileWithGradleDist(gradleUserHomePath, gradleDist);
+            return findLibWithDist(gradleUserHomePath, gradleDist);
           }
         }
       }
@@ -114,12 +120,12 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findGradleLibFileWithGradleDist(Path gradleUserHomePath, String gradleDist) {
+  private File findLibWithDist(Path gradleUserHomePath, String gradleDist) {
     Path distPath = gradleUserHomePath.resolve(Path.of("wrapper", "dists"));
     File distFolder = searchInFolder(gradleDist, distPath.toFile());
     if (distFolder != null && distFolder.exists()) {
       Path libPath = distFolder.toPath().resolve("lib");
-      return findGradleLibFile(libPath.toFile());
+      return findLibFile(libPath.toFile());
     }
     return null;
   }
@@ -140,10 +146,20 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findGradleLibFile(File libPathFile) {
-    for (File file : libPathFile.listFiles()) {
+  private File findLibFile(File folder) {
+    for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-core-api") && name.endsWith(".jar")) {
+        return file;
+      }
+    }
+    return null;
+  }
+
+  private File findPluginLibFile(File folder) {
+    for (File file : folder.listFiles()) {
+      String name = file.getName();
+      if (name.startsWith("gradle-plugins") && name.endsWith(".jar")) {
         return file;
       }
     }

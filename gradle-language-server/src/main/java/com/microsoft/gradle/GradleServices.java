@@ -235,27 +235,23 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       }
     }
     Set<MethodCallExpression> methodCalls = this.completionVisitor.getMethodCalls(uri);
-    List<MethodCallExpression> containingCalls = new ArrayList<>();
+    MethodCallExpression containingCall = null;
     for (MethodCallExpression call : methodCalls) {
       Expression expression = call.getArguments();
       Range range = LSPUtils.toRange(expression);
-      if (Ranges.containsPosition(range, params.getPosition())) {
-        containingCalls.add(call);
+      if (Ranges.containsPosition(range, params.getPosition()) && (containingCall == null || Ranges
+          .containsRange(LSPUtils.toRange(containingCall.getArguments()), LSPUtils.toRange(call.getArguments())))) {
+        // find inner containing call
+        containingCall = call;
       }
     }
-    containingCalls.sort((MethodCallExpression a, MethodCallExpression b) -> {
-      if (Ranges.containsRange(LSPUtils.toRange(a), LSPUtils.toRange(b))) {
-        return -1;
-      }
-      return 1;
-    });
     CompletionHandler handler = new CompletionHandler();
     // check again
-    if (containingCalls.isEmpty() && isGradleRoot(uri, params.getPosition())) {
-      return CompletableFuture.completedFuture(Either.forLeft(handler.getRootCompletionItems(this.libraryResolver)));
+    if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
+      return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null, this.libraryResolver)));
     }
     return CompletableFuture
-        .completedFuture(Either.forLeft(handler.getCompletionItems(containingCalls, this.libraryResolver)));
+        .completedFuture(Either.forLeft(handler.getCompletionItems(containingCall, this.libraryResolver)));
   }
 
   private boolean isGradleRoot(URI uri, Position position) {
