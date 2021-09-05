@@ -54,7 +54,9 @@ public class CompletionHandler {
     for (Method method : methods) {
       StringBuilder labelBuilder = new StringBuilder();
       String methodName = method.getName();
-      if (methodName.contains("<")) {
+      // When parsing a abstract class, we'll get a "<init>" method which can't be called directly,
+      // So we filter it here.
+      if (methodName.equals("<init>")) {
         continue;
       }
       methodNames.add(methodName);

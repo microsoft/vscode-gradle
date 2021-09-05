@@ -10,10 +10,6 @@
  *******************************************************************************/
 package com.microsoft.gradle.utils;
 
-import java.util.Map;
-
-import com.microsoft.gradle.GradleServices;
-
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.syntax.SyntaxException;
@@ -52,15 +48,5 @@ public class LSPUtils {
       return text;
     }
     return text.substring(0, position.getCharacter() - start.getCharacter());
-  }
-
-  public static void applySetting(GradleServices services, Object settings) {
-    if (settings instanceof Map) {
-      services.getLibraryResolver().setGradleHome((String)((Map<?, ?>)settings).get("gradleHome"));
-      services.getLibraryResolver().setGradleVersion((String)((Map<?, ?>)settings).get("gradleVersion"));
-      services.getLibraryResolver().setGradleWrapperEnabled((Boolean)((Map<?, ?>)settings).get("gradleWrapperEnabled"));
-      services.getLibraryResolver().setGradleUserHome((String)((Map<?, ?>)settings).get("gradleUserHome"));
-      services.getLibraryResolver().resolve();
-    }
   }
 }

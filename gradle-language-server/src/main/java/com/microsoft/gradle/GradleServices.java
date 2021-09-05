@@ -131,7 +131,17 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   @Override
   public void didChangeConfiguration(DidChangeConfigurationParams params) {
     Map<?, ?> settings = new Gson().fromJson((JsonElement) params.getSettings(), Map.class);
-    LSPUtils.applySetting(this, settings);
+    this.applySetting(this, settings);
+  }
+
+  public void applySetting(GradleServices services, Object settings) {
+    if (settings instanceof Map) {
+      services.getLibraryResolver().setGradleHome((String)((Map<?, ?>)settings).get("gradleHome"));
+      services.getLibraryResolver().setGradleVersion((String)((Map<?, ?>)settings).get("gradleVersion"));
+      services.getLibraryResolver().setGradleWrapperEnabled((Boolean)((Map<?, ?>)settings).get("gradleWrapperEnabled"));
+      services.getLibraryResolver().setGradleUserHome((String)((Map<?, ?>)settings).get("gradleUserHome"));
+      services.getLibraryResolver().resolve();
+    }
   }
 
   private void compile(URI uri, GradleCompilationUnit unit) {

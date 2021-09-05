@@ -25,7 +25,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.microsoft.gradle.semantictokens.TokenModifier;
 import com.microsoft.gradle.semantictokens.TokenType;
-import com.microsoft.gradle.utils.LSPUtils;
 
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
@@ -87,7 +86,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
       break;
     }
     Object settings = initOptions.get("settings");
-    LSPUtils.applySetting(this.gradleServices, settings);
+    this.gradleServices.applySetting(this.gradleServices, settings);
     ServerCapabilities serverCapabilities = new ServerCapabilities();
     SemanticTokensWithRegistrationOptions semanticOptions = new SemanticTokensWithRegistrationOptions();
     semanticOptions.setFull(new SemanticTokensServerFull(false));
