@@ -131,16 +131,16 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   @Override
   public void didChangeConfiguration(DidChangeConfigurationParams params) {
     Map<?, ?> settings = new Gson().fromJson((JsonElement) params.getSettings(), Map.class);
-    this.applySetting(this, settings);
+    this.applySetting(settings);
   }
 
-  public void applySetting(GradleServices services, Object settings) {
+  public void applySetting(Object settings) {
     if (settings instanceof Map) {
-      services.getLibraryResolver().setGradleHome((String)((Map<?, ?>)settings).get("gradleHome"));
-      services.getLibraryResolver().setGradleVersion((String)((Map<?, ?>)settings).get("gradleVersion"));
-      services.getLibraryResolver().setGradleWrapperEnabled((Boolean)((Map<?, ?>)settings).get("gradleWrapperEnabled"));
-      services.getLibraryResolver().setGradleUserHome((String)((Map<?, ?>)settings).get("gradleUserHome"));
-      services.getLibraryResolver().resolve();
+      this.getLibraryResolver().setGradleHome((String)((Map<?, ?>)settings).get("gradleHome"));
+      this.getLibraryResolver().setGradleVersion((String)((Map<?, ?>)settings).get("gradleVersion"));
+      this.getLibraryResolver().setGradleWrapperEnabled((Boolean)((Map<?, ?>)settings).get("gradleWrapperEnabled"));
+      this.getLibraryResolver().setGradleUserHome((String)((Map<?, ?>)settings).get("gradleUserHome"));
+      this.getLibraryResolver().resolve();
     }
   }
 

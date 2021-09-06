@@ -86,7 +86,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
       break;
     }
     Object settings = initOptions.get("settings");
-    this.gradleServices.applySetting(this.gradleServices, settings);
+    this.gradleServices.applySetting(settings);
     ServerCapabilities serverCapabilities = new ServerCapabilities();
     SemanticTokensWithRegistrationOptions semanticOptions = new SemanticTokensWithRegistrationOptions();
     semanticOptions.setFull(new SemanticTokensServerFull(false));
