@@ -4,6 +4,14 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.8.0
+### Added
+- Support highlighting of Gradle file. [PR#960](https://github.com/microsoft/vscode-gradle/pull/960), [PR#967](https://github.com/microsoft/vscode-gradle/pull/967)
+- Provide document outline of Gradle file. [PR#969](https://github.com/microsoft/vscode-gradle/pull/969)
+- Show syntax diagnostics of Gradle file. [PR#962](https://github.com/microsoft/vscode-gradle/pull/962)
+- Support auto completion for dependencies. [PR#970](https://github.com/microsoft/vscode-gradle/pull/970)
+- Support auto completion for basic Gradle closures. [PR#971](https://github.com/microsoft/vscode-gradle/pull/971)
+
 ## 3.7.0
 ### Added
 - Support dependency view. [PR#887](https://github.com/microsoft/vscode-gradle/pull/887)
