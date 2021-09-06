@@ -21,16 +21,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import com.microsoft.gradle.compile.SemanticTokenVisitor;
-import com.microsoft.gradle.compile.DocumentSymbolVisitor;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.microsoft.gradle.compile.CompletionVisitor;
-import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.compile.CompletionVisitor.DependencyItem;
+import com.microsoft.gradle.compile.DocumentSymbolVisitor;
+import com.microsoft.gradle.compile.GradleCompilationUnit;
+import com.microsoft.gradle.compile.SemanticTokenVisitor;
+import com.microsoft.gradle.handlers.CompletionHandler;
 import com.microsoft.gradle.handlers.DependencyCompletionHandler;
 import com.microsoft.gradle.manager.GradleFilesManager;
+import com.microsoft.gradle.resolver.GradleLibraryResolver;
 import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.utils.LSPUtils;
 
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.codehaus.groovy.control.ErrorCollector;
 import org.codehaus.groovy.control.Phases;
@@ -50,6 +57,7 @@ import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.DocumentSymbolParams;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokens;
@@ -69,12 +77,18 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   private SemanticTokenVisitor semanticTokenVisitor;
   private DocumentSymbolVisitor documentSymbolVisitor;
   private CompletionVisitor completionVisitor;
+  private GradleLibraryResolver libraryResolver;
 
   public GradleServices() {
     this.gradleFilesManager = new GradleFilesManager();
     this.semanticTokenVisitor = new SemanticTokenVisitor();
     this.documentSymbolVisitor = new DocumentSymbolVisitor();
     this.completionVisitor = new CompletionVisitor();
+    this.libraryResolver = new GradleLibraryResolver();
+  }
+
+  public GradleLibraryResolver getLibraryResolver() {
+    return this.libraryResolver;
   }
 
   @Override
@@ -116,7 +130,18 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 
   @Override
   public void didChangeConfiguration(DidChangeConfigurationParams params) {
-    // TODO
+    Map<?, ?> settings = new Gson().fromJson((JsonElement) params.getSettings(), Map.class);
+    this.applySetting(settings);
+  }
+
+  public void applySetting(Object settings) {
+    if (settings instanceof Map) {
+      this.getLibraryResolver().setGradleHome((String)((Map<?, ?>)settings).get("gradleHome"));
+      this.getLibraryResolver().setGradleVersion((String)((Map<?, ?>)settings).get("gradleVersion"));
+      this.getLibraryResolver().setGradleWrapperEnabled((Boolean)((Map<?, ?>)settings).get("gradleWrapperEnabled"));
+      this.getLibraryResolver().setGradleUserHome((String)((Map<?, ?>)settings).get("gradleUserHome"));
+      this.getLibraryResolver().resolve();
+    }
   }
 
   private void compile(URI uri, GradleCompilationUnit unit) {
@@ -201,6 +226,9 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     }
     this.completionVisitor.visitCompilationUnit(uri, unit);
     List<DependencyItem> dependencies = this.completionVisitor.getDependencies(uri);
+    if (dependencies == null) {
+      return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+    }
     for (DependencyItem dependency : dependencies) {
       if (Ranges.containsPosition(dependency.getRange(), params.getPosition())) {
         DependencyCompletionHandler handler = new DependencyCompletionHandler();
@@ -208,6 +236,42 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
             .completedFuture(Either.forLeft(handler.getDependencyCompletionItems(dependency, params.getPosition())));
       }
     }
-    return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+    // should return empty if in constants
+    List<Expression> constants = this.completionVisitor.getConstants(uri);
+    for (Expression constant : constants) {
+      Range range = LSPUtils.toRange(constant);
+      if (Ranges.containsPosition(range, params.getPosition())) {
+        return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+      }
+    }
+    Set<MethodCallExpression> methodCalls = this.completionVisitor.getMethodCalls(uri);
+    MethodCallExpression containingCall = null;
+    for (MethodCallExpression call : methodCalls) {
+      Expression expression = call.getArguments();
+      Range range = LSPUtils.toRange(expression);
+      if (Ranges.containsPosition(range, params.getPosition()) && (containingCall == null || Ranges
+          .containsRange(LSPUtils.toRange(containingCall.getArguments()), LSPUtils.toRange(call.getArguments())))) {
+        // find inner containing call
+        containingCall = call;
+      }
+    }
+    CompletionHandler handler = new CompletionHandler();
+    // check again
+    if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
+      return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null, this.libraryResolver)));
+    }
+    return CompletableFuture
+        .completedFuture(Either.forLeft(handler.getCompletionItems(containingCall, this.libraryResolver)));
+  }
+
+  private boolean isGradleRoot(URI uri, Position position) {
+    List<Statement> statements = this.completionVisitor.getStatements(uri);
+    for (Statement statement : statements) {
+      Range range = LSPUtils.toRange(statement);
+      if (Ranges.containsPosition(range, position)) {
+        return false;
+      }
+    }
+    return true;
   }
 }

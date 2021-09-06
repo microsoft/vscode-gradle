@@ -6,9 +6,18 @@
 import * as net from 'net';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LanguageClientOptions } from 'vscode-languageclient';
+import {
+  DidChangeConfigurationNotification,
+  LanguageClientOptions,
+} from 'vscode-languageclient';
 import { LanguageClient, StreamInfo } from 'vscode-languageclient/node';
-import { getConfigGradleJavaHome } from '../util/config';
+import {
+  getConfigGradleJavaHome,
+  getConfigJavaImportGradleHome,
+  getConfigJavaImportGradleUserHome,
+  getConfigJavaImportGradleVersion,
+  getConfigJavaImportGradleWrapperEnabled,
+} from '../util/config';
 const CHANNEL_NAME = 'Gradle Language Server';
 
 export async function startLanguageServer(
@@ -16,6 +25,7 @@ export async function startLanguageServer(
 ): Promise<void> {
   void vscode.window.withProgress(
     { location: vscode.ProgressLocation.Window },
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     (progress) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       return new Promise<void>(async (resolve, _reject) => {
@@ -26,6 +36,9 @@ export async function startLanguageServer(
           documentSelector: [{ scheme: 'file', language: 'gradle' }],
           outputChannel: vscode.window.createOutputChannel(CHANNEL_NAME),
           outputChannelName: CHANNEL_NAME,
+          initializationOptions: {
+            settings: getGradleSettings(),
+          },
         };
         let serverOptions;
         if (process.env.VSCODE_DEBUG_LANGUAGE_SERVER === 'true') {
@@ -82,6 +95,16 @@ export async function startLanguageServer(
         });
         const disposable = languageClient.start();
         context.subscriptions.push(disposable);
+        context.subscriptions.push(
+          vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('java.import.gradle')) {
+              languageClient.sendNotification(
+                DidChangeConfigurationNotification.type,
+                { settings: getGradleSettings() }
+              );
+            }
+          })
+        );
       });
     }
   );
@@ -100,4 +123,13 @@ async function awaitServerConnection(port: string): Promise<StreamInfo> {
     });
     return server;
   });
+}
+
+function getGradleSettings(): unknown {
+  return {
+    gradleHome: getConfigJavaImportGradleHome(),
+    gradleVersion: getConfigJavaImportGradleVersion(),
+    gradleWrapperEnabled: getConfigJavaImportGradleWrapperEnabled(),
+    gradleUserHome: getConfigJavaImportGradleUserHome(),
+  };
 }
