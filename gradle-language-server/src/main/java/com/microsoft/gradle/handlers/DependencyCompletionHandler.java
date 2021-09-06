@@ -63,6 +63,7 @@ public class DependencyCompletionHandler {
     StringBuilder builder = new StringBuilder();
     builder.append(URL_BASIC_SEARCH);
     builder.append(group);
+    // limit the number of result to 50
     builder.append("&rows=50&wt=json");
     return getDependenciesFromRestAPI(builder.toString(), DependencyCompletionKind.ID);
   }
@@ -75,6 +76,7 @@ public class DependencyCompletionHandler {
     builder.append(URL_BASIC_SEARCH);
     builder.append("g:%22");
     builder.append(group);
+    // limit the number of result to 50
     builder.append("%22&rows=50&wt=json");
     return getDependenciesFromRestAPI(builder.toString(), DependencyCompletionKind.ID);
   }
@@ -89,6 +91,7 @@ public class DependencyCompletionHandler {
     builder.append(group);
     builder.append("%22+AND+a:%22");
     builder.append(artifact);
+    // limit the number of result to 50
     builder.append("%22&core=gav&rows=50&wt=json");
     return getDependenciesFromRestAPI(builder.toString(), DependencyCompletionKind.VERSION);
   }
@@ -119,7 +122,8 @@ public class DependencyCompletionHandler {
             completionItem.setKind(CompletionItemKind.Text);
             completionItem.setDetail("version");
           }
-          completionItem.setSortText(String.valueOf(i));
+          // Currently we have no more than 50 results, so the padding values should have at least 3 digits.
+          completionItem.setSortText(String.format("%03d", i));
           completions.add(completionItem);
         }
       }
