@@ -116,7 +116,7 @@ public class DependencyCompletionHandler {
             String version = ((JsonObject) element).get("v").getAsJsonPrimitive().getAsString();
             completionItem.setLabel(version);
             completionItem.setFilterText(label + ":" + version);
-            completionItem.setKind(CompletionItemKind.Text);
+            completionItem.setKind(CompletionItemKind.Constant);
             completionItem.setDetail("version");
           }
           completionItem.setSortText(String.valueOf(i));
