@@ -119,7 +119,8 @@ public class DependencyCompletionHandler {
             completionItem.setKind(CompletionItemKind.Text);
             completionItem.setDetail("version");
           }
-          completionItem.setSortText(String.valueOf(i));
+          // Currently we have no more than 50 results, so the padding values should have at least 3 digits.
+          completionItem.setSortText(String.format("%03d", i));
           completions.add(completionItem);
         }
       }
