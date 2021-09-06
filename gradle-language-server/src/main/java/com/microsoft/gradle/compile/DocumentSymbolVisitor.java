@@ -23,8 +23,11 @@ import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BinaryExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.expr.NamedArgumentListExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
@@ -104,6 +107,10 @@ public class DocumentSymbolVisitor {
       return null;
     }
     symbol.setName(name);
+    String detail = getSymbolDetail(expression);
+    if (detail != null) {
+      symbol.setDetail(detail);
+    }
     symbol.setSelectionRange(LSPUtils.toRange(expression));
     symbol.setRange(LSPUtils.toRange(expression));
     return symbol;
@@ -157,5 +164,36 @@ public class DocumentSymbolVisitor {
       builder.append(property.getText());
     }
     return builder.toString();
+  }
+
+  private String getSymbolDetail(MethodCallExpression expression) {
+    Expression argument = expression.getArguments();
+    if (argument instanceof ArgumentListExpression) {
+      List<Expression> arguments = ((ArgumentListExpression) argument).getExpressions();
+      if (!arguments.isEmpty() && arguments.get(0) instanceof ConstantExpression) {
+        // if first arg is constantExpression, show it as detail
+        return arguments.get(0).getText();
+      }
+      return null;
+    } else if (argument instanceof TupleExpression) {
+      // if argument is tupleExpression, show first argument as detail
+      List<Expression> arguments = ((TupleExpression)argument).getExpressions();
+      if (!arguments.isEmpty() && arguments.get(0) instanceof NamedArgumentListExpression) {
+        NamedArgumentListExpression namedArgumentListExpression = (NamedArgumentListExpression)arguments.get(0);
+        List<MapEntryExpression> mapEntryExpressions = namedArgumentListExpression.getMapEntryExpressions();
+        if (!mapEntryExpressions.isEmpty()) {
+          MapEntryExpression firstExpression = mapEntryExpressions.get(0);
+          if (firstExpression.getValueExpression() instanceof ConstantExpression) {
+            StringBuilder detail = new StringBuilder();
+            detail.append(firstExpression.getKeyExpression().getText());
+            detail.append(": ");
+            detail.append(firstExpression.getValueExpression().getText());
+            return detail.toString();
+          }
+        }
+        return null;
+      }
+    }
+    return null;
   }
 }
