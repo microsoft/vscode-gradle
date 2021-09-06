@@ -40,16 +40,24 @@ public class CompletionHandler {
     if (delegateClass == null) {
       return Collections.emptyList();
     }
-    return getCompletionItemsFromClass(delegateClass);
+    return getCompletionItemsFromClass(delegateClass, resolver, new HashSet<>());
   }
 
-  private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass) {
+  private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass, GradleLibraryResolver resolver, Set<String> resultSet) {
     if (javaClass == null) {
       return Collections.emptyList();
     }
     List<CompletionItem> results = new ArrayList<>();
+    for (String superInterface : javaClass.getInterfaceNames()) {
+      if (resolver.getGradleLibraries().containsKey(superInterface)) {
+        results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superInterface), resolver, resultSet));
+      }
+    }
+    String superClass = javaClass.getSuperclassName();
+    if (resolver.getGradleLibraries().containsKey(superClass)) {
+      results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superClass), resolver, resultSet));
+    }
     List<String> methodNames = new ArrayList<>();
-    Set<String> resultSet = new HashSet<>();
     Method[] methods = javaClass.getMethods();
     for (Method method : methods) {
       StringBuilder labelBuilder = new StringBuilder();
