@@ -12,11 +12,12 @@ package com.microsoft.gradle.compile;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.microsoft.gradle.utils.LSPUtils;
 
@@ -56,9 +57,24 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
 
   private URI currentUri;
   private Map<URI, List<DependencyItem>> dependencies = new HashMap<>();
+  private Map<URI, Set<MethodCallExpression>> methodCalls = new HashMap<>();
+  private Map<URI, List<Statement>> statements = new HashMap<>();
+  private Map<URI, List<Expression>> constants = new HashMap<>();
 
   public List<DependencyItem> getDependencies(URI uri) {
     return this.dependencies.get(uri);
+  }
+
+  public Set<MethodCallExpression> getMethodCalls(URI uri) {
+    return this.methodCalls.get(uri);
+  }
+
+  public List<Statement> getStatements(URI uri) {
+    return this.statements.get(uri);
+  }
+
+  public List<Expression> getConstants(URI uri) {
+    return this.constants.get(uri);
   }
 
   public void visitCompilationUnit(URI uri, GradleCompilationUnit compilationUnit) {
@@ -70,11 +86,16 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     ModuleNode moduleNode = unit.getAST();
     if (moduleNode != null) {
       this.dependencies.put(uri, new ArrayList<>());
+      this.methodCalls.put(uri, new HashSet<>());
+      this.statements.put(uri, new ArrayList<>());
+      this.constants.put(uri, new ArrayList<>());
       visitModule(moduleNode);
     }
   }
 
   public void visitModule(ModuleNode node) {
+    BlockStatement blockStatement = node.getStatementBlock();
+    this.statements.put(currentUri, blockStatement.getStatements());
     node.getClasses().forEach(classNode -> {
       super.visitClass(classNode);
     });
@@ -82,6 +103,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
 
   @Override
   public void visitMethodCallExpression(MethodCallExpression node) {
+    this.methodCalls.get(this.currentUri).add(node);
     if (node.getMethodAsString().equals("dependencies")) {
       this.dependencies.put(currentUri, getDependencies(node));
     }
@@ -138,5 +160,17 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
       return getDependencies((MethodCallExpression) expression);
     }
     return Collections.emptyList();
+  }
+
+  @Override
+  public void visitConstantExpression(ConstantExpression expression) {
+    this.constants.get(currentUri).add(expression);
+    super.visitConstantExpression(expression);
+  }
+
+  @Override
+  public void visitGStringExpression(GStringExpression expression) {
+    this.constants.get(currentUri).add(expression);
+    super.visitGStringExpression(expression);
   }
 }
