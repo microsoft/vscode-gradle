@@ -63,6 +63,7 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.SemanticTokens;
 import org.eclipse.lsp4j.SemanticTokensParams;
 import org.eclipse.lsp4j.SymbolInformation;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -107,7 +108,9 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     URI uri = URI.create(params.getTextDocument().getUri());
-    gradleFilesManager.didChange(uri, params.getContentChanges().get(0));
+    for (TextDocumentContentChangeEvent change : params.getContentChanges()) {
+      gradleFilesManager.didChange(uri, change);
+    }
     GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion());
     compile(uri, unit);
   }
