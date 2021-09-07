@@ -119,7 +119,7 @@ public class DependencyCompletionHandler {
             String version = ((JsonObject) element).get("v").getAsJsonPrimitive().getAsString();
             completionItem.setLabel(version);
             completionItem.setFilterText(label + ":" + version);
-            completionItem.setKind(CompletionItemKind.Text);
+            completionItem.setKind(CompletionItemKind.Constant);
             completionItem.setDetail("version");
           }
           // Currently we have no more than 50 results, so the padding values should have at least 3 digits.
