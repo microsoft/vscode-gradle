@@ -79,16 +79,16 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
 
   public void visitCompilationUnit(URI uri, GradleCompilationUnit compilationUnit) {
     this.currentUri = uri;
-    compilationUnit.iterator().forEachRemaining(unit -> visitSourceUnit(uri, unit));
+    compilationUnit.iterator().forEachRemaining(unit -> visitSourceUnit(unit));
   }
 
-  public void visitSourceUnit(URI uri, SourceUnit unit) {
+  public void visitSourceUnit(SourceUnit unit) {
     ModuleNode moduleNode = unit.getAST();
     if (moduleNode != null) {
-      this.dependencies.put(uri, new ArrayList<>());
-      this.methodCalls.put(uri, new HashSet<>());
-      this.statements.put(uri, new ArrayList<>());
-      this.constants.put(uri, new ArrayList<>());
+      this.dependencies.put(this.currentUri, new ArrayList<>());
+      this.methodCalls.put(this.currentUri, new HashSet<>());
+      this.statements.put(this.currentUri, new ArrayList<>());
+      this.constants.put(this.currentUri, new ArrayList<>());
       visitModule(moduleNode);
     }
   }
@@ -105,7 +105,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
   public void visitMethodCallExpression(MethodCallExpression node) {
     this.methodCalls.get(this.currentUri).add(node);
     if (node.getMethodAsString().equals("dependencies")) {
-      this.dependencies.put(currentUri, getDependencies(node));
+      this.dependencies.get(this.currentUri).addAll(getDependencies(node));
     }
     super.visitMethodCallExpression(node);
   }
