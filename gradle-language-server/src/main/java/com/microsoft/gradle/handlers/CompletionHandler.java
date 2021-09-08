@@ -30,9 +30,20 @@ import org.eclipse.lsp4j.InsertTextFormat;
 
 public class CompletionHandler {
 
-  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, GradleLibraryResolver resolver) {
-    String delegateClassName = (containingCall == null) ? GradleDelegate.getDefault()
-        : GradleDelegate.getDelegateMap().get(containingCall.getMethodAsString());
+  private static String BUILD_GRADLE = "build.gradle";
+  private static String SETTING_GRADLE = "settings.gradle";
+
+  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver) {
+    String delegateClassName = null;
+    if (containingCall == null) {
+      if (fileName.equals(BUILD_GRADLE)) {
+        delegateClassName = GradleDelegate.getDefault();
+      } else if (fileName.equals(SETTING_GRADLE)) {
+        delegateClassName = GradleDelegate.getSettings();
+      }
+    } else {
+      delegateClassName = GradleDelegate.getDelegateMap().get(containingCall.getMethodAsString());
+    }
     if (delegateClassName == null) {
       return Collections.emptyList();
     }
