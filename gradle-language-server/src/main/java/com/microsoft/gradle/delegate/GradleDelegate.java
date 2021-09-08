@@ -16,6 +16,7 @@ import java.util.Map;
 
 public class GradleDelegate {
   private static String PROJECT = "org.gradle.api.Project";
+  private static String SETTINGS = "org.gradle.api.initialization.Settings";
   private static Map<String, String> delegateMap;
 
   static {
@@ -52,5 +53,9 @@ public class GradleDelegate {
 
   public static String getDefault() {
     return PROJECT;
+  }
+
+  public static String getSettings() {
+    return SETTINGS;
   }
 }

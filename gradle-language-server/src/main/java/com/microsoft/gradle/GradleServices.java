@@ -12,6 +12,7 @@
 package com.microsoft.gradle;
 
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -269,10 +270,11 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     CompletionHandler handler = new CompletionHandler();
     // check again
     if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
-      return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null, this.libraryResolver)));
+      return CompletableFuture.completedFuture(Either
+          .forLeft(handler.getCompletionItems(null, Paths.get(uri).getFileName().toString(), this.libraryResolver)));
     }
-    return CompletableFuture
-        .completedFuture(Either.forLeft(handler.getCompletionItems(containingCall, this.libraryResolver)));
+    return CompletableFuture.completedFuture(Either.forLeft(
+        handler.getCompletionItems(containingCall, Paths.get(uri).getFileName().toString(), this.libraryResolver)));
   }
 
   private boolean isGradleRoot(URI uri, Position position) {
