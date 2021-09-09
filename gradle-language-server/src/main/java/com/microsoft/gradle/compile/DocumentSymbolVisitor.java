@@ -12,17 +12,21 @@ package com.microsoft.gradle.compile;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.microsoft.gradle.utils.LSPUtils;
 
+import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.codehaus.groovy.ast.ModuleNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BinaryExpression;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.GStringExpression;
 import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.NamedArgumentListExpression;
@@ -113,6 +117,9 @@ public class DocumentSymbolVisitor {
     }
     symbol.setSelectionRange(LSPUtils.toRange(expression));
     symbol.setRange(LSPUtils.toRange(expression));
+    if (expression.getMethodAsString().equals("dependencies")) {
+      symbol.setChildren(getDependencies(expression));
+    }
     return symbol;
   }
 
@@ -195,5 +202,83 @@ public class DocumentSymbolVisitor {
       }
     }
     return null;
+  }
+
+  private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
+    Expression argument = expression.getArguments();
+    if (expression.getMethodAsString().equals("dependencies")) {
+      return getDependencies((ArgumentListExpression) argument, expression.getMethodAsString());
+    }
+    List<DocumentSymbol> results = new ArrayList<>();
+    DocumentSymbol symbol = new DocumentSymbol();
+    String name = expression.getMethodAsString();
+    symbol.setName(name);
+    symbol.setDetail(expression.getArguments().getText());
+    symbol.setKind(SymbolKind.Constant);
+    symbol.setRange(LSPUtils.toDependencyRange(expression));
+    symbol.setSelectionRange(LSPUtils.toDependencyRange(expression));
+    results.add(symbol);
+    return results;
+  }
+
+  private List<DocumentSymbol> getDependencies(ArgumentListExpression argumentListExpression, String configuration) {
+    List<Expression> expressions = argumentListExpression.getExpressions();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+
+    for (Expression expression : expressions) {
+      if (expression instanceof ClosureExpression) {
+        symbols.addAll(getDependencies((ClosureExpression) expression));
+      } else if (expression instanceof ConstantExpression || expression instanceof GStringExpression) {
+        DocumentSymbol symbol = generateDependencies(expression, configuration);
+        if (symbol != null) {
+          symbols.add(symbol);
+        }
+      } else if (expression instanceof MethodCallExpression) {
+        symbols.addAll(getDependencies((MethodCallExpression) expression));
+      }
+    }
+    return symbols;
+  }
+
+  private List<DocumentSymbol> getDependencies(ClosureExpression expression) {
+    Statement code = expression.getCode();
+    if (code instanceof BlockStatement) {
+      return getDependencies((BlockStatement) code);
+    }
+    return Collections.emptyList();
+  }
+
+  private List<DocumentSymbol> getDependencies(BlockStatement blockStatement) {
+    List<Statement> statements = blockStatement.getStatements();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+    for (Statement statement : statements) {
+      if (statement instanceof ExpressionStatement) {
+        symbols.addAll(getDependencies((ExpressionStatement) statement));
+      }
+    }
+    return symbols;
+  }
+
+  private List<DocumentSymbol> getDependencies(ExpressionStatement expressionStatement) {
+    Expression expression = expressionStatement.getExpression();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+    if (expression instanceof MethodCallExpression) {
+      symbols.addAll(getDependencies((MethodCallExpression) expression));
+    }
+    return symbols;
+  }
+
+  private DocumentSymbol generateDependencies(Expression expression, String configuration) {
+    DocumentSymbol symbol = new DocumentSymbol();
+    String name = expression.getText();
+    if (StringUtils.isEmpty(name) && StringUtils.isEmpty(configuration)) {
+      return null;
+    }
+    symbol.setName(configuration);
+    symbol.setDetail(name);
+    symbol.setKind(SymbolKind.Constant);
+    symbol.setRange(LSPUtils.toDependencyRange(expression));
+    symbol.setSelectionRange(LSPUtils.toDependencyRange(expression));
+    return symbol;
   }
 }
