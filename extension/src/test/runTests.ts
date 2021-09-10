@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs-extra';
 
-import { runTests, downloadAndUnzipVSCode } from 'vscode-test';
+import { runTests, downloadAndUnzipVSCode } from '@vscode/test-electron';
 import { VSCODE_TEST_VERSIONS } from './vscode-version';
 
 const extensionDevelopmentPath = path.resolve(__dirname, '../../');
