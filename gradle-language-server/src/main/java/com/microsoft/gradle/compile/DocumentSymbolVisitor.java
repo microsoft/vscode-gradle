@@ -19,7 +19,6 @@ import java.util.Map;
 
 import com.microsoft.gradle.utils.LSPUtils;
 
-import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.codehaus.groovy.ast.ModuleNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BinaryExpression;
@@ -184,9 +183,9 @@ public class DocumentSymbolVisitor {
       return null;
     } else if (argument instanceof TupleExpression) {
       // if argument is tupleExpression, show first argument as detail
-      List<Expression> arguments = ((TupleExpression)argument).getExpressions();
+      List<Expression> arguments = ((TupleExpression) argument).getExpressions();
       if (!arguments.isEmpty() && arguments.get(0) instanceof NamedArgumentListExpression) {
-        NamedArgumentListExpression namedArgumentListExpression = (NamedArgumentListExpression)arguments.get(0);
+        NamedArgumentListExpression namedArgumentListExpression = (NamedArgumentListExpression) arguments.get(0);
         List<MapEntryExpression> mapEntryExpressions = namedArgumentListExpression.getMapEntryExpressions();
         if (!mapEntryExpressions.isEmpty()) {
           MapEntryExpression firstExpression = mapEntryExpressions.get(0);
@@ -207,13 +206,16 @@ public class DocumentSymbolVisitor {
   private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
     Expression argument = expression.getArguments();
     if (expression.getMethodAsString().equals("dependencies")) {
-      return getDependencies((ArgumentListExpression) argument, expression.getMethodAsString());
+      return getDependencies((ArgumentListExpression) argument);
     }
     List<DocumentSymbol> results = new ArrayList<>();
     DocumentSymbol symbol = new DocumentSymbol();
     String name = expression.getMethodAsString();
     symbol.setName(name);
-    symbol.setDetail(expression.getArguments().getText());
+    String detail = getDetail(expression);
+    if (detail != null) {
+      symbol.setDetail(detail);
+    }
     symbol.setKind(SymbolKind.Constant);
     symbol.setRange(LSPUtils.toDependencyRange(expression));
     symbol.setSelectionRange(LSPUtils.toDependencyRange(expression));
@@ -221,18 +223,12 @@ public class DocumentSymbolVisitor {
     return results;
   }
 
-  private List<DocumentSymbol> getDependencies(ArgumentListExpression argumentListExpression, String configuration) {
+  private List<DocumentSymbol> getDependencies(ArgumentListExpression argumentListExpression) {
     List<Expression> expressions = argumentListExpression.getExpressions();
     List<DocumentSymbol> symbols = new ArrayList<>();
-
     for (Expression expression : expressions) {
       if (expression instanceof ClosureExpression) {
         symbols.addAll(getDependencies((ClosureExpression) expression));
-      } else if (expression instanceof ConstantExpression || expression instanceof GStringExpression) {
-        DocumentSymbol symbol = generateDependencies(expression, configuration);
-        if (symbol != null) {
-          symbols.add(symbol);
-        }
       } else if (expression instanceof MethodCallExpression) {
         symbols.addAll(getDependencies((MethodCallExpression) expression));
       }
@@ -268,17 +264,18 @@ public class DocumentSymbolVisitor {
     return symbols;
   }
 
-  private DocumentSymbol generateDependencies(Expression expression, String configuration) {
-    DocumentSymbol symbol = new DocumentSymbol();
-    String name = expression.getText();
-    if (StringUtils.isEmpty(name) && StringUtils.isEmpty(configuration)) {
-      return null;
+  private String getDetail(MethodCallExpression node) {
+    Expression arguments = node.getArguments();
+    if (arguments instanceof ArgumentListExpression) {
+      List<Expression> expressions = ((ArgumentListExpression) arguments).getExpressions();
+      for (Expression expression : expressions) {
+        if (expression instanceof MethodCallExpression) {
+          return getDetail((MethodCallExpression) expression);
+        } else if (expression instanceof GStringExpression || expression instanceof ConstantExpression) {
+          return expression.getText();
+        }
+      }
     }
-    symbol.setName(configuration);
-    symbol.setDetail(name);
-    symbol.setKind(SymbolKind.Constant);
-    symbol.setRange(LSPUtils.toDependencyRange(expression));
-    symbol.setSelectionRange(LSPUtils.toDependencyRange(expression));
-    return symbol;
+    return null;
   }
 }
