@@ -160,7 +160,7 @@ export class GradleTasksTreeDataProvider
       vscode.TreeItemCollapsibleState.Collapsed,
       element,
       path.dirname(resourceUri.fsPath),
-      element.label || resourceUri.fsPath
+      typeof element.label === 'string' ? element.label : resourceUri.fsPath
     );
     return [...results, projectDependencyTreeItem];
   }
