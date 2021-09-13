@@ -217,8 +217,10 @@ async function main(): Promise<void> {
 main().then(
   () => {
     console.log('Finished running tests');
+    process.exit(0);
   },
   (err) => {
     console.error('Error cleaning up tests:', err.message);
+    process.exit(1);
   }
 );
