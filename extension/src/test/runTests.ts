@@ -187,8 +187,6 @@ async function runTestsForVsCodeVersion(version: string): Promise<void> {
   );
   const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
 
-  let hasErr = false;
-
   try {
     await runUnitTests(vscodeExecutablePath, tmpDir);
     await runTestsWithGradle(vscodeExecutablePath, tmpDir);
@@ -198,13 +196,8 @@ async function runTestsForVsCodeVersion(version: string): Promise<void> {
     await runNestedProjectTests(vscodeExecutablePath, tmpDir);
     await runTestsWithoutGradle(vscodeExecutablePath, tmpDir);
   } catch (err) {
-    hasErr = true;
     console.error('Error running tests:', err.message);
-  } finally {
-    await fs.remove(tmpDir);
-    if (hasErr) {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 }
 
@@ -212,15 +205,8 @@ async function main(): Promise<void> {
   for (const version of VSCODE_TEST_VERSIONS) {
     await runTestsForVsCodeVersion(version);
   }
+  console.log('Finished running tests');
+  process.exit(0);
 }
 
-main().then(
-  () => {
-    console.log('Finished running tests');
-    process.exit(0);
-  },
-  (err) => {
-    console.error('Error cleaning up tests:', err.message);
-    process.exit(1);
-  }
-);
+void main();
