@@ -76,7 +76,12 @@
         {
           "id": "gradleTasksView",
           "name": "Gradle Projects",
-          "when": "gradle:activated"
+          "when": "gradle:activated && !gradle:defaultView"
+        },
+        {
+          "id": "gradleDefaultProjectsView",
+          "name": "Default Gradle Projects",
+          "when": "gradle:activated && gradle:defaultView"
         },
         {
           "id": "pinnedTasksView",
@@ -456,7 +461,7 @@
         },
         {
           "command": "gradle.openSettings",
-          "when": "view == gradleTasksView"
+          "when": "view == gradleTasksView || view == gradleDefaultProjectsView"
         },
         {
           "command": "gradle.findTask",
@@ -464,7 +469,7 @@
         },
         {
           "command": "gradle.runBuild",
-          "when": "view == gradleTasksView",
+          "when": "view == gradleTasksView || view == gradleDefaultProjectsView",
           "group": "navigation@0"
         },
         {
@@ -516,12 +521,12 @@
       "view/item/context": [
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
           "group": "contextGroup1@0"
         },
         {
           "command": "gradle.runTaskWithArgs",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask(WithTerminals)?$|^task(WithTerminals)?$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask(WithTerminals)?$|^task(WithTerminals)?$/",
           "group": "contextGroup1@1"
         },
         {
@@ -551,7 +556,7 @@
         },
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
           "group": "inline@3"
         },
         {

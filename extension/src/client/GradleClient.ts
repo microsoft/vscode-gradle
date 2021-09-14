@@ -46,6 +46,10 @@ import {
 } from './CancellationKeys';
 import { EventWaiter } from '../util/EventWaiter';
 import { getGradleConfig, getConfigJavaDebug } from '../util/config';
+import {
+  setDefault,
+  unsetDefault,
+} from '../views/defaultProject/DefaultProjectUtils';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -191,6 +195,7 @@ export class GradleClient implements vscode.Disposable {
                         );
                         break;
                       case Output.OutputType.STDERR:
+                        void setDefault();
                         stdErrLoggerStream.write(
                           getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
@@ -201,6 +206,7 @@ export class GradleClient implements vscode.Disposable {
                     this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
                     break;
                   case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                    void unsetDefault();
                     build = getBuildReply.getGetBuildResult()!.getBuild();
                     break;
                   case GetBuildReply.KindCase.ENVIRONMENT:

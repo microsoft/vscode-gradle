@@ -20,6 +20,8 @@ import {
 } from '../util/config';
 const CHANNEL_NAME = 'Gradle Language Server';
 
+export let isLanguageServerStarted = false;
+
 export async function startLanguageServer(
   context: vscode.ExtensionContext
 ): Promise<void> {
@@ -91,6 +93,7 @@ export async function startLanguageServer(
         );
         languageClient.onReady().then(resolve, (e) => {
           resolve();
+          isLanguageServerStarted = true;
           void vscode.window.showErrorMessage(e);
         });
         const disposable = languageClient.start();

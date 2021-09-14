@@ -28,6 +28,7 @@ import com.microsoft.gradle.semantictokens.TokenType;
 
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
+import org.eclipse.lsp4j.ExecuteCommandOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.SaveOptions;
@@ -104,6 +105,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
     serverCapabilities.setTextDocumentSync(textDocumentSyncOptions);
     CompletionOptions completionOptions = new CompletionOptions(false, Arrays.asList(".", ":"));
     serverCapabilities.setCompletionProvider(completionOptions);
+    serverCapabilities.setExecuteCommandProvider(new ExecuteCommandOptions(GradleServices.supportedCommands));
     InitializeResult initializeResult = new InitializeResult(serverCapabilities);
     return CompletableFuture.completedFuture(initializeResult);
   }

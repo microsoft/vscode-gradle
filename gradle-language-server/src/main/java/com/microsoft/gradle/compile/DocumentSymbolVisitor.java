@@ -43,9 +43,14 @@ public class DocumentSymbolVisitor {
 
   private URI currentUri;
   private Map<URI, List<DocumentSymbol>> documentSymbols = new HashMap<>();
+  private Map<URI, List<DocumentSymbol>> dependencies = new HashMap<>();
 
   public List<DocumentSymbol> getDocumentSymbols(URI uri) {
     return this.documentSymbols.get(uri);
+  }
+
+  public List<DocumentSymbol> getDependencies(URI uri) {
+    return this.dependencies.get(uri);
   }
 
   public void visitCompilationUnit(URI uri, GradleCompilationUnit compilationUnit) {
@@ -57,6 +62,7 @@ public class DocumentSymbolVisitor {
     ModuleNode moduleNode = unit.getAST();
     if (moduleNode != null) {
       this.documentSymbols.put(uri, new ArrayList<>());
+      this.dependencies.put(uri, new ArrayList<>());
       visitModule(moduleNode);
     }
   }
@@ -117,7 +123,9 @@ public class DocumentSymbolVisitor {
     symbol.setSelectionRange(LSPUtils.toRange(expression));
     symbol.setRange(LSPUtils.toRange(expression));
     if (expression.getMethodAsString().equals("dependencies")) {
-      symbol.setChildren(getDependencies(expression));
+      List<DocumentSymbol> dependencySymbols = getDependencies(expression);
+      symbol.setChildren(dependencySymbols);
+      this.dependencies.get(currentUri).addAll(dependencySymbols);
     }
     return symbol;
   }
