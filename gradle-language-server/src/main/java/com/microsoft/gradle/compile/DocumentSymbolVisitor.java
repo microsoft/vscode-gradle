@@ -217,8 +217,8 @@ public class DocumentSymbolVisitor {
       symbol.setDetail(detail);
     }
     symbol.setKind(SymbolKind.Constant);
-    symbol.setRange(LSPUtils.toDependencyRange(expression));
-    symbol.setSelectionRange(LSPUtils.toDependencyRange(expression));
+    symbol.setRange(LSPUtils.toRange(expression));
+    symbol.setSelectionRange(LSPUtils.toRange(expression));
     results.add(symbol);
     return results;
   }
