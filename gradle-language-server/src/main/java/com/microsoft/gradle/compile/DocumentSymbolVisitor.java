@@ -12,6 +12,7 @@ package com.microsoft.gradle.compile;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +22,10 @@ import com.microsoft.gradle.utils.LSPUtils;
 import org.codehaus.groovy.ast.ModuleNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BinaryExpression;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.GStringExpression;
 import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.NamedArgumentListExpression;
@@ -113,6 +116,9 @@ public class DocumentSymbolVisitor {
     }
     symbol.setSelectionRange(LSPUtils.toRange(expression));
     symbol.setRange(LSPUtils.toRange(expression));
+    if (expression.getMethodAsString().equals("dependencies")) {
+      symbol.setChildren(getDependencies(expression));
+    }
     return symbol;
   }
 
@@ -177,9 +183,9 @@ public class DocumentSymbolVisitor {
       return null;
     } else if (argument instanceof TupleExpression) {
       // if argument is tupleExpression, show first argument as detail
-      List<Expression> arguments = ((TupleExpression)argument).getExpressions();
+      List<Expression> arguments = ((TupleExpression) argument).getExpressions();
       if (!arguments.isEmpty() && arguments.get(0) instanceof NamedArgumentListExpression) {
-        NamedArgumentListExpression namedArgumentListExpression = (NamedArgumentListExpression)arguments.get(0);
+        NamedArgumentListExpression namedArgumentListExpression = (NamedArgumentListExpression) arguments.get(0);
         List<MapEntryExpression> mapEntryExpressions = namedArgumentListExpression.getMapEntryExpressions();
         if (!mapEntryExpressions.isEmpty()) {
           MapEntryExpression firstExpression = mapEntryExpressions.get(0);
@@ -192,6 +198,82 @@ public class DocumentSymbolVisitor {
           }
         }
         return null;
+      }
+    }
+    return null;
+  }
+
+  private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
+    Expression argument = expression.getArguments();
+    if (expression.getMethodAsString().equals("dependencies")) {
+      return getDependencies((ArgumentListExpression) argument);
+    }
+    List<DocumentSymbol> results = new ArrayList<>();
+    DocumentSymbol symbol = new DocumentSymbol();
+    String name = expression.getMethodAsString();
+    symbol.setName(name);
+    String detail = getDetail(expression);
+    if (detail != null) {
+      symbol.setDetail(detail);
+    }
+    symbol.setKind(SymbolKind.Constant);
+    symbol.setRange(LSPUtils.toRange(expression));
+    symbol.setSelectionRange(LSPUtils.toRange(expression));
+    results.add(symbol);
+    return results;
+  }
+
+  private List<DocumentSymbol> getDependencies(ArgumentListExpression argumentListExpression) {
+    List<Expression> expressions = argumentListExpression.getExpressions();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof ClosureExpression) {
+        symbols.addAll(getDependencies((ClosureExpression) expression));
+      } else if (expression instanceof MethodCallExpression) {
+        symbols.addAll(getDependencies((MethodCallExpression) expression));
+      }
+    }
+    return symbols;
+  }
+
+  private List<DocumentSymbol> getDependencies(ClosureExpression expression) {
+    Statement code = expression.getCode();
+    if (code instanceof BlockStatement) {
+      return getDependencies((BlockStatement) code);
+    }
+    return Collections.emptyList();
+  }
+
+  private List<DocumentSymbol> getDependencies(BlockStatement blockStatement) {
+    List<Statement> statements = blockStatement.getStatements();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+    for (Statement statement : statements) {
+      if (statement instanceof ExpressionStatement) {
+        symbols.addAll(getDependencies((ExpressionStatement) statement));
+      }
+    }
+    return symbols;
+  }
+
+  private List<DocumentSymbol> getDependencies(ExpressionStatement expressionStatement) {
+    Expression expression = expressionStatement.getExpression();
+    List<DocumentSymbol> symbols = new ArrayList<>();
+    if (expression instanceof MethodCallExpression) {
+      symbols.addAll(getDependencies((MethodCallExpression) expression));
+    }
+    return symbols;
+  }
+
+  private String getDetail(MethodCallExpression node) {
+    Expression arguments = node.getArguments();
+    if (arguments instanceof ArgumentListExpression) {
+      List<Expression> expressions = ((ArgumentListExpression) arguments).getExpressions();
+      for (Expression expression : expressions) {
+        if (expression instanceof MethodCallExpression) {
+          return getDetail((MethodCallExpression) expression);
+        } else if (expression instanceof GStringExpression || expression instanceof ConstantExpression) {
+          return expression.getText();
+        }
       }
     }
     return null;
