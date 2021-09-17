@@ -197,7 +197,10 @@ export class Commands {
       COMMAND_EXPLORER_FLAT,
       new ExplorerFlatCommand(this.gradleTasksTreeDataProvider)
     );
-    this.registerCommand(COMMAND_OPEN_SETTINGS, new OpenSettingsCommand());
+    this.registerCommand(
+      COMMAND_OPEN_SETTINGS,
+      new OpenSettingsCommand(this.context)
+    );
     this.registerCommand(COMMAND_OPEN_BUILD_FILE, new OpenBuildFileCommand());
 
     this.registerCommand(
