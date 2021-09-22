@@ -4,8 +4,6 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-  release:
-    types: [published]
 
 jobs:
   build-and-analyse:
@@ -175,93 +173,3 @@ jobs:
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
           wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
           wrapper-cache-enabled: false
-
-  publish-beta-extension:
-    needs: [test-extension]
-    name: Publish BETA extension
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && contains(github.ref, '/release/')
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node 14.15.4
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14.15.4
-      - name: Build & prepare extension
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: prepareForBetaRelease --no-daemon
-          wrapper-cache-enabled: false
-      - name: Publish types
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd npm-package
-          version="0.0.$GITHUB_RUN_ID"
-          echo "Setting package version $version"
-          npm --no-git-tag-version version "$version"
-          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
-          npm publish
-      - name: Publish extension
-        env:
-          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
-        run: |
-          cd extension
-          version="0.0.$GITHUB_RUN_ID"
-          echo "Setting package version $version"
-          npm --no-git-tag-version version "$version"
-          npx vsce publish -p "$AZURE_TOKEN"
-
-  publish-extension:
-    needs: [test-extension]
-    name: Publish extension
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node 14.15.4
-        uses: actions/setup-node@v1
-        with:
-          node-version: 14.15.4
-      - name: Cache gradle
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-      - name: Cache npm cache directory
-        uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      - name: Build & prepare extension
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: prepareForRelease --no-daemon
-          wrapper-cache-enabled: false
-      - name: Publish types
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd npm-package
-          tag=${GITHUB_REF#refs/tags/}
-          echo "Setting package version $tag"
-          npm --no-git-tag-version version "$tag"
-          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
-          npm publish
-      - name: Publish extension
-        env:
-          AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
-          OPENVSX_TOKEN: ${{ secrets.OPENVSX_TOKEN }}
-        run: |
-          cd extension
-          tag=${GITHUB_REF#refs/tags/}
-          echo "Setting package version $tag"
-          npm --no-git-tag-version version "$tag"
-          npx vsce publish -p "$AZURE_TOKEN"
-          npx ovsx publish -p "$OPENVSX_TOKEN"
