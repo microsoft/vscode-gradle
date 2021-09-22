@@ -15,4 +15,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.7.0+is%3Aclosed)
 
-The detail changes before `3.7.0` can be found here: https://github.com/microsoft/vscode-gradle/releases
+## 3.6.2
+### Changed
+- The publisher is changed from `richardwillis` to `Microsoft`.
+
+The detail changes before `3.6.2` can be found here: https://github.com/microsoft/vscode-gradle/releases
