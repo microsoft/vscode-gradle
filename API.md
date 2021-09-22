@@ -19,7 +19,7 @@ npm install vscode-gradle --save
 import * as util from "util";
 import { ExtensionApi as GradleApi, RunTaskOpts, Output } from "vscode-gradle";
 
-const extension = vscode.extensions.getExtension("richardwillis.vscode-gradle");
+const extension = vscode.extensions.getExtension("vscjava.vscode-gradle");
 const gradleApi = extension!.exports as GradleApi;
 const runTaskOpts: RunTaskOpts = {
   projectFolder: "/absolute/path/to/project/root",
