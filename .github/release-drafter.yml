@@ -1,4 +1,0 @@
-name-template: '$NEXT_PATCH_VERSION'
-tag-template: '$NEXT_PATCH_VERSION'
-template: |
-  $CHANGES
