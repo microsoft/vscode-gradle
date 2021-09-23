@@ -11,7 +11,7 @@ This VS Code extension provides a visual interface for your Gradle build. It sup
 
 ## Requirements
 
-- [VS Code >= 1.45.0](https://code.visualstudio.com/download)
+- [VS Code >= 1.60.0](https://code.visualstudio.com/download)
 - [Java >= 8](https://adoptopenjdk.net/)
 - Local [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) executables
 

@@ -11,8 +11,7 @@ export class ProjectDependencyTreeItem extends vscode.TreeItem {
     public readonly parentTreeItem: vscode.TreeItem,
     readonly projectPath: string,
     readonly projectName: string,
-    // TODO: https://github.com/microsoft/vscode-codicons/issues/77
-    iconPath: vscode.ThemeIcon = new vscode.ThemeIcon('file-submodule')
+    iconPath: vscode.ThemeIcon = new vscode.ThemeIcon('folder-library')
   ) {
     super(name, collapsibleState);
     this.iconPath = iconPath;
