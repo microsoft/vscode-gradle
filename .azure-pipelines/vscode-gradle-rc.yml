@@ -26,6 +26,12 @@ steps:
     gradleWrapperFile: 'gradlew'
     gradleOptions: '-Xmx3072m'
     tasks: 'build'
+- task: Gradle@2
+  displayName: PrepareForRelease
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    gradleOptions: '-Xmx3072m'
+    tasks: 'prepareForRelease'
 - bash: |
     cd $(Build.SourcesDirectory)/extension/lib
     chmod +x gradle-server
