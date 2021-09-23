@@ -65,9 +65,10 @@ export class Extension {
   private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
   private readonly api: Api;
   private readonly commands: Commands;
-  private readonly _onDidTerminalOpen: vscode.EventEmitter<vscode.Terminal> = new vscode.EventEmitter<vscode.Terminal>();
-  private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this
-    ._onDidTerminalOpen.event;
+  private readonly _onDidTerminalOpen: vscode.EventEmitter<vscode.Terminal> =
+    new vscode.EventEmitter<vscode.Terminal>();
+  private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> =
+    this._onDidTerminalOpen.event;
   private recentTerminal: vscode.Terminal | undefined;
 
   public constructor(private readonly context: vscode.ExtensionContext) {

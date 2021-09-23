@@ -15,8 +15,10 @@ export interface ServerOptions {
 }
 
 export class GradleServer implements vscode.Disposable {
-  private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidStart: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
+  private readonly _onDidStop: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
   private ready = false;
   private port: number | undefined;
   private restarting = false;

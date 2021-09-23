@@ -41,12 +41,14 @@ function resetCachedTreeItems(): void {
 }
 
 export class GradleTasksTreeDataProvider
-  implements vscode.TreeDataProvider<vscode.TreeItem> {
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
   private collapsed = true;
 
-  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
-  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
-    ._onDidChangeTreeData.event;
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> =
+    new vscode.EventEmitter<vscode.TreeItem | null>();
+  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> =
+    this._onDidChangeTreeData.event;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -155,13 +157,14 @@ export class GradleTasksTreeDataProvider
     if (!resourceUri) {
       return results;
     }
-    const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
-      'Dependencies',
-      vscode.TreeItemCollapsibleState.Collapsed,
-      element,
-      path.dirname(resourceUri.fsPath),
-      typeof element.label === 'string' ? element.label : resourceUri.fsPath
-    );
+    const projectDependencyTreeItem: ProjectDependencyTreeItem =
+      new ProjectDependencyTreeItem(
+        'Dependencies',
+        vscode.TreeItemCollapsibleState.Collapsed,
+        element,
+        path.dirname(resourceUri.fsPath),
+        typeof element.label === 'string' ? element.label : resourceUri.fsPath
+      );
     return [...results, projectDependencyTreeItem];
   }
 

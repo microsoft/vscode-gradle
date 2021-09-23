@@ -50,11 +50,12 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
 
     for (const workspaceFolder of workspaceFolders) {
       const configNestedFolders = getNestedProjectsConfig(workspaceFolder);
-      const gradleProjectFoldersOutsideRoot = getGradleProjectFoldersOutsideRoot(
-        configNestedFolders,
-        gradleProjectFolders,
-        workspaceFolder
-      );
+      const gradleProjectFoldersOutsideRoot =
+        getGradleProjectFoldersOutsideRoot(
+          configNestedFolders,
+          gradleProjectFolders,
+          workspaceFolder
+        );
       if (gradleProjectFolders.includes(workspaceFolder.uri.fsPath)) {
         this.setRootProjectFolder(buildRootFolder(workspaceFolder.uri));
       }

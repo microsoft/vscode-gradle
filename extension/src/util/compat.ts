@@ -4,16 +4,14 @@ export const JAVA_LANGUAGE_EXTENSION_ID = 'redhat.java';
 export const JAVA_DEBUGGER_EXTENSION_ID = 'vscjava.vscode-java-debug';
 
 export function isJavaLanguageSupportExtensionActivated(): boolean {
-  const javaExt:
-    | vscode.Extension<unknown>
-    | undefined = getJavaLanguageSupportExtension();
+  const javaExt: vscode.Extension<unknown> | undefined =
+    getJavaLanguageSupportExtension();
   return javaExt?.isActive || false;
 }
 
 export function isJavaDebuggerExtensionActivated(): boolean {
-  const javaExt:
-    | vscode.Extension<unknown>
-    | undefined = getJavaDebuggerExtension();
+  const javaExt: vscode.Extension<unknown> | undefined =
+    getJavaDebuggerExtension();
   return javaExt?.isActive || false;
 }
 

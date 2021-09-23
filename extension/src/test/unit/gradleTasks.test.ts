@@ -336,7 +336,8 @@ describe(getSuiteName('Gradle tasks'), () => {
               task,
             },
           ]);
-          const gradleProjects = (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
+          const gradleProjects =
+            (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
@@ -383,7 +384,8 @@ describe(getSuiteName('Gradle tasks'), () => {
             executeCommandStub.calledWith(COMMAND_RENDER_TASK, task),
             'Task was not rendered'
           );
-          const gradleProjects = (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
+          const gradleProjects =
+            (await gradleTasksTreeDataProvider.getChildren()) as ProjectTreeItem[];
           removeCancellingTask(task);
           const group = gradleProjects[0].groups[0];
           const taskItem = group.tasks[0];
@@ -430,7 +432,8 @@ describe(getSuiteName('Gradle tasks'), () => {
       });
 
       it('should build root RootProject items at top level', async () => {
-        const rootProjectItems = await gradleTasksTreeDataProvider.getChildren();
+        const rootProjectItems =
+          await gradleTasksTreeDataProvider.getChildren();
         assert.ok(rootProjectItems.length > 0, 'No root gradle projects found');
         assert.strictEqual(
           rootProjectItems.length,
