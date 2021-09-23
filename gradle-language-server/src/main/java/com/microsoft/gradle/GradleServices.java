@@ -267,14 +267,15 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
         containingCall = call;
       }
     }
+    boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(this.completionVisitor.getPlugins(uri));
     CompletionHandler handler = new CompletionHandler();
     // check again
     if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
       return CompletableFuture.completedFuture(Either
-          .forLeft(handler.getCompletionItems(null, Paths.get(uri).getFileName().toString(), this.libraryResolver)));
+          .forLeft(handler.getCompletionItems(null, Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
     }
     return CompletableFuture.completedFuture(Either.forLeft(
-        handler.getCompletionItems(containingCall, Paths.get(uri).getFileName().toString(), this.libraryResolver)));
+        handler.getCompletionItems(containingCall, Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
   }
 
   private boolean isGradleRoot(URI uri, Position position) {

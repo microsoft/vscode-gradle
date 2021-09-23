@@ -16,9 +16,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -26,15 +29,25 @@ import java.util.regex.Pattern;
 
 import org.apache.bcel.classfile.ClassFormatException;
 import org.apache.bcel.classfile.ClassParser;
+import org.apache.bcel.classfile.Field;
 import org.apache.bcel.classfile.JavaClass;
 
 public class GradleLibraryResolver {
+
+  private static String JAVA_PLUGIN = "org.gradle.api.plugins.JavaPlugin";
+
   private Map<String, JavaClass> gradleLibraries = new HashMap<>();
+  private Set<String> javaConfigurations = new HashSet<>();
+  private Set<String> javaPlugins = new HashSet<>();
   private String gradleHome;
   private String gradleVersion;
   private boolean gradleWrapperEnabled;
   private String gradleUserHome;
   private Path workspacePath;
+
+  public GradleLibraryResolver() {
+    this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
+  }
 
   public void setGradleHome(String gradleHome) {
     this.gradleHome = gradleHome;
@@ -58,6 +71,10 @@ public class GradleLibraryResolver {
 
   public Map<String, JavaClass> getGradleLibraries() {
     return this.gradleLibraries;
+  }
+
+  public Set<String> getJavaConfigurations() {
+    return this.javaConfigurations;
   }
 
   public void resolve() {
@@ -86,6 +103,7 @@ public class GradleLibraryResolver {
       }
       JarFile pluginLibJar = new JarFile(pluginLibFile);
       getGradleLibraries(pluginLibFile.toPath(), pluginLibJar);
+      resolveJavaConfigurations();
     } catch (Exception e) {
       // Do Nothing
     }
@@ -189,5 +207,34 @@ public class GradleLibraryResolver {
         // Do Nothing
       }
     }
+  }
+
+  private void resolveJavaConfigurations() {
+    JavaClass javaPluginClass = this.gradleLibraries.get(GradleLibraryResolver.JAVA_PLUGIN);
+    if (javaPluginClass == null) {
+      return;
+    }
+    for (Field field : javaPluginClass.getFields()) {
+      if (field.getName().endsWith("CONFIGURATION_NAME")) {
+        this.javaConfigurations.add(removeQuotes(field.getConstantValue().toString()));
+      }
+    }
+  }
+
+  private static String removeQuotes(String original) {
+    // for those fields parsed from class files, we get ""values"", so we remove the starting and ending quotes here
+    if (original.length() < 3) {
+      return original;
+    }
+    return original.substring(1, original.length() - 1);
+  }
+
+  public boolean isJavaPluginsIncluded(Set<String> plugins) {
+    for (String plugin : plugins) {
+      if (this.javaPlugins.contains(plugin)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

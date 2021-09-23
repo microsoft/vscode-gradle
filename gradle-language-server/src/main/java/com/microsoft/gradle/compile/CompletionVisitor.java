@@ -28,7 +28,10 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.GStringExpression;
+import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.expr.NamedArgumentListExpression;
+import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
@@ -60,6 +63,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
   private Map<URI, Set<MethodCallExpression>> methodCalls = new HashMap<>();
   private Map<URI, List<Statement>> statements = new HashMap<>();
   private Map<URI, List<Expression>> constants = new HashMap<>();
+  private Map<URI, Set<String>> plugins = new HashMap<>();
 
   public List<DependencyItem> getDependencies(URI uri) {
     return this.dependencies.get(uri);
@@ -77,6 +81,10 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     return this.constants.get(uri);
   }
 
+  public Set<String> getPlugins(URI uri) {
+    return this.plugins.get(uri);
+  }
+
   public void visitCompilationUnit(URI uri, GradleCompilationUnit compilationUnit) {
     this.currentUri = uri;
     compilationUnit.iterator().forEachRemaining(unit -> visitSourceUnit(unit));
@@ -89,6 +97,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
       this.methodCalls.put(this.currentUri, new HashSet<>());
       this.statements.put(this.currentUri, new ArrayList<>());
       this.constants.put(this.currentUri, new ArrayList<>());
+      this.plugins.put(this.currentUri, new HashSet<>());
       visitModule(moduleNode);
     }
   }
@@ -106,6 +115,16 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
     this.methodCalls.get(this.currentUri).add(node);
     if (node.getMethodAsString().equals("dependencies")) {
       this.dependencies.get(this.currentUri).addAll(getDependencies(node));
+    } else if (node.getMethodAsString().equals("plugins")) {
+      // match plugins { id: ${id} }
+      List<String> plugins = getPluginFromPlugins(node);
+      this.plugins.get(this.currentUri).addAll(plugins);
+    } else if (node.getMethodAsString().equals("apply")) {
+      // match apply plugins: '${id}'
+      String plugin = getPluginFromApply(node);
+      if (plugin != null) {
+        this.plugins.get(this.currentUri).add(plugin);
+      }
     }
     super.visitMethodCallExpression(node);
   }
@@ -160,6 +179,62 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
       return getDependencies((MethodCallExpression) expression);
     }
     return Collections.emptyList();
+  }
+
+  private String getPluginFromApply(MethodCallExpression node) {
+    Expression argument = node.getArguments();
+    if (argument instanceof TupleExpression) {
+      List<Expression> expressions = ((TupleExpression)argument).getExpressions();
+      for (Expression expression : expressions) {
+        if (expression instanceof NamedArgumentListExpression) {
+          List<MapEntryExpression> mapEntryExpressions = ((NamedArgumentListExpression)expression).getMapEntryExpressions();
+          for (MapEntryExpression mapEntryExp: mapEntryExpressions) {
+            Expression keyExpression = mapEntryExp.getKeyExpression();
+            if (keyExpression instanceof ConstantExpression && keyExpression.getText().equals("plugin")) {
+              return mapEntryExp.getValueExpression().getText();
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private List<String> getPluginFromPlugins(MethodCallExpression node) {
+    Expression objectExpression = node.getObjectExpression();
+    if (objectExpression instanceof MethodCallExpression) {
+      return getPluginFromPlugins((MethodCallExpression)objectExpression);
+    }
+    List<String> results = new ArrayList<>();
+    Expression argument = node.getArguments();
+    if (argument instanceof ArgumentListExpression) {
+      List<Expression> expressions = ((ArgumentListExpression)argument).getExpressions();
+      for (Expression expression : expressions) {
+        if (expression instanceof ConstantExpression && node.getMethodAsString().equals("id")) {
+          results.add(expression.getText());
+        } else if (expression instanceof ClosureExpression) {
+          Statement code = ((ClosureExpression)expression).getCode();
+          if (code instanceof BlockStatement) {
+            results.addAll(getPluginFromPlugins((BlockStatement) code));
+          }
+        }
+      }
+    }
+    return results;
+  }
+
+  private List<String> getPluginFromPlugins(BlockStatement code) {
+    List<String> results = new ArrayList<>();
+    List<Statement> statements = code.getStatements();
+    for (Statement statement : statements) {
+      if (statement instanceof ExpressionStatement) {
+        Expression expression = ((ExpressionStatement)statement).getExpression();
+        if (expression instanceof MethodCallExpression) {
+          results.addAll(getPluginFromPlugins((MethodCallExpression) expression));
+        }
+      }
+    }
+    return results;
   }
 
   @Override

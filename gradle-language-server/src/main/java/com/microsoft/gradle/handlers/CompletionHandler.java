@@ -32,8 +32,9 @@ public class CompletionHandler {
 
   private static String BUILD_GRADLE = "build.gradle";
   private static String SETTING_GRADLE = "settings.gradle";
+  private static String DEPENDENCYHANDLER_CLASS = "org.gradle.api.artifacts.dsl.DependencyHandler";
 
-  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver) {
+  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver, boolean javaPluginsIncluded) {
     String delegateClassName = null;
     if (containingCall == null) {
       if (fileName.equals(BUILD_GRADLE)) {
@@ -51,22 +52,22 @@ public class CompletionHandler {
     if (delegateClass == null) {
       return Collections.emptyList();
     }
-    return getCompletionItemsFromClass(delegateClass, resolver, new HashSet<>());
+    return getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, new HashSet<>());
   }
 
-  private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass, GradleLibraryResolver resolver, Set<String> resultSet) {
+  private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass, GradleLibraryResolver resolver, boolean javaPluginsIncluded, Set<String> resultSet) {
     if (javaClass == null) {
       return Collections.emptyList();
     }
     List<CompletionItem> results = new ArrayList<>();
     for (String superInterface : javaClass.getInterfaceNames()) {
       if (resolver.getGradleLibraries().containsKey(superInterface)) {
-        results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superInterface), resolver, resultSet));
+        results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superInterface), resolver, javaPluginsIncluded, resultSet));
       }
     }
     String superClass = javaClass.getSuperclassName();
     if (resolver.getGradleLibraries().containsKey(superClass)) {
-      results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superClass), resolver, resultSet));
+      results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superClass), resolver, javaPluginsIncluded, resultSet));
     }
     List<String> methodNames = new ArrayList<>();
     Method[] methods = javaClass.getMethods();
@@ -126,6 +127,22 @@ public class CompletionHandler {
             results.add(item);
           }
         }
+      }
+    }
+    if (javaPluginsIncluded && javaClass.getClassName().equals(DEPENDENCYHANDLER_CLASS)) {
+      // for dependency {}, we offer java configurations if there is any applied java plugin
+      for (String plugin : resolver.getJavaConfigurations()) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(plugin);
+        builder.append("(Object... o)");
+        StringBuilder insertBuilder = new StringBuilder();
+        insertBuilder.append(plugin);
+        insertBuilder.append("($0)");
+        CompletionItem item = new CompletionItem(builder.toString());
+        item.setKind(CompletionItemKind.Function);
+        item.setInsertTextFormat(InsertTextFormat.Snippet);
+        item.setInsertText(insertBuilder.toString());
+        results.add(item);
       }
     }
     return results;
