@@ -35,7 +35,7 @@ export class DefaultProjectsTreeDataProvider
 
   public async getChildren(
     element?: vscode.TreeItem
-  ): Promise<vscode.TreeItem[] | undefined> {
+  ): Promise<vscode.TreeItem[]> {
     if (!element) {
       // async configuring
       void this.gradleTaskProvider.loadTasks();
@@ -53,7 +53,7 @@ export class DefaultProjectsTreeDataProvider
     } else if (element instanceof ProjectDependencyTreeItem) {
       return this.defaultProjectProvider.getDefaultDependencyItems(element);
     } else if (element instanceof ProjectTaskTreeItem) {
-      return element.getChildren();
+      return element.getChildren() || [];
     } else if (element instanceof GroupTreeItem) {
       return element.tasks;
     }

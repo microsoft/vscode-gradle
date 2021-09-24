@@ -80,7 +80,7 @@
         },
         {
           "id": "gradleDefaultProjectsView",
-          "name": "Default Gradle Projects",
+          "name": "Gradle Projects",
           "when": "gradle:activated && gradle:defaultView"
         },
         {

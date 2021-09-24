@@ -3,7 +3,6 @@
 
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { Range } from 'vscode-languageclient/node';
 import { GradleClient } from '../../client';
 import { isLanguageServerStarted } from '../../languageServer/languageServer';
 import { RootProject } from '../../rootProject';
@@ -13,38 +12,12 @@ import { DependencyConfigurationTreeItem } from '../gradleTasks/DependencyConfig
 import { DependencyTreeItem } from '../gradleTasks/DependencyTreeItem';
 import { HintItem } from '../gradleTasks/HintItem';
 import { ProjectDependencyTreeItem } from '../gradleTasks/ProjectDependencyTreeItem';
+import { generateDefaultTaskDefinitions } from './DefaultProjectUtils';
+import { DefaultDependencyItem, DefaultTaskDefinition } from './types';
 
 export class DefaultProjectProvider {
-  // task name, task group, task description
-  private static defaultTaskDefinitions: [string, string, string][] = [
-    ['init', 'build setup', 'Initializes a new Gradle build.'],
-    ['wrapper', 'build setup', 'Generates Gradle wrapper files.'],
-    [
-      'buildEnvironment',
-      'help',
-      'Displays all buildscript dependencies declared in root project.',
-    ],
-    [
-      'dependencies',
-      'help',
-      'Displays all dependencies declared in root project.',
-    ],
-    [
-      'dependencyInsight',
-      'help',
-      'Displays the insight into a specific dependency in root project.',
-    ],
-    ['help', 'help', 'Displays a help message.'],
-    ['javaToolchains', 'help', 'Displays the detected java toolchains.'],
-    [
-      'outgoingVariants',
-      'help',
-      'Displays the outgoing variants of root project.',
-    ],
-    ['projects', 'help', 'Displays the sub-projects of root project.'],
-    ['properties', 'help', 'Displays the properties of root project.'],
-    ['tasks', 'help', 'Displays the tasks runnable from root project.'],
-  ];
+  private static defaultTaskDefinitions: DefaultTaskDefinition[] =
+    generateDefaultTaskDefinitions();
 
   constructor() {
     this.defaultTasks = [];
@@ -72,11 +45,11 @@ export class DefaultProjectProvider {
           createTaskFromDefinition(
             this.generateDefaultTaskDefinition(
               rootProject,
-              defaultTaskDefinition[0],
+              defaultTaskDefinition.name,
               rootProject.getWorkspaceFolder().name,
               path.join(rootProject.getProjectUri().fsPath, 'build.gradle'),
-              defaultTaskDefinition[2],
-              defaultTaskDefinition[1]
+              defaultTaskDefinition.description,
+              defaultTaskDefinition.group
             ),
             rootProject,
             client
@@ -166,10 +139,4 @@ export class DefaultProjectProvider {
     );
     return this.defaultDependencies.get(buildFileUri.toString()) || [];
   }
-}
-
-interface DefaultDependencyItem {
-  name: string;
-  configuration: string;
-  range: Range;
 }
