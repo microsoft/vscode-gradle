@@ -6,11 +6,7 @@
   ],
   "version": "https://github.com/textmate/groovy.tmbundle/blob/6f903cacfb2d5397a350eeb73bc36b2c40f3da70/Syntaxes/Groovy.tmLanguage",
   "scopeName": "source.groovy",
-  "fileTypes": [
-    "groovy",
-    "gvy",
-    "gradle"
-  ],
+  "fileTypes": ["groovy", "gvy", "gradle"],
   "foldingStartMarker": "(\\{\\s*$|^\\s*// \\{\\{\\{)",
   "foldingStopMarker": "^\\s*(\\}|// \\}\\}\\}$)",
   "keyEquivalent": "^~G",

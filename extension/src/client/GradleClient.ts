@@ -63,11 +63,13 @@ function logBuildEnvironment(environment: Environment): void {
 export class GradleClient implements vscode.Disposable {
   private readonly connectDeadline = 30; // seconds
   private grpcClient: GrpcClient | null = null;
-  private readonly _onDidConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private readonly _onDidConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidConnect: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
+  private readonly _onDidConnectFail: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
   public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
-  public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail
-    .event;
+  public readonly onDidConnectFail: vscode.Event<null> =
+    this._onDidConnectFail.event;
 
   private readonly waitForConnect = new EventWaiter(this.onDidConnect).wait;
 
@@ -631,9 +633,8 @@ export class GradleClient implements vscode.Disposable {
     this.close();
     this._onDidConnectFail.fire(null);
     if (this.server.isReady()) {
-      const connectivityState = this.grpcClient!.getChannel().getConnectivityState(
-        true
-      );
+      const connectivityState =
+        this.grpcClient!.getChannel().getConnectivityState(true);
       const enumKey = ConnectivityState[connectivityState];
       logger.error('The client has state:', enumKey);
       await this.showRestartMessage();

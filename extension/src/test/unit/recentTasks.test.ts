@@ -171,7 +171,8 @@ describe(getSuiteName('Recent tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
+        const workspaceTreeItem =
+          recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
         assert.ok(
           workspaceTreeItem,
           'parentTreeItem must reference a WorkSpace tree item'
@@ -229,7 +230,8 @@ describe(getSuiteName('Recent tasks'), () => {
           path.join('resources', 'light', ICON_GRADLE_TASK)
         );
 
-        const workspaceTreeItem = recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
+        const workspaceTreeItem =
+          recentTaskTreeItem.parentTreeItem as RecentTasksRootProjectTreeItem;
         assert.ok(
           workspaceTreeItem instanceof RecentTasksRootProjectTreeItem,
           'Tree item is not RecentTasksRootProjectTreeItem'
@@ -247,10 +249,9 @@ describe(getSuiteName('Recent tasks'), () => {
           'Task is not a RecentTaskTreeItem'
         );
 
-        const showWarningMessageStub = (sinon.stub(
-          vscode.window,
-          'showWarningMessage'
-        ) as SinonStub).resolves('Yes');
+        const showWarningMessageStub = (
+          sinon.stub(vscode.window, 'showWarningMessage') as SinonStub
+        ).resolves('Yes');
 
         await new ClearAllRecentTasksCommand(recentTasksStore).run();
 
@@ -367,10 +368,9 @@ describe(getSuiteName('Recent tasks'), () => {
       );
       assert.strictEqual(recentTaskTreeItemBefore.description, '(2)');
 
-      const showWarningMessageStub = (sinon.stub(
-        vscode.window,
-        'showWarningMessage'
-      ) as SinonStub).resolves('Yes');
+      const showWarningMessageStub = (
+        sinon.stub(vscode.window, 'showWarningMessage') as SinonStub
+      ).resolves('Yes');
 
       await new CloseAllTaskTerminalsCommand(taskTerminalsStore).run();
 

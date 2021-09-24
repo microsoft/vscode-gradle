@@ -10,25 +10,27 @@ import { getConfigJavaDebug } from '../util/config';
 import { EventWaiter } from '../util/EventWaiter';
 
 export class GradleTaskProvider
-  implements vscode.TaskProvider, vscode.Disposable {
+  implements vscode.TaskProvider, vscode.Disposable
+{
   private cachedTasks: vscode.Task[] = [];
-  private readonly _onDidLoadTasks: vscode.EventEmitter<
-    vscode.Task[]
-  > = new vscode.EventEmitter<vscode.Task[]>();
-  private readonly _onDidStartRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private readonly _onDidStopRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidLoadTasks: vscode.EventEmitter<vscode.Task[]> =
+    new vscode.EventEmitter<vscode.Task[]>();
+  private readonly _onDidStartRefresh: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
+  private readonly _onDidStopRefresh: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
 
   constructor(
     private readonly rootProjectsStore: RootProjectsStore,
     private readonly client: GradleClient
   ) {}
 
-  public readonly onDidLoadTasks: vscode.Event<vscode.Task[]> = this
-    ._onDidLoadTasks.event;
-  public readonly onDidStartRefresh: vscode.Event<null> = this
-    ._onDidStartRefresh.event;
-  public readonly onDidStopRefresh: vscode.Event<null> = this._onDidStopRefresh
-    .event;
+  public readonly onDidLoadTasks: vscode.Event<vscode.Task[]> =
+    this._onDidLoadTasks.event;
+  public readonly onDidStartRefresh: vscode.Event<null> =
+    this._onDidStartRefresh.event;
+  public readonly onDidStopRefresh: vscode.Event<null> =
+    this._onDidStopRefresh.event;
   private loadTasksPromise?: Promise<vscode.Task[]>;
 
   private readonly _waitForTasksLoad = new EventWaiter<vscode.Task[]>(
