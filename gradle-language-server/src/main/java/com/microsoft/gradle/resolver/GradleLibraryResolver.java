@@ -44,6 +44,8 @@ public class GradleLibraryResolver {
   private boolean gradleWrapperEnabled;
   private String gradleUserHome;
   private Path workspacePath;
+  private File libFile;
+  private File pluginLibFile;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
@@ -77,31 +79,33 @@ public class GradleLibraryResolver {
     return this.javaConfigurations;
   }
 
-  public void resolve() {
+  public boolean resolveLibFiles() {
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
         : Path.of(this.gradleUserHome);
-    File libFile = null;
     if (this.gradleWrapperEnabled) {
-      libFile = findLibWithWrapper(gradleUserHomePath);
+      this.libFile = findLibWithWrapper(gradleUserHomePath);
     } else if (this.gradleVersion != null) {
-      libFile = findLibWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
+      this.libFile = findLibWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
     } else if (this.gradleHome != null) {
-      Path libPath = Path.of(this.gradleHome).resolve("lib");
-      libFile = findLibFile(libPath.toFile());
+      this.libFile = findLibFile(Path.of(this.gradleHome).resolve("lib").toFile());
     } else {
-      return;
+      return false;
     }
-    if (libFile == null || !libFile.exists()) {
+    if (!isValidFile(this.libFile)) {
+      return false;
+    }
+    this.pluginLibFile = findPluginLibFile(libFile.toPath().getParent().resolve(Path.of("plugins")).toFile());
+    return isValidFile(this.pluginLibFile);
+  }
+
+  public void resolve() {
+    if ((!isValidFile(this.libFile) || !isValidFile(this.pluginLibFile)) && !this.resolveLibFiles()) {
       return;
     }
     try {
-      JarFile libJar = new JarFile(libFile);
+      JarFile libJar = new JarFile(this.libFile);
       getGradleLibraries(libFile.toPath(), libJar);
-      File pluginLibFile = findPluginLibFile(libFile.toPath().getParent().resolve(Path.of("plugins")).toFile());
-      if (pluginLibFile == null) {
-        return;
-      }
-      JarFile pluginLibJar = new JarFile(pluginLibFile);
+      JarFile pluginLibJar = new JarFile(this.pluginLibFile);
       getGradleLibraries(pluginLibFile.toPath(), pluginLibJar);
       resolveJavaConfigurations();
     } catch (Exception e) {
@@ -171,7 +175,8 @@ public class GradleLibraryResolver {
         return file;
       }
     }
-    // For Gradle version under 5.6, the name of library file is like gradle-core-${version}.jar
+    // For Gradle version under 5.6, the name of library file is like
+    // gradle-core-${version}.jar
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-core") && name.endsWith(".jar")) {
@@ -222,7 +227,8 @@ public class GradleLibraryResolver {
   }
 
   private static String removeQuotes(String original) {
-    // for those fields parsed from class files, we get ""values"", so we remove the starting and ending quotes here
+    // for those fields parsed from class files, we get ""values"", so we remove the
+    // starting and ending quotes here
     if (original.length() < 3) {
       return original;
     }
@@ -236,5 +242,9 @@ public class GradleLibraryResolver {
       }
     }
     return false;
+  }
+
+  private static boolean isValidFile(File file) {
+    return file != null && file.exists();
   }
 }
