@@ -348,10 +348,9 @@ describe(getSuiteName('Pinned tasks'), () => {
           childrenBefore[1] instanceof PinnedTaskTreeItem,
           'Pinned task is not PinnedTaskTreeItem'
         );
-        const showWarningMessageStub = (sinon.stub(
-          vscode.window,
-          'showWarningMessage'
-        ) as SinonStub).resolves('Yes');
+        const showWarningMessageStub = (
+          sinon.stub(vscode.window, 'showWarningMessage') as SinonStub
+        ).resolves('Yes');
         await new ClearAllPinnedTasksCommand(pinnedTasksStore).run();
         assert.ok(
           showWarningMessageStub.calledWith(
@@ -379,7 +378,8 @@ describe(getSuiteName('Pinned tasks'), () => {
 
     describe('With pinned tasks', () => {
       it('should build a pinned task treeitem', async () => {
-        const workspaceTreeItems = await gradleTasksTreeDataProvider.getChildren();
+        const workspaceTreeItems =
+          await gradleTasksTreeDataProvider.getChildren();
         assert.ok(workspaceTreeItems.length > 0, 'No gradle projects found');
         const workspaceTreeItem = workspaceTreeItems[0] as RootProjectTreeItem;
         assert.ok(
@@ -404,7 +404,8 @@ describe(getSuiteName('Pinned tasks'), () => {
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
         const children = await pinnedTasksTreeDataProvider.getChildren();
         assert.strictEqual(children.length, 1);
-        const pinnedTasksRootProjectTreeItem = children[0] as PinnedTasksRootProjectTreeItem;
+        const pinnedTasksRootProjectTreeItem =
+          children[0] as PinnedTasksRootProjectTreeItem;
         assert.strictEqual(
           pinnedTasksRootProjectTreeItem.collapsibleState,
           vscode.TreeItemCollapsibleState.Expanded

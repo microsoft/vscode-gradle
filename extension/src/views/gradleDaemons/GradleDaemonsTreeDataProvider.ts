@@ -12,13 +12,15 @@ import { HintItem } from '../gradleTasks/HintItem';
 import { getSpecificVersionStatus } from './util';
 
 export class GradleDaemonsTreeDataProvider
-  implements vscode.TreeDataProvider<vscode.TreeItem> {
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
   private cancelDeferred?: Deferred<vscode.TreeItem[]>;
   private treeItems: vscode.TreeItem[] = [];
   private specificVersion = false;
-  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
-  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
-    ._onDidChangeTreeData.event;
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> =
+    new vscode.EventEmitter<vscode.TreeItem | null>();
+  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> =
+    this._onDidChangeTreeData.event;
 
   constructor(
     private readonly context: vscode.ExtensionContext,

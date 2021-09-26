@@ -26,6 +26,7 @@ import {
   PINNED_TASKS_VIEW,
   GRADLE_DAEMONS_VIEW,
   RECENT_TASKS_VIEW,
+  GRADLE_DEFAULT_PROJECTS_VIEW,
 } from './views/constants';
 import { focusTaskInGradleTasksTree } from './views/viewUtil';
 import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from './commands';
@@ -39,6 +40,8 @@ import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
 import { getSpecificVersionStatus } from './views/gradleDaemons/util';
+import { startLanguageServer } from './languageServer/languageServer';
+import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -62,11 +65,14 @@ export class Extension {
   private readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
   private readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
   private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
+  private readonly defaultProjectsTreeView: vscode.TreeView<vscode.TreeItem>;
+  private readonly defaultProjectsTreeDataProvider: DefaultProjectsTreeDataProvider;
   private readonly api: Api;
   private readonly commands: Commands;
-  private readonly _onDidTerminalOpen: vscode.EventEmitter<vscode.Terminal> = new vscode.EventEmitter<vscode.Terminal>();
-  private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this
-    ._onDidTerminalOpen.event;
+  private readonly _onDidTerminalOpen: vscode.EventEmitter<vscode.Terminal> =
+    new vscode.EventEmitter<vscode.Terminal>();
+  private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> =
+    this._onDidTerminalOpen.event;
   private recentTerminal: vscode.Terminal | undefined;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
@@ -152,6 +158,19 @@ export class Extension {
       treeDataProvider: this.recentTasksTreeDataProvider,
       showCollapseAll: false,
     });
+    this.defaultProjectsTreeDataProvider = new DefaultProjectsTreeDataProvider(
+      this.gradleTaskProvider,
+      this.rootProjectsStore,
+      this.client,
+      this.icons
+    );
+    this.defaultProjectsTreeView = vscode.window.createTreeView(
+      GRADLE_DEFAULT_PROJECTS_VIEW,
+      {
+        treeDataProvider: this.defaultProjectsTreeDataProvider,
+        showCollapseAll: false,
+      }
+    );
 
     this.gradleTaskManager = new GradleTaskManager(context);
     this.buildFileWatcher = new FileWatcher('**/*.{gradle,gradle.kts}');
@@ -198,6 +217,7 @@ export class Extension {
     );
 
     void this.activate();
+    void startLanguageServer(this.context);
   }
 
   private storeSubscriptions(): void {
@@ -215,7 +235,8 @@ export class Extension {
       this.gradleDaemonsTreeView,
       this.gradleTasksTreeView,
       this.pinnedTasksTreeView,
-      this.recentTasksTreeView
+      this.recentTasksTreeView,
+      this.defaultProjectsTreeView
     );
   }
 
@@ -228,6 +249,11 @@ export class Extension {
       'setContext',
       'gradle:activated',
       activated
+    );
+    await vscode.commands.executeCommand(
+      'setContext',
+      'gradle:defaultView',
+      true
     );
   }
 

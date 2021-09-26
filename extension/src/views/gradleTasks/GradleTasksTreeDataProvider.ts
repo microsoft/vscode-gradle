@@ -41,12 +41,13 @@ function resetCachedTreeItems(): void {
 }
 
 export class GradleTasksTreeDataProvider
-  implements vscode.TreeDataProvider<vscode.TreeItem> {
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
   private collapsed = true;
-
-  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
-  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
-    ._onDidChangeTreeData.event;
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> =
+    new vscode.EventEmitter<vscode.TreeItem | null>();
+  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> =
+    this._onDidChangeTreeData.event;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -81,7 +82,12 @@ export class GradleTasksTreeDataProvider
     const tasks = await this.gradleTaskProvider.loadTasks();
     return tasks.length === 0
       ? [new NoGradleTasksTreeItem()]
-      : this.buildItemsTreeFromTasks(tasks);
+      : GradleTasksTreeDataProvider.buildItemsTreeFromTasks(
+          tasks,
+          this.rootProjectStore,
+          this.collapsed,
+          this.icons
+        );
   }
 
   public refresh(treeItem: vscode.TreeItem | null = null): void {
@@ -114,7 +120,7 @@ export class GradleTasksTreeDataProvider
       return element.projects;
     }
     if (element instanceof ProjectTreeItem) {
-      return this.getChildrenForProjectTreeItem(element);
+      return GradleTasksTreeDataProvider.getChildrenForProjectTreeItem(element);
     }
     if (element instanceof GroupTreeItem) {
       return element.tasks;
@@ -136,12 +142,12 @@ export class GradleTasksTreeDataProvider
       return element.getChildren() || [];
     }
     if (!element) {
-      return await this.buildTreeItems();
+      return this.buildTreeItems();
     }
     return [];
   }
 
-  public async getChildrenForProjectTreeItem(
+  public static async getChildrenForProjectTreeItem(
     element: ProjectTreeItem
   ): Promise<vscode.TreeItem[]> {
     const projectTaskItem = new ProjectTaskTreeItem(
@@ -155,26 +161,30 @@ export class GradleTasksTreeDataProvider
     if (!resourceUri) {
       return results;
     }
-    const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
-      'Dependencies',
-      vscode.TreeItemCollapsibleState.Collapsed,
-      element,
-      path.dirname(resourceUri.fsPath),
-      typeof element.label === 'string' ? element.label : resourceUri.fsPath
-    );
+    const projectDependencyTreeItem: ProjectDependencyTreeItem =
+      new ProjectDependencyTreeItem(
+        'Dependencies',
+        vscode.TreeItemCollapsibleState.Collapsed,
+        element,
+        path.dirname(resourceUri.fsPath),
+        typeof element.label === 'string' ? element.label : resourceUri.fsPath
+      );
     return [...results, projectDependencyTreeItem];
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
-  public buildItemsTreeFromTasks(
-    tasks: vscode.Task[]
+  public static buildItemsTreeFromTasks(
+    tasks: vscode.Task[],
+    rootProjectStore: RootProjectsStore,
+    collapsed: boolean,
+    icons: Icons
   ): RootProjectTreeItem[] | NoGradleTasksTreeItem[] {
     let gradleProjectTreeItem = null;
 
     tasks.forEach((task) => {
       const definition = task.definition as GradleTaskDefinition;
       if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
-        const rootProject = this.rootProjectStore.get(definition.projectFolder);
+        const rootProject = rootProjectStore.get(definition.projectFolder);
         if (!rootProject) {
           return;
         }
@@ -208,7 +218,7 @@ export class GradleTasksTreeDataProvider
         );
         let parentTreeItem: ProjectTreeItem | GroupTreeItem = projectTreeItem;
 
-        if (!this.collapsed) {
+        if (!collapsed) {
           const groupId = definition.group + definition.project;
           let groupTreeItem = groupTreeItemMap.get(groupId);
           if (!groupTreeItem) {
@@ -229,7 +239,7 @@ export class GradleTasksTreeDataProvider
           taskName,
           definition.description || taskName,
           '',
-          this.icons,
+          icons,
           rootProject.getJavaDebug()
         );
         taskTreeItem.setContext();

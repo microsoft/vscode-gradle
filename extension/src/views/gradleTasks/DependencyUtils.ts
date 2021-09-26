@@ -38,11 +38,12 @@ function protocolItem2DependencyConfigurationTreeItem(
 ): DependencyConfigurationTreeItem | undefined {
   const name = protocolItem.getName();
   const storageMap = new Map();
-  const configurationItem: DependencyConfigurationTreeItem = new DependencyConfigurationTreeItem(
-    name,
-    vscode.TreeItemCollapsibleState.Collapsed,
-    parent
-  );
+  const configurationItem: DependencyConfigurationTreeItem =
+    new DependencyConfigurationTreeItem(
+      name,
+      vscode.TreeItemCollapsibleState.Collapsed,
+      parent
+    );
   const children = protocolItem.getChildrenList();
   const treeChildren = [];
   for (const child of children) {

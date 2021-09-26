@@ -46,6 +46,10 @@ import {
 } from './CancellationKeys';
 import { EventWaiter } from '../util/EventWaiter';
 import { getGradleConfig, getConfigJavaDebug } from '../util/config';
+import {
+  setDefault,
+  unsetDefault,
+} from '../views/defaultProject/DefaultProjectUtils';
 
 function logBuildEnvironment(environment: Environment): void {
   const javaEnv = environment.getJavaEnvironment()!;
@@ -59,11 +63,13 @@ function logBuildEnvironment(environment: Environment): void {
 export class GradleClient implements vscode.Disposable {
   private readonly connectDeadline = 30; // seconds
   private grpcClient: GrpcClient | null = null;
-  private readonly _onDidConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
-  private readonly _onDidConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
+  private readonly _onDidConnect: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
+  private readonly _onDidConnectFail: vscode.EventEmitter<null> =
+    new vscode.EventEmitter<null>();
   public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
-  public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail
-    .event;
+  public readonly onDidConnectFail: vscode.Event<null> =
+    this._onDidConnectFail.event;
 
   private readonly waitForConnect = new EventWaiter(this.onDidConnect).wait;
 
@@ -189,6 +195,7 @@ export class GradleClient implements vscode.Disposable {
                         );
                         break;
                       case Output.OutputType.STDERR:
+                        void setDefault();
                         stdErrLoggerStream.write(
                           getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
@@ -199,6 +206,7 @@ export class GradleClient implements vscode.Disposable {
                     this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
                     break;
                   case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                    void unsetDefault();
                     build = getBuildReply.getGetBuildResult()!.getBuild();
                     break;
                   case GetBuildReply.KindCase.ENVIRONMENT:
@@ -625,9 +633,8 @@ export class GradleClient implements vscode.Disposable {
     this.close();
     this._onDidConnectFail.fire(null);
     if (this.server.isReady()) {
-      const connectivityState = this.grpcClient!.getChannel().getConnectivityState(
-        true
-      );
+      const connectivityState =
+        this.grpcClient!.getChannel().getConnectivityState(true);
       const enumKey = ConnectivityState[connectivityState];
       logger.error('The client has state:', enumKey);
       await this.showRestartMessage();

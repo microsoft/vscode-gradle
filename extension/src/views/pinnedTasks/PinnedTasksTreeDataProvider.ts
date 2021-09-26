@@ -83,10 +83,12 @@ function buildGradleProjectTreeItem(
 }
 
 export class PinnedTasksTreeDataProvider
-  implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> = new vscode.EventEmitter<vscode.TreeItem | null>();
-  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this
-    ._onDidChangeTreeData.event;
+  implements vscode.TreeDataProvider<vscode.TreeItem>
+{
+  private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> =
+    new vscode.EventEmitter<vscode.TreeItem | null>();
+  public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> =
+    this._onDidChangeTreeData.event;
 
   constructor(
     private readonly pinnedTasksStore: PinnedTasksStore,

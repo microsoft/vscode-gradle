@@ -100,7 +100,8 @@ describe(getSuiteName('Gradle daemons'), () => {
   });
 
   it('should filter out projects with duplicate gradle versions', async () => {
-    const projects = await rootProjectsStore.getProjectRootsWithUniqueVersions();
+    const projects =
+      await rootProjectsStore.getProjectRootsWithUniqueVersions();
     assert.strictEqual(
       projects.length,
       2,
@@ -230,10 +231,9 @@ describe(getSuiteName('Gradle daemons'), () => {
     mockReply.setMessage('Stopped');
     mockClient.stopDaemon.resolves(mockReply);
 
-    const showWarningMessageStub = (sinon.stub(
-      vscode.window,
-      'showWarningMessage'
-    ) as SinonStub).resolves('Yes');
+    const showWarningMessageStub = (
+      sinon.stub(vscode.window, 'showWarningMessage') as SinonStub
+    ).resolves('Yes');
 
     const mockDaemonInfoBusy = new DaemonInfo();
     mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
@@ -280,10 +280,9 @@ describe(getSuiteName('Gradle daemons'), () => {
       .withArgs(mockWorkspaceFolder2.uri.fsPath)
       .resolves(mockReply2);
 
-    const showWarningMessageStub = (sinon.stub(
-      vscode.window,
-      'showWarningMessage'
-    ) as SinonStub).resolves('Yes');
+    const showWarningMessageStub = (
+      sinon.stub(vscode.window, 'showWarningMessage') as SinonStub
+    ).resolves('Yes');
 
     await new StopDaemonsCommand(mockClient, rootProjectsStore).run();
 
