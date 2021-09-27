@@ -83,7 +83,7 @@ import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
-  public static final List<String> supportedCommands = List.of("gradle.getDependencies");
+  public static final List<String> supportedCommands = List.of("gradle.getDependencies", "gradle.distributionChanged");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
@@ -157,7 +157,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       this.getLibraryResolver().setGradleVersion((String) ((Map<?, ?>) settings).get("gradleVersion"));
       this.getLibraryResolver().setGradleWrapperEnabled((Boolean) ((Map<?, ?>) settings).get("gradleWrapperEnabled"));
       this.getLibraryResolver().setGradleUserHome((String) ((Map<?, ?>) settings).get("gradleUserHome"));
-      this.getLibraryResolver().resolve();
+      this.getLibraryResolver().resolveGradleAPI();
     }
   }
 
@@ -279,6 +279,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
         containingCall = call;
       }
     }
+    this.libraryResolver.loadGradleClasses();
     boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(this.completionVisitor.getPlugins(uri));
     CompletionHandler handler = new CompletionHandler();
     // check again
@@ -318,6 +319,8 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       }
       List<DefaultDependencyItem> result = defaultDependenciesHandler.getDefaultDependencies(dependencies);
       return CompletableFuture.completedFuture(result);
+    } else if (command.equals("gradle.distributionChanged")) {
+      this.libraryResolver.resolveGradleAPI();
     }
     return CompletableFuture.completedFuture(null);
   }

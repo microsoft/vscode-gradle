@@ -91,11 +91,15 @@ export async function startLanguageServer(
           serverOptions,
           clientOptions
         );
-        languageClient.onReady().then(resolve, (e) => {
-          resolve();
-          isLanguageServerStarted = true;
-          void vscode.window.showErrorMessage(e);
-        });
+        void languageClient.onReady().then(
+          () => {
+            isLanguageServerStarted = true;
+            resolve();
+          },
+          (e) => {
+            void vscode.window.showErrorMessage(e);
+          }
+        );
         const disposable = languageClient.start();
         context.subscriptions.push(disposable);
         context.subscriptions.push(

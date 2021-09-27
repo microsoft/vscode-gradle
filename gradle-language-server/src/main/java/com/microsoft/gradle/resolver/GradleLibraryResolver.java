@@ -36,7 +36,7 @@ public class GradleLibraryResolver {
 
   private static String JAVA_PLUGIN = "org.gradle.api.plugins.JavaPlugin";
 
-  private Map<String, JavaClass> gradleLibraries = new HashMap<>();
+  private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
   private String gradleHome;
@@ -44,9 +44,13 @@ public class GradleLibraryResolver {
   private boolean gradleWrapperEnabled;
   private String gradleUserHome;
   private Path workspacePath;
+  private File coreAPI;
+  private File pluginAPI;
+  private boolean needToLoadClasses;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
+    this.needToLoadClasses = true;
   }
 
   public void setGradleHome(String gradleHome) {
@@ -69,47 +73,52 @@ public class GradleLibraryResolver {
     this.workspacePath = workspacePath;
   }
 
-  public Map<String, JavaClass> getGradleLibraries() {
-    return this.gradleLibraries;
+  public Map<String, JavaClass> getGradleClasses() {
+    return this.gradleClasses;
   }
 
   public Set<String> getJavaConfigurations() {
     return this.javaConfigurations;
   }
 
-  public void resolve() {
+  public boolean resolveGradleAPI() {
+    this.needToLoadClasses = true;
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
         : Path.of(this.gradleUserHome);
-    File libFile = null;
     if (this.gradleWrapperEnabled) {
-      libFile = findLibWithWrapper(gradleUserHomePath);
+      this.coreAPI = findCoreAPIWithWrapper(gradleUserHomePath);
     } else if (this.gradleVersion != null) {
-      libFile = findLibWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
+      this.coreAPI = findCoreAPIWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
     } else if (this.gradleHome != null) {
-      Path libPath = Path.of(this.gradleHome).resolve("lib");
-      libFile = findLibFile(libPath.toFile());
+      this.coreAPI = findCoreAPI(Path.of(this.gradleHome).resolve("lib").toFile());
     } else {
-      return;
+      return false;
     }
-    if (libFile == null || !libFile.exists()) {
+    if (!isValidFile(this.coreAPI)) {
+      return false;
+    }
+    this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Path.of("plugins")).toFile());
+    return isValidFile(this.pluginAPI);
+  }
+
+  public void loadGradleClasses() {
+    boolean isAPIValid = isValidFile(this.coreAPI) && isValidFile(this.pluginAPI);
+    if (!this.needToLoadClasses || (!isAPIValid && !this.resolveGradleAPI())) {
       return;
     }
     try {
-      JarFile libJar = new JarFile(libFile);
-      getGradleLibraries(libFile.toPath(), libJar);
-      File pluginLibFile = findPluginLibFile(libFile.toPath().getParent().resolve(Path.of("plugins")).toFile());
-      if (pluginLibFile == null) {
-        return;
-      }
-      JarFile pluginLibJar = new JarFile(pluginLibFile);
-      getGradleLibraries(pluginLibFile.toPath(), pluginLibJar);
-      resolveJavaConfigurations();
+      JarFile coreAPIJar = new JarFile(this.coreAPI);
+      loadClasses(this.coreAPI.toPath(), coreAPIJar);
+      JarFile pluginAPIJar = new JarFile(this.pluginAPI);
+      loadClasses(this.pluginAPI.toPath(), pluginAPIJar);
+      loadJavaConfigurations();
+      this.needToLoadClasses = false;
     } catch (Exception e) {
       // Do Nothing
     }
   }
 
-  private File findLibWithWrapper(Path gradleUserHomePath) {
+  private File findCoreAPIWithWrapper(Path gradleUserHomePath) {
     if (this.workspacePath == null) {
       return null;
     }
@@ -128,7 +137,7 @@ public class GradleLibraryResolver {
           Matcher matcher = p.matcher(content);
           if (matcher.find()) {
             String gradleDist = matcher.group(1);
-            return findLibWithDist(gradleUserHomePath, gradleDist);
+            return findCoreAPIWithDist(gradleUserHomePath, gradleDist);
           }
         }
       }
@@ -138,12 +147,12 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findLibWithDist(Path gradleUserHomePath, String gradleDist) {
+  private File findCoreAPIWithDist(Path gradleUserHomePath, String gradleDist) {
     Path distPath = gradleUserHomePath.resolve(Path.of("wrapper", "dists"));
     File distFolder = searchInFolder(gradleDist, distPath.toFile());
     if (distFolder != null && distFolder.exists()) {
       Path libPath = distFolder.toPath().resolve("lib");
-      return findLibFile(libPath.toFile());
+      return findCoreAPI(libPath.toFile());
     }
     return null;
   }
@@ -164,14 +173,15 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findLibFile(File folder) {
+  private File findCoreAPI(File folder) {
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-core-api") && name.endsWith(".jar")) {
         return file;
       }
     }
-    // For Gradle version under 5.6, the name of library file is like gradle-core-${version}.jar
+    // For Gradle version under 5.6, the name of library file is like
+    // gradle-core-${version}.jar
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-core") && name.endsWith(".jar")) {
@@ -181,7 +191,7 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findPluginLibFile(File folder) {
+  private File findPluginAPI(File folder) {
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-plugins") && name.endsWith(".jar")) {
@@ -191,7 +201,7 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private void getGradleLibraries(Path jarPath, JarFile jarFile) {
+  private void loadClasses(Path jarPath, JarFile jarFile) {
     Enumeration<JarEntry> entries = jarFile.entries();
     while (entries.hasMoreElements()) {
       JarEntry entry = entries.nextElement();
@@ -202,15 +212,15 @@ public class GradleLibraryResolver {
       try {
         JavaClass javaClass = parser.parse();
         String className = javaClass.getClassName();
-        this.gradleLibraries.put(className, javaClass);
+        this.gradleClasses.put(className, javaClass);
       } catch (IOException | ClassFormatException e) {
         // Do Nothing
       }
     }
   }
 
-  private void resolveJavaConfigurations() {
-    JavaClass javaPluginClass = this.gradleLibraries.get(GradleLibraryResolver.JAVA_PLUGIN);
+  private void loadJavaConfigurations() {
+    JavaClass javaPluginClass = this.gradleClasses.get(GradleLibraryResolver.JAVA_PLUGIN);
     if (javaPluginClass == null) {
       return;
     }
@@ -222,7 +232,8 @@ public class GradleLibraryResolver {
   }
 
   private static String removeQuotes(String original) {
-    // for those fields parsed from class files, we get ""values"", so we remove the starting and ending quotes here
+    // for those fields parsed from class files, we get ""values"", so we remove the
+    // starting and ending quotes here
     if (original.length() < 3) {
       return original;
     }
@@ -236,5 +247,9 @@ public class GradleLibraryResolver {
       }
     }
     return false;
+  }
+
+  private static boolean isValidFile(File file) {
+    return file != null && file.exists();
   }
 }

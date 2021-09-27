@@ -40,7 +40,10 @@ import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
 import { getSpecificVersionStatus } from './views/gradleDaemons/util';
-import { startLanguageServer } from './languageServer/languageServer';
+import {
+  isLanguageServerStarted,
+  startLanguageServer,
+} from './languageServer/languageServer';
 import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
 
 export class Extension {
@@ -311,6 +314,9 @@ export class Extension {
     this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
       await this.restartServer();
+      if (isLanguageServerStarted) {
+        void vscode.commands.executeCommand('gradle.distributionChanged');
+      }
     });
   }
 

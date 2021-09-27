@@ -48,7 +48,7 @@ public class CompletionHandler {
     if (delegateClassName == null) {
       return Collections.emptyList();
     }
-    JavaClass delegateClass = resolver.getGradleLibraries().get(delegateClassName);
+    JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
     if (delegateClass == null) {
       return Collections.emptyList();
     }
@@ -61,13 +61,13 @@ public class CompletionHandler {
     }
     List<CompletionItem> results = new ArrayList<>();
     for (String superInterface : javaClass.getInterfaceNames()) {
-      if (resolver.getGradleLibraries().containsKey(superInterface)) {
-        results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superInterface), resolver, javaPluginsIncluded, resultSet));
+      if (resolver.getGradleClasses().containsKey(superInterface)) {
+        results.addAll(getCompletionItemsFromClass(resolver.getGradleClasses().get(superInterface), resolver, javaPluginsIncluded, resultSet));
       }
     }
     String superClass = javaClass.getSuperclassName();
-    if (resolver.getGradleLibraries().containsKey(superClass)) {
-      results.addAll(getCompletionItemsFromClass(resolver.getGradleLibraries().get(superClass), resolver, javaPluginsIncluded, resultSet));
+    if (resolver.getGradleClasses().containsKey(superClass)) {
+      results.addAll(getCompletionItemsFromClass(resolver.getGradleClasses().get(superClass), resolver, javaPluginsIncluded, resultSet));
     }
     List<String> methodNames = new ArrayList<>();
     Method[] methods = javaClass.getMethods();
