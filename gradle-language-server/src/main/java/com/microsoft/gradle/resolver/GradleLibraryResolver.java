@@ -36,7 +36,7 @@ public class GradleLibraryResolver {
 
   private static String JAVA_PLUGIN = "org.gradle.api.plugins.JavaPlugin";
 
-  private Map<String, JavaClass> gradleLibraries = new HashMap<>();
+  private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
   private String gradleHome;
@@ -44,8 +44,8 @@ public class GradleLibraryResolver {
   private boolean gradleWrapperEnabled;
   private String gradleUserHome;
   private Path workspacePath;
-  private File libFile;
-  private File pluginLibFile;
+  private File coreAPI;
+  private File pluginAPI;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
@@ -71,49 +71,49 @@ public class GradleLibraryResolver {
     this.workspacePath = workspacePath;
   }
 
-  public Map<String, JavaClass> getGradleLibraries() {
-    return this.gradleLibraries;
+  public Map<String, JavaClass> getGradleClasses() {
+    return this.gradleClasses;
   }
 
   public Set<String> getJavaConfigurations() {
     return this.javaConfigurations;
   }
 
-  public boolean resolveLibFiles() {
+  public boolean resolveGradleAPI() {
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
         : Path.of(this.gradleUserHome);
     if (this.gradleWrapperEnabled) {
-      this.libFile = findLibWithWrapper(gradleUserHomePath);
+      this.coreAPI = findCoreAPIWithWrapper(gradleUserHomePath);
     } else if (this.gradleVersion != null) {
-      this.libFile = findLibWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
+      this.coreAPI = findCoreAPIWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
     } else if (this.gradleHome != null) {
-      this.libFile = findLibFile(Path.of(this.gradleHome).resolve("lib").toFile());
+      this.coreAPI = findCoreAPI(Path.of(this.gradleHome).resolve("lib").toFile());
     } else {
       return false;
     }
-    if (!isValidFile(this.libFile)) {
+    if (!isValidFile(this.coreAPI)) {
       return false;
     }
-    this.pluginLibFile = findPluginLibFile(libFile.toPath().getParent().resolve(Path.of("plugins")).toFile());
-    return isValidFile(this.pluginLibFile);
+    this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Path.of("plugins")).toFile());
+    return isValidFile(this.pluginAPI);
   }
 
-  public void resolve() {
-    if ((!isValidFile(this.libFile) || !isValidFile(this.pluginLibFile)) && !this.resolveLibFiles()) {
+  public void loadGradleClasses() {
+    if ((!isValidFile(this.coreAPI) || !isValidFile(this.pluginAPI)) && !this.resolveGradleAPI()) {
       return;
     }
     try {
-      JarFile libJar = new JarFile(this.libFile);
-      getGradleLibraries(libFile.toPath(), libJar);
-      JarFile pluginLibJar = new JarFile(this.pluginLibFile);
-      getGradleLibraries(pluginLibFile.toPath(), pluginLibJar);
-      resolveJavaConfigurations();
+      JarFile coreAPIJar = new JarFile(this.coreAPI);
+      loadClasses(this.coreAPI.toPath(), coreAPIJar);
+      JarFile pluginAPIJar = new JarFile(this.pluginAPI);
+      loadClasses(this.pluginAPI.toPath(), pluginAPIJar);
+      loadJavaConfigurations();
     } catch (Exception e) {
       // Do Nothing
     }
   }
 
-  private File findLibWithWrapper(Path gradleUserHomePath) {
+  private File findCoreAPIWithWrapper(Path gradleUserHomePath) {
     if (this.workspacePath == null) {
       return null;
     }
@@ -132,7 +132,7 @@ public class GradleLibraryResolver {
           Matcher matcher = p.matcher(content);
           if (matcher.find()) {
             String gradleDist = matcher.group(1);
-            return findLibWithDist(gradleUserHomePath, gradleDist);
+            return findCoreAPIWithDist(gradleUserHomePath, gradleDist);
           }
         }
       }
@@ -142,12 +142,12 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findLibWithDist(Path gradleUserHomePath, String gradleDist) {
+  private File findCoreAPIWithDist(Path gradleUserHomePath, String gradleDist) {
     Path distPath = gradleUserHomePath.resolve(Path.of("wrapper", "dists"));
     File distFolder = searchInFolder(gradleDist, distPath.toFile());
     if (distFolder != null && distFolder.exists()) {
       Path libPath = distFolder.toPath().resolve("lib");
-      return findLibFile(libPath.toFile());
+      return findCoreAPI(libPath.toFile());
     }
     return null;
   }
@@ -168,7 +168,7 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findLibFile(File folder) {
+  private File findCoreAPI(File folder) {
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-core-api") && name.endsWith(".jar")) {
@@ -186,7 +186,7 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private File findPluginLibFile(File folder) {
+  private File findPluginAPI(File folder) {
     for (File file : folder.listFiles()) {
       String name = file.getName();
       if (name.startsWith("gradle-plugins") && name.endsWith(".jar")) {
@@ -196,7 +196,7 @@ public class GradleLibraryResolver {
     return null;
   }
 
-  private void getGradleLibraries(Path jarPath, JarFile jarFile) {
+  private void loadClasses(Path jarPath, JarFile jarFile) {
     Enumeration<JarEntry> entries = jarFile.entries();
     while (entries.hasMoreElements()) {
       JarEntry entry = entries.nextElement();
@@ -207,15 +207,15 @@ public class GradleLibraryResolver {
       try {
         JavaClass javaClass = parser.parse();
         String className = javaClass.getClassName();
-        this.gradleLibraries.put(className, javaClass);
+        this.gradleClasses.put(className, javaClass);
       } catch (IOException | ClassFormatException e) {
         // Do Nothing
       }
     }
   }
 
-  private void resolveJavaConfigurations() {
-    JavaClass javaPluginClass = this.gradleLibraries.get(GradleLibraryResolver.JAVA_PLUGIN);
+  private void loadJavaConfigurations() {
+    JavaClass javaPluginClass = this.gradleClasses.get(GradleLibraryResolver.JAVA_PLUGIN);
     if (javaPluginClass == null) {
       return;
     }
