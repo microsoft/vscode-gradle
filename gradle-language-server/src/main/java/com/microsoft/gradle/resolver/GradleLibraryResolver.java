@@ -46,9 +46,11 @@ public class GradleLibraryResolver {
   private Path workspacePath;
   private File coreAPI;
   private File pluginAPI;
+  private boolean needToLoadClasses;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
+    this.needToLoadClasses = true;
   }
 
   public void setGradleHome(String gradleHome) {
@@ -80,6 +82,7 @@ public class GradleLibraryResolver {
   }
 
   public boolean resolveGradleAPI() {
+    this.needToLoadClasses = true;
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
         : Path.of(this.gradleUserHome);
     if (this.gradleWrapperEnabled) {
@@ -99,7 +102,8 @@ public class GradleLibraryResolver {
   }
 
   public void loadGradleClasses() {
-    if ((!isValidFile(this.coreAPI) || !isValidFile(this.pluginAPI)) && !this.resolveGradleAPI()) {
+    boolean isAPIValid = isValidFile(this.coreAPI) && isValidFile(this.pluginAPI);
+    if (!this.needToLoadClasses || (!isAPIValid && !this.resolveGradleAPI())) {
       return;
     }
     try {
@@ -108,6 +112,7 @@ public class GradleLibraryResolver {
       JarFile pluginAPIJar = new JarFile(this.pluginAPI);
       loadClasses(this.pluginAPI.toPath(), pluginAPIJar);
       loadJavaConfigurations();
+      this.needToLoadClasses = false;
     } catch (Exception e) {
       // Do Nothing
     }

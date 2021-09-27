@@ -83,7 +83,7 @@ import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
-  public static final List<String> supportedCommands = List.of("gradle.getDependencies", "gradle.wrapperChanged");
+  public static final List<String> supportedCommands = List.of("gradle.getDependencies", "gradle.distributionChanged");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
@@ -158,7 +158,6 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       this.getLibraryResolver().setGradleWrapperEnabled((Boolean) ((Map<?, ?>) settings).get("gradleWrapperEnabled"));
       this.getLibraryResolver().setGradleUserHome((String) ((Map<?, ?>) settings).get("gradleUserHome"));
       this.getLibraryResolver().resolveGradleAPI();
-      this.getLibraryResolver().loadGradleClasses();
     }
   }
 
@@ -320,7 +319,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       }
       List<DefaultDependencyItem> result = defaultDependenciesHandler.getDefaultDependencies(dependencies);
       return CompletableFuture.completedFuture(result);
-    } else if (command.equals("gradle.wrapperChanged")) {
+    } else if (command.equals("gradle.distributionChanged")) {
       this.libraryResolver.resolveGradleAPI();
     }
     return CompletableFuture.completedFuture(null);

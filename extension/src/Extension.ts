@@ -315,7 +315,7 @@ export class Extension {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
       await this.restartServer();
       if (isLanguageServerStarted) {
-        void vscode.commands.executeCommand('gradle.wrapperChanged');
+        void vscode.commands.executeCommand('gradle.distributionChanged');
       }
     });
   }
