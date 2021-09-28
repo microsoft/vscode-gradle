@@ -10,6 +10,7 @@ service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
   rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesReply) {}
+  rpc GetPlugins(GetPluginsRequest) returns (GetPluginsReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
   rpc CancelDependencies(CancelDependenciesRequest) returns (CancelDependenciesReply) {}
@@ -62,6 +63,31 @@ message DependencyItem {
   string name = 1;
   GradleDependencyType type = 2;
   repeated DependencyItem children = 3;
+}
+
+message GetPluginsRequest {
+  string project_dir = 1;
+  GradleConfig gradle_config = 2;
+}
+
+message GetPluginsReply {
+  PluginItem item = 1;
+}
+
+message PluginClosure {
+  string name = 1;
+  repeated Method methods = 2;
+  repeated string fields = 3;
+}
+
+message Method {
+  string name = 1;
+  repeated string parameterTypes = 2;
+}
+
+message PluginItem {
+  repeated string plugins = 1;
+  repeated PluginClosure closures = 2;
 }
 
 message RunBuildRequest {

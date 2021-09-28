@@ -18,15 +18,13 @@ import com.github.badsyntax.gradle.GetDependenciesRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleToolingModel;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import org.gradle.tooling.BuildActionExecuter;
@@ -62,12 +60,7 @@ public class GetDependenciesHandler {
 
     try (ProjectConnection connection = gradleConnector.connect()) {
       BuildActionExecuter<GradleToolingModel> action = connection.action(new GradleModelAction());
-      File initScript = File.createTempFile("init-build", ".gradle");
-      initScript.deleteOnExit();
-      File pluginFile = File.createTempFile("custom-plugin", ".jar");
-      pluginFile.deleteOnExit();
-      createPluginJar("/gradle-plugin.jar", pluginFile);
-      createTemplateScript(pluginFile, initScript);
+      File initScript = PluginUtils.createInitScript();
       action.withArguments("--init-script", initScript.getAbsolutePath());
       CancellationToken cancellationToken =
           GradleBuildCancellation.buildToken(req.getCancellationKey());
@@ -100,29 +93,6 @@ public class GetDependenciesHandler {
     }
     item.addAllChildren(children);
     return item.build();
-  }
-
-  private void createPluginJar(String resource, File outputFile) throws IOException {
-    InputStream input = GetDependenciesHandler.class.getResourceAsStream(resource);
-    Files.copy(input, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-    input.close();
-  }
-
-  private void createTemplateScript(File pluginFile, File outputFile) throws IOException {
-    String pluginFilePath = pluginFile.getAbsolutePath().replace("\\", "/");
-    String template =
-        "initscript {\n"
-            + "    dependencies {\n"
-            + "        classpath files('"
-            + pluginFilePath
-            + "')\n"
-            + "    }\n"
-            + "}\n"
-            + "\n"
-            + "allprojects {\n"
-            + "    apply plugin: com.microsoft.gradle.GradlePlugin\n"
-            + "}\n";
-    Files.write(outputFile.toPath(), template.getBytes());
   }
 
   private void replyWithCancelled() {

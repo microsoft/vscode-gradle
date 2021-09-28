@@ -6,6 +6,7 @@ import com.github.badsyntax.gradle.handlers.CancelDependenciesHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetDaemonsStatusHandler;
 import com.github.badsyntax.gradle.handlers.GetDependenciesHandler;
+import com.github.badsyntax.gradle.handlers.GetPluginsHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonsHandler;
@@ -25,6 +26,12 @@ public class GradleService extends GradleGrpc.GradleImplBase {
     GetDependenciesHandler getDependenciesHandler =
         new GetDependenciesHandler(req, responseObserver);
     getDependenciesHandler.run();
+  }
+
+  @Override
+  public void getPlugins(GetPluginsRequest req, StreamObserver<GetPluginsReply> responseObserver) {
+    GetPluginsHandler getPluginsHandler = new GetPluginsHandler(req, responseObserver);
+    getPluginsHandler.run();
   }
 
   @Override

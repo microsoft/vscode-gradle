@@ -16,6 +16,8 @@ import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry;
 
 import javax.inject.Inject;
 
+import com.microsoft.gradle.plugin.GradlePluginModelBuilder;
+
 import org.gradle.api.Plugin;
 
 public class GradlePlugin implements Plugin<Project> {
@@ -30,5 +32,6 @@ public class GradlePlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         registry.register(new GradleToolingModelBuilder());
+        registry.register(new GradlePluginModelBuilder());
     }
 }
