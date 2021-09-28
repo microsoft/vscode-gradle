@@ -21,11 +21,13 @@ export class GradleDependencyProvider {
     if (this.cachedDependencies.has(projectPath)) {
       return this.cachedDependencies.get(projectPath)!;
     }
-    const dependencyItem = await this.client.getDependencies(
-      projectPath,
-      getGradleConfig(),
-      element.getProjectName()
-    );
+    const dependencyItem = (
+      await this.client.getProjects(
+        projectPath,
+        getGradleConfig(),
+        element.getProjectName()
+      )
+    )?.getItem();
     if (dependencyItem) {
       const configItems = getDependencyConfigurationTreeItems(
         dependencyItem,

@@ -5,8 +5,7 @@ package com.microsoft.gradle.api;
 
 import java.util.List;
 
-public interface GradleDependencyNode {
+public interface GradleMethod {
   String getName();
-  GradleDependencyType getType();
-  List<GradleDependencyNode> getChildren();
+  List<String> getParameterTypes();
 }

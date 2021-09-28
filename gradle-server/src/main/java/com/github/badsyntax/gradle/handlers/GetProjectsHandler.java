@@ -13,15 +13,18 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
-import com.github.badsyntax.gradle.GetDependenciesReply;
-import com.github.badsyntax.gradle.GetDependenciesRequest;
+import com.github.badsyntax.gradle.GetProjectsReply;
+import com.github.badsyntax.gradle.GetProjectsRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
+import com.github.badsyntax.gradle.Method;
+import com.github.badsyntax.gradle.PluginClosure;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
-import com.microsoft.gradle.api.GradleToolingModel;
+import com.microsoft.gradle.api.GradleProjectModel;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.io.IOException;
@@ -35,15 +38,14 @@ import org.gradle.tooling.ProjectConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GetDependenciesHandler {
-  private static final Logger logger =
-      LoggerFactory.getLogger(GetDependenciesHandler.class.getName());
+public class GetProjectsHandler {
+  private static final Logger logger = LoggerFactory.getLogger(GetProjectsHandler.class.getName());
 
-  private GetDependenciesRequest req;
-  private StreamObserver<GetDependenciesReply> responseObserver;
+  private GetProjectsRequest req;
+  private StreamObserver<GetProjectsReply> responseObserver;
 
-  public GetDependenciesHandler(
-      GetDependenciesRequest req, StreamObserver<GetDependenciesReply> responseObserver) {
+  public GetProjectsHandler(
+      GetProjectsRequest req, StreamObserver<GetProjectsReply> responseObserver) {
     this.req = req;
     this.responseObserver = responseObserver;
   }
@@ -59,16 +61,20 @@ public class GetDependenciesHandler {
     }
 
     try (ProjectConnection connection = gradleConnector.connect()) {
-      BuildActionExecuter<GradleToolingModel> action = connection.action(new GradleModelAction());
+      BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
       File initScript = PluginUtils.createInitScript();
       action.withArguments("--init-script", initScript.getAbsolutePath());
       CancellationToken cancellationToken =
           GradleBuildCancellation.buildToken(req.getCancellationKey());
       action.withCancellationToken(cancellationToken);
-      GradleToolingModel gradleModel = action.run();
+      GradleProjectModel gradleModel = action.run();
       GradleDependencyNode root = gradleModel.getDependencyNode();
       responseObserver.onNext(
-          GetDependenciesReply.newBuilder().setItem(getDependencyItem(root)).build());
+          GetProjectsReply.newBuilder()
+              .setItem(getDependencyItem(root))
+              .addAllPlugins(gradleModel.getPlugins())
+              .addAllClosures(getPluginClosures(gradleModel))
+              .build());
       responseObserver.onCompleted();
     } catch (IOException e) {
       logger.error(e.getMessage());
@@ -95,8 +101,25 @@ public class GetDependenciesHandler {
     return item.build();
   }
 
+  private List<PluginClosure> getPluginClosures(GradleProjectModel model) {
+    List<PluginClosure> closures = new ArrayList<>();
+    for (com.microsoft.gradle.api.GradleClosure closure : model.getClosures()) {
+      PluginClosure.Builder closureBuilder = PluginClosure.newBuilder();
+      for (GradleMethod method : closure.getMethods()) {
+        Method.Builder methodBuilder = Method.newBuilder();
+        methodBuilder.setName(method.getName());
+        methodBuilder.addAllParameterTypes(method.getParameterTypes());
+        closureBuilder.addMethods(methodBuilder.build());
+      }
+      closureBuilder.setName(closure.getName());
+      closureBuilder.addAllFields(closure.getFields());
+      closures.add(closureBuilder.build());
+    }
+    return closures;
+  }
+
   private void replyWithCancelled() {
-    responseObserver.onNext(GetDependenciesReply.newBuilder().build());
+    responseObserver.onNext(GetProjectsReply.newBuilder().build());
     responseObserver.onCompleted();
   }
 }

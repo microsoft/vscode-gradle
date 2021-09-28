@@ -1,13 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2021 Microsoft Corporation and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * Contributors:
- *    Microsoft Corporation - initial API and implementation
- *******************************************************************************/
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
 
 package com.microsoft.gradle;
 
@@ -16,22 +8,19 @@ import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry;
 
 import javax.inject.Inject;
 
-import com.microsoft.gradle.plugin.GradlePluginModelBuilder;
-
 import org.gradle.api.Plugin;
 
 public class GradlePlugin implements Plugin<Project> {
 
-    private ToolingModelBuilderRegistry registry;
+  private ToolingModelBuilderRegistry registry;
 
-    @Inject
-    public GradlePlugin(ToolingModelBuilderRegistry registry) {
-        this.registry = registry;
-    }
+  @Inject
+  public GradlePlugin(ToolingModelBuilderRegistry registry) {
+    this.registry = registry;
+  }
 
-    @Override
-    public void apply(Project project) {
-        registry.register(new GradleToolingModelBuilder());
-        registry.register(new GradlePluginModelBuilder());
-    }
+  @Override
+  public void apply(Project project) {
+    registry.register(new GradleProjectModelBuilder());
+  }
 }
