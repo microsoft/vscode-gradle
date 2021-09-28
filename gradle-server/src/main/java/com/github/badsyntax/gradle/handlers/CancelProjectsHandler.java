@@ -46,9 +46,7 @@ public class CancelProjectsHandler {
 
   private void replyWithCancelledSuccess() {
     responseObserver.onNext(
-        CancelProjectsReply.newBuilder()
-            .setMessage("Cancel getting projects requested")
-            .build());
+        CancelProjectsReply.newBuilder().setMessage("Cancel getting projects requested").build());
   }
 
   private void replyWithCancelError(Exception e) {
