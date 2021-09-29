@@ -16,13 +16,12 @@ import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetProjectsReply;
 import com.github.badsyntax.gradle.GetProjectsRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
+import com.github.badsyntax.gradle.GradleClosure;
+import com.github.badsyntax.gradle.GradleMethod;
 import com.github.badsyntax.gradle.GradleProjectConnector;
-import com.github.badsyntax.gradle.Method;
-import com.github.badsyntax.gradle.PluginClosure;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.microsoft.gradle.api.GradleDependencyNode;
-import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
 import io.grpc.stub.StreamObserver;
@@ -73,7 +72,7 @@ public class GetProjectsHandler {
           GetProjectsReply.newBuilder()
               .setItem(getDependencyItem(root))
               .addAllPlugins(gradleModel.getPlugins())
-              .addAllClosures(getPluginClosures(gradleModel))
+              .addAllPluginClosures(getPluginClosures(gradleModel))
               .build());
       responseObserver.onCompleted();
     } catch (IOException e) {
@@ -101,12 +100,12 @@ public class GetProjectsHandler {
     return item.build();
   }
 
-  private List<PluginClosure> getPluginClosures(GradleProjectModel model) {
-    List<PluginClosure> closures = new ArrayList<>();
+  private List<GradleClosure> getPluginClosures(GradleProjectModel model) {
+    List<GradleClosure> closures = new ArrayList<>();
     for (com.microsoft.gradle.api.GradleClosure closure : model.getClosures()) {
-      PluginClosure.Builder closureBuilder = PluginClosure.newBuilder();
-      for (GradleMethod method : closure.getMethods()) {
-        Method.Builder methodBuilder = Method.newBuilder();
+      GradleClosure.Builder closureBuilder = GradleClosure.newBuilder();
+      for (com.microsoft.gradle.api.GradleMethod method : closure.getMethods()) {
+        GradleMethod.Builder methodBuilder = GradleMethod.newBuilder();
         methodBuilder.setName(method.getName());
         methodBuilder.addAllParameterTypes(method.getParameterTypes());
         closureBuilder.addMethods(methodBuilder.build());
