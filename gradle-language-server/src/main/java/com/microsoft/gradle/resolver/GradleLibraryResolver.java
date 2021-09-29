@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
@@ -40,6 +41,7 @@ public class GradleLibraryResolver {
   private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
+  private Map<String, GradleClosure> extClosures = new HashMap<>();
   private String gradleHome;
   private String gradleVersion;
   private boolean gradleWrapperEnabled;
@@ -48,10 +50,12 @@ public class GradleLibraryResolver {
   private File coreAPI;
   private File pluginAPI;
   private boolean needToLoadClasses;
+  private boolean hasJavaPlugins;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
     this.needToLoadClasses = true;
+    this.hasJavaPlugins = false;
   }
 
   public void setGradleHome(String gradleHome) {
@@ -240,6 +244,17 @@ public class GradleLibraryResolver {
     }
   }
 
+  public void setExtClosures(List<GradleClosure> closures) {
+    this.extClosures.clear();
+    for (GradleClosure closure : closures) {
+      this.extClosures.put(closure.name, closure);
+    }
+  }
+
+  public Map<String, GradleClosure> getExtClosures() {
+    return this.extClosures;
+  }
+
   private static String removeQuotes(String original) {
     // for those fields parsed from class files, we get ""values"", so we remove the
     // starting and ending quotes here
@@ -249,7 +264,14 @@ public class GradleLibraryResolver {
     return original.substring(1, original.length() - 1);
   }
 
+  public void setHasJavaPlugins(List<String> plugins) {
+    this.hasJavaPlugins = plugins.contains("java");
+  }
+
   public boolean isJavaPluginsIncluded(Set<String> plugins) {
+    if (this.hasJavaPlugins) {
+      return true;
+    }
     for (String plugin : plugins) {
       if (this.javaPlugins.contains(plugin)) {
         return true;

@@ -11,13 +11,17 @@
 package com.microsoft.gradle.handlers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.microsoft.gradle.delegate.GradleDelegate;
+import com.microsoft.gradle.resolver.GradleClosure;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
+import com.microsoft.gradle.resolver.GradleMethod;
 
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
@@ -35,6 +39,8 @@ public class CompletionHandler {
   private static String DEPENDENCYHANDLER_CLASS = "org.gradle.api.artifacts.dsl.DependencyHandler";
 
   public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver, boolean javaPluginsIncluded) {
+    List<CompletionItem> results = new ArrayList<>();
+    Set<String> resultSet = new HashSet<>();
     String delegateClassName = null;
     if (containingCall == null) {
       if (fileName.equals(BUILD_GRADLE)) {
@@ -42,17 +48,21 @@ public class CompletionHandler {
       } else if (fileName.equals(SETTING_GRADLE)) {
         delegateClassName = GradleDelegate.getSettings();
       }
+      results.addAll(getCompletionItemsFromExtClosures(resolver, resultSet));
     } else {
-      delegateClassName = GradleDelegate.getDelegateMap().get(containingCall.getMethodAsString());
+      String methodName = containingCall.getMethodAsString();
+      results.addAll(getCompletionItemsInExtClosures(resolver, methodName, resultSet));
+      delegateClassName = GradleDelegate.getDelegateMap().get(methodName);
     }
     if (delegateClassName == null) {
-      return Collections.emptyList();
+      return results;
     }
     JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
     if (delegateClass == null) {
-      return Collections.emptyList();
+      return results;
     }
-    return getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, new HashSet<>());
+    results.addAll(getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, resultSet));
+    return results;
   }
 
   private List<CompletionItem> getCompletionItemsFromClass(JavaClass javaClass, GradleLibraryResolver resolver, boolean javaPluginsIncluded, Set<String> resultSet) {
@@ -80,37 +90,14 @@ public class CompletionHandler {
         continue;
       }
       methodNames.add(methodName);
-      labelBuilder.append(methodName);
-      labelBuilder.append("(");
-      for (Type type : method.getArgumentTypes()) {
+      List<String> arguments = new ArrayList<>();
+      Arrays.asList(method.getArgumentTypes()).forEach(type -> {
         if (type instanceof ObjectType) {
-          String[] classNameSplits = ((ObjectType) type).getClassName().split("\\.");
-          String className = classNameSplits[classNameSplits.length - 1];
-          String variableName = className.substring(0, 1).toLowerCase();
-          labelBuilder.append(className);
-          labelBuilder.append(" ");
-          labelBuilder.append(variableName);
-          labelBuilder.append(",");
+          arguments.add(((ObjectType) type).getClassName());
         }
-      }
-      if (labelBuilder.charAt(labelBuilder.length() - 1) == ',') {
-        labelBuilder.deleteCharAt(labelBuilder.length() - 1);
-      }
-      labelBuilder.append(")");
-      String label = labelBuilder.toString();
-      CompletionItem item = new CompletionItem(label);
-      item.setKind(CompletionItemKind.Function);
-      item.setInsertTextFormat(InsertTextFormat.Snippet);
-      StringBuilder builder = new StringBuilder();
-      builder.append(methodName);
-      if (label.endsWith("(Closure c)")) {
-        // for single closure, we offer curly brackets
-        builder.append(" {$0}");
-      } else {
-        builder.append("($0)");
-      }
-      item.setInsertText(builder.toString());
-      if (resultSet.add(label)) {
+      });
+      CompletionItem item = generateCompletionItemForMethod(methodName, arguments);
+      if (resultSet.add(item.getLabel())) {
         results.add(item);
       }
     }
@@ -146,5 +133,78 @@ public class CompletionHandler {
       }
     }
     return results;
+  }
+
+  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, Set<String> resultSet) {
+    Map<String, GradleClosure> extClosures = resolver.getExtClosures();
+    if (extClosures == null || extClosures.isEmpty()) {
+      return Collections.emptyList();
+    }
+    List<CompletionItem> results = new ArrayList<>();
+    for (String closure : extClosures.keySet()) {
+      StringBuilder titleBuilder = new StringBuilder();
+      titleBuilder.append(closure);
+      titleBuilder.append("(Closure c)");
+      CompletionItem item = new CompletionItem(titleBuilder.toString());
+      item.setKind(CompletionItemKind.Function);
+      item.setInsertTextFormat(InsertTextFormat.Snippet);
+      StringBuilder insertTextBuilder = new StringBuilder();
+      insertTextBuilder.append(closure);
+      insertTextBuilder.append(" {$0}");
+      item.setInsertText(insertTextBuilder.toString());
+      if (resultSet.add(item.getLabel())) {
+        results.add(item);
+      }
+    }
+    return results;
+  }
+
+  private List<CompletionItem> getCompletionItemsInExtClosures(GradleLibraryResolver resolver, String closureName, Set<String> resultSet) {
+    Map<String, GradleClosure> extClosures = resolver.getExtClosures();
+    if (extClosures == null || extClosures.isEmpty() || !extClosures.containsKey(closureName)) {
+      return Collections.emptyList();
+    }
+    List<CompletionItem> results = new ArrayList<>();
+    GradleClosure closure = extClosures.get(closureName);
+    for (GradleMethod method : closure.methods) {
+      CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes));
+      if (resultSet.add(item.getLabel())) {
+        results.add(item);
+      }
+    }
+    return results;
+  }
+
+  private static CompletionItem generateCompletionItemForMethod(String name, List<String> arguments) {
+    StringBuilder labelBuilder = new StringBuilder();
+    labelBuilder.append(name);
+    labelBuilder.append("(");
+    for (String type : arguments) {
+      String[] classNameSplits = type.split("\\.");
+      String className = classNameSplits[classNameSplits.length - 1];
+      String variableName = className.substring(0, 1).toLowerCase();
+      labelBuilder.append(className);
+      labelBuilder.append(" ");
+      labelBuilder.append(variableName);
+      labelBuilder.append(",");
+    }
+    if (labelBuilder.charAt(labelBuilder.length() - 1) == ',') {
+      labelBuilder.deleteCharAt(labelBuilder.length() - 1);
+    }
+    labelBuilder.append(")");
+    String label = labelBuilder.toString();
+    CompletionItem item = new CompletionItem(label);
+    item.setKind(CompletionItemKind.Function);
+    item.setInsertTextFormat(InsertTextFormat.Snippet);
+    StringBuilder builder = new StringBuilder();
+    builder.append(name);
+    if (label.endsWith("(Closure c)")) {
+      // for single closure, we offer curly brackets
+      builder.append(" {$0}");
+    } else {
+      builder.append("($0)");
+    }
+    item.setInsertText(builder.toString());
+    return item;
   }
 }

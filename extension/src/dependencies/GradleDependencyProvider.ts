@@ -2,8 +2,7 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
-import { GradleClient } from '../client';
-import { getGradleConfig } from '../util/config';
+import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
 import { getDependencyConfigurationTreeItems } from '../views/gradleTasks/DependencyUtils';
 import { HintItem } from '../views/gradleTasks/HintItem';
 import { ProjectDependencyTreeItem } from '../views/gradleTasks/ProjectDependencyTreeItem';
@@ -12,7 +11,7 @@ export class GradleDependencyProvider {
   // <projectPath, configItem[]>
   private cachedDependencies: Map<string, vscode.TreeItem[]> = new Map();
 
-  constructor(private readonly client: GradleClient) {}
+  constructor(private readonly contentProvider: GradleProjectContentProvider) {}
 
   public async getDependencies(
     element: ProjectDependencyTreeItem
@@ -21,13 +20,16 @@ export class GradleDependencyProvider {
     if (this.cachedDependencies.has(projectPath)) {
       return this.cachedDependencies.get(projectPath)!;
     }
-    const dependencyItem = (
-      await this.client.getProjects(
-        projectPath,
-        getGradleConfig(),
-        element.getProjectName()
-      )
-    )?.getItem();
+    const project = await this.contentProvider.getProjectContent(
+      projectPath,
+      element.getProjectName()
+    );
+    if (!project) {
+      const noDependencies = [new HintItem('No dependencies')];
+      this.cachedDependencies.set(projectPath, noDependencies);
+      return noDependencies;
+    }
+    const dependencyItem = project.getItem();
     if (dependencyItem) {
       const configItems = getDependencyConfigurationTreeItems(
         dependencyItem,
@@ -41,9 +43,5 @@ export class GradleDependencyProvider {
     const noDependencies = [new HintItem('No dependencies')];
     this.cachedDependencies.set(projectPath, noDependencies);
     return noDependencies;
-  }
-
-  public clearDependenciesCache(): void {
-    this.cachedDependencies.clear();
   }
 }

@@ -45,6 +45,7 @@ import {
   startLanguageServer,
 } from './languageServer/languageServer';
 import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
+import { GradleProjectContentProvider } from './projectContent/GradleProjectContentProvider';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -53,6 +54,7 @@ export class Extension {
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
   private readonly rootProjectsStore: RootProjectsStore;
+  private readonly gradleProjectContentProvider: GradleProjectContentProvider;
   private readonly gradleTaskProvider: GradleTaskProvider;
   private readonly gradleDependencyProvider: GradleDependencyProvider;
   private readonly taskProvider: vscode.Disposable;
@@ -103,11 +105,16 @@ export class Extension {
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
     this.rootProjectsStore = new RootProjectsStore();
+    this.gradleProjectContentProvider = new GradleProjectContentProvider(
+      this.client
+    );
     this.gradleTaskProvider = new GradleTaskProvider(
       this.rootProjectsStore,
       this.client
     );
-    this.gradleDependencyProvider = new GradleDependencyProvider(this.client);
+    this.gradleDependencyProvider = new GradleDependencyProvider(
+      this.gradleProjectContentProvider
+    );
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
       this.gradleTaskProvider
@@ -191,7 +198,7 @@ export class Extension {
       this.context,
       this.pinnedTasksStore,
       this.gradleTaskProvider,
-      this.gradleDependencyProvider,
+      this.gradleProjectContentProvider,
       this.gradleTasksTreeDataProvider,
       this.pinnedTasksTreeDataProvider,
       this.recentTasksTreeDataProvider,
@@ -220,7 +227,7 @@ export class Extension {
     );
 
     void this.activate();
-    void startLanguageServer(this.context);
+    void startLanguageServer(this.context, this.gradleProjectContentProvider);
   }
 
   private storeSubscriptions(): void {

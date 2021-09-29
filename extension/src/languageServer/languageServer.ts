@@ -11,6 +11,7 @@ import {
   LanguageClientOptions,
 } from 'vscode-languageclient';
 import { LanguageClient, StreamInfo } from 'vscode-languageclient/node';
+import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
 import {
   getConfigGradleJavaHome,
   getConfigJavaImportGradleHome,
@@ -23,7 +24,8 @@ const CHANNEL_NAME = 'Gradle Language Server';
 export let isLanguageServerStarted = false;
 
 export async function startLanguageServer(
-  context: vscode.ExtensionContext
+  context: vscode.ExtensionContext,
+  contentProvider: GradleProjectContentProvider
 ): Promise<void> {
   void vscode.window.withProgress(
     { location: vscode.ProgressLocation.Window },
@@ -94,6 +96,7 @@ export async function startLanguageServer(
         void languageClient.onReady().then(
           () => {
             isLanguageServerStarted = true;
+            contentProvider.handleLanguageServerStart();
             resolve();
           },
           (e) => {
