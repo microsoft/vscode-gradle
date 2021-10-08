@@ -92,7 +92,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
     SemanticTokensWithRegistrationOptions semanticOptions = new SemanticTokensWithRegistrationOptions();
     semanticOptions.setFull(new SemanticTokensServerFull(false));
     semanticOptions.setRange(false);
-    semanticOptions.setDocumentSelector(List.of(new DocumentFilter("gradle", "file", null)));
+    semanticOptions.setDocumentSelector(Arrays.asList(new DocumentFilter("gradle", "file", null)));
     semanticOptions.setLegend(new SemanticTokensLegend(
         Arrays.stream(TokenType.values()).map(TokenType::toString).collect(Collectors.toList()),
         Arrays.stream(TokenModifier.values()).map(TokenModifier::toString).collect(Collectors.toList())));
