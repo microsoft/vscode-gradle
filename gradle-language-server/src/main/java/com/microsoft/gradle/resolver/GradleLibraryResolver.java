@@ -149,12 +149,20 @@ public class GradleLibraryResolver {
 
   private File findCoreAPIWithDist(Path gradleUserHomePath, String gradleDist) {
     Path distPath = gradleUserHomePath.resolve(Path.of("wrapper", "dists"));
-    File distFolder = searchInFolder(gradleDist, distPath.toFile());
-    if (distFolder != null && distFolder.exists()) {
-      Path libPath = distFolder.toPath().resolve("lib");
-      return findCoreAPI(libPath.toFile());
+    File distFolder = distPath.toFile();
+    if (!isValidFolder(distFolder)) {
+      return null;
     }
-    return null;
+    File targetFolder = searchInFolder(gradleDist, distFolder);
+    if (!isValidFolder(targetFolder)) {
+      return null;
+    }
+    Path libPath = targetFolder.toPath().resolve("lib");
+    File libFolder = libPath.toFile();
+    if (!isValidFolder(libFolder)) {
+      return null;
+    }
+    return findCoreAPI(libFolder);
   }
 
   private File searchInFolder(String gradleDist, File folder) {
@@ -251,5 +259,9 @@ public class GradleLibraryResolver {
 
   private static boolean isValidFile(File file) {
     return file != null && file.exists();
+  }
+
+  private static boolean isValidFolder(File folder) {
+    return folder != null && folder.exists() && folder.isDirectory();
   }
 }
