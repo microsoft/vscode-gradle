@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { GradleTaskDefinition } from '.';
 import { logger } from '../logger';
-import { createTaskFromDefinition, loadTasksForProjectRoots } from './taskUtil';
+import {
+  loadTasksForProjectRoots,
+  resolveTaskFromDefinition,
+} from './taskUtil';
 import { TaskId } from '../stores/types';
 import { RootProjectsStore } from '../stores';
-import { RootProject } from '../rootProject/RootProject';
 import { GradleClient } from '../client';
-import { getConfigJavaDebug } from '../util/config';
 import { EventWaiter } from '../util/EventWaiter';
 
 export class GradleTaskProvider
@@ -47,9 +48,7 @@ export class GradleTaskProvider
   ): Promise<vscode.Task | undefined> {
     const { definition } = _task;
     const gradleTaskDefinition = definition as GradleTaskDefinition;
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-      vscode.Uri.file(gradleTaskDefinition.workspaceFolder)
-    );
+    const workspaceFolder = _task.scope as vscode.WorkspaceFolder;
     if (!workspaceFolder) {
       logger.error(
         'Unable to provide Gradle task. Invalid workspace folder: ',
@@ -57,15 +56,9 @@ export class GradleTaskProvider
       );
       return undefined;
     }
-    const javaDebug = getConfigJavaDebug(workspaceFolder);
-    const rootProject = new RootProject(
-      workspaceFolder,
-      vscode.Uri.file(gradleTaskDefinition.projectFolder),
-      javaDebug
-    );
-    return createTaskFromDefinition(
+    return resolveTaskFromDefinition(
       gradleTaskDefinition,
-      rootProject,
+      workspaceFolder,
       this.client
     );
   }
