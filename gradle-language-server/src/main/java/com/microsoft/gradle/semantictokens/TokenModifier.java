@@ -12,6 +12,7 @@
 *******************************************************************************/
 package com.microsoft.gradle.semantictokens;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.lsp4j.SemanticTokenModifiers;
@@ -22,7 +23,7 @@ public enum TokenModifier {
 
   private String genericName;
   // See https://docs.gradle.org/current/javadoc/org/gradle/api/Project.html
-  private static List<String> defaultLibrary = List.of("afterEvaluate", "allprojects", "ant", "apply", "artifacts",
+  private static List<String> defaultLibrary = Arrays.asList("afterEvaluate", "allprojects", "ant", "apply", "artifacts",
       "beforeEvaluate", "buildscript", "configurations", "configure", "copy", "copySpec", "dependencies", "javaexec",
       "repositories", "subprojects", "task");
 

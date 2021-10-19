@@ -16,6 +16,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -83,21 +84,21 @@ public class GradleLibraryResolver {
 
   public boolean resolveGradleAPI() {
     this.needToLoadClasses = true;
-    Path gradleUserHomePath = (this.gradleUserHome == null) ? Path.of(System.getProperty("user.home"), ".gradle")
-        : Path.of(this.gradleUserHome);
+    Path gradleUserHomePath = (this.gradleUserHome == null) ? Paths.get(System.getProperty("user.home"), ".gradle")
+        : Paths.get(this.gradleUserHome);
     if (this.gradleWrapperEnabled) {
       this.coreAPI = findCoreAPIWithWrapper(gradleUserHomePath);
     } else if (this.gradleVersion != null) {
       this.coreAPI = findCoreAPIWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
     } else if (this.gradleHome != null) {
-      this.coreAPI = findCoreAPI(Path.of(this.gradleHome).resolve("lib").toFile());
+      this.coreAPI = findCoreAPI(Paths.get(this.gradleHome).resolve("lib").toFile());
     } else {
       return false;
     }
     if (!isValidFile(this.coreAPI)) {
       return false;
     }
-    this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Path.of("plugins")).toFile());
+    this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Paths.get("plugins")).toFile());
     return isValidFile(this.pluginAPI);
   }
 
@@ -122,7 +123,7 @@ public class GradleLibraryResolver {
     if (this.workspacePath == null) {
       return null;
     }
-    Path propertiesRelativePath = Path.of("gradle", "wrapper", "gradle-wrapper.properties");
+    Path propertiesRelativePath = Paths.get("gradle", "wrapper", "gradle-wrapper.properties");
     Path propertiesPath = this.workspacePath.resolve(propertiesRelativePath);
     File propertiesFile = propertiesPath.toFile();
     if (!propertiesFile.exists()) {
@@ -148,7 +149,7 @@ public class GradleLibraryResolver {
   }
 
   private File findCoreAPIWithDist(Path gradleUserHomePath, String gradleDist) {
-    Path distPath = gradleUserHomePath.resolve(Path.of("wrapper", "dists"));
+    Path distPath = gradleUserHomePath.resolve(Paths.get("wrapper", "dists"));
     File distFolder = distPath.toFile();
     if (!isValidFolder(distFolder)) {
       return null;

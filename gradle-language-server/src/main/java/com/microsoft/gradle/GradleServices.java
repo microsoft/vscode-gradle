@@ -16,6 +16,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,7 +84,7 @@ import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
-  public static final List<String> supportedCommands = List.of("gradle.getDependencies", "gradle.distributionChanged");
+  public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
