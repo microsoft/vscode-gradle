@@ -57,21 +57,63 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
           workspaceFolder
         );
       if (gradleProjectFolders.includes(workspaceFolder.uri.fsPath)) {
-        this.setRootProjectFolder(buildRootFolder(workspaceFolder.uri));
+        const rootProject = buildRootFolder(workspaceFolder.uri);
+        if (isGradleRootProject(rootProject)) {
+          this.setRootProjectFolder(rootProject);
+        }
       }
       gradleProjectFoldersOutsideRoot
         .map((folder) => buildRootFolder(vscode.Uri.file(folder)))
-        .forEach(this.setRootProjectFolder);
+        .forEach((project) => {
+          if (isGradleRootProject(project)) {
+            this.setRootProjectFolder(project);
+          }
+        });
+    }
+    // for those workspace folders containing build files but no wrapper in the root,
+    // we also add them to rootProjects
+    for (const workspaceFolder of workspaceFolders) {
+      if (await RootProjectsStore.isGradleFileExists(workspaceFolder)) {
+        this.setRootProjectFolder(buildRootFolder(workspaceFolder.uri));
+      }
     }
     this.isPopulated = true;
     this.fireOnDidChange(null);
   }
 
   private setRootProjectFolder = (rootProject: RootProject): void => {
-    if (isGradleRootProject(rootProject)) {
-      this.setItem(rootProject.getProjectUri().fsPath, rootProject, false);
-    }
+    this.setItem(rootProject.getProjectUri().fsPath, rootProject, false);
   };
+
+  private static async isGradleFileExists(
+    folder: vscode.WorkspaceFolder
+  ): Promise<boolean> {
+    if (
+      (
+        await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, 'build.gradle')
+        )
+      ).length ||
+      (
+        await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, 'build.gradle.kts')
+        )
+      ).length ||
+      (
+        await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, 'settings.gradle')
+        )
+      ).length ||
+      (
+        await vscode.workspace.findFiles(
+          new vscode.RelativePattern(folder, 'settings.gradle.kts')
+        )
+      ).length
+    ) {
+      return true;
+    }
+    return false;
+  }
 
   public async getProjectRoots(): Promise<RootProject[]> {
     if (!this.isPopulated) {

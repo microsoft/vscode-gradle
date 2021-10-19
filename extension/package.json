@@ -33,7 +33,11 @@
   ],
   "activationEvents": [
     "workspaceContains:**/gradlew",
-    "workspaceContains:**/gradlew.bat"
+    "workspaceContains:**/gradlew.bat",
+    "workspaceContains:build.gradle",
+    "workspaceContains:settings.gradle",
+    "workspaceContains:build.gradle.kts",
+    "workspaceContains:settings.gradle.kts"
   ],
   "main": "./dist/index.js",
   "contributes": {
