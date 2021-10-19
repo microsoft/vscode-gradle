@@ -93,22 +93,22 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
         await vscode.workspace.findFiles(
           new vscode.RelativePattern(folder, 'build.gradle')
         )
-      ).length ||
+      )?.length ||
       (
         await vscode.workspace.findFiles(
           new vscode.RelativePattern(folder, 'build.gradle.kts')
         )
-      ).length ||
+      )?.length ||
       (
         await vscode.workspace.findFiles(
           new vscode.RelativePattern(folder, 'settings.gradle')
         )
-      ).length ||
+      )?.length ||
       (
         await vscode.workspace.findFiles(
           new vscode.RelativePattern(folder, 'settings.gradle.kts')
         )
-      ).length
+      )?.length
     ) {
       return true;
     }
