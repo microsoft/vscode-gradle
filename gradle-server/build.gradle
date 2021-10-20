@@ -109,6 +109,7 @@ task serverStartScripts(type: CreateStartScripts) {
   mainClassName = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
   classpath = jar.outputs.files
+  defaultJvmOpts = ["-Dfile.encoding=UTF-8"]
   unixStartScriptGenerator.template = resources.text.fromFile(
     "$mainResourcesDir/startScriptTemplates/unixStartScript.txt"
   )
