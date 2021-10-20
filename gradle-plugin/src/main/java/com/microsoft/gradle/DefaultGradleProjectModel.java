@@ -14,12 +14,14 @@ public class DefaultGradleProjectModel implements Serializable, GradleProjectMod
   private GradleDependencyNode node;
   private List<String> plugins;
   private List<GradleClosure> closures;
+  private List<String> scriptClasspaths;
 
   public DefaultGradleProjectModel(GradleDependencyNode node, List<String> plugins,
-      List<GradleClosure> closures) {
+      List<GradleClosure> closures, List<String> scriptClasspaths) {
     this.node = node;
     this.plugins = plugins;
     this.closures = closures;
+    this.scriptClasspaths = scriptClasspaths;
   }
 
   public GradleDependencyNode getDependencyNode() {
@@ -32,5 +34,9 @@ public class DefaultGradleProjectModel implements Serializable, GradleProjectMod
 
   public List<GradleClosure> getClosures() {
     return this.closures;
+  }
+
+  public List<String> getScriptClasspaths() {
+    return this.scriptClasspaths;
   }
 }

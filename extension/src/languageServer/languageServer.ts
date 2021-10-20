@@ -167,6 +167,10 @@ export async function syncLanguageServer(
       };
     });
     await vscode.commands.executeCommand('gradle.setClosures', closures);
+    await vscode.commands.executeCommand(
+      'gradle.setScriptClasspaths',
+      projectContent.getScriptclasspathsList()
+    );
   }
 }
 

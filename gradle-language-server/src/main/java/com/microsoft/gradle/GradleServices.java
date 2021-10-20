@@ -86,7 +86,7 @@ import org.eclipse.lsp4j.util.Ranges;
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
   public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged",
-      "gradle.setPlugins", "gradle.setClosures");
+      "gradle.setPlugins", "gradle.setClosures", "gradle.setScriptClasspaths");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
@@ -118,7 +118,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   public void didOpen(DidOpenTextDocumentParams params) {
     URI uri = URI.create(params.getTextDocument().getUri());
     gradleFilesManager.didOpen(uri, params.getTextDocument().getText());
-    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** falseRecompile */ false);
     compile(uri, unit);
   }
 
@@ -128,7 +128,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     for (TextDocumentContentChangeEvent change : params.getContentChanges()) {
       gradleFilesManager.didChange(uri, change);
     }
-    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion());
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** falseRecompile */ false);
     compile(uri, unit);
   }
 
@@ -178,6 +178,14 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     }
     for (PublishDiagnosticsParams diagnostic : diagnostics) {
       client.publishDiagnostics(diagnostic);
+    }
+  }
+
+  private void recompileAll() {
+    for (Map.Entry<URI, GradleCompilationUnit> entry : this.gradleFilesManager.getUnitStorage().entrySet()) {
+      URI uri = entry.getKey();
+      GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, entry.getValue().getVersion(), /** forceRecompile*/ true);
+      compile(uri, unit);
     }
   }
 
@@ -337,6 +345,13 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       }
       GradleClosure[] closures = new Gson().fromJson((JsonElement) arguments.get(0), GradleClosure[].class);
       this.libraryResolver.setExtClosures(Arrays.asList(closures));
+    } else if (command.equals("gradle.setScriptClasspaths")) {
+      if (arguments.isEmpty()) {
+        return CompletableFuture.completedFuture(null);
+      }
+      String[] scriptClasspaths = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
+      this.gradleFilesManager.setScriptClasspaths(Arrays.asList(scriptClasspaths));
+      this.recompileAll();
     }
     return CompletableFuture.completedFuture(null);
   }
