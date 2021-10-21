@@ -79,7 +79,7 @@ export class Extension {
   private recentTerminal: vscode.Terminal | undefined;
 
   public constructor(private readonly context: vscode.ExtensionContext) {
-    const loggingChannel = vscode.window.createOutputChannel('Gradle Tasks');
+    const loggingChannel = vscode.window.createOutputChannel('Gradle for Java');
     logger.setLoggingChannel(loggingChannel);
 
     const clientLogger = new Logger('grpc');
