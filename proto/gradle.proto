@@ -50,7 +50,7 @@ message GetProjectsRequest {
 message GetProjectsReply {
   DependencyItem item = 1;
   repeated string plugins = 2;
-  repeated GradleClosure pluginClosures = 3;
+  repeated GrpcGradleClosure pluginClosures = 3;
 }
 
 enum GradleDependencyType
@@ -66,13 +66,13 @@ message DependencyItem {
   repeated DependencyItem children = 3;
 }
 
-message GradleClosure {
+message GrpcGradleClosure {
   string name = 1;
-  repeated GradleMethod methods = 2;
+  repeated GrpcGradleMethod methods = 2;
   repeated string fields = 3;
 }
 
-message GradleMethod {
+message GrpcGradleMethod {
   string name = 1;
   repeated string parameterTypes = 2;
 }

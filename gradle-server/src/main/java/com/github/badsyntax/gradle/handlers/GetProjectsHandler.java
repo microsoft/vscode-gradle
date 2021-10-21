@@ -16,12 +16,14 @@ import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetProjectsReply;
 import com.github.badsyntax.gradle.GetProjectsRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
-import com.github.badsyntax.gradle.GradleClosure;
-import com.github.badsyntax.gradle.GradleMethod;
 import com.github.badsyntax.gradle.GradleProjectConnector;
+import com.github.badsyntax.gradle.GrpcGradleClosure;
+import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
+import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
 import io.grpc.stub.StreamObserver;
@@ -100,12 +102,12 @@ public class GetProjectsHandler {
     return item.build();
   }
 
-  private List<GradleClosure> getPluginClosures(GradleProjectModel model) {
-    List<GradleClosure> closures = new ArrayList<>();
-    for (com.microsoft.gradle.api.GradleClosure closure : model.getClosures()) {
-      GradleClosure.Builder closureBuilder = GradleClosure.newBuilder();
-      for (com.microsoft.gradle.api.GradleMethod method : closure.getMethods()) {
-        GradleMethod.Builder methodBuilder = GradleMethod.newBuilder();
+  private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {
+    List<GrpcGradleClosure> closures = new ArrayList<>();
+    for (GradleClosure closure : model.getClosures()) {
+      GrpcGradleClosure.Builder closureBuilder = GrpcGradleClosure.newBuilder();
+      for (GradleMethod method : closure.getMethods()) {
+        GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
         methodBuilder.setName(method.getName());
         methodBuilder.addAllParameterTypes(method.getParameterTypes());
         closureBuilder.addMethods(methodBuilder.build());
