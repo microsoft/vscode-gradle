@@ -193,7 +193,7 @@ The Gradle language server supports basic auto completions for a Gradle file, in
 - Gradle closures from plugins (e.g. java {})
 - Available methods in Gradle closures (e.g. mavenCentral() in dependencies {})
 - Available fields in Gradle closures (e.g. sourceCompatibility in java {})
-- Available dependencies in maven central when declaring a dependency in dependencies closure
+- Available dependencies in Maven central when declaring a dependency in dependencies closure
 - Basic auto completion for `settings.gradle` (e.g. include())
 
 <img src="./images/auto-completion.gif" width="650" alt="Auto Completion" />
