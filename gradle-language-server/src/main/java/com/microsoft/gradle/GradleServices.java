@@ -85,7 +85,7 @@ import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
-  public static final List<String> supportedCommands = List.of("gradle.getDependencies", "gradle.distributionChanged",
+  public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged",
       "gradle.setPlugins", "gradle.setClosures");
 
   private LanguageClient client;
@@ -330,7 +330,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
         return CompletableFuture.completedFuture(null);
       }
       String[] plugins = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
-      this.libraryResolver.setHasJavaPlugins(List.of(plugins));
+      this.libraryResolver.setHasJavaPlugins(Arrays.asList(plugins));
     } else if (command.equals("gradle.setClosures")) {
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);
