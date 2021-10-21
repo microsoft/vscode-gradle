@@ -7,9 +7,6 @@
 
 This VS Code extension provides a visual interface for your Gradle build. You can use this interface to view Gradle Tasks and Project dependencies, or run Gradle Tasks as VS Code Task. The extension also offers better Gradle file (e.g. `build.gradle`) authoring experience including syntax highlighting, error reporting and auto completion. The extension can work nicely alongside other extensions like the [Language Support for Java](https://github.com/redhat-developer/vscode-java).
 
-//TODO
-![Gradle for Java Screencast](images/screencast.gif)
-
 ## Requirements
 
 - [VS Code >= 1.60.0](https://code.visualstudio.com/download)
@@ -175,26 +172,31 @@ When opening a Groovy Gradle file, the Gradle language server will start and pro
 
 Basically, we offer a basic groovy syntax highlighting in gradle files, as VS Code does by default. After language server started, it will analyze the Gradle file and provide semantic tokens information, providing more precise highlighting results.
 
+<img src="./images/highlighting.gif" width="650" alt="Syntax Highlighting" />
 </details>
 <details><summary>Document outline for Gradle files</summary>
 
 The Gradle language server will provide the document outline for the current Gradle file. This view will help you to navigate to any part of this Gradle file easily.
 
+<img src="./images/document-outline.gif" width="650" alt="Document Outline" />
 </details>
 <details><summary>Error reporting for Gradle files</summary>
 
 The Gradle language server will use Groovy compile engine to analyze the Gradle build file and report syntax errors if exist. It will also get script classpaths from Gradle Build so that it can report compilation errors. The [Gradle default imports](https://docs.gradle.org/current/userguide/writing_build_scripts.html#script-default-imports) are supported.
 
+<img src="./images/error.jpg" width="650" alt="Error Reporting" />
 </details>
 <details><summary>Auto completion for Gradle files</summary>
 
 The Gradle language server supports basic auto completions for a Gradle file, including
 - Basic Gradle closures (e.g. dependencies {})
 - Gradle closures from plugins (e.g. java {})
-- Available in Gradle closures (e.g. mavenCentral() in dependencies {})
+- Available methods in Gradle closures (e.g. mavenCentral() in dependencies {})
 - Available fields in Gradle closures (e.g. sourceCompatibility in java {})
+- Available dependencies in maven central when declaring a dependency in dependencies closure
 - Basic auto completion for `settings.gradle` (e.g. include())
 
+<img src="./images/auto-completion.gif" width="650" alt="Auto Completion" />
 We will continue improving the auto completion feature to support more cases in writing Gradle files.
 
 </details>
