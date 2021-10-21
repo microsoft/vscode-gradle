@@ -9,10 +9,10 @@ package gradle;
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
-  rpc GetDependencies(GetDependenciesRequest) returns (GetDependenciesReply) {}
+  rpc GetProjects(GetProjectsRequest) returns (GetProjectsReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
-  rpc CancelDependencies(CancelDependenciesRequest) returns (CancelDependenciesReply) {}
+  rpc CancelProjects(CancelProjectsRequest) returns (CancelProjectsReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
@@ -41,14 +41,16 @@ message GetBuildResult {
   GradleBuild build = 2;
 }
 
-message GetDependenciesRequest {
+message GetProjectsRequest {
   string project_dir = 1;
   GradleConfig gradle_config = 2;
   string cancellation_key = 3;
 }
 
-message GetDependenciesReply {
+message GetProjectsReply {
   DependencyItem item = 1;
+  repeated string plugins = 2;
+  repeated GrpcGradleClosure pluginClosures = 3;
 }
 
 enum GradleDependencyType
@@ -62,6 +64,17 @@ message DependencyItem {
   string name = 1;
   GradleDependencyType type = 2;
   repeated DependencyItem children = 3;
+}
+
+message GrpcGradleClosure {
+  string name = 1;
+  repeated GrpcGradleMethod methods = 2;
+  repeated string fields = 3;
+}
+
+message GrpcGradleMethod {
+  string name = 1;
+  repeated string parameterTypes = 2;
 }
 
 message RunBuildRequest {
@@ -103,11 +116,11 @@ message CancelBuildsReply {
   string message = 1;
 }
 
-message CancelDependenciesRequest {
+message CancelProjectsRequest {
   string cancellation_key = 1;
 }
 
-message CancelDependenciesReply {
+message CancelProjectsReply {
   string message = 1;
 }
 

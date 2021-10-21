@@ -1,22 +1,20 @@
-/*******************************************************************************
- * Copyright (c) 2021 Microsoft Corporation and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
- *
- * Contributors:
- *    Microsoft Corporation - initial API and implementation
- *******************************************************************************/
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
 
 package com.microsoft.gradle;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
-import com.microsoft.gradle.api.GradleToolingModel;
+import com.microsoft.gradle.api.GradleMethod;
+import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleProjectModel;
 
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -26,16 +24,22 @@ import org.gradle.api.artifacts.result.DependencyResult;
 import org.gradle.api.artifacts.result.ResolutionResult;
 import org.gradle.api.artifacts.result.ResolvedComponentResult;
 import org.gradle.api.artifacts.result.ResolvedDependencyResult;
+import org.gradle.api.plugins.Convention;
+import org.gradle.api.plugins.ExtensionsSchema;
+import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
+import org.gradle.api.reflect.TypeOf;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
-public class GradleToolingModelBuilder implements ToolingModelBuilder {
+public class GradleProjectModelBuilder implements ToolingModelBuilder {
   public boolean canBuild(String modelName) {
-    return modelName.equals(GradleToolingModel.class.getName());
+    return modelName.equals(GradleProjectModel.class.getName());
   }
 
   public Object buildAll(String modelName, Project project) {
     GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
-    return new DefaultGradleToolingModel(node);
+    List<String> plugins = getPlugins(project);
+    List<GradleClosure> closures = getPluginClosures(project);
+    return new DefaultGradleProjectModel(node, plugins, closures);
   }
 
   private GradleDependencyNode generateDefaultGradleDependencyNode(Project project) {
@@ -84,5 +88,35 @@ public class GradleToolingModelBuilder implements ToolingModelBuilder {
       }
     }
     return dependencyNode;
+  }
+
+  private List<String> getPlugins(Project project) {
+    Convention convention = project.getConvention();
+    return new ArrayList<>(convention.getPlugins().keySet());
+  }
+
+  private List<GradleClosure> getPluginClosures(Project project) {
+    Convention convention = project.getConvention();
+    ExtensionsSchema extensionsSchema = convention.getExtensionsSchema();
+    List<GradleClosure> closures = new ArrayList<>();
+    for (ExtensionSchema schema : extensionsSchema.getElements()) {
+      TypeOf<?> publicType = schema.getPublicType();
+      Class<?> concreteClass = publicType.getConcreteClass();
+      List<GradleMethod> methods = new ArrayList<>();
+      for (Method method : concreteClass.getMethods()) {
+        List<String> parameterTypes = new ArrayList<>();
+        for (Class<?> parameterType : method.getParameterTypes()) {
+          parameterTypes.add(parameterType.getName());
+        }
+        methods.add(new DefaultGradleMethod(method.getName(), parameterTypes));
+      }
+      List<String> fields = new ArrayList<>();
+      for (Field field : concreteClass.getFields()) {
+        fields.add(field.getName());
+      }
+      DefaultGradleClosure closure = new DefaultGradleClosure(schema.getName(), methods, fields);
+      closures.add(closure);
+    }
+    return closures;
   }
 }

@@ -22,11 +22,10 @@ import {
   CancelBuildReply,
   CancelBuildsRequest,
   CancelBuildsReply,
-  DependencyItem,
-  GetDependenciesRequest,
-  GetDependenciesReply,
-  CancelDependenciesRequest,
-  CancelDependenciesReply,
+  GetProjectsRequest,
+  CancelProjectsRequest,
+  CancelProjectsReply,
+  GetProjectsReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -42,7 +41,7 @@ import {
 import { RootProject } from '../rootProject/RootProject';
 import {
   getBuildCancellationKey,
-  getDependenciesCancellationKey,
+  getProjectsCancellationKey,
 } from './CancellationKeys';
 import { EventWaiter } from '../util/EventWaiter';
 import { getGradleConfig, getConfigJavaDebug } from '../util/config';
@@ -260,11 +259,11 @@ export class GradleClient implements vscode.Disposable {
     );
   }
 
-  public async getDependencies(
+  public async getProjects(
     projectDir: string,
     gradleConfig: GradleConfig,
     projectName: string
-  ): Promise<DependencyItem | undefined> {
+  ): Promise<GetProjectsReply | undefined> {
     await this.waitForConnect();
     return vscode.window.withProgress(
       {
@@ -277,28 +276,28 @@ export class GradleClient implements vscode.Disposable {
         token: vscode.CancellationToken
       ) => {
         progress.report({
-          message: `Getting Dependencies for ${projectName}`,
+          message: `Getting Projects for ${projectName}`,
         });
-        const request = new GetDependenciesRequest();
+        const request = new GetProjectsRequest();
         request.setProjectDir(projectDir);
         request.setGradleConfig(gradleConfig);
-        const cancellationKey = getDependenciesCancellationKey(projectDir);
+        const cancellationKey = getProjectsCancellationKey(projectDir);
         request.setCancellationKey(cancellationKey);
         token.onCancellationRequested(() =>
-          this.cancelDependencies(cancellationKey)
+          this.cancelProjects(cancellationKey)
         );
         try {
           return await new Promise((resolve, reject) => {
-            this.grpcClient!.getDependencies(
+            this.grpcClient!.getProjects(
               request,
               (
                 err: grpc.ServiceError | null,
-                getDependenciesReply: GetDependenciesReply | undefined
+                getProjectsReply: GetProjectsReply | undefined
               ) => {
                 if (err) {
                   reject(err);
                 } else {
-                  resolve(getDependenciesReply?.getItem());
+                  resolve(getProjectsReply);
                 }
               }
             );
@@ -486,37 +485,34 @@ export class GradleClient implements vscode.Disposable {
     }
   }
 
-  public async cancelDependencies(cancellationKey: string): Promise<void> {
+  public async cancelProjects(cancellationKey: string): Promise<void> {
     await this.waitForConnect();
     this.statusBarItem.hide();
-    const request = new CancelDependenciesRequest();
+    const request = new CancelProjectsRequest();
     request.setCancellationKey(cancellationKey);
     try {
-      const reply: CancelDependenciesReply | undefined = await new Promise(
+      const reply: CancelProjectsReply | undefined = await new Promise(
         (resolve, reject) => {
-          this.grpcClient!.cancelDependencies(
+          this.grpcClient!.cancelProjects(
             request,
             (
               err: grpc.ServiceError | null,
-              cancelDependenciesReply: CancelDependenciesReply | undefined
+              cancelProjectsReply: CancelProjectsReply | undefined
             ) => {
               if (err) {
                 reject(err);
               } else {
-                resolve(cancelDependenciesReply);
+                resolve(cancelProjectsReply);
               }
             }
           );
         }
       );
       if (reply) {
-        logger.info('Cancel dependencies:', reply.getMessage());
+        logger.info('Cancel Projects:', reply.getMessage());
       }
     } catch (err) {
-      logger.error(
-        'Error cancelling dependencies:',
-        err.details || err.message
-      );
+      logger.error('Error cancelling Projects:', err.details || err.message);
     }
   }
 

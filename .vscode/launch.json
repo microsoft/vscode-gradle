@@ -6,8 +6,12 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extension"],
-      "outFiles": ["${workspaceFolder}/extension/dist/**/*.js"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "presentation": {
         "group": "debug",
@@ -31,8 +35,12 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extension"],
-      "outFiles": ["${workspaceFolder}/extension/dist/**/*.js"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "env": {
         "VSCODE_DEBUG_SERVER": "true"
@@ -46,8 +54,12 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}/extension"],
-      "outFiles": ["${workspaceFolder}/extension/dist/**/*.js"],
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js"
+      ],
       "preLaunchTask": "Gradle: Build",
       "env": {
         "VSCODE_DEBUG_LANGUAGE_SERVER": "true",
@@ -70,6 +82,18 @@
       "presentation": {
         "group": "debug",
         "order": 5
+      }
+    },
+    {
+      "type": "java",
+      "name": "Debug Gradle Plugin",
+      "request": "attach",
+      "hostName": "localhost",
+      "projectName": "gradle-plugin",
+      "port": 5005,
+      "presentation": {
+        "group": "debug",
+        "order": 6
       }
     },
     {
@@ -299,7 +323,10 @@
   "compounds": [
     {
       "name": "Debug Server & Extension",
-      "configurations": ["Debug Server", "Debug Extension with Debug Server"],
+      "configurations": [
+        "Debug Server",
+        "Debug Extension with Debug Server"
+      ],
       "presentation": {
         "group": "debug",
         "order": 3

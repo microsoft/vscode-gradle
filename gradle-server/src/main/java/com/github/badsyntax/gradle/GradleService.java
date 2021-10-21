@@ -2,10 +2,10 @@ package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.handlers.CancelBuildHandler;
 import com.github.badsyntax.gradle.handlers.CancelBuildsHandler;
-import com.github.badsyntax.gradle.handlers.CancelDependenciesHandler;
+import com.github.badsyntax.gradle.handlers.CancelProjectsHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetDaemonsStatusHandler;
-import com.github.badsyntax.gradle.handlers.GetDependenciesHandler;
+import com.github.badsyntax.gradle.handlers.GetProjectsHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonsHandler;
@@ -20,11 +20,10 @@ public class GradleService extends GradleGrpc.GradleImplBase {
   }
 
   @Override
-  public void getDependencies(
-      GetDependenciesRequest req, StreamObserver<GetDependenciesReply> responseObserver) {
-    GetDependenciesHandler getDependenciesHandler =
-        new GetDependenciesHandler(req, responseObserver);
-    getDependenciesHandler.run();
+  public void getProjects(
+      GetProjectsRequest req, StreamObserver<GetProjectsReply> responseObserver) {
+    GetProjectsHandler getProjectsHandler = new GetProjectsHandler(req, responseObserver);
+    getProjectsHandler.run();
   }
 
   @Override
@@ -48,11 +47,10 @@ public class GradleService extends GradleGrpc.GradleImplBase {
   }
 
   @Override
-  public void cancelDependencies(
-      CancelDependenciesRequest req, StreamObserver<CancelDependenciesReply> responseObserver) {
-    CancelDependenciesHandler cancelDependenciesHandler =
-        new CancelDependenciesHandler(req, responseObserver);
-    cancelDependenciesHandler.run();
+  public void cancelProjects(
+      CancelProjectsRequest req, StreamObserver<CancelProjectsReply> responseObserver) {
+    CancelProjectsHandler cancelProjectsHandler = new CancelProjectsHandler(req, responseObserver);
+    cancelProjectsHandler.run();
   }
 
   @Override
