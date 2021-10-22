@@ -22,23 +22,6 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.15.4
-      - name: Cache gradle home
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-home-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-home-
-      - name: Cache gradle local
-        uses: actions/cache@v2
-        with:
-          path: |
-            .gradle
-          key: ${{ runner.os }}-gradle-local-${{ hashFiles('**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-local-
       - name: Cache npm cache directory
         uses: actions/cache@v2
         with:
@@ -47,15 +30,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Lint
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: lint
-          wrapper-cache-enabled: false
       - name: Build & Analyse
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: gradle-server:build -x :test -x extension:test -x npm-package:test
-          wrapper-cache-enabled: false
         env:
           JAVA_HOME: ""
       - name: Upload lib
@@ -95,10 +76,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vscode-
       - name: Build Extension
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: extension:build
-          wrapper-cache-enabled: false
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Download lib
@@ -116,57 +96,48 @@ jobs:
           unset npm_config_prefix
         if: matrix.os != 'windows-2019'
       - name: Prepare gradle-groovy-custom-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
-          wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
-          wrapper-cache-enabled: false
       - name: Prepare gradle-groovy-default-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
-          wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
-          wrapper-cache-enabled: false
       - name: Prepare gradle-kotlin-default-build-file
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
-          wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
-          wrapper-cache-enabled: false
       - name: Test extension
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         continue-on-error: true
         id: test
         with:
           arguments: testVsCode
-          wrapper-cache-enabled: false
         env:
           DISPLAY: ":99.0"
           CI: "true"
 
       - name: Retry test extension attempt 1
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         continue-on-error: true
         if: steps.test.outcome=='failure'
         id: retry1
         with:
           arguments: testVsCode
-          wrapper-cache-enabled: false
         env:
           DISPLAY: ":99.0"
           CI: "true"
 
       - name: Retry test extension attempt 2
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         continue-on-error: true
         if: steps.retry1.outcome=='failure'
         id: retry2
         with:
           arguments: testVsCode
-          wrapper-cache-enabled: false
         env:
           DISPLAY: ":99.0"
           CI: "true"
@@ -175,29 +146,3 @@ jobs:
         run: |
           echo "Tests failed"
           exit 1
-      - name: Stop Gradle daemon for root project
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: --stop
-          wrapper-cache-enabled: false
-      - name: Stop Gradle daemon for gradle-groovy-custom-build-file
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: --stop
-          build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
-          wrapper-directory: extension/test-fixtures/gradle-groovy-custom-build-file
-          wrapper-cache-enabled: false
-      - name: Stop Gradle daemon for gradle-groovy-default-build-file
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: --stop
-          build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
-          wrapper-directory: extension/test-fixtures/gradle-groovy-default-build-file
-          wrapper-cache-enabled: false
-      - name: Stop Gradle daemon for gradle-kotlin-default-build-file
-        uses: eskatos/gradle-command-action@v1
-        with:
-          arguments: --stop
-          build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
-          wrapper-directory: extension/test-fixtures/gradle-kotlin-default-build-file
-          wrapper-cache-enabled: false

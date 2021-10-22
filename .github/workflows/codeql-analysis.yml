@@ -43,10 +43,9 @@ jobs:
         with:
           node-version: 14.15.4
       - name: Build
-        uses: eskatos/gradle-command-action@v1
+        uses: gradle/gradle-build-action@v2
         with:
           arguments: build -x test
-          wrapper-cache-enabled: false
         env:
           JAVA_HOME: ""
 
