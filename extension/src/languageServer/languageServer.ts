@@ -18,7 +18,7 @@ import {
   getConfigJavaImportGradleVersion,
   getConfigJavaImportGradleWrapperEnabled,
 } from '../util/config';
-const CHANNEL_NAME = 'Gradle Language Server';
+const CHANNEL_NAME = 'Gradle for Java (Language Server)';
 
 export let isLanguageServerStarted = false;
 

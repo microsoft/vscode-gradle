@@ -22,8 +22,8 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Output from "Gradle Tasks"**
-You can find this by clicking on the "Output" panel, then selecting the "Gradle Tasks" channel from the dropdown.
+**Output from "Gradle for Java"**
+You can find this by clicking on the "Output" panel, then selecting the "Gradle for Java" channel from the dropdown.
 
 **Does the bug still exist if you disable all other extensions?**
 Yes/No

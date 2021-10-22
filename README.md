@@ -1,23 +1,20 @@
-# Gradle Tasks
+# Gradle for Java
 
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/vscjava.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-gradle)
 [![Build & Publish](https://github.com/microsoft/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/microsoft/vscode-gradle/actions/workflows/main.yml?query=workflow%3A%22%5C%22Build%22)
 [![CodeQL](https://github.com/microsoft/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/microsoft/vscode-gradle/actions?query=workflow%3ACodeQL)
 [![GitHub bug issues](https://img.shields.io/github/issues/microsoft/vscode-gradle/bug?label=bug%20reports)](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
-This VS Code extension provides a visual interface for your Gradle build. It supports whatever Gradle supports and is language agnostic, but can work nicely alongside other extensions like the [Java language support extension](https://github.com/redhat-developer/vscode-java).
-
-![Gradle Tasks Screencast](images/screencast.gif)
+This VS Code extension provides a visual interface for your Gradle build. You can use this interface to view Gradle Tasks and Project dependencies, or run Gradle Tasks as VS Code Task. The extension also offers better Gradle file (e.g. `build.gradle`) authoring experience including syntax highlighting, error reporting and auto completion. The extension works nicely alongside other Java extensions in the [Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack).
 
 ## Requirements
 
 - [VS Code >= 1.60.0](https://code.visualstudio.com/download)
 - [Java >= 8](https://adoptopenjdk.net/)
-- Local [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) executables
 
 ## Project Discovery
 
-This extension supports both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
+This extension supports both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) or Gradle build files (`build.gradle` or `settings.gradle` and their Kotlin versions) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
 
 ## Feature Overview
 
@@ -34,13 +31,20 @@ A Gradle build can have one or more projects. Projects are listed in a flat list
 When you expand a project, tasks are listed in a tree, grouped by the task group. You can toggle the display of the tasks by clicking on the `Show Flat List`/`Show Tree` button in the treeview header.
 
 <img src="images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
-
 </details>
+
+<details><summary>List project dependencies</summary>
+
+The project's dependencies are included in the `Dependencies` item under the project. The dependencies are grouped by Gradle configurations and you can expand each configuration to find the corresponding ones. For omitted dependency (marked with a `(*)`), you can use the inline button `Go to Omitted Dependency` to go to the previously listed dependency.
+
+<img src="images/dependencies.png" width="650" alt="Gradle Dependencies" />
+</details>
+
 <details><summary>Run tasks</summary>
 
 Tasks can be run via:
 
-- `Gradle Tasks`, `Pinned Tasks` or `Recent Tasks` treeviews
+- `Gradle Projects`, `Pinned Tasks` or `Recent Tasks` treeviews
 - `Run Task` command
 - `Run a Gradle Build` command
 
@@ -118,7 +122,7 @@ Example config:
 }
 ```
 
-You should now see a `debug` command next to the `run` command in the Gradle Tasks view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
+You should now see a `debug` command next to the `run` command in the Gradle Projects view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
 ![Debug Screencast](images/debug-screencast.gif?1)
 
@@ -162,10 +166,45 @@ Most of the time there should be no reason to stop a daemon. View more info on t
 The extension uses the Gradle wrapper to list daemons, and is quite a slow process. If the daemon view is not useful for you, you can simply collapse the view, or disable it completely.
 
 </details>
+<details><summary>Syntax highlighting for Gradle files</summary>
+
+When opening a Groovy Gradle file, the Gradle language server will start and provide language features for you.
+
+Basically, we offer a basic groovy syntax highlighting in gradle files, as VS Code does by default. After language server started, it will analyze the Gradle file and provide semantic tokens information, providing more precise highlighting results.
+
+<img src="./images/highlighting.gif" width="650" alt="Syntax Highlighting" />
+</details>
+<details><summary>Document outline for Gradle files</summary>
+
+The Gradle language server will provide the document outline for the current Gradle file. This view will help you to navigate to any part of this Gradle file easily.
+
+<img src="./images/document-outline.gif" width="650" alt="Document Outline" />
+</details>
+<details><summary>Error reporting for Gradle files</summary>
+
+The Gradle language server will use Groovy compile engine to analyze the Gradle build file and report syntax errors if exist. It will also get script classpaths from Gradle Build so that it can report compilation errors. The [Gradle default imports](https://docs.gradle.org/current/userguide/writing_build_scripts.html#script-default-imports) are supported.
+
+<img src="./images/error.jpg" width="650" alt="Error Reporting" />
+</details>
+<details><summary>Auto completion for Gradle files</summary>
+
+The Gradle language server supports basic auto completions for a Gradle file, including
+- Basic Gradle closures (e.g. dependencies {})
+- Gradle closures from plugins (e.g. java {})
+- Available methods in Gradle closures (e.g. mavenCentral() in dependencies {})
+- Available fields in Gradle closures (e.g. sourceCompatibility in java {})
+- Available dependencies in Maven central when declaring a dependency in dependencies closure
+- Basic auto completion for `settings.gradle` (e.g. include())
+
+<img src="./images/auto-completion.gif" width="650" alt="Auto Completion" />
+We will continue improving the auto completion feature to support more cases in writing Gradle files.
+
+</details>
 <details><summary>Full features list</summary>
 
 - List Gradle Tasks & Projects
 - Run [Gradle tasks](https://gradle.org/) as [VS Code tasks](https://code.visualstudio.com/docs/editor/tasks)
+- View [Gradle Dependencies](https://docs.gradle.org/current/userguide/declaring_dependencies.html)
 - Supports massive Gradle projects (eg with 10000+ tasks)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
 - Uses a long running gRPC server which provides good performance
@@ -181,6 +220,10 @@ The extension uses the Gradle wrapper to list daemons, and is quite a slow proce
 - List recent tasks
 - List & stop daemons
 - Reports Gradle dist download progress
+- Supports syntax highlighting for Groovy Gradle files
+- Supports document outline for Groovy Gradle files
+- Supports error reporting for Groovy Gradle files
+- Supports auto completion for Groovy Gradle files
 
 </details>
 
