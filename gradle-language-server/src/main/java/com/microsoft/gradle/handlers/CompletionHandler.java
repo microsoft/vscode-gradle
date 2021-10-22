@@ -26,7 +26,6 @@ import com.microsoft.gradle.resolver.GradleMethod;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ObjectType;
-import org.apache.bcel.generic.Type;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -51,7 +50,7 @@ public class CompletionHandler {
       results.addAll(getCompletionItemsFromExtClosures(resolver, resultSet));
     } else {
       String methodName = containingCall.getMethodAsString();
-      results.addAll(getCompletionItemsInExtClosures(resolver, methodName, resultSet));
+      results.addAll(getCompletionItemsFromExtClosures(resolver, methodName, resultSet));
       delegateClassName = GradleDelegate.getDelegateMap().get(methodName);
     }
     if (delegateClassName == null) {
@@ -82,7 +81,6 @@ public class CompletionHandler {
     List<String> methodNames = new ArrayList<>();
     Method[] methods = javaClass.getMethods();
     for (Method method : methods) {
-      StringBuilder labelBuilder = new StringBuilder();
       String methodName = method.getName();
       // When parsing a abstract class, we'll get a "<init>" method which can't be called directly,
       // So we filter it here.
@@ -159,7 +157,7 @@ public class CompletionHandler {
     return results;
   }
 
-  private List<CompletionItem> getCompletionItemsInExtClosures(GradleLibraryResolver resolver, String closureName, Set<String> resultSet) {
+  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, String closureName, Set<String> resultSet) {
     Map<String, GradleClosure> extClosures = resolver.getExtClosures();
     if (extClosures == null || extClosures.isEmpty() || !extClosures.containsKey(closureName)) {
       return Collections.emptyList();
@@ -179,17 +177,17 @@ public class CompletionHandler {
     StringBuilder labelBuilder = new StringBuilder();
     labelBuilder.append(name);
     labelBuilder.append("(");
-    for (String type : arguments) {
+    for (int i = 0; i < arguments.size(); i++) {
+      String type = arguments.get(i);
       String[] classNameSplits = type.split("\\.");
       String className = classNameSplits[classNameSplits.length - 1];
       String variableName = className.substring(0, 1).toLowerCase();
       labelBuilder.append(className);
       labelBuilder.append(" ");
       labelBuilder.append(variableName);
-      labelBuilder.append(",");
-    }
-    if (labelBuilder.charAt(labelBuilder.length() - 1) == ',') {
-      labelBuilder.deleteCharAt(labelBuilder.length() - 1);
+      if (i != arguments.size() - 1) {
+        labelBuilder.append(", ");
+      }
     }
     labelBuilder.append(")");
     String label = labelBuilder.toString();

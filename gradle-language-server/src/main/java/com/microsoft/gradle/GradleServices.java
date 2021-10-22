@@ -330,7 +330,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
         return CompletableFuture.completedFuture(null);
       }
       String[] plugins = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
-      this.libraryResolver.setHasJavaPlugins(Arrays.asList(plugins));
+      this.libraryResolver.setProjectPlugins(Arrays.asList(plugins));
     } else if (command.equals("gradle.setClosures")) {
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);

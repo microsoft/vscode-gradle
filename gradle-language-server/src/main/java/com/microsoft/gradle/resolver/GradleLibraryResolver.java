@@ -41,6 +41,7 @@ public class GradleLibraryResolver {
   private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
+  private Set<String> projectPlugins = new HashSet<>();
   private Map<String, GradleClosure> extClosures = new HashMap<>();
   private String gradleHome;
   private String gradleVersion;
@@ -50,12 +51,10 @@ public class GradleLibraryResolver {
   private File coreAPI;
   private File pluginAPI;
   private boolean needToLoadClasses;
-  private boolean hasJavaPlugins;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
     this.needToLoadClasses = true;
-    this.hasJavaPlugins = false;
   }
 
   public void setGradleHome(String gradleHome) {
@@ -264,12 +263,13 @@ public class GradleLibraryResolver {
     return original.substring(1, original.length() - 1);
   }
 
-  public void setHasJavaPlugins(List<String> plugins) {
-    this.hasJavaPlugins = plugins.contains("java");
+  public void setProjectPlugins(List<String> plugins) {
+    this.projectPlugins.clear();
+    this.projectPlugins.addAll(plugins);
   }
 
   public boolean isJavaPluginsIncluded(Set<String> plugins) {
-    if (this.hasJavaPlugins) {
+    if (this.projectPlugins.contains("java")) {
       return true;
     }
     for (String plugin : plugins) {
