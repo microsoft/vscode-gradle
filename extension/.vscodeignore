@@ -26,3 +26,4 @@ beta/**
 ARCHITECTURE.md
 # Ignore output of code sign
 lib/*.md
+scripts
