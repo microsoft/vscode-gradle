@@ -12,6 +12,7 @@ import {
 } from 'vscode-languageclient';
 import { LanguageClient, StreamInfo } from 'vscode-languageclient/node';
 import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
+import { GetProjectsReply } from '../proto/gradle_pb';
 import {
   getConfigGradleJavaHome,
   getConfigJavaImportGradleHome,
@@ -96,7 +97,7 @@ export async function startLanguageServer(
         void languageClient.onReady().then(
           () => {
             isLanguageServerStarted = true;
-            contentProvider.handleLanguageServerStart();
+            void handleLanguageServerStart(contentProvider);
             resolve();
           },
           (e) => {
@@ -142,4 +143,47 @@ function getGradleSettings(): unknown {
     gradleWrapperEnabled: getConfigJavaImportGradleWrapperEnabled(),
     gradleUserHome: getConfigJavaImportGradleUserHome(),
   };
+}
+
+export async function syncLanguageServer(
+  projectContent: GetProjectsReply
+): Promise<void> {
+  if (isLanguageServerStarted) {
+    await vscode.commands.executeCommand(
+      'gradle.setPlugins',
+      projectContent.getPluginsList()
+    );
+    const closures = projectContent.getPluginclosuresList().map((value) => {
+      const JSONMethod = value.getMethodsList().map((method) => {
+        return {
+          name: method.getName(),
+          parameterTypes: method.getParametertypesList(),
+        };
+      });
+      return {
+        name: value.getName(),
+        methods: JSONMethod,
+        fields: value.getFieldsList(),
+      };
+    });
+    await vscode.commands.executeCommand('gradle.setClosures', closures);
+  }
+}
+
+async function handleLanguageServerStart(
+  contentProvider: GradleProjectContentProvider
+): Promise<void> {
+  if (isLanguageServerStarted) {
+    const folders = vscode.workspace.workspaceFolders;
+    if (folders?.length) {
+      // TODO: support multiple workspaces
+      const projectPath = folders[0].uri.fsPath;
+      // when language server starts, it knows nothing about the project
+      // here to asynchronously sync the project content (plugins, closures) with language server
+      void contentProvider.getProjectContent(
+        projectPath,
+        path.basename(projectPath)
+      );
+    }
+  }
 }
