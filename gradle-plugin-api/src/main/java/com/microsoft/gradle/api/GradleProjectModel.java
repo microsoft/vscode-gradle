@@ -11,4 +11,5 @@ public interface GradleProjectModel extends Model {
   GradleDependencyNode getDependencyNode();
   List<String> getPlugins();
   List<GradleClosure> getClosures();
+  List<String> getScriptClasspaths();
 }

@@ -10,10 +10,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
 import com.microsoft.gradle.api.GradleMethod;
-import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleProjectModel;
 
 import org.gradle.api.Project;
@@ -24,10 +24,13 @@ import org.gradle.api.artifacts.result.DependencyResult;
 import org.gradle.api.artifacts.result.ResolutionResult;
 import org.gradle.api.artifacts.result.ResolvedComponentResult;
 import org.gradle.api.artifacts.result.ResolvedDependencyResult;
+import org.gradle.api.initialization.dsl.ScriptHandler;
+import org.gradle.api.internal.initialization.DefaultScriptHandler;
 import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionsSchema;
 import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
 import org.gradle.api.reflect.TypeOf;
+import org.gradle.internal.classpath.ClassPath;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
 public class GradleProjectModelBuilder implements ToolingModelBuilder {
@@ -36,10 +39,16 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
   }
 
   public Object buildAll(String modelName, Project project) {
+    ScriptHandler buildScript = project.getBuildscript();
+    ClassPath classpath = ((DefaultScriptHandler)buildScript).getScriptClassPath();
+    List<String> scriptClasspaths = new ArrayList<>();
+    classpath.getAsFiles().forEach((file) -> {
+      scriptClasspaths.add(file.getAbsolutePath());
+    });
     GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
     List<String> plugins = getPlugins(project);
     List<GradleClosure> closures = getPluginClosures(project);
-    return new DefaultGradleProjectModel(node, plugins, closures);
+    return new DefaultGradleProjectModel(node, plugins, closures, scriptClasspaths);
   }
 
   private GradleDependencyNode generateDefaultGradleDependencyNode(Project project) {

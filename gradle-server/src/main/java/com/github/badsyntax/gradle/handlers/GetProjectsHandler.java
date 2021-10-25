@@ -75,6 +75,7 @@ public class GetProjectsHandler {
               .setItem(getDependencyItem(root))
               .addAllPlugins(gradleModel.getPlugins())
               .addAllPluginClosures(getPluginClosures(gradleModel))
+              .addAllScriptClasspaths(gradleModel.getScriptClasspaths())
               .build());
       responseObserver.onCompleted();
     } catch (IOException e) {

@@ -16,12 +16,15 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
+import com.microsoft.gradle.compile.GradleDefaultImport;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.control.customizers.ImportCustomizer;
 import org.codehaus.groovy.control.io.StringReaderSource;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
@@ -32,6 +35,23 @@ import groovy.lang.GroovyClassLoader;
 public class GradleFilesManager {
   private Map<URI, String> openFiles = new HashMap<>();
   private Map<URI, GradleCompilationUnit> unitStorage = new HashMap<>();
+  private CompilerConfiguration config;
+
+  public GradleFilesManager() {
+    this.config = new CompilerConfiguration();
+    ImportCustomizer customizer = new ImportCustomizer();
+    customizer.addStarImports(
+        GradleDefaultImport.defaultStarImports.toArray(new String[GradleDefaultImport.defaultStarImports.size()]));
+    this.config.addCompilationCustomizers(customizer);
+  }
+
+  public void setScriptClasspaths(List<String> scriptClasspaths) {
+    this.config.setClasspathList(scriptClasspaths);
+  }
+
+  public Map<URI, GradleCompilationUnit> getUnitStorage() {
+    return this.unitStorage;
+  }
 
   public void didOpen(URI uri, String content) {
     openFiles.put(uri, content);
@@ -93,16 +113,15 @@ public class GradleFilesManager {
     return currentIndex + character;
   }
 
-  public GradleCompilationUnit getCompilationUnit(URI uri, Integer version) {
-    if (this.unitStorage.containsKey(uri) && this.unitStorage.get(uri).getVersion().equals(version)) {
+  public GradleCompilationUnit getCompilationUnit(URI uri, Integer version, boolean forceRecompile) {
+    if (!forceRecompile && this.unitStorage.containsKey(uri) && this.unitStorage.get(uri).getVersion().equals(version)) {
       return this.unitStorage.get(uri);
     }
-    CompilerConfiguration config = new CompilerConfiguration();
-    GroovyClassLoader classLoader = new GroovyClassLoader(ClassLoader.getSystemClassLoader().getParent(), config, true);
-    GradleCompilationUnit unit = new GradleCompilationUnit(config, null, classLoader, version);
+    GroovyClassLoader classLoader = new GroovyClassLoader(ClassLoader.getSystemClassLoader().getParent(), this.config, true);
+    GradleCompilationUnit unit = new GradleCompilationUnit(this.config, null, classLoader, version);
     SourceUnit sourceUnit = new SourceUnit(uri.toString(),
-        new StringReaderSource(getContents(uri), unit.getConfiguration()),
-        unit.getConfiguration(), unit.getClassLoader(), unit.getErrorCollector());
+        new StringReaderSource(getContents(uri), unit.getConfiguration()), unit.getConfiguration(),
+        unit.getClassLoader(), unit.getErrorCollector());
     unit.addSource(sourceUnit);
     this.unitStorage.put(uri, unit);
     return unit;
