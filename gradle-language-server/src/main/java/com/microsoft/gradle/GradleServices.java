@@ -118,7 +118,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
   public void didOpen(DidOpenTextDocumentParams params) {
     URI uri = URI.create(params.getTextDocument().getUri());
     gradleFilesManager.didOpen(uri, params.getTextDocument().getText());
-    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** falseRecompile */ false);
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** forceRecompile */ false);
     compile(uri, unit);
   }
 
@@ -128,7 +128,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     for (TextDocumentContentChangeEvent change : params.getContentChanges()) {
       gradleFilesManager.didChange(uri, change);
     }
-    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** falseRecompile */ false);
+    GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri, params.getTextDocument().getVersion(), /** forceRecompile */ false);
     compile(uri, unit);
   }
 
