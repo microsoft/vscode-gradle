@@ -39,6 +39,7 @@ import com.microsoft.gradle.handlers.DefaultDependenciesHandler;
 import com.microsoft.gradle.handlers.DefaultDependenciesHandler.DefaultDependencyItem;
 import com.microsoft.gradle.handlers.DependencyCompletionHandler;
 import com.microsoft.gradle.manager.GradleFilesManager;
+import com.microsoft.gradle.resolver.GradleClosure;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
 import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.utils.LSPUtils;
@@ -84,7 +85,8 @@ import org.eclipse.lsp4j.util.Ranges;
 
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
-  public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged");
+  public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged",
+      "gradle.setPlugins", "gradle.setClosures");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
@@ -285,18 +287,18 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     CompletionHandler handler = new CompletionHandler();
     // check again
     if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
-      return CompletableFuture.completedFuture(Either
-          .forLeft(handler.getCompletionItems(null, Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
+      return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null,
+          Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
     }
-    return CompletableFuture.completedFuture(Either.forLeft(
-        handler.getCompletionItems(containingCall, Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
+    return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCall,
+        Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
   }
 
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
     String command = params.getCommand();
+    List<Object> arguments = params.getArguments();
     if (command.equals("gradle.getDependencies")) {
-      List<Object> arguments = params.getArguments();
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);
       }
@@ -306,7 +308,8 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
         try {
           Path uriPath = Paths.get(uri);
           String content = Files.asCharSource(uriPath.toFile(), Charsets.UTF_8).read();
-          DidOpenTextDocumentParams openDocumentParams = new DidOpenTextDocumentParams(new TextDocumentItem(uriString, "gradle", 1, content));
+          DidOpenTextDocumentParams openDocumentParams = new DidOpenTextDocumentParams(
+              new TextDocumentItem(uriString, "gradle", 1, content));
           this.didOpen(openDocumentParams);
           DocumentSymbolParams documentSymbolParams = new DocumentSymbolParams(new TextDocumentIdentifier(uriString));
           this.documentSymbol(documentSymbolParams);
@@ -322,6 +325,18 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       return CompletableFuture.completedFuture(result);
     } else if (command.equals("gradle.distributionChanged")) {
       this.libraryResolver.resolveGradleAPI();
+    } else if (command.equals("gradle.setPlugins")) {
+      if (arguments.isEmpty()) {
+        return CompletableFuture.completedFuture(null);
+      }
+      String[] plugins = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
+      this.libraryResolver.setProjectPlugins(Arrays.asList(plugins));
+    } else if (command.equals("gradle.setClosures")) {
+      if (arguments.isEmpty()) {
+        return CompletableFuture.completedFuture(null);
+      }
+      GradleClosure[] closures = new Gson().fromJson((JsonElement) arguments.get(0), GradleClosure[].class);
+      this.libraryResolver.setExtClosures(Arrays.asList(closures));
     }
     return CompletableFuture.completedFuture(null);
   }
