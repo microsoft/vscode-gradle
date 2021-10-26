@@ -79,19 +79,15 @@ export class GradleDaemonsTreeDataProvider
       this.cancelDeferred.promise,
     ]);
     this.cancelDeferred = undefined;
-    if (this.treeItems.length) {
-      await vscode.commands.executeCommand(
-        'setContext',
-        'gradle:hasValidDaemons',
-        true
-      );
-      return this.treeItems;
-    }
+    const length = this.treeItems.length;
     await vscode.commands.executeCommand(
       'setContext',
       'gradle:hasValidDaemons',
-      false
+      length
     );
+    if (length) {
+      return this.treeItems;
+    }
     return this.specificVersion
       ? [
           new HintItem(
