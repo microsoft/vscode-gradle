@@ -59,12 +59,13 @@ public class CompletionHandler {
       results.addAll(re);
       List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);
       if (delegates == null) {
+        results.forEach(result -> setSortText(result));
         return results;
       }
       delegateClassNames.addAll(delegates);
     }
     if (delegateClassNames.isEmpty()) {
-      return results;
+      return Collections.emptyList();
     }
     for (String delegateClassName : delegateClassNames) {
       JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
@@ -74,6 +75,7 @@ public class CompletionHandler {
       results.addAll(getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, resultSet));
       break;
     }
+    results.forEach(result -> setSortText(result));
     return results;
   }
 
@@ -239,5 +241,14 @@ public class CompletionHandler {
       }
     }
     return false;
+  }
+
+  private static void setSortText(CompletionItem item) {
+    // priority: function > property
+    int kindValue = (item.getKind() == CompletionItemKind.Function) ? 0 : 1;
+    StringBuilder builder = new StringBuilder();
+    builder.append(String.valueOf(kindValue));
+    builder.append(item.getLabel());
+    item.setSortText(builder.toString());
   }
 }
