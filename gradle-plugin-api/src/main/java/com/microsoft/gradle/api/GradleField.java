@@ -3,10 +3,7 @@
 
 package com.microsoft.gradle.api;
 
-import java.util.List;
-
-public interface GradleMethod {
+public interface GradleField {
   String getName();
-  List<String> getParameterTypes();
   boolean getDeprecated();
 }

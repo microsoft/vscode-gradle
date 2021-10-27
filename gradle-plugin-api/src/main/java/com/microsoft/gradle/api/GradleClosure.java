@@ -8,5 +8,5 @@ import java.util.List;
 public interface GradleClosure {
   String getName();
   List<GradleMethod> getMethods();
-  List<String> getFields();
+  List<GradleField> getFields();
 }

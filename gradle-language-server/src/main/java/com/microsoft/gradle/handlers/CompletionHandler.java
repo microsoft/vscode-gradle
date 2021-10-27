@@ -21,15 +21,19 @@ import java.util.Set;
 
 import com.microsoft.gradle.delegate.GradleDelegate;
 import com.microsoft.gradle.resolver.GradleClosure;
+import com.microsoft.gradle.resolver.GradleField;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
 import com.microsoft.gradle.resolver.GradleMethod;
 
+import org.apache.bcel.classfile.Attribute;
+import org.apache.bcel.classfile.FieldOrMethod;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ObjectType;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
+import org.eclipse.lsp4j.CompletionItemTag;
 import org.eclipse.lsp4j.InsertTextFormat;
 
 public class CompletionHandler {
@@ -90,6 +94,7 @@ public class CompletionHandler {
     List<String> methodNames = new ArrayList<>();
     Method[] methods = javaClass.getMethods();
     for (Method method : methods) {
+      boolean isMethodDeprecated = isDeprecated(method);
       String methodName = method.getName();
       // When parsing a abstract class, we'll get a "<init>" method which can't be called directly,
       // So we filter it here.
@@ -103,7 +108,7 @@ public class CompletionHandler {
           arguments.add(((ObjectType) type).getClassName());
         }
       });
-      CompletionItem item = generateCompletionItemForMethod(methodName, arguments);
+      CompletionItem item = generateCompletionItemForMethod(methodName, arguments, isMethodDeprecated);
       if (resultSet.add(item.getLabel())) {
         results.add(item);
       }
@@ -113,6 +118,9 @@ public class CompletionHandler {
       if (methodName.startsWith("get") && methodName.length() > 3 && Modifier.isPublic(modifiers) && Modifier.isAbstract(modifiers)) {
         String propertyName = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
         CompletionItem property = new CompletionItem(propertyName);
+        if (isMethodDeprecated) {
+          property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
+        }
         property.setKind(CompletionItemKind.Property);
         if (resultSet.add(propertyName)) {
           results.add(property);
@@ -170,22 +178,25 @@ public class CompletionHandler {
     List<CompletionItem> results = new ArrayList<>();
     GradleClosure closure = extClosures.get(closureName);
     for (GradleMethod method : closure.methods) {
-      CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes));
+      CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes), method.deprecated);
       if (resultSet.add(item.getLabel())) {
         results.add(item);
       }
     }
-    for (String field : closure.fields) {
-      CompletionItem property = new CompletionItem(field);
+    for (GradleField field : closure.fields) {
+      CompletionItem property = new CompletionItem(field.name);
       property.setKind(CompletionItemKind.Property);
-      if (resultSet.add(field)) {
+      if (field.deprecated) {
+        property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
+      }
+      if (resultSet.add(field.name)) {
         results.add(property);
       }
     }
     return results;
   }
 
-  private static CompletionItem generateCompletionItemForMethod(String name, List<String> arguments) {
+  private static CompletionItem generateCompletionItemForMethod(String name, List<String> arguments, boolean deprecated) {
     StringBuilder labelBuilder = new StringBuilder();
     labelBuilder.append(name);
     labelBuilder.append("(");
@@ -204,6 +215,9 @@ public class CompletionHandler {
     labelBuilder.append(")");
     String label = labelBuilder.toString();
     CompletionItem item = new CompletionItem(label);
+    if (deprecated) {
+      item.setTags(Arrays.asList(CompletionItemTag.Deprecated));
+    }
     item.setKind(CompletionItemKind.Function);
     item.setInsertTextFormat(InsertTextFormat.Snippet);
     StringBuilder builder = new StringBuilder();
@@ -216,5 +230,14 @@ public class CompletionHandler {
     }
     item.setInsertText(builder.toString());
     return item;
+  }
+
+  private static boolean isDeprecated(FieldOrMethod object) {
+    for (Attribute attribute : object.getAttributes()) {
+      if (attribute.toString().contains("Deprecated")) {
+        return true;
+      }
+    }
+    return false;
   }
 }

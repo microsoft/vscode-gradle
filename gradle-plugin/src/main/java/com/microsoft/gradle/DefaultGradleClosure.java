@@ -9,13 +9,14 @@ import java.util.List;
 
 import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleField;
 
 public class DefaultGradleClosure implements GradleClosure, Serializable {
   private String name;
   private List<GradleMethod> methods;
-  private List<String> fields;
+  private List<GradleField> fields;
 
-  public DefaultGradleClosure(String name, List<GradleMethod> methods, List<String> fields) {
+  public DefaultGradleClosure(String name, List<GradleMethod> methods, List<GradleField> fields) {
     this.name = name;
     this.methods = methods;
     this.fields = fields;
@@ -33,7 +34,7 @@ public class DefaultGradleClosure implements GradleClosure, Serializable {
     return this.methods;
   }
 
-  public List<String> getFields() {
+  public List<GradleField> getFields() {
     return this.fields;
   }
 }
