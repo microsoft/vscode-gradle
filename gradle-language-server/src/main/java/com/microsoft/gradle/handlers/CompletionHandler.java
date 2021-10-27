@@ -244,18 +244,11 @@ public class CompletionHandler {
   }
 
   private static void setSortText(CompletionItem item) {
-    String label = item.getLabel();
-    List<CompletionItemTag> tags = item.getTags();
-    CompletionItemKind kind = item.getKind();
-    // priority: not deprecated > deprecated
-    int deprecatedValue = (tags != null && !tags.isEmpty()) ? 1 : 0;
     // priority: function > property
-    int kindValue = (kind == CompletionItemKind.Function) ? 0 : 1;
+    int kindValue = (item.getKind() == CompletionItemKind.Function) ? 0 : 1;
     StringBuilder builder = new StringBuilder();
-    // priority: deprecatedValue -> kindValue
-    builder.append(String.valueOf(deprecatedValue));
     builder.append(String.valueOf(kindValue));
-    builder.append(label);
+    builder.append(item.getLabel());
     item.setSortText(builder.toString());
   }
 }
