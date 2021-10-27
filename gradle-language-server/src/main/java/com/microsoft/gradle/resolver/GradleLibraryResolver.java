@@ -137,7 +137,7 @@ public class GradleLibraryResolver {
       String content = null;
       while ((content = reader.readLine()) != null) {
         if (content.startsWith("distributionUrl")) {
-          Pattern p = Pattern.compile("(gradle-(?s)(.*))-bin");
+          Pattern p = Pattern.compile("(gradle-(?s)(.*))-(bin|all)");
           Matcher matcher = p.matcher(content);
           if (matcher.find()) {
             String gradleDist = matcher.group(1);
