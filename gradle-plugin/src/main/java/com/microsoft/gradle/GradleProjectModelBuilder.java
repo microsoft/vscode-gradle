@@ -5,6 +5,7 @@ package com.microsoft.gradle;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -112,14 +113,21 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
       TypeOf<?> publicType = schema.getPublicType();
       Class<?> concreteClass = publicType.getConcreteClass();
       List<GradleMethod> methods = new ArrayList<>();
+      List<String> fields = new ArrayList<>();
       for (Method method : concreteClass.getMethods()) {
+        String name = method.getName();
         List<String> parameterTypes = new ArrayList<>();
         for (Class<?> parameterType : method.getParameterTypes()) {
           parameterTypes.add(parameterType.getName());
         }
-        methods.add(new DefaultGradleMethod(method.getName(), parameterTypes));
+        methods.add(new DefaultGradleMethod(name, parameterTypes));
+        int modifiers = method.getModifiers();
+        // See: https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
+        // we offer managed properties for an abstract getter method
+        if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers) && Modifier.isAbstract(modifiers)) {
+          fields.add(name.substring(3, 4).toLowerCase() + name.substring(4));
+        }
       }
-      List<String> fields = new ArrayList<>();
       for (Field field : concreteClass.getFields()) {
         fields.add(field.getName());
       }

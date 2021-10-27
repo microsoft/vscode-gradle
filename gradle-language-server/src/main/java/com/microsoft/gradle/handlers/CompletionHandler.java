@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.microsoft.gradle.handlers;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,27 +41,35 @@ public class CompletionHandler {
   public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver, boolean javaPluginsIncluded) {
     List<CompletionItem> results = new ArrayList<>();
     Set<String> resultSet = new HashSet<>();
-    String delegateClassName = null;
+    List<String> delegateClassNames = new ArrayList<>();
     if (containingCall == null) {
       if (fileName.equals(BUILD_GRADLE)) {
-        delegateClassName = GradleDelegate.getDefault();
+        delegateClassNames.add(GradleDelegate.getDefault());
       } else if (fileName.equals(SETTING_GRADLE)) {
-        delegateClassName = GradleDelegate.getSettings();
+        delegateClassNames.add(GradleDelegate.getSettings());
       }
       results.addAll(getCompletionItemsFromExtClosures(resolver, resultSet));
     } else {
       String methodName = containingCall.getMethodAsString();
-      results.addAll(getCompletionItemsFromExtClosures(resolver, methodName, resultSet));
-      delegateClassName = GradleDelegate.getDelegateMap().get(methodName);
+      List<CompletionItem> re = getCompletionItemsFromExtClosures(resolver, methodName, resultSet);
+      results.addAll(re);
+      List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);
+      if (delegates == null) {
+        return results;
+      }
+      delegateClassNames.addAll(delegates);
     }
-    if (delegateClassName == null) {
+    if (delegateClassNames.isEmpty()) {
       return results;
     }
-    JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
-    if (delegateClass == null) {
-      return results;
+    for (String delegateClassName : delegateClassNames) {
+      JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
+      if (delegateClass == null) {
+        continue;
+      }
+      results.addAll(getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, resultSet));
+      break;
     }
-    results.addAll(getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, resultSet));
     return results;
   }
 
@@ -98,19 +107,15 @@ public class CompletionHandler {
       if (resultSet.add(item.getLabel())) {
         results.add(item);
       }
-    }
-    for (String methodName : methodNames) {
-      if (methodName.startsWith("set") && methodName.length() > 3) {
-        // for cases like setVersion() and getVersion(),
-        // we offer version as a property
-        String getMethod = "get" + methodName.substring(3);
-        if (methodNames.contains(getMethod)) {
-          String property = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
-          CompletionItem item = new CompletionItem(property);
-          item.setKind(CompletionItemKind.Property);
-          if (resultSet.add(property)) {
-            results.add(item);
-          }
+      int modifiers = method.getModifiers();
+      // See: https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
+      // we offer managed properties for an abstract getter method
+      if (methodName.startsWith("get") && methodName.length() > 3 && Modifier.isPublic(modifiers) && Modifier.isAbstract(modifiers)) {
+        String propertyName = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
+        CompletionItem property = new CompletionItem(propertyName);
+        property.setKind(CompletionItemKind.Property);
+        if (resultSet.add(propertyName)) {
+          results.add(property);
         }
       }
     }
@@ -168,6 +173,13 @@ public class CompletionHandler {
       CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes));
       if (resultSet.add(item.getLabel())) {
         results.add(item);
+      }
+    }
+    for (String field : closure.fields) {
+      CompletionItem property = new CompletionItem(field);
+      property.setKind(CompletionItemKind.Property);
+      if (resultSet.add(field)) {
+        results.add(property);
       }
     }
     return results;
