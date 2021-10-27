@@ -59,12 +59,13 @@ public class CompletionHandler {
       results.addAll(re);
       List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);
       if (delegates == null) {
+        results.forEach(result -> setSortText(result));
         return results;
       }
       delegateClassNames.addAll(delegates);
     }
     if (delegateClassNames.isEmpty()) {
-      return results;
+      return Collections.emptyList();
     }
     for (String delegateClassName : delegateClassNames) {
       JavaClass delegateClass = resolver.getGradleClasses().get(delegateClassName);
@@ -74,6 +75,7 @@ public class CompletionHandler {
       results.addAll(getCompletionItemsFromClass(delegateClass, resolver, javaPluginsIncluded, resultSet));
       break;
     }
+    results.forEach(result -> setSortText(result));
     return results;
   }
 
@@ -239,5 +241,21 @@ public class CompletionHandler {
       }
     }
     return false;
+  }
+
+  private static void setSortText(CompletionItem item) {
+    String label = item.getLabel();
+    List<CompletionItemTag> tags = item.getTags();
+    CompletionItemKind kind = item.getKind();
+    // priority: not deprecated > deprecated
+    int deprecatedValue = (tags != null && !tags.isEmpty()) ? 1 : 0;
+    // priority: function > property
+    int kindValue = (kind == CompletionItemKind.Function) ? 0 : 1;
+    StringBuilder builder = new StringBuilder();
+    // priority: deprecatedValue -> kindValue
+    builder.append(String.valueOf(deprecatedValue));
+    builder.append(String.valueOf(kindValue));
+    builder.append(label);
+    item.setSortText(builder.toString());
   }
 }
