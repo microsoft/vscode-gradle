@@ -9,7 +9,6 @@ import {
 } from '../../util/config';
 import { Deferred } from '../../util/Deferred';
 import { HintItem } from '../gradleTasks/HintItem';
-import { getSpecificVersionStatus } from './util';
 
 export class GradleDaemonsTreeDataProvider
   implements vscode.TreeDataProvider<vscode.TreeItem>
@@ -26,22 +25,7 @@ export class GradleDaemonsTreeDataProvider
     private readonly context: vscode.ExtensionContext,
     private readonly rootProjectsStore: RootProjectsStore,
     private readonly client: GradleClient
-  ) {
-    void this.setSpecificVersion(getSpecificVersionStatus());
-  }
-
-  public async setSpecificVersion(specificVersion: boolean): Promise<void> {
-    if (this.specificVersion === specificVersion) {
-      return;
-    }
-    this.specificVersion = specificVersion;
-    await vscode.commands.executeCommand(
-      'setContext',
-      'gradle:specificGradleVersion',
-      specificVersion
-    );
-    this.refresh();
-  }
+  ) {}
 
   public refresh(): void {
     this.cancelDeferred?.resolve(this.treeItems);
@@ -95,7 +79,13 @@ export class GradleDaemonsTreeDataProvider
       this.cancelDeferred.promise,
     ]);
     this.cancelDeferred = undefined;
-    if (this.treeItems.length) {
+    const length = this.treeItems.length;
+    await vscode.commands.executeCommand(
+      'setContext',
+      'gradle:hasValidDaemons',
+      length
+    );
+    if (length) {
       return this.treeItems;
     }
     return this.specificVersion

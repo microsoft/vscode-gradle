@@ -35,6 +35,12 @@ public class GetDaemonsStatusHandler {
     GradleProjectConnectionType connectionType = GradleProjectConnector.getConnectionType();
     if (connectionType == GradleProjectConnectionType.WRAPPER) {
       File projectRoot = new File(req.getProjectDir());
+      // get daemon status needs to use wrapper execution
+      // when java.import.gradle.wrapper.enabled is set to true
+      if (!GradleWrapper.hasValidWrapper(projectRoot)) {
+        replyWithSuccess(new ArrayList<>());
+        return;
+      }
       GradleWrapper gradleWrapper = new GradleWrapper(projectRoot);
       daemonStatus = new DaemonStatus(gradleWrapper);
     } else if (connectionType == GradleProjectConnectionType.LOCALINSTALLATION) {

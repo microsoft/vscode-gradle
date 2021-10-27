@@ -39,7 +39,6 @@ import { FileWatcher } from './util/FileWatcher';
 import { DependencyTreeItem } from './views/gradleTasks/DependencyTreeItem';
 import { GRADLE_DEPENDENCY_REVEAL } from './views/gradleTasks/DependencyUtils';
 import { GradleDependencyProvider } from './dependencies/GradleDependencyProvider';
-import { getSpecificVersionStatus } from './views/gradleDaemons/util';
 import {
   isLanguageServerStarted,
   startLanguageServer,
@@ -367,9 +366,6 @@ export class Extension {
             event.affectsConfiguration('java.import.gradle.wrapper.enabled')
           ) {
             await this.refresh();
-            void this.gradleDaemonsTreeDataProvider.setSpecificVersion(
-              getSpecificVersionStatus()
-            );
           }
         }
       ),

@@ -32,6 +32,13 @@ public class StopDaemonsHandler {
       GradleExecution gradleExecution = null;
       GradleProjectConnectionType connectionType = GradleProjectConnector.getConnectionType();
       if (connectionType == GradleProjectConnectionType.WRAPPER) {
+        if (!GradleWrapper.hasValidWrapper(projectRoot)) {
+          // When java.import.gradle.wrapper.enabled is set to true but no wrapper properties file
+          // is found,
+          // We'll show no daemon status, so stopping a daemon in this case is not supported.
+          replyWithError(new Exception("Unsupported operation."));
+          return;
+        }
         gradleExecution = new GradleWrapper(projectRoot);
       } else if (connectionType == GradleProjectConnectionType.LOCALINSTALLATION) {
         String localInstallation = GradleProjectConnector.getLocalInstallation();
