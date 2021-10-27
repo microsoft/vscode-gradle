@@ -3,6 +3,8 @@
 
 package com.microsoft.gradle;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -14,6 +16,7 @@ import java.util.Set;
 import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
+import com.microsoft.gradle.api.GradleField;
 import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleProjectModel;
 
@@ -113,27 +116,36 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
       TypeOf<?> publicType = schema.getPublicType();
       Class<?> concreteClass = publicType.getConcreteClass();
       List<GradleMethod> methods = new ArrayList<>();
-      List<String> fields = new ArrayList<>();
+      List<GradleField> fields = new ArrayList<>();
       for (Method method : concreteClass.getMethods()) {
         String name = method.getName();
         List<String> parameterTypes = new ArrayList<>();
         for (Class<?> parameterType : method.getParameterTypes()) {
           parameterTypes.add(parameterType.getName());
         }
-        methods.add(new DefaultGradleMethod(name, parameterTypes));
+        methods.add(new DefaultGradleMethod(name, parameterTypes, isDeprecated(method)));
         int modifiers = method.getModifiers();
         // See: https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
         // we offer managed properties for an abstract getter method
         if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers) && Modifier.isAbstract(modifiers)) {
-          fields.add(name.substring(3, 4).toLowerCase() + name.substring(4));
+          fields.add(new DefaultGradleField(name.substring(3, 4).toLowerCase() + name.substring(4), isDeprecated(method)));
         }
       }
       for (Field field : concreteClass.getFields()) {
-        fields.add(field.getName());
+        fields.add(new DefaultGradleField(field.getName(), isDeprecated(field)));
       }
       DefaultGradleClosure closure = new DefaultGradleClosure(schema.getName(), methods, fields);
       closures.add(closure);
     }
     return closures;
+  }
+
+  private boolean isDeprecated(AccessibleObject object) {
+    for (Annotation annotation : object.getDeclaredAnnotations()) {
+      if (annotation.toString().contains("Deprecated")) {
+        return true;
+      }
+    }
+    return false;
   }
 }

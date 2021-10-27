@@ -18,11 +18,13 @@ import com.github.badsyntax.gradle.GetProjectsRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GrpcGradleClosure;
+import com.github.badsyntax.gradle.GrpcGradleField;
 import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleField;
 import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
@@ -111,10 +113,16 @@ public class GetProjectsHandler {
         GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
         methodBuilder.setName(method.getName());
         methodBuilder.addAllParameterTypes(method.getParameterTypes());
+        methodBuilder.setDeprecated(method.getDeprecated());
         closureBuilder.addMethods(methodBuilder.build());
       }
       closureBuilder.setName(closure.getName());
-      closureBuilder.addAllFields(closure.getFields());
+      for (GradleField field : closure.getFields()) {
+        GrpcGradleField.Builder fieldBuilder = GrpcGradleField.newBuilder();
+        fieldBuilder.setName(field.getName());
+        fieldBuilder.setDeprecated(field.getDeprecated());
+        closureBuilder.addFields(fieldBuilder.build());
+      }
       closures.add(closureBuilder.build());
     }
     return closures;

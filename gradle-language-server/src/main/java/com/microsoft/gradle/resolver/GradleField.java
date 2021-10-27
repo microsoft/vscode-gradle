@@ -3,8 +3,7 @@
 
 package com.microsoft.gradle.resolver;
 
-public class GradleClosure {
+public class GradleField {
   public String name;
-  public GradleMethod[] methods;
-  public GradleField[] fields;
+  public boolean deprecated;
 }

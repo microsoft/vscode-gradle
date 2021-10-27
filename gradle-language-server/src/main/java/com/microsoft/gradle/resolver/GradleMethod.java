@@ -6,4 +6,5 @@ package com.microsoft.gradle.resolver;
 public class GradleMethod {
   public String name;
   public String[] parameterTypes;
+  public boolean deprecated;
 }

@@ -70,12 +70,18 @@ message DependencyItem {
 message GrpcGradleClosure {
   string name = 1;
   repeated GrpcGradleMethod methods = 2;
-  repeated string fields = 3;
+  repeated GrpcGradleField fields = 3;
 }
 
 message GrpcGradleMethod {
   string name = 1;
   repeated string parameterTypes = 2;
+  bool deprecated = 3;
+}
+
+message GrpcGradleField {
+  string name = 1;
+  bool deprecated = 2;
 }
 
 message RunBuildRequest {

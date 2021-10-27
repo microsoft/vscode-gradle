@@ -158,12 +158,19 @@ export async function syncLanguageServer(
         return {
           name: method.getName(),
           parameterTypes: method.getParametertypesList(),
+          deprecated: method.getDeprecated(),
+        };
+      });
+      const JSONField = value.getFieldsList().map((field) => {
+        return {
+          name: field.getName(),
+          deprecated: field.getDeprecated(),
         };
       });
       return {
         name: value.getName(),
         methods: JSONMethod,
-        fields: value.getFieldsList(),
+        fields: JSONField,
       };
     });
     await vscode.commands.executeCommand('gradle.setClosures', closures);

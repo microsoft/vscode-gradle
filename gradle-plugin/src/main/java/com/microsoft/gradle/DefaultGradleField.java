@@ -4,27 +4,20 @@
 package com.microsoft.gradle;
 
 import java.io.Serializable;
-import java.util.List;
 
-import com.microsoft.gradle.api.GradleMethod;
+import com.microsoft.gradle.api.GradleField;
 
-public class DefaultGradleMethod implements Serializable, GradleMethod {
+public class DefaultGradleField implements Serializable, GradleField {
   private String name;
-  private List<String> parameterTypes;
   private boolean deprecated;
 
-  public DefaultGradleMethod(String name, List<String> parameterTypes, boolean deprecated) {
+  public DefaultGradleField(String name, boolean deprecated) {
     this.name = name;
-    this.parameterTypes = parameterTypes;
     this.deprecated = deprecated;
   }
 
   public String getName() {
     return this.name;
-  }
-
-  public List<String> getParameterTypes() {
-    return this.parameterTypes;
   }
 
   public boolean getDeprecated() {
