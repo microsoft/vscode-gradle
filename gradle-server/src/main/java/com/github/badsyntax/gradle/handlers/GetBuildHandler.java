@@ -136,26 +136,29 @@ public class GetBuildHandler {
   private Version getHighestJDKVersion(String gradleVersion) {
     // Ref: https://docs.gradle.org/current/userguide/compatibility.html
     Version gradleVer = new Version(gradleVersion);
-    if (gradleVer.isLowerThan("2.0.0")) {
-      return new Version("1.7.0");
-    } else if (gradleVer.isLowerThan("4.3.0")) {
-      return new Version("1.8.0");
-    } else if (gradleVer.isLowerThan("4.7.0")) {
-      return new Version("9.0.0");
-    } else if (gradleVer.isLowerThan("5.0.0")) {
-      return new Version("10.0.0");
-    } else if (gradleVer.isLowerThan("5.4.0")) {
-      return new Version("11.0.0");
-    } else if (gradleVer.isLowerThan("6.0.0")) {
-      return new Version("12.0.0");
-    } else if (gradleVer.isLowerThan("6.3.0")) {
-      return new Version("13.0.0");
-    } else if (gradleVer.isLowerThan("6.7.0")) {
-      return new Version("14.0.0");
-    } else if (gradleVer.isLowerThan("7.0.0")) {
-      return new Version("15.0.0");
+    if (gradleVer.isAtLeast("7.3.0", /* ignoreSuffix */ true)) {
+      // See: https://docs.gradle.org/7.3-rc-3/release-notes.html#java17
+      return new Version("17");
+    } else if (gradleVer.isAtLeast("7.0")) {
+      return new Version("16");
+    } else if (gradleVer.isAtLeast("6.7")) {
+      return new Version("15");
+    } else if (gradleVer.isAtLeast("6.3")) {
+      return new Version("14");
+    } else if (gradleVer.isAtLeast("6.0")) {
+      return new Version("13");
+    } else if (gradleVer.isAtLeast("5.4")) {
+      return new Version("12");
+    } else if (gradleVer.isAtLeast("5.0")) {
+      return new Version("11");
+    } else if (gradleVer.isAtLeast("4.7")) {
+      return new Version("10");
+    } else if (gradleVer.isAtLeast("4.3")) {
+      return new Version("9");
+    } else if (gradleVer.isAtLeast("2.0")) {
+      return new Version("1.8");
     }
-    return new Version("16.0.0");
+    return new Version("1.7");
   }
 
   private Environment buildEnvironment(ProjectConnection connection) {
