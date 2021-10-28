@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 3.8.1
 ### Added
 - Support auto completion for closures from plugins. [#1022](https://github.com/microsoft/vscode-gradle/issues/1022)
+- Support managed properties. [PR#1053](https://github.com/microsoft/vscode-gradle/pull/1053)
+- Support deprecated tags. [PR#1058](https://github.com/microsoft/vscode-gradle/pull/1058)
 
 ### Changed
 - Support Gradle projects without wrapper. [#1004](https://github.com/microsoft/vscode-gradle/issues/1004)
+- Sort the completion list by the kind. [#1051](https://github.com/microsoft/vscode-gradle/issues/1051)
 
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.1+is%3Aclosed)
