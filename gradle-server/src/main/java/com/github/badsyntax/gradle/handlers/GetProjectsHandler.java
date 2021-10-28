@@ -37,7 +37,9 @@ import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
 import org.gradle.tooling.GradleConnector;
+import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
+import org.gradle.tooling.model.build.BuildEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +66,9 @@ public class GetProjectsHandler {
     }
 
     try (ProjectConnection connection = gradleConnector.connect()) {
+      ModelBuilder<BuildEnvironment> buildEnvironment = connection.model(BuildEnvironment.class);
+      BuildEnvironment environment = buildEnvironment.get();
+      String gradleVersion = environment.getGradle().getGradleVersion();
       BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
       File initScript = PluginUtils.createInitScript();
       action.withArguments("--init-script", initScript.getAbsolutePath());
@@ -78,6 +83,7 @@ public class GetProjectsHandler {
               .addAllPlugins(gradleModel.getPlugins())
               .addAllPluginClosures(getPluginClosures(gradleModel))
               .addAllScriptClasspaths(gradleModel.getScriptClasspaths())
+              .setGradleVersion(gradleVersion)
               .build());
       responseObserver.onCompleted();
     } catch (IOException e) {

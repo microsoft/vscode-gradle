@@ -86,7 +86,7 @@ import org.eclipse.lsp4j.util.Ranges;
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
   public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies", "gradle.distributionChanged",
-      "gradle.setPlugins", "gradle.setClosures", "gradle.setScriptClasspaths");
+      "gradle.setPlugins", "gradle.setClosures", "gradle.setScriptClasspaths", "gradle.setProjectGradleVersion");
 
   private LanguageClient client;
   private GradleFilesManager gradleFilesManager;
@@ -352,6 +352,12 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       String[] scriptClasspaths = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
       this.gradleFilesManager.setScriptClasspaths(Arrays.asList(scriptClasspaths));
       this.recompileAll();
+    } else if (command.equals("gradle.setProjectGradleVersion")) {
+      if (arguments.isEmpty()) {
+        return CompletableFuture.completedFuture(null);
+      }
+      String projectGradleVersion = new Gson().fromJson((JsonElement) arguments.get(0), String.class);
+      this.libraryResolver.setProjectGradleVersion(projectGradleVersion);
     }
     return CompletableFuture.completedFuture(null);
   }

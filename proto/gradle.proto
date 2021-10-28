@@ -52,6 +52,7 @@ message GetProjectsReply {
   repeated string plugins = 2;
   repeated GrpcGradleClosure pluginClosures = 3;
   repeated string scriptClasspaths = 4;
+  string gradleVersion = 5;
 }
 
 enum GradleDependencyType

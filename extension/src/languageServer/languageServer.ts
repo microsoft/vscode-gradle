@@ -178,6 +178,10 @@ export async function syncLanguageServer(
       'gradle.setScriptClasspaths',
       projectContent.getScriptclasspathsList()
     );
+    await vscode.commands.executeCommand(
+      'gradle.setProjectGradleVersion',
+      projectContent.getGradleversion()
+    );
   }
 }
 

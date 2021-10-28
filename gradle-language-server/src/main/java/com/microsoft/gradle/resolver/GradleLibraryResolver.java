@@ -51,6 +51,7 @@ public class GradleLibraryResolver {
   private File coreAPI;
   private File pluginAPI;
   private boolean needToLoadClasses;
+  private String projectGradleVersion;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
@@ -77,6 +78,13 @@ public class GradleLibraryResolver {
     this.workspacePath = workspacePath;
   }
 
+  public void setProjectGradleVersion(String version) {
+    if (!version.equals(this.projectGradleVersion)) {
+      this.projectGradleVersion = version;
+      this.needToLoadClasses = true;
+    }
+  }
+
   public Map<String, JavaClass> getGradleClasses() {
     return this.gradleClasses;
   }
@@ -89,11 +97,20 @@ public class GradleLibraryResolver {
     this.needToLoadClasses = true;
     Path gradleUserHomePath = (this.gradleUserHome == null) ? Paths.get(System.getProperty("user.home"), ".gradle")
         : Paths.get(this.gradleUserHome);
-    if (this.gradleWrapperEnabled) {
+    if (this.projectGradleVersion != null) {
+      // after getting project info, we can resolve libraries in case of
+      // 1. use local installation 2.use a wrapper or specific version
+      if (isUsingLocalInstallation()) {
+        this.coreAPI = findCoreAPI(Paths.get(this.gradleHome).resolve("lib").toFile());
+      } else {
+        this.coreAPI = findCoreAPIWithDist(gradleUserHomePath, "gradle-" + this.projectGradleVersion);
+      }
+    } // before getting project info, we can resolve libraries info from settings
+    else if (isUsingWrapper()) {
       this.coreAPI = findCoreAPIWithWrapper(gradleUserHomePath);
-    } else if (this.gradleVersion != null) {
+    } else if (isUsingGradleVersion()) {
       this.coreAPI = findCoreAPIWithDist(gradleUserHomePath, "gradle-" + this.gradleVersion);
-    } else if (this.gradleHome != null) {
+    } else if (isUsingLocalInstallation()) {
       this.coreAPI = findCoreAPI(Paths.get(this.gradleHome).resolve("lib").toFile());
     } else {
       return false;
@@ -286,5 +303,17 @@ public class GradleLibraryResolver {
 
   private static boolean isValidFolder(File folder) {
     return folder != null && folder.exists() && folder.isDirectory();
+  }
+
+  private boolean isUsingWrapper() {
+    return this.gradleWrapperEnabled;
+  }
+
+  private boolean isUsingGradleVersion() {
+    return !this.gradleWrapperEnabled && this.gradleVersion != null;
+  }
+
+  private boolean isUsingLocalInstallation() {
+    return !this.gradleWrapperEnabled && this.gradleVersion == null && this.gradleHome != null;
   }
 }
