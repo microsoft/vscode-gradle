@@ -17,9 +17,9 @@ import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
-import com.github.zafarkhaja.semver.Version;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
+import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
 import java.util.HashSet;
@@ -101,9 +101,9 @@ public class GetBuildHandler {
         String gradleVersion = this.environment.getGradleEnvironment().getGradleVersion();
         String javaVersion = System.getProperty("java.version");
         Version highestJDKVersion = getHighestJDKVersion(gradleVersion);
-        if (highestJDKVersion.lessThan(createVersion(javaVersion))) {
+        if (highestJDKVersion.isLowerThan(javaVersion)) {
           replyWithCompatibilityCheckError(
-              gradleVersion, javaVersion, highestJDKVersion.getMajorVersion());
+              gradleVersion, javaVersion, highestJDKVersion.getMajor());
         }
       } else {
         String rootCause = getRootCause(e);
@@ -135,40 +135,30 @@ public class GetBuildHandler {
 
   private Version getHighestJDKVersion(String gradleVersion) {
     // Ref: https://docs.gradle.org/current/userguide/compatibility.html
-    Version gradleVer = createVersion(gradleVersion);
-    if (gradleVer.lessThan(Version.valueOf("2.0.0"))) {
-      return Version.valueOf("1.7.0");
-    } else if (gradleVer.lessThan(Version.valueOf("4.3.0"))) {
-      return Version.valueOf("1.8.0");
-    } else if (gradleVer.lessThan(Version.valueOf("4.7.0"))) {
-      return Version.valueOf("9.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("5.0.0"))) {
-      return Version.valueOf("10.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("5.4.0"))) {
-      return Version.valueOf("11.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("6.0.0"))) {
-      return Version.valueOf("12.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("6.3.0"))) {
-      return Version.valueOf("13.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("6.7.0"))) {
-      return Version.valueOf("14.0.0");
-    } else if (gradleVer.lessThan(Version.valueOf("7.0.0"))) {
-      return Version.valueOf("15.0.0");
+    Version gradleVer = new Version(gradleVersion);
+    if (gradleVer.isAtLeast("7.3.0", /* ignoreSuffix */ true)) {
+      // See: https://docs.gradle.org/7.3-rc-3/release-notes.html#java17
+      return new Version("17");
+    } else if (gradleVer.isAtLeast("7.0")) {
+      return new Version("16");
+    } else if (gradleVer.isAtLeast("6.7")) {
+      return new Version("15");
+    } else if (gradleVer.isAtLeast("6.3")) {
+      return new Version("14");
+    } else if (gradleVer.isAtLeast("6.0")) {
+      return new Version("13");
+    } else if (gradleVer.isAtLeast("5.4")) {
+      return new Version("12");
+    } else if (gradleVer.isAtLeast("5.0")) {
+      return new Version("11");
+    } else if (gradleVer.isAtLeast("4.7")) {
+      return new Version("10");
+    } else if (gradleVer.isAtLeast("4.3")) {
+      return new Version("9");
+    } else if (gradleVer.isAtLeast("2.0")) {
+      return new Version("1.8");
     }
-    return Version.valueOf("16.0.0");
-  }
-
-  private Version createVersion(String version) {
-    String[] versions = version.split("\\.");
-    switch (versions.length) {
-      case 0:
-        return Version.forIntegers(0);
-      case 1:
-        return Version.forIntegers(Integer.parseInt(versions[0]));
-      default:
-        // Patch version doesn't affect compatibility
-        return Version.forIntegers(Integer.parseInt(versions[0]), Integer.parseInt(versions[1]));
-    }
+    return new Version("1.7");
   }
 
   private Environment buildEnvironment(ProjectConnection connection) {
