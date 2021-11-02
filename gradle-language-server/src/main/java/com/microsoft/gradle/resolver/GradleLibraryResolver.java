@@ -136,13 +136,25 @@ public class GradleLibraryResolver {
     try (FileInputStream stream = new FileInputStream(propertiesFile)) {
       properties.load(stream);
       String distributionBase = properties.getProperty("distributionBase");
+      // We use default values if the properties are not specified
+      // See: https://docs.gradle.org/current/dsl/org.gradle.api.tasks.wrapper.Wrapper.html#N30F30
+      if (distributionBase == null) {
+        distributionBase = "GRADLE_USER_HOME";
+      }
       Path pathBase = getDistributionBase(distributionBase, gradleUserHomePath, this.workspacePath);
       if (pathBase == null) {
         return null;
       }
       String distributionPath = properties.getProperty("distributionPath");
+      if (distributionPath == null) {
+        distributionPath = "wrapper/dists";
+      }
       Path distPath = pathBase.resolve(distributionPath);
       String distributionUrl = properties.getProperty("distributionUrl");
+      // if distributionUrl is not specified, the import process will not be successful
+      if (distributionUrl == null) {
+        return null;
+      }
       Path fileName = Paths.get(new URL(distributionUrl).getPath()).getFileName();
       return findCoreAPIWithDist(distPath, Utils.getFileNameWithoutExtension(fileName));
     } catch (IOException e) {
