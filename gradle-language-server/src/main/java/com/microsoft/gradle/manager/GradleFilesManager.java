@@ -12,15 +12,19 @@
 package com.microsoft.gradle.manager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.compile.GradleDefaultImport;
+import com.microsoft.gradle.resolver.GradleLibraryResolver;
+import com.microsoft.gradle.utils.Utils;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -36,6 +40,8 @@ public class GradleFilesManager {
   private Map<URI, String> openFiles = new HashMap<>();
   private Map<URI, GradleCompilationUnit> unitStorage = new HashMap<>();
   private CompilerConfiguration config;
+  private List<String> scriptClasspaths = new ArrayList<>();
+  private List<String> gradleLibraries = new ArrayList<>();
 
   public GradleFilesManager() {
     this.config = new CompilerConfiguration();
@@ -46,7 +52,26 @@ public class GradleFilesManager {
   }
 
   public void setScriptClasspaths(List<String> scriptClasspaths) {
-    this.config.setClasspathList(scriptClasspaths);
+    if (!scriptClasspaths.isEmpty()) {
+      this.scriptClasspaths = scriptClasspaths;
+      this.updateConfigClasspathList();
+    }
+  }
+
+  public void setGradleLibraries(GradleLibraryResolver libraryResolver) {
+    File gradleLibraryFolder = libraryResolver.getGradleLibraryFolder();
+    List<String> allFiles = Utils.listAllFiles(gradleLibraryFolder);
+    if (!allFiles.isEmpty()) {
+      this.gradleLibraries = allFiles;
+      this.updateConfigClasspathList();
+    }
+  }
+
+  private void updateConfigClasspathList() {
+    List<String> classpathList = new ArrayList<>();
+    classpathList.addAll(this.scriptClasspaths);
+    classpathList.addAll(this.gradleLibraries);
+    this.config.setClasspathList(classpathList);
   }
 
   public Map<URI, GradleCompilationUnit> getUnitStorage() {

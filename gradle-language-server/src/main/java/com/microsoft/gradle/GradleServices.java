@@ -101,7 +101,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     this.semanticTokenVisitor = new SemanticTokenVisitor();
     this.documentSymbolVisitor = new DocumentSymbolVisitor();
     this.completionVisitor = new CompletionVisitor();
-    this.libraryResolver = new GradleLibraryResolver();
+    this.libraryResolver = new GradleLibraryResolver(this.gradleFilesManager);
     this.defaultDependenciesHandler = new DefaultDependenciesHandler();
   }
 
