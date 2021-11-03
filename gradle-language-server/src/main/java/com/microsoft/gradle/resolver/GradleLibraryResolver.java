@@ -13,6 +13,7 @@ package com.microsoft.gradle.resolver;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,8 +54,10 @@ public class GradleLibraryResolver {
   private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
-  private Set<String> projectPlugins = new HashSet<>();
-  private Map<String, GradleClosure> extClosures = new HashMap<>();
+  // <projectPath, pluginsList>
+  private Map<String, List<String>> projectPlugins = new HashMap<>();
+  // <projectPath, closureList>
+  private Map<String, List<GradleClosure>> extClosures = new HashMap<>();
   private String gradleHome;
   private String gradleVersion;
   private boolean gradleWrapperEnabled;
@@ -98,6 +101,10 @@ public class GradleLibraryResolver {
 
   public Set<String> getJavaConfigurations() {
     return this.javaConfigurations;
+  }
+
+  public List<GradleClosure> getExtClosures(String projectPath) {
+    return this.extClosures.get(projectPath);
   }
 
   public boolean resolveGradleAPI() {
@@ -280,15 +287,8 @@ public class GradleLibraryResolver {
     }
   }
 
-  public void setExtClosures(List<GradleClosure> closures) {
-    this.extClosures.clear();
-    for (GradleClosure closure : closures) {
-      this.extClosures.put(closure.name, closure);
-    }
-  }
-
-  public Map<String, GradleClosure> getExtClosures() {
-    return this.extClosures;
+  public void setExtClosures(String projectPath, List<GradleClosure> closures) {
+    this.extClosures.put(projectPath, closures);
   }
 
   private static String removeQuotes(String original) {
@@ -300,14 +300,17 @@ public class GradleLibraryResolver {
     return original.substring(1, original.length() - 1);
   }
 
-  public void setProjectPlugins(List<String> plugins) {
-    this.projectPlugins.clear();
-    this.projectPlugins.addAll(plugins);
+  public void setProjectPlugins(String projectPath, List<String> plugins) {
+    this.projectPlugins.put(projectPath, plugins);
   }
 
-  public boolean isJavaPluginsIncluded(Set<String> plugins) {
-    if (this.projectPlugins.contains("java")) {
-      return true;
+  public boolean isJavaPluginsIncluded(URI uri, Set<String> plugins) {
+    String folderPath = Utils.getFolderPath(uri);
+    if (folderPath != null) {
+      List<String> pluginsList = this.projectPlugins.get(folderPath);
+      if (pluginsList != null && pluginsList.contains("java")) {
+        return true;
+      }
     }
     for (String plugin : plugins) {
       if (this.javaPlugins.contains(plugin)) {

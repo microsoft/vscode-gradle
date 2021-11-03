@@ -4,7 +4,9 @@
 package com.microsoft.gradle.utils;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,5 +55,14 @@ public class Utils {
       }
     }
     return allFiles;
+  }
+
+  public static String getFolderPath(URI uri) {
+    Path path = Paths.get(uri);
+    Path folderPath = path.getParent();
+    if (folderPath == null) {
+      return null;
+    }
+    return folderPath.toString();
   }
 }

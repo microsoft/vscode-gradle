@@ -25,7 +25,7 @@ export class GradleProjectContentProvider {
     );
     if (projectContent) {
       this.cachedContent.set(projectPath, projectContent);
-      await syncLanguageServer(projectContent);
+      await syncLanguageServer(projectPath, projectContent);
     }
     return projectContent;
   }

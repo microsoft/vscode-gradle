@@ -22,6 +22,7 @@ import java.util.Map;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.compile.GradleDefaultImport;
+import com.microsoft.gradle.utils.Utils;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -36,35 +37,48 @@ import groovy.lang.GroovyClassLoader;
 public class GradleFilesManager {
   private Map<URI, String> openFiles = new HashMap<>();
   private Map<URI, GradleCompilationUnit> unitStorage = new HashMap<>();
-  private CompilerConfiguration config;
-  private List<String> scriptClasspaths = new ArrayList<>();
+  private Map<String, CompilerConfiguration> configs = new HashMap<>();
+  private Map<String, List<String>> scriptClasspaths = new HashMap<>();
   private List<String> gradleLibraries = new ArrayList<>();
 
-  public GradleFilesManager() {
-    this.config = new CompilerConfiguration();
+  private CompilerConfiguration createCompilerConfiguration() {
+    CompilerConfiguration config = new CompilerConfiguration();
     ImportCustomizer customizer = new ImportCustomizer();
     customizer.addStarImports(
         GradleDefaultImport.defaultStarImports.toArray(new String[GradleDefaultImport.defaultStarImports.size()]));
-    this.config.addCompilationCustomizers(customizer);
+    config.addCompilationCustomizers(customizer);
+    return config;
   }
 
-  public void setScriptClasspaths(List<String> scriptClasspaths) {
-    if (!scriptClasspaths.isEmpty()) {
-      this.scriptClasspaths = scriptClasspaths;
-      this.updateConfigClasspathList();
-    }
+  public void setScriptClasspaths(String projectPath, List<String> scriptClasspaths) {
+    this.scriptClasspaths.put(projectPath, scriptClasspaths);
+    this.createOrUpdateConfig(projectPath);
   }
 
   public void setGradleLibraries(List<String> gradleLibraries) {
     this.gradleLibraries = gradleLibraries;
-    this.updateConfigClasspathList();
+    for (String projectPath : this.configs.keySet()) {
+      this.createOrUpdateConfig(projectPath);
+    }
   }
 
-  private void updateConfigClasspathList() {
+  private CompilerConfiguration createOrUpdateConfig(String projectPath) {
     List<String> classpathList = new ArrayList<>();
-    classpathList.addAll(this.scriptClasspaths);
+    List<String> classpaths = this.scriptClasspaths.get(projectPath);
+    if (classpaths != null) {
+      classpathList.addAll(classpaths);
+    }
     classpathList.addAll(this.gradleLibraries);
-    this.config.setClasspathList(classpathList);
+    if (this.configs.containsKey(projectPath)) {
+      CompilerConfiguration config = this.configs.get(projectPath);
+      config.setClasspathList(classpathList);
+      return config;
+    } else {
+      CompilerConfiguration config = createCompilerConfiguration();
+      config.setClasspathList(classpathList);
+      this.configs.put(projectPath, config);
+      return config;
+    }
   }
 
   public Map<URI, GradleCompilationUnit> getUnitStorage() {
@@ -135,8 +149,10 @@ public class GradleFilesManager {
     if (!forceRecompile && this.unitStorage.containsKey(uri) && this.unitStorage.get(uri).getVersion().equals(version)) {
       return this.unitStorage.get(uri);
     }
-    GroovyClassLoader classLoader = new GroovyClassLoader(ClassLoader.getSystemClassLoader().getParent(), this.config, true);
-    GradleCompilationUnit unit = new GradleCompilationUnit(this.config, null, classLoader, version);
+    String projectPath = Utils.getFolderPath(uri);
+    CompilerConfiguration config = createOrUpdateConfig(projectPath);
+    GroovyClassLoader classLoader = new GroovyClassLoader(ClassLoader.getSystemClassLoader().getParent(), config, true);
+    GradleCompilationUnit unit = new GradleCompilationUnit(config, null, classLoader, version);
     SourceUnit sourceUnit = new SourceUnit(uri.toString(),
         new StringReaderSource(getContents(uri), unit.getConfiguration()), unit.getConfiguration(),
         unit.getClassLoader(), unit.getErrorCollector());

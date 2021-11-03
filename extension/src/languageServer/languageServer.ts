@@ -146,11 +146,13 @@ function getGradleSettings(): unknown {
 }
 
 export async function syncLanguageServer(
+  projectPath: string,
   projectContent: GetProjectsReply
 ): Promise<void> {
   if (isLanguageServerStarted) {
     await vscode.commands.executeCommand(
       'gradle.setPlugins',
+      projectPath,
       projectContent.getPluginsList()
     );
     const closures = projectContent.getPluginclosuresList().map((value) => {
@@ -173,9 +175,14 @@ export async function syncLanguageServer(
         fields: JSONField,
       };
     });
-    await vscode.commands.executeCommand('gradle.setClosures', closures);
+    await vscode.commands.executeCommand(
+      'gradle.setClosures',
+      projectPath,
+      closures
+    );
     await vscode.commands.executeCommand(
       'gradle.setScriptClasspaths',
+      projectPath,
       projectContent.getScriptclasspathsList()
     );
   }
