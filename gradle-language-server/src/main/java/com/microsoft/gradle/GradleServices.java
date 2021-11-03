@@ -43,6 +43,7 @@ import com.microsoft.gradle.resolver.GradleClosure;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
 import com.microsoft.gradle.semantictokens.SemanticToken;
 import com.microsoft.gradle.utils.LSPUtils;
+import com.microsoft.gradle.utils.Utils;
 
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
@@ -291,15 +292,16 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       }
     }
     this.libraryResolver.loadGradleClasses();
-    boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(this.completionVisitor.getPlugins(uri));
+    boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(uri, this.completionVisitor.getPlugins(uri));
     CompletionHandler handler = new CompletionHandler();
     // check again
+    String projectPath = Utils.getFolderPath(uri);
     if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
       return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null,
-          Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
+          Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
     }
     return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCall,
-        Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
+        Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
   }
 
   @Override
@@ -337,20 +339,23 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);
       }
-      String[] plugins = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
-      this.libraryResolver.setProjectPlugins(Arrays.asList(plugins));
+      String projectPath = new Gson().fromJson((JsonElement) arguments.get(0), String.class);
+      String[] plugins = new Gson().fromJson((JsonElement) arguments.get(1), String[].class);
+      this.libraryResolver.setProjectPlugins(projectPath, Arrays.asList(plugins));
     } else if (command.equals("gradle.setClosures")) {
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);
       }
-      GradleClosure[] closures = new Gson().fromJson((JsonElement) arguments.get(0), GradleClosure[].class);
-      this.libraryResolver.setExtClosures(Arrays.asList(closures));
+      String projectPath = new Gson().fromJson((JsonElement) arguments.get(0), String.class);
+      GradleClosure[] closures = new Gson().fromJson((JsonElement) arguments.get(1), GradleClosure[].class);
+      this.libraryResolver.setExtClosures(projectPath, Arrays.asList(closures));
     } else if (command.equals("gradle.setScriptClasspaths")) {
       if (arguments.isEmpty()) {
         return CompletableFuture.completedFuture(null);
       }
-      String[] scriptClasspaths = new Gson().fromJson((JsonElement) arguments.get(0), String[].class);
-      this.gradleFilesManager.setScriptClasspaths(Arrays.asList(scriptClasspaths));
+      String projectPath = new Gson().fromJson((JsonElement) arguments.get(0), String.class);
+      String[] scriptClasspaths = new Gson().fromJson((JsonElement) arguments.get(1), String[].class);
+      this.gradleFilesManager.setScriptClasspaths(projectPath, Arrays.asList(scriptClasspaths));
       this.recompileAll();
     }
     return CompletableFuture.completedFuture(null);

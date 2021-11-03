@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.microsoft.gradle.delegate.GradleDelegate;
@@ -42,7 +41,8 @@ public class CompletionHandler {
   private static String SETTING_GRADLE = "settings.gradle";
   private static String DEPENDENCYHANDLER_CLASS = "org.gradle.api.artifacts.dsl.DependencyHandler";
 
-  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName, GradleLibraryResolver resolver, boolean javaPluginsIncluded) {
+  public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName,
+    GradleLibraryResolver resolver, boolean javaPluginsIncluded, String projectPath) {
     List<CompletionItem> results = new ArrayList<>();
     Set<String> resultSet = new HashSet<>();
     List<String> delegateClassNames = new ArrayList<>();
@@ -52,10 +52,10 @@ public class CompletionHandler {
       } else if (fileName.equals(SETTING_GRADLE)) {
         delegateClassNames.add(GradleDelegate.getSettings());
       }
-      results.addAll(getCompletionItemsFromExtClosures(resolver, resultSet));
+      results.addAll(getCompletionItemsFromExtClosures(resolver, projectPath, resultSet));
     } else {
       String methodName = containingCall.getMethodAsString();
-      List<CompletionItem> re = getCompletionItemsFromExtClosures(resolver, methodName, resultSet);
+      List<CompletionItem> re = getCompletionItemsFromExtClosures(resolver, projectPath, methodName, resultSet);
       results.addAll(re);
       List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);
       if (delegates == null) {
@@ -148,21 +148,21 @@ public class CompletionHandler {
     return results;
   }
 
-  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, Set<String> resultSet) {
-    Map<String, GradleClosure> extClosures = resolver.getExtClosures();
+  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, String projectPath, Set<String> resultSet) {
+    List<GradleClosure> extClosures = resolver.getExtClosures(projectPath);
     if (extClosures == null || extClosures.isEmpty()) {
       return Collections.emptyList();
     }
     List<CompletionItem> results = new ArrayList<>();
-    for (String closure : extClosures.keySet()) {
+    for (GradleClosure closure : extClosures) {
       StringBuilder titleBuilder = new StringBuilder();
-      titleBuilder.append(closure);
+      titleBuilder.append(closure.name);
       titleBuilder.append("(Closure c)");
       CompletionItem item = new CompletionItem(titleBuilder.toString());
       item.setKind(CompletionItemKind.Function);
       item.setInsertTextFormat(InsertTextFormat.Snippet);
       StringBuilder insertTextBuilder = new StringBuilder();
-      insertTextBuilder.append(closure);
+      insertTextBuilder.append(closure.name);
       insertTextBuilder.append(" {$0}");
       item.setInsertText(insertTextBuilder.toString());
       if (resultSet.add(item.getLabel())) {
@@ -172,30 +172,34 @@ public class CompletionHandler {
     return results;
   }
 
-  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, String closureName, Set<String> resultSet) {
-    Map<String, GradleClosure> extClosures = resolver.getExtClosures();
-    if (extClosures == null || extClosures.isEmpty() || !extClosures.containsKey(closureName)) {
+  private List<CompletionItem> getCompletionItemsFromExtClosures(GradleLibraryResolver resolver, String projectPath, String closureName, Set<String> resultSet) {
+    List<GradleClosure> extClosures = resolver.getExtClosures(projectPath);
+    if (extClosures == null || extClosures.isEmpty()) {
       return Collections.emptyList();
     }
     List<CompletionItem> results = new ArrayList<>();
-    GradleClosure closure = extClosures.get(closureName);
-    for (GradleMethod method : closure.methods) {
-      CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes), method.deprecated);
-      if (resultSet.add(item.getLabel())) {
-        results.add(item);
+    for (GradleClosure closure : extClosures) {
+      if (closure.name.equals(closureName)) {
+        for (GradleMethod method : closure.methods) {
+          CompletionItem item = generateCompletionItemForMethod(method.name, Arrays.asList(method.parameterTypes), method.deprecated);
+          if (resultSet.add(item.getLabel())) {
+            results.add(item);
+          }
+        }
+        for (GradleField field : closure.fields) {
+          CompletionItem property = new CompletionItem(field.name);
+          property.setKind(CompletionItemKind.Property);
+          if (field.deprecated) {
+            property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
+          }
+          if (resultSet.add(field.name)) {
+            results.add(property);
+          }
+        }
+        return results;
       }
     }
-    for (GradleField field : closure.fields) {
-      CompletionItem property = new CompletionItem(field.name);
-      property.setKind(CompletionItemKind.Property);
-      if (field.deprecated) {
-        property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
-      }
-      if (resultSet.add(field.name)) {
-        results.add(property);
-      }
-    }
-    return results;
+    return Collections.emptyList();
   }
 
   private static CompletionItem generateCompletionItemForMethod(String name, List<String> arguments, boolean deprecated) {
