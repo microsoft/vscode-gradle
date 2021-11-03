@@ -63,7 +63,6 @@ public class GradleLibraryResolver {
   private File pluginAPI;
   private boolean needToLoadClasses;
   private Path gradleUserHomePath;
-  private File gradleLibraryFolder;
 
   public GradleLibraryResolver(GradleFilesManager gradleFilesManager) {
     this.gradleFilesManager = gradleFilesManager;
@@ -99,10 +98,6 @@ public class GradleLibraryResolver {
 
   public Set<String> getJavaConfigurations() {
     return this.javaConfigurations;
-  }
-
-  public File getGradleLibraryFolder() {
-    return this.gradleLibraryFolder;
   }
 
   public boolean resolveGradleAPI() {
@@ -217,8 +212,7 @@ public class GradleLibraryResolver {
             // libFolder matches
             // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}/lib
             if (Utils.isValidFolder(libFolder)) {
-              this.gradleLibraryFolder = libFolder;
-              this.gradleFilesManager.setGradleLibraries(this);
+              this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
               return libFolder;
             }
           }

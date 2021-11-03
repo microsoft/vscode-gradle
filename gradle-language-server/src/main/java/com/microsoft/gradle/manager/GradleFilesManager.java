@@ -12,7 +12,6 @@
 package com.microsoft.gradle.manager;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
@@ -23,8 +22,6 @@ import java.util.Map;
 
 import com.microsoft.gradle.compile.GradleCompilationUnit;
 import com.microsoft.gradle.compile.GradleDefaultImport;
-import com.microsoft.gradle.resolver.GradleLibraryResolver;
-import com.microsoft.gradle.utils.Utils;
 
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -58,13 +55,9 @@ public class GradleFilesManager {
     }
   }
 
-  public void setGradleLibraries(GradleLibraryResolver libraryResolver) {
-    File gradleLibraryFolder = libraryResolver.getGradleLibraryFolder();
-    List<String> allFiles = Utils.listAllFiles(gradleLibraryFolder);
-    if (!allFiles.isEmpty()) {
-      this.gradleLibraries = allFiles;
-      this.updateConfigClasspathList();
-    }
+  public void setGradleLibraries(List<String> gradleLibraries) {
+    this.gradleLibraries = gradleLibraries;
+    this.updateConfigClasspathList();
   }
 
   private void updateConfigClasspathList() {
