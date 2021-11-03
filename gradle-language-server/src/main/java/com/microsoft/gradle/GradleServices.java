@@ -159,7 +159,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
       this.getLibraryResolver().setGradleHome((String) ((Map<?, ?>) settings).get("gradleHome"));
       this.getLibraryResolver().setGradleVersion((String) ((Map<?, ?>) settings).get("gradleVersion"));
       this.getLibraryResolver().setGradleWrapperEnabled((Boolean) ((Map<?, ?>) settings).get("gradleWrapperEnabled"));
-      this.getLibraryResolver().setGradleUserHome((String) ((Map<?, ?>) settings).get("gradleUserHome"));
+      this.getLibraryResolver().setGradleUserHomePath((String) ((Map<?, ?>) settings).get("gradleUserHome"));
       this.getLibraryResolver().resolveGradleAPI();
     }
   }
