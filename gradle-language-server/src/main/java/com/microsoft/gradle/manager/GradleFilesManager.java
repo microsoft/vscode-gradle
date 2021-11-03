@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,8 @@ public class GradleFilesManager {
   private Map<URI, String> openFiles = new HashMap<>();
   private Map<URI, GradleCompilationUnit> unitStorage = new HashMap<>();
   private CompilerConfiguration config;
+  private List<String> scriptClasspaths = new ArrayList<>();
+  private List<String> gradleLibraries = new ArrayList<>();
 
   public GradleFilesManager() {
     this.config = new CompilerConfiguration();
@@ -46,7 +49,22 @@ public class GradleFilesManager {
   }
 
   public void setScriptClasspaths(List<String> scriptClasspaths) {
-    this.config.setClasspathList(scriptClasspaths);
+    if (!scriptClasspaths.isEmpty()) {
+      this.scriptClasspaths = scriptClasspaths;
+      this.updateConfigClasspathList();
+    }
+  }
+
+  public void setGradleLibraries(List<String> gradleLibraries) {
+    this.gradleLibraries = gradleLibraries;
+    this.updateConfigClasspathList();
+  }
+
+  private void updateConfigClasspathList() {
+    List<String> classpathList = new ArrayList<>();
+    classpathList.addAll(this.scriptClasspaths);
+    classpathList.addAll(this.gradleLibraries);
+    this.config.setClasspathList(classpathList);
   }
 
   public Map<URI, GradleCompilationUnit> getUnitStorage() {

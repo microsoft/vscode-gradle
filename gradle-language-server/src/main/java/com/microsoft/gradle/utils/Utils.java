@@ -5,6 +5,9 @@ package com.microsoft.gradle.utils;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Utils {
 
@@ -35,5 +38,20 @@ public class Utils {
       }
     }
     return null;
+  }
+
+  public static List<String> listAllFiles(File folder) {
+    if (!isValidFolder(folder)) {
+      return Collections.emptyList();
+    }
+    List<String> allFiles = new ArrayList<>();
+    for (File file : folder.listFiles()) {
+      if (file.isDirectory()) {
+        allFiles.addAll(listAllFiles(file));
+      } else {
+        allFiles.add(file.getAbsolutePath());
+      }
+    }
+    return allFiles;
   }
 }

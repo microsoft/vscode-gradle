@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import com.microsoft.gradle.manager.GradleFilesManager;
 import com.microsoft.gradle.utils.Utils;
 
 import org.apache.bcel.classfile.ClassFormatException;
@@ -48,6 +49,7 @@ public class GradleLibraryResolver {
 
   private static String JAVA_PLUGIN = "org.gradle.api.plugins.JavaPlugin";
 
+  private GradleFilesManager gradleFilesManager;
   private Map<String, JavaClass> gradleClasses = new HashMap<>();
   private Set<String> javaConfigurations = new HashSet<>();
   private Set<String> javaPlugins = new HashSet<>();
@@ -62,7 +64,8 @@ public class GradleLibraryResolver {
   private boolean needToLoadClasses;
   private Path gradleUserHomePath;
 
-  public GradleLibraryResolver() {
+  public GradleLibraryResolver(GradleFilesManager gradleFilesManager) {
+    this.gradleFilesManager = gradleFilesManager;
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
     this.needToLoadClasses = true;
     this.gradleUserHomePath = Paths.get(System.getProperty("user.home"), ".gradle");
@@ -209,6 +212,7 @@ public class GradleLibraryResolver {
             // libFolder matches
             // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}/lib
             if (Utils.isValidFolder(libFolder)) {
+              this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
               return libFolder;
             }
           }
