@@ -36,6 +36,16 @@ import org.apache.bcel.classfile.JavaClass;
 
 public class GradleLibraryResolver {
 
+  private class DistInfo {
+    public Path distsPath;
+    public String distName;
+
+    public DistInfo(Path distsPath, String distName) {
+      this.distsPath = distsPath;
+      this.distName = distName;
+    }
+  }
+
   private static String JAVA_PLUGIN = "org.gradle.api.plugins.JavaPlugin";
 
   private Map<String, JavaClass> gradleClasses = new HashMap<>();
@@ -46,15 +56,16 @@ public class GradleLibraryResolver {
   private String gradleHome;
   private String gradleVersion;
   private boolean gradleWrapperEnabled;
-  private String gradleUserHome;
   private Path workspacePath;
   private File coreAPI;
   private File pluginAPI;
   private boolean needToLoadClasses;
+  private Path gradleUserHomePath;
 
   public GradleLibraryResolver() {
     this.javaPlugins.addAll(Arrays.asList("java", "application", "groovy", "java-library", "war"));
     this.needToLoadClasses = true;
+    this.gradleUserHomePath = Paths.get(System.getProperty("user.home"), ".gradle");
   }
 
   public void setGradleHome(String gradleHome) {
@@ -69,8 +80,9 @@ public class GradleLibraryResolver {
     this.gradleWrapperEnabled = gradleWrapperEnabled;
   }
 
-  public void setGradleUserHome(String gradleUserHome) {
-    this.gradleUserHome = gradleUserHome;
+  public void setGradleUserHomePath(String gradleUserHome) {
+    this.gradleUserHomePath = (gradleUserHome != null) ? Paths.get(gradleUserHome)
+        : Paths.get(System.getProperty("user.home"), ".gradle");
   }
 
   public void setWorkspacePath(Path workspacePath) {
@@ -87,20 +99,30 @@ public class GradleLibraryResolver {
 
   public boolean resolveGradleAPI() {
     this.needToLoadClasses = true;
-    Path gradleUserHomePath = (this.gradleUserHome == null) ? Paths.get(System.getProperty("user.home"), ".gradle")
-        : Paths.get(this.gradleUserHome);
+    // step 1: find "lib" folder
+    File libFolder = null;
     if (this.gradleWrapperEnabled) {
-      this.coreAPI = findCoreAPIWithWrapper(gradleUserHomePath);
+      DistInfo info = getWrapperPropertiesInfo();
+      if (info == null) {
+        return false;
+      }
+      libFolder = findLibFolder(info);
     } else if (this.gradleVersion != null) {
-      this.coreAPI = findCoreAPIWithDist(gradleUserHomePath.resolve(Paths.get("wrapper", "dists")), "gradle-" + this.gradleVersion);
+      Path distsPath = this.gradleUserHomePath.resolve(Paths.get("wrapper", "dists"));
+      String distName = "gradle-" + this.gradleVersion;
+      libFolder = findLibFolder(new DistInfo(distsPath, distName));
     } else if (this.gradleHome != null) {
-      this.coreAPI = findCoreAPI(Paths.get(this.gradleHome).resolve("lib").toFile());
-    } else {
+      libFolder = Paths.get(this.gradleHome).resolve("lib").toFile();
+    }
+    if (!Utils.isValidFolder(libFolder)) {
       return false;
     }
+    // step 2: find core API jar file
+    this.coreAPI = findCoreAPI(libFolder);
     if (!Utils.isValidFile(this.coreAPI)) {
       return false;
     }
+    // step 3: find plugin API jar file
     this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Paths.get("plugins")).toFile());
     return Utils.isValidFile(this.pluginAPI);
   }
@@ -122,7 +144,7 @@ public class GradleLibraryResolver {
     }
   }
 
-  private File findCoreAPIWithWrapper(Path gradleUserHomePath) {
+  private DistInfo getWrapperPropertiesInfo() {
     if (this.workspacePath == null) {
       return null;
     }
@@ -135,54 +157,59 @@ public class GradleLibraryResolver {
     Properties properties = new Properties();
     try (FileInputStream stream = new FileInputStream(propertiesFile)) {
       properties.load(stream);
-      String distributionBase = properties.getProperty("distributionBase");
+      String distributionBaseValue = properties.getProperty("distributionBase");
       // We use default values if the properties are not specified
-      // See: https://docs.gradle.org/current/dsl/org.gradle.api.tasks.wrapper.Wrapper.html#N30F30
-      if (distributionBase == null) {
-        distributionBase = "GRADLE_USER_HOME";
+      // See:
+      // https://docs.gradle.org/current/dsl/org.gradle.api.tasks.wrapper.Wrapper.html#N30F30
+      if (distributionBaseValue == null) {
+        distributionBaseValue = "GRADLE_USER_HOME";
       }
-      Path pathBase = getDistributionBase(distributionBase, gradleUserHomePath, this.workspacePath);
-      if (pathBase == null) {
+      Path distributionBase = getDistributionBase(distributionBaseValue);
+      if (distributionBase == null) {
         return null;
       }
       String distributionPath = properties.getProperty("distributionPath");
       if (distributionPath == null) {
         distributionPath = "wrapper/dists";
       }
-      Path distPath = pathBase.resolve(distributionPath);
+      Path distPath = distributionBase.resolve(distributionPath);
       String distributionUrl = properties.getProperty("distributionUrl");
-      // if distributionUrl is not specified, the import process will not be successful
+      // if distributionUrl is not specified, the import process will not be
+      // successful
       if (distributionUrl == null) {
         return null;
       }
       Path fileName = Paths.get(new URL(distributionUrl).getPath()).getFileName();
-      return findCoreAPIWithDist(distPath, Utils.getFileNameWithoutExtension(fileName));
+      return new DistInfo(distPath, Utils.getFileNameWithoutExtension(fileName));
     } catch (IOException e) {
       return null;
     }
   }
 
-  private File findCoreAPIWithDist(Path distPath, String gradleDist) {
-    File distFolder = distPath.toFile();
+  private File findLibFolder(DistInfo info) {
+    File distFolder = info.distsPath.toFile();
     // distFolder matches .gradle/wrapper/dists
     if (!Utils.isValidFolder(distFolder)) {
       return null;
     }
-    File targetFolder = Utils.findSubFolder(distFolder, gradleDist);
+    File targetFolder = Utils.findSubFolder(distFolder, info.distName);
     // targetFolder matches .gradle/wrapper/dists/${gradleDist}
     if (!Utils.isValidFolder(targetFolder)) {
       return null;
     }
     for (File internalValueFolder : targetFolder.listFiles()) {
       if (Utils.isValidFolder(internalValueFolder)) {
-        // internalValueFolder matches .gradle/wrapper/dists/${gradleDist}/internal-string
+        // internalValueFolder matches
+        // .gradle/wrapper/dists/${gradleDist}/internal-string
         for (File extractFolder : internalValueFolder.listFiles()) {
           if (Utils.isValidFolder(extractFolder)) {
-            // extractFolder matches .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}
+            // extractFolder matches
+            // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}
             File libFolder = extractFolder.toPath().resolve("lib").toFile();
-            // libFolder matches .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}/lib
+            // libFolder matches
+            // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}/lib
             if (Utils.isValidFolder(libFolder)) {
-              return findCoreAPI(libFolder);
+              return libFolder;
             }
           }
         }
@@ -286,12 +313,13 @@ public class GradleLibraryResolver {
     return false;
   }
 
-  private static Path getDistributionBase(String distributionBase, Path gradleUserHomePath, Path workspacePath) {
-    // See: https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/wrapper/Wrapper.PathBase.html
+  private Path getDistributionBase(String distributionBase) {
+    // See:
+    // https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/wrapper/Wrapper.PathBase.html
     if (distributionBase.equals("GRADLE_USER_HOME")) {
-      return gradleUserHomePath;
+      return this.gradleUserHomePath;
     } else if (distributionBase.equals("PROJECT")) {
-      return workspacePath;
+      return this.workspacePath;
     }
     return null;
   }
