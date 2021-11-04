@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { logger, LogVerbosity, Logger } from './logger';
 import { Api } from './api';
 import { GradleClient } from './client';
@@ -42,6 +43,7 @@ import { GradleDependencyProvider } from './dependencies/GradleDependencyProvide
 import {
   isLanguageServerStarted,
   startLanguageServer,
+  syncLanguageServer,
 } from './languageServer/languageServer';
 import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
 import { GradleProjectContentProvider } from './projectContent/GradleProjectContentProvider';
@@ -316,6 +318,11 @@ export class Extension {
     this.buildFileWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Build file changed:', uri.fsPath);
       await this.refresh();
+      void this.syncBuildFile(uri);
+    });
+    this.buildFileWatcher.onDidOpen(async (uri: vscode.Uri) => {
+      logger.info('Build file opened:', uri.fsPath);
+      void this.syncBuildFile(uri);
     });
     this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Gradle wrapper properties changed:', uri.fsPath);
@@ -324,6 +331,20 @@ export class Extension {
         void vscode.commands.executeCommand('gradle.distributionChanged');
       }
     });
+  }
+
+  private async syncBuildFile(uri: vscode.Uri): Promise<void> {
+    const fsPath = uri.fsPath;
+    const dirName = path.dirname(fsPath);
+    const baseName = path.basename(dirName);
+    const projectContent =
+      await this.gradleProjectContentProvider.getProjectContent(
+        dirName,
+        baseName
+      );
+    if (projectContent) {
+      await syncLanguageServer(dirName, projectContent);
+    }
   }
 
   private async restartServer(): Promise<void> {

@@ -198,10 +198,13 @@ async function handleLanguageServerStart(
       const projectPath = folders[0].uri.fsPath;
       // when language server starts, it knows nothing about the project
       // here to asynchronously sync the project content (plugins, closures) with language server
-      void contentProvider.getProjectContent(
+      const projectContent = await contentProvider.getProjectContent(
         projectPath,
         path.basename(projectPath)
       );
+      if (projectContent) {
+        await syncLanguageServer(projectPath, projectContent);
+      }
     }
   }
 }

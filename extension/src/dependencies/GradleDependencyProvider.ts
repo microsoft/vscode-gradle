@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as vscode from 'vscode';
+import { syncLanguageServer } from '../languageServer/languageServer';
 import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
 import { getDependencyConfigurationTreeItems } from '../views/gradleTasks/DependencyUtils';
 import { HintItem } from '../views/gradleTasks/HintItem';
@@ -29,6 +30,7 @@ export class GradleDependencyProvider {
       this.cachedDependencies.set(projectPath, noDependencies);
       return noDependencies;
     }
+    await syncLanguageServer(projectPath, project);
     const dependencyItem = project.getItem();
     if (dependencyItem) {
       const configItems = getDependencyConfigurationTreeItems(

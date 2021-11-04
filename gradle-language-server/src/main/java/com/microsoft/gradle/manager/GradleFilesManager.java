@@ -107,6 +107,10 @@ public class GradleFilesManager {
 
   public void didClose(URI uri) {
     openFiles.remove(uri);
+    this.unitStorage.remove(uri);
+    String projectPath = Utils.getFolderPath(uri);
+    this.configs.remove(projectPath);
+    this.scriptClasspaths.remove(projectPath);
   }
 
   public String getContents(URI uri) {
