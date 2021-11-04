@@ -127,6 +127,7 @@ public class GradleLibraryResolver {
     if (!Utils.isValidFolder(libFolder)) {
       return false;
     }
+    this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
     // step 2: find core API jar file
     this.coreAPI = findCoreAPI(libFolder);
     if (!Utils.isValidFile(this.coreAPI)) {
@@ -212,16 +213,12 @@ public class GradleLibraryResolver {
         // internalValueFolder matches
         // .gradle/wrapper/dists/${gradleDist}/internal-string
         for (File extractFolder : internalValueFolder.listFiles()) {
+          // extractFolder matches
+          // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}
           if (Utils.isValidFolder(extractFolder)) {
-            // extractFolder matches
-            // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}
-            File libFolder = extractFolder.toPath().resolve("lib").toFile();
-            // libFolder matches
+            // matches
             // .gradle/wrapper/dists/${gradleDist}/internal-string/${gradleVersion}/lib
-            if (Utils.isValidFolder(libFolder)) {
-              this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
-              return libFolder;
-            }
+            return extractFolder.toPath().resolve("lib").toFile();
           }
         }
       }
