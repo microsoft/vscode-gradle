@@ -317,8 +317,8 @@ export class Extension {
   private handleWatchEvents(): void {
     this.buildFileWatcher.onDidChange(async (uri: vscode.Uri) => {
       logger.info('Build file changed:', uri.fsPath);
-      void this.syncBuildFile(uri);
       await this.refresh();
+      void this.syncBuildFile(uri);
     });
     this.buildFileWatcher.onDidOpen(async (uri: vscode.Uri) => {
       logger.info('Build file opened:', uri.fsPath);
