@@ -252,7 +252,7 @@ public class GradleServerTest {
 
     stub.getBuild(req, mockResponseObserver);
     verify(mockResponseObserver, never()).onError(any());
-    verify(mockGradleProjectBuilder).setJvmArguments(jvmArgs);
+    verify(mockGradleProjectBuilder).setJvmArguments(jvmArgs.split(" "));
   }
 
   @Test
