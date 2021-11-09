@@ -488,7 +488,7 @@
         },
         {
           "command": "gradle.refresh",
-          "when": "view == gradleTasksView",
+          "when": "view == gradleTasksView || view == gradleDefaultProjectsView",
           "group": "navigation@3"
         },
         {
