@@ -264,6 +264,7 @@ This extension supports the following settings which are contributed by the [Jav
 - `java.import.gradle.java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (if set, this value takes precedence over `java.home`)
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
+> Note: There should be a space ` ` between two arguments
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
 - `java.import.gradle.version`: Gradle version, used if the Gradle wrapper is missing or disabled
 - `java.import.gradle.home`: Use Gradle from the specified local installation directory or GRADLE_HOME if the Gradle wrapper is missing or disabled and no 'java.import.gradle.version' is specified.

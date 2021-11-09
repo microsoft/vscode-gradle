@@ -175,6 +175,10 @@ public class GetBuildHandler {
         .addProgressListener(progressListener, progressEvents)
         .setStandardOutput(standardOutputListener)
         .setStandardError(standardErrorListener);
+    String jvmArguments = req.getGradleConfig().getJvmArguments();
+    if (!Strings.isNullOrEmpty(jvmArguments)) {
+      buildEnvironment.setJvmArguments(jvmArguments.split(" "));
+    }
 
     try {
       BuildEnvironment environment = buildEnvironment.get();
@@ -213,8 +217,9 @@ public class GetBuildHandler {
         .setStandardOutput(standardOutputListener)
         .setStandardError(standardErrorListener)
         .setColorOutput(req.getShowOutputColors());
-    if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
-      projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
+    String jvmArguments = req.getGradleConfig().getJvmArguments();
+    if (!Strings.isNullOrEmpty(jvmArguments)) {
+      projectBuilder.setJvmArguments(jvmArguments.split(" "));
     }
 
     try {
