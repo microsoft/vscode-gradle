@@ -10,6 +10,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class Utils {
 
@@ -57,6 +61,21 @@ public class Utils {
 		return allFiles;
 	}
 
+	public static List<File> listAllFiles(File folder, String ext) {
+		if (!isValidFolder(folder)) {
+			return Collections.emptyList();
+		}
+		List<File> allFiles = new ArrayList<>();
+		for (File file : folder.listFiles()) {
+			if (file.isDirectory()) {
+				allFiles.addAll(listAllFiles(file, ext));
+			} else if (file.getName().endsWith(ext)) {
+				allFiles.add(file);
+			}
+		}
+		return allFiles;
+	}
+
 	public static String getFolderPath(URI uri) {
 		Path path = Paths.get(uri);
 		Path folderPath = path.getParent();
@@ -64,5 +83,10 @@ public class Utils {
 			return null;
 		}
 		return folderPath.toString();
+	}
+
+	public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+		Set<Object> seen = ConcurrentHashMap.newKeySet();
+		return t -> seen.add(keyExtractor.apply(t));
 	}
 }

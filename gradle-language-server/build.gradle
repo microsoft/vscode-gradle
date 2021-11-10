@@ -41,6 +41,20 @@ jar {
   }
 }
 
+def mainJavaDir = 'src/main/java';
+def mainResourcesDir = 'src/main/resources';
+
+sourceSets {
+  main {
+    java {
+      srcDirs mainJavaDir
+    }
+    resources {
+      srcDirs mainResourcesDir
+    }
+  }
+}
+
 test {
   useJUnitPlatform()
 }
