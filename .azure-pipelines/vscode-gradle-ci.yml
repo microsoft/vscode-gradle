@@ -78,3 +78,8 @@ jobs:
       displayName: Publish VSIX
       inputs:
         ArtifactName: extension
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        scanType: 'Register'
+        verbosity: 'Verbose'
+        alertWarningLevel: 'High'
