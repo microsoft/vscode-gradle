@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
@@ -175,6 +176,13 @@ public class GetBuildHandler {
         .addProgressListener(progressListener, progressEvents)
         .setStandardOutput(standardOutputListener)
         .setStandardError(standardErrorListener);
+    String jvmArguments = req.getGradleConfig().getJvmArguments();
+    if (!Strings.isNullOrEmpty(jvmArguments)) {
+      buildEnvironment.setJvmArguments(
+          Arrays.stream(jvmArguments.split(" "))
+              .filter(e -> e != null && !e.isEmpty())
+              .toArray(String[]::new));
+    }
 
     try {
       BuildEnvironment environment = buildEnvironment.get();
@@ -213,8 +221,12 @@ public class GetBuildHandler {
         .setStandardOutput(standardOutputListener)
         .setStandardError(standardErrorListener)
         .setColorOutput(req.getShowOutputColors());
-    if (!Strings.isNullOrEmpty(req.getGradleConfig().getJvmArguments())) {
-      projectBuilder.setJvmArguments(req.getGradleConfig().getJvmArguments());
+    String jvmArguments = req.getGradleConfig().getJvmArguments();
+    if (!Strings.isNullOrEmpty(jvmArguments)) {
+      projectBuilder.setJvmArguments(
+          Arrays.stream(jvmArguments.split(" "))
+              .filter(e -> e != null && !e.isEmpty())
+              .toArray(String[]::new));
     }
 
     try {
