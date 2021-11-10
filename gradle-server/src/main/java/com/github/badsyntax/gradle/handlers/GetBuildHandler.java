@@ -22,6 +22,7 @@ import com.google.protobuf.ByteString;
 import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
@@ -177,7 +178,10 @@ public class GetBuildHandler {
         .setStandardError(standardErrorListener);
     String jvmArguments = req.getGradleConfig().getJvmArguments();
     if (!Strings.isNullOrEmpty(jvmArguments)) {
-      buildEnvironment.setJvmArguments(jvmArguments.split(" "));
+      buildEnvironment.setJvmArguments(
+          Arrays.stream(jvmArguments.split(" "))
+              .filter(e -> e != null && !e.isEmpty())
+              .toArray(String[]::new));
     }
 
     try {
@@ -219,7 +223,10 @@ public class GetBuildHandler {
         .setColorOutput(req.getShowOutputColors());
     String jvmArguments = req.getGradleConfig().getJvmArguments();
     if (!Strings.isNullOrEmpty(jvmArguments)) {
-      projectBuilder.setJvmArguments(jvmArguments.split(" "));
+      projectBuilder.setJvmArguments(
+          Arrays.stream(jvmArguments.split(" "))
+              .filter(e -> e != null && !e.isEmpty())
+              .toArray(String[]::new));
     }
 
     try {
