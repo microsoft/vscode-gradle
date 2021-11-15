@@ -13,7 +13,8 @@
     "allowJs": true, // to support compiling the generated proto js files
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationDir": "dist"
+    "declarationDir": "dist",
+    "useUnknownInCatchVariables": false
   },
   "exclude": ["node_modules", ".vscode-test", "build", "beta"],
   "include": ["./src"]

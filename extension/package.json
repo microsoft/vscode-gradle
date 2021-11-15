@@ -22,7 +22,8 @@
     "npm": "^6.14.10"
   },
   "categories": [
-    "Programming Languages","Other"
+    "Programming Languages",
+    "Other"
   ],
   "keywords": [
     "java",
