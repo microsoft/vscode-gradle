@@ -1,4 +1,4 @@
-import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
+import { GradleBuildContentProvider } from '../client/GradleBuildContentProvider';
 import { GradleTaskProvider } from '../tasks';
 import {
   GradleTasksTreeDataProvider,
@@ -11,7 +11,7 @@ export const COMMAND_REFRESH = 'gradle.refresh';
 export class RefreshCommand extends Command {
   constructor(
     private gradleTaskProvider: GradleTaskProvider,
-    private gradleProjectContentProvider: GradleProjectContentProvider,
+    private gradleProjectContentProvider: GradleBuildContentProvider,
     private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
     private pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
     private recentTasksTreeDataProvider: RecentTasksTreeDataProvider

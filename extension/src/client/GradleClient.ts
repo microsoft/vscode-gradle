@@ -22,10 +22,6 @@ import {
   CancelBuildReply,
   CancelBuildsRequest,
   CancelBuildsReply,
-  GetProjectsRequest,
-  CancelProjectsRequest,
-  CancelProjectsReply,
-  GetProjectsReply,
 } from '../proto/gradle_pb';
 
 import { GradleClient as GrpcClient } from '../proto/gradle_grpc_pb';
@@ -39,10 +35,7 @@ import {
   COMMAND_CANCEL_BUILD,
 } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
-import {
-  getBuildCancellationKey,
-  getProjectsCancellationKey,
-} from './CancellationKeys';
+import { getBuildCancellationKey } from './CancellationKeys';
 import { EventWaiter } from '../util/EventWaiter';
 import { getGradleConfig, getConfigJavaDebug } from '../util/config';
 import {
@@ -142,7 +135,7 @@ export class GradleClient implements vscode.Disposable {
     rootProject: RootProject,
     gradleConfig: GradleConfig,
     showOutputColors = false
-  ): Promise<GradleBuild | void> {
+  ): Promise<GradleBuild | undefined> {
     await this.waitForConnect();
     this.statusBarItem.hide();
     return vscode.window.withProgress(
@@ -177,7 +170,7 @@ export class GradleClient implements vscode.Disposable {
         const getBuildStream = this.grpcClient!.getBuild(request);
         try {
           return await new Promise((resolve, reject) => {
-            let build: GradleBuild | void = undefined;
+            let build: GradleBuild | undefined;
             getBuildStream
               .on('data', async (getBuildReply: GetBuildReply) => {
                 switch (getBuildReply.getKindCase()) {
@@ -194,7 +187,6 @@ export class GradleClient implements vscode.Disposable {
                         );
                         break;
                       case Output.OutputType.STDERR:
-                        void setDefault();
                         stdErrLoggerStream.write(
                           getBuildReply.getOutput()!.getOutputBytes_asU8()
                         );
@@ -242,11 +234,7 @@ export class GradleClient implements vscode.Disposable {
               .on('end', () => resolve(build));
           });
         } catch (err) {
-          logger.error(
-            `Error getting build for ${rootProject.getProjectUri().fsPath}: ${
-              err.details || err.message
-            }`
-          );
+          void setDefault();
           this.statusBarItem.command = COMMAND_SHOW_LOGS;
           this.statusBarItem.text = '$(warning) Gradle: Build Error';
           this.statusBarItem.show();
@@ -254,63 +242,6 @@ export class GradleClient implements vscode.Disposable {
           process.nextTick(() =>
             vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS)
           );
-        }
-      }
-    );
-  }
-
-  public async getProjects(
-    projectDir: string,
-    gradleConfig: GradleConfig,
-    projectName: string
-  ): Promise<GetProjectsReply | undefined> {
-    await this.waitForConnect();
-    return vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Window,
-        title: 'Gradle',
-        cancellable: true,
-      },
-      async (
-        progress: vscode.Progress<{ message?: string }>,
-        token: vscode.CancellationToken
-      ) => {
-        progress.report({
-          message: `Getting Projects for ${projectName}`,
-        });
-        const request = new GetProjectsRequest();
-        request.setProjectDir(projectDir);
-        request.setGradleConfig(gradleConfig);
-        const cancellationKey = getProjectsCancellationKey(projectDir);
-        request.setCancellationKey(cancellationKey);
-        token.onCancellationRequested(() =>
-          this.cancelProjects(cancellationKey)
-        );
-        try {
-          return await new Promise((resolve, reject) => {
-            this.grpcClient!.getProjects(
-              request,
-              (
-                err: grpc.ServiceError | null,
-                getProjectsReply: GetProjectsReply | undefined
-              ) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve(getProjectsReply);
-                }
-              }
-            );
-          });
-        } catch (err) {
-          logger.error(
-            `Error getting dependencies for ${projectDir}: ${
-              err.details || err.message
-            }`
-          );
-          this.statusBarItem.command = COMMAND_SHOW_LOGS;
-          this.statusBarItem.text = '$(warning) Gradle: Get Dependencies Error';
-          this.statusBarItem.show();
         }
       }
     );
@@ -482,37 +413,6 @@ export class GradleClient implements vscode.Disposable {
       }
     } catch (err) {
       logger.error('Error cancelling builds:', err.details || err.message);
-    }
-  }
-
-  public async cancelProjects(cancellationKey: string): Promise<void> {
-    await this.waitForConnect();
-    this.statusBarItem.hide();
-    const request = new CancelProjectsRequest();
-    request.setCancellationKey(cancellationKey);
-    try {
-      const reply: CancelProjectsReply | undefined = await new Promise(
-        (resolve, reject) => {
-          this.grpcClient!.cancelProjects(
-            request,
-            (
-              err: grpc.ServiceError | null,
-              cancelProjectsReply: CancelProjectsReply | undefined
-            ) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(cancelProjectsReply);
-              }
-            }
-          );
-        }
-      );
-      if (reply) {
-        logger.info('Cancel Projects:', reply.getMessage());
-      }
-    } catch (err) {
-      logger.error('Error cancelling Projects:', err.details || err.message);
     }
   }
 

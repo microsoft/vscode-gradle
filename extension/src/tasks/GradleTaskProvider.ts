@@ -8,6 +8,7 @@ import { RootProject } from '../rootProject/RootProject';
 import { GradleClient } from '../client';
 import { getConfigJavaDebug } from '../util/config';
 import { EventWaiter } from '../util/EventWaiter';
+import { GradleBuildContentProvider } from '../client/GradleBuildContentProvider';
 
 export class GradleTaskProvider
   implements vscode.TaskProvider, vscode.Disposable
@@ -22,7 +23,8 @@ export class GradleTaskProvider
 
   constructor(
     private readonly rootProjectsStore: RootProjectsStore,
-    private readonly client: GradleClient
+    private readonly client: GradleClient,
+    private gradleBuildContentProvider: GradleBuildContentProvider
   ) {}
 
   public readonly onDidLoadTasks: vscode.Event<vscode.Task[]> =
@@ -85,7 +87,11 @@ export class GradleTaskProvider
       return Promise.resolve(this.cachedTasks);
     }
 
-    this.loadTasksPromise = loadTasksForProjectRoots(this.client, folders)
+    this.loadTasksPromise = loadTasksForProjectRoots(
+      this.client,
+      this.gradleBuildContentProvider,
+      folders
+    )
       .then(
         (tasks) => {
           this.cachedTasks = tasks;

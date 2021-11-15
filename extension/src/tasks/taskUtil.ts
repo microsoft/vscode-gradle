@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { parseArgsStringToArgv } from 'string-argv';
-import { GradleProject, GradleBuild, GradleTask } from '../proto/gradle_pb';
+import { GradleProject, GradleTask } from '../proto/gradle_pb';
 import { TaskArgs } from '../stores/types';
 import { GradleTaskDefinition } from '.';
 import { GradleRunnerTerminal } from '../terminal';
@@ -20,10 +20,10 @@ import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 import { GradleClient } from '../client';
 import { RootProjectsStore, TaskTerminalsStore } from '../stores';
 import {
-  getGradleConfig,
   getConfigIsAutoDetectionEnabled,
   getConfigReuseTerminals,
 } from '../util/config';
+import { GradleBuildContentProvider } from '../client/GradleBuildContentProvider';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -256,21 +256,17 @@ export function getVSCodeTasksFromGradleProject(
   return vsCodeTasks;
 }
 
-async function getGradleBuild(
-  client: GradleClient,
-  rootProject: RootProject
-): Promise<GradleBuild | void> {
-  return client.getBuild(rootProject, getGradleConfig());
-}
-
 export async function loadTasksForProjectRoots(
   client: GradleClient,
+  gradleBuildContentProvider: GradleBuildContentProvider,
   rootProjects: ReadonlyArray<RootProject>
 ): Promise<vscode.Task[]> {
   let allTasks: vscode.Task[] = [];
   for (const rootProject of rootProjects) {
     if (getConfigIsAutoDetectionEnabled(rootProject)) {
-      const gradleBuild = await getGradleBuild(client, rootProject);
+      const gradleBuild = await gradleBuildContentProvider.getGradleBuild(
+        rootProject
+      );
       const gradleProject = gradleBuild && gradleBuild.getProject();
       if (gradleProject) {
         const vsCodeTasks = getVSCodeTasksFromGradleProject(

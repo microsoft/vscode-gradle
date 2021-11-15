@@ -140,6 +140,12 @@ export function buildMockClient(): any {
   };
 }
 
+export function buildMockGradleBuildContentProvider(): any {
+  return {
+    getGradleBuild: sinon.stub(),
+  };
+}
+
 export function buildMockWorkspaceFolder(
   index: number,
   pathName: string,

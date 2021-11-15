@@ -46,7 +46,7 @@ import {
   syncLanguageServer,
 } from './languageServer/languageServer';
 import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
-import { GradleProjectContentProvider } from './projectContent/GradleProjectContentProvider';
+import { GradleBuildContentProvider } from './client/GradleBuildContentProvider';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -55,7 +55,7 @@ export class Extension {
   private readonly recentTasksStore: RecentTasksStore;
   private readonly taskTerminalsStore: TaskTerminalsStore;
   private readonly rootProjectsStore: RootProjectsStore;
-  private readonly gradleProjectContentProvider: GradleProjectContentProvider;
+  private readonly gradleBuildContentProvider: GradleBuildContentProvider;
   private readonly gradleTaskProvider: GradleTaskProvider;
   private readonly gradleDependencyProvider: GradleDependencyProvider;
   private readonly taskProvider: vscode.Disposable;
@@ -106,15 +106,16 @@ export class Extension {
     this.recentTasksStore = new RecentTasksStore();
     this.taskTerminalsStore = new TaskTerminalsStore();
     this.rootProjectsStore = new RootProjectsStore();
-    this.gradleProjectContentProvider = new GradleProjectContentProvider(
+    this.gradleBuildContentProvider = new GradleBuildContentProvider(
       this.client
     );
     this.gradleTaskProvider = new GradleTaskProvider(
       this.rootProjectsStore,
-      this.client
+      this.client,
+      this.gradleBuildContentProvider
     );
     this.gradleDependencyProvider = new GradleDependencyProvider(
-      this.gradleProjectContentProvider
+      this.gradleBuildContentProvider
     );
     this.taskProvider = vscode.tasks.registerTaskProvider(
       'gradle',
@@ -199,7 +200,7 @@ export class Extension {
       this.context,
       this.pinnedTasksStore,
       this.gradleTaskProvider,
-      this.gradleProjectContentProvider,
+      this.gradleBuildContentProvider,
       this.gradleTasksTreeDataProvider,
       this.pinnedTasksTreeDataProvider,
       this.recentTasksTreeDataProvider,
@@ -228,7 +229,11 @@ export class Extension {
     );
 
     void this.activate();
-    void startLanguageServer(this.context, this.gradleProjectContentProvider);
+    void startLanguageServer(
+      this.context,
+      this.gradleBuildContentProvider,
+      this.rootProjectsStore
+    );
   }
 
   private storeSubscriptions(): void {
@@ -336,14 +341,15 @@ export class Extension {
   private async syncBuildFile(uri: vscode.Uri): Promise<void> {
     const fsPath = uri.fsPath;
     const dirName = path.dirname(fsPath);
-    const baseName = path.basename(dirName);
-    const projectContent =
-      await this.gradleProjectContentProvider.getProjectContent(
-        dirName,
-        baseName
-      );
-    if (projectContent) {
-      await syncLanguageServer(dirName, projectContent);
+    const rootProject = this.rootProjectsStore.get(dirName);
+    if (!rootProject) {
+      return;
+    }
+    const gradleBuild = await this.gradleBuildContentProvider.getGradleBuild(
+      rootProject
+    );
+    if (gradleBuild) {
+      await syncLanguageServer(dirName, gradleBuild);
     }
   }
 

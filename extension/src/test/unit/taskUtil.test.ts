@@ -10,7 +10,11 @@ import {
   getVSCodeTasksFromGradleProject,
   loadTasksForProjectRoots,
 } from '../../tasks/taskUtil';
-import { buildMockClient, getSuiteName } from '../testUtil';
+import {
+  buildMockClient,
+  buildMockGradleBuildContentProvider,
+  getSuiteName,
+} from '../testUtil';
 
 const mockWorkspaceFolder: vscode.WorkspaceFolder = {
   index: 0,
@@ -27,6 +31,7 @@ const mockRootProject = new RootProject(
   }
 );
 const mockClient = buildMockClient();
+const mockGradleBuildContentProvider = buildMockGradleBuildContentProvider();
 
 function buildProject(
   project: string,
@@ -102,7 +107,11 @@ describe(getSuiteName('taskUtil'), () => {
     gradleBuild.setProject(rootGradleProject);
     mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
+    const tasks = await loadTasksForProjectRoots(
+      mockClient,
+      mockGradleBuildContentProvider,
+      [mockRootProject]
+    );
     assert.strictEqual(tasks.length, 2);
   });
 
@@ -121,7 +130,11 @@ describe(getSuiteName('taskUtil'), () => {
     gradleBuild.setProject(rootGradleProject);
     mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-    const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
+    const tasks = await loadTasksForProjectRoots(
+      mockClient,
+      mockGradleBuildContentProvider,
+      [mockRootProject]
+    );
     assert.strictEqual(tasks.length, 255101);
   });
 

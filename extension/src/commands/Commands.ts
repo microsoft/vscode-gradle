@@ -69,7 +69,7 @@ import {
   FindTaskCommand,
 } from '.';
 import { GradleClient } from '../client';
-import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
+import { GradleBuildContentProvider } from '../client/GradleBuildContentProvider';
 import {
   PinnedTasksStore,
   RecentTasksStore,
@@ -98,7 +98,7 @@ export class Commands {
     private context: vscode.ExtensionContext,
     private pinnedTasksStore: PinnedTasksStore,
     private gradleTaskProvider: GradleTaskProvider,
-    private gradleProjectContentProvider: GradleProjectContentProvider,
+    private gradleProjectContentProvider: GradleBuildContentProvider,
     private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
     private pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
     private recentTasksTreeDataProvider: RecentTasksTreeDataProvider,

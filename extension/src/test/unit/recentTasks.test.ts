@@ -45,6 +45,7 @@ import {
   CloseTaskTerminalsCommand,
   ShowTaskTerminalCommand,
 } from '../../commands';
+import { GradleBuildContentProvider } from '../../client/GradleBuildContentProvider';
 
 const mockContext = buildMockContext();
 
@@ -80,12 +81,18 @@ describe(getSuiteName('Recent tasks'), () => {
   let recentTasksStore: RecentTasksStore;
   let taskTerminalsStore: TaskTerminalsStore;
   let rootProjectsStore: RootProjectsStore;
+  let gradleBuildContentProvider: GradleBuildContentProvider;
   beforeEach(async () => {
     const client = buildMockClient();
     const icons = new Icons(mockContext);
     rootProjectsStore = new RootProjectsStore();
     taskTerminalsStore = new TaskTerminalsStore();
-    gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
+    gradleBuildContentProvider = new GradleBuildContentProvider(client);
+    gradleTaskProvider = new GradleTaskProvider(
+      rootProjectsStore,
+      client,
+      gradleBuildContentProvider
+    );
     recentTasksStore = new RecentTasksStore();
     recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
       recentTasksStore,

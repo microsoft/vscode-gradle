@@ -11,8 +11,9 @@ import {
   LanguageClientOptions,
 } from 'vscode-languageclient';
 import { LanguageClient, StreamInfo } from 'vscode-languageclient/node';
-import { GradleProjectContentProvider } from '../projectContent/GradleProjectContentProvider';
-import { GetProjectsReply } from '../proto/gradle_pb';
+import { GradleBuildContentProvider } from '../client/GradleBuildContentProvider';
+import { GradleBuild } from '../proto/gradle_pb';
+import { RootProjectsStore } from '../stores';
 import {
   getConfigGradleJavaHome,
   getConfigJavaImportGradleHome,
@@ -26,7 +27,8 @@ export let isLanguageServerStarted = false;
 
 export async function startLanguageServer(
   context: vscode.ExtensionContext,
-  contentProvider: GradleProjectContentProvider
+  contentProvider: GradleBuildContentProvider,
+  rootProjectsStore: RootProjectsStore
 ): Promise<void> {
   void vscode.window.withProgress(
     { location: vscode.ProgressLocation.Window },
@@ -97,7 +99,7 @@ export async function startLanguageServer(
         void languageClient.onReady().then(
           () => {
             isLanguageServerStarted = true;
-            void handleLanguageServerStart(contentProvider);
+            void handleLanguageServerStart(contentProvider, rootProjectsStore);
             resolve();
           },
           (e) => {
@@ -147,8 +149,12 @@ function getGradleSettings(): unknown {
 
 export async function syncLanguageServer(
   projectPath: string,
-  projectContent: GetProjectsReply
+  gradleBuild: GradleBuild
 ): Promise<void> {
+  const projectContent = gradleBuild.getProjectcontent();
+  if (!projectContent) {
+    return;
+  }
   if (isLanguageServerStarted) {
     await vscode.commands.executeCommand(
       'gradle.setPlugins',
@@ -189,21 +195,23 @@ export async function syncLanguageServer(
 }
 
 async function handleLanguageServerStart(
-  contentProvider: GradleProjectContentProvider
+  contentProvider: GradleBuildContentProvider,
+  rootProjectsStore: RootProjectsStore
 ): Promise<void> {
   if (isLanguageServerStarted) {
     const folders = vscode.workspace.workspaceFolders;
     if (folders?.length) {
       // TODO: support multiple workspaces
       const projectPath = folders[0].uri.fsPath;
+      const rootProject = rootProjectsStore.get(projectPath);
+      if (!rootProject) {
+        return;
+      }
       // when language server starts, it knows nothing about the project
       // here to asynchronously sync the project content (plugins, closures) with language server
-      const projectContent = await contentProvider.getProjectContent(
-        projectPath,
-        path.basename(projectPath)
-      );
-      if (projectContent) {
-        await syncLanguageServer(projectPath, projectContent);
+      const gradleBuild = await contentProvider.getGradleBuild(rootProject);
+      if (gradleBuild) {
+        await syncLanguageServer(projectPath, gradleBuild);
       }
     }
   }

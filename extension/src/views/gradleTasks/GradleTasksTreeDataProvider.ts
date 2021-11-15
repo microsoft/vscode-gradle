@@ -132,7 +132,14 @@ export class GradleTasksTreeDataProvider
       return [];
     }
     if (element instanceof ProjectDependencyTreeItem) {
-      return this.gradleDependencyProvider.getDependencies(element);
+      const rootProject = this.rootProjectStore.get(element.getProjectPath());
+      if (!rootProject) {
+        return [];
+      }
+      return this.gradleDependencyProvider.getDependencies(
+        element,
+        rootProject
+      );
     }
     if (
       element instanceof ProjectTaskTreeItem ||

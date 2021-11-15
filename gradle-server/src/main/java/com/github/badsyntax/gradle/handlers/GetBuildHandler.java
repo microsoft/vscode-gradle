@@ -2,6 +2,7 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
+import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.Environment;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
@@ -12,20 +13,35 @@ import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleEnvironment;
 import com.github.badsyntax.gradle.GradleProject;
 import com.github.badsyntax.gradle.GradleProjectConnector;
+import com.github.badsyntax.gradle.GradleProjectContent;
 import com.github.badsyntax.gradle.GradleTask;
+import com.github.badsyntax.gradle.GrpcGradleClosure;
+import com.github.badsyntax.gradle.GrpcGradleField;
+import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
+import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleField;
+import com.microsoft.gradle.api.GradleMethod;
+import com.microsoft.gradle.api.GradleModelAction;
+import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.gradle.internal.service.ServiceCreationException;
+import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
 import org.gradle.tooling.GradleConnector;
@@ -35,11 +51,8 @@ import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressEvent;
 import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.model.build.BuildEnvironment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class GetBuildHandler {
-  private static final Logger logger = LoggerFactory.getLogger(GetBuildHandler.class.getName());
 
   private GetBuildRequest req;
   private StreamObserver<GetBuildReply> responseObserver;
@@ -82,7 +95,6 @@ public class GetBuildHandler {
     try {
       gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
     } catch (GradleConnectionException e) {
-      logger.error(e.getMessage());
       responseObserver.onError(ErrorMessageBuilder.build(e));
       return;
     }
@@ -91,7 +103,8 @@ public class GetBuildHandler {
       this.environment = buildEnvironment(connection);
       replyWithBuildEnvironment(this.environment);
       org.gradle.tooling.model.GradleProject gradleProject = getGradleProject(connection);
-      replyWithProject(getProjectData(gradleProject, gradleProject));
+      replyWithProject(
+          getProjectData(gradleProject, gradleProject), getGradleProjectContent(connection));
     } catch (BuildCancelledException e) {
       replyWithCancelled(e);
     } catch (ServiceCreationException
@@ -115,7 +128,6 @@ public class GetBuildHandler {
           replyWithCompatibilityCheckError();
         }
       }
-      logger.error(e.getMessage());
       replyWithError(e);
     } finally {
       GradleBuildCancellation.clearToken(req.getCancellationKey());
@@ -267,12 +279,78 @@ public class GetBuildHandler {
     return project.build();
   }
 
-  private void replyWithProject(GradleProject gradleProject) {
+  private GradleProjectContent getGradleProjectContent(ProjectConnection connection)
+      throws IOException {
+    BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
+    File initScript = PluginUtils.createInitScript();
+    action.withArguments("--init-script", initScript.getAbsolutePath());
+    CancellationToken cancellationToken =
+        GradleBuildCancellation.buildToken(req.getCancellationKey());
+    action
+        .withCancellationToken(cancellationToken)
+        .addProgressListener(progressListener)
+        .setStandardOutput(standardOutputListener)
+        .setStandardError(standardErrorListener);
+    GradleProjectModel gradleModel = action.run();
+    GradleDependencyNode root = gradleModel.getDependencyNode();
+    GradleProjectContent result =
+        GradleProjectContent.newBuilder()
+            .setDependencyItem(getDependencyItem(root))
+            .addAllPlugins(gradleModel.getPlugins())
+            .addAllPluginClosures(getPluginClosures(gradleModel))
+            .addAllScriptClasspaths(gradleModel.getScriptClasspaths())
+            .build();
+    return result;
+  }
+
+  private DependencyItem getDependencyItem(GradleDependencyNode node) {
+    DependencyItem.Builder item = DependencyItem.newBuilder();
+    item.setName(node.getName());
+    item.setTypeValue(node.getType().ordinal());
+    if (node.getChildren() == null) {
+      return item.build();
+    }
+    List<DependencyItem> children = new ArrayList<>();
+    for (GradleDependencyNode child : node.getChildren()) {
+      children.add(getDependencyItem(child));
+    }
+    item.addAllChildren(children);
+    return item.build();
+  }
+
+  private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {
+    List<GrpcGradleClosure> closures = new ArrayList<>();
+    for (GradleClosure closure : model.getClosures()) {
+      GrpcGradleClosure.Builder closureBuilder = GrpcGradleClosure.newBuilder();
+      for (GradleMethod method : closure.getMethods()) {
+        GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
+        methodBuilder.setName(method.getName());
+        methodBuilder.addAllParameterTypes(method.getParameterTypes());
+        methodBuilder.setDeprecated(method.getDeprecated());
+        closureBuilder.addMethods(methodBuilder.build());
+      }
+      closureBuilder.setName(closure.getName());
+      for (GradleField field : closure.getFields()) {
+        GrpcGradleField.Builder fieldBuilder = GrpcGradleField.newBuilder();
+        fieldBuilder.setName(field.getName());
+        fieldBuilder.setDeprecated(field.getDeprecated());
+        closureBuilder.addFields(fieldBuilder.build());
+      }
+      closures.add(closureBuilder.build());
+    }
+    return closures;
+  }
+
+  private void replyWithProject(
+      GradleProject gradleProject, GradleProjectContent gradleProjectContent) {
     responseObserver.onNext(
         GetBuildReply.newBuilder()
             .setGetBuildResult(
                 GetBuildResult.newBuilder()
-                    .setBuild(GradleBuild.newBuilder().setProject(gradleProject)))
+                    .setBuild(
+                        GradleBuild.newBuilder()
+                            .setProject(gradleProject)
+                            .setProjectContent(gradleProjectContent)))
             .build());
     responseObserver.onCompleted();
   }
