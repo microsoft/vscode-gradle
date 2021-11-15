@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0 # required by sonarqube
+          fetch-depth: 0 # required by sonarqube
       - name: Use Java 11
         uses: actions/setup-java@v1
         with:
@@ -51,7 +51,7 @@ jobs:
         with:
           arguments: lint
           wrapper-cache-enabled: false
-      - name: Build & Analyse
+      - name: Build & Analyse Gradle Server
         uses: eskatos/gradle-command-action@v1
         with:
           arguments: gradle-server:build -x :test -x extension:test -x npm-package:test
@@ -64,13 +64,14 @@ jobs:
           name: lib
           path: extension/lib
 
-  # Although the gradle build can run in all environments, we use the Java
+  # Although the gradle build can run in all environments, we use the Java
   # lib generated in the previous step for a better real-world test.
   test-extension:
     needs: [build-and-analyse]
     name: "Test Java ${{ matrix.java-version }} - Node ${{ matrix.node-version }} - ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         node-version: [14.15.4]
         java-version: ["8", "11", "15"]
@@ -115,6 +116,13 @@ jobs:
           chmod +x extension/lib/gradle-server
           unset npm_config_prefix
         if: matrix.os != 'windows-2019'
+      - name: Test Gradle Language Server
+        uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: gradle-language-server:test
+          wrapper-cache-enabled: false
+        env:
+          JAVA_HOME: ""
       - name: Prepare gradle-groovy-custom-build-file
         uses: eskatos/gradle-command-action@v1
         with:
@@ -146,7 +154,6 @@ jobs:
         env:
           DISPLAY: ":99.0"
           CI: "true"
-
       - name: Retry test extension attempt 1
         uses: eskatos/gradle-command-action@v1
         continue-on-error: true

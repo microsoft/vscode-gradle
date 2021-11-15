@@ -7,4 +7,10 @@ public class GradleMethod {
   public String name;
   public String[] parameterTypes;
   public boolean deprecated;
+
+  public GradleMethod(String name, String[] parameterTypes, boolean deprecated) {
+    this.name = name;
+    this.parameterTypes = parameterTypes;
+    this.deprecated = deprecated;
+  }
 }
