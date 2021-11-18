@@ -17,6 +17,7 @@ import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.github.g00fy2.versioncompare.Version;
@@ -99,12 +100,11 @@ public class GetBuildHandler {
         | IllegalStateException
         | org.gradle.tooling.GradleConnectionException e) {
       if (this.environment != null) {
-        String gradleVersion = this.environment.getGradleEnvironment().getGradleVersion();
-        String javaVersion = System.getProperty("java.version");
-        Version highestJDKVersion = getHighestJDKVersion(gradleVersion);
-        if (highestJDKVersion.isLowerThan(javaVersion)) {
-          replyWithCompatibilityCheckError(
-              gradleVersion, javaVersion, highestJDKVersion.getMajor());
+        Version gradleVersion =
+            new Version(this.environment.getGradleEnvironment().getGradleVersion());
+        Version javaVersion = new Version(System.getProperty("java.version"));
+        if (Utils.hasCompatibilityError(gradleVersion, javaVersion)) {
+          replyWithCompatibilityCheckError(gradleVersion.toString(), javaVersion.toString());
         }
       } else {
         String rootCause = getRootCause(e);
@@ -132,34 +132,6 @@ public class GetBuildHandler {
       rootCause = cause;
     }
     return rootCause.toString();
-  }
-
-  private Version getHighestJDKVersion(String gradleVersion) {
-    // Ref: https://docs.gradle.org/current/userguide/compatibility.html
-    Version gradleVer = new Version(gradleVersion);
-    if (gradleVer.isAtLeast("7.3.0", /* ignoreSuffix */ true)) {
-      // See: https://docs.gradle.org/7.3-rc-3/release-notes.html#java17
-      return new Version("17");
-    } else if (gradleVer.isAtLeast("7.0")) {
-      return new Version("16");
-    } else if (gradleVer.isAtLeast("6.7")) {
-      return new Version("15");
-    } else if (gradleVer.isAtLeast("6.3")) {
-      return new Version("14");
-    } else if (gradleVer.isAtLeast("6.0")) {
-      return new Version("13");
-    } else if (gradleVer.isAtLeast("5.4")) {
-      return new Version("12");
-    } else if (gradleVer.isAtLeast("5.0")) {
-      return new Version("11");
-    } else if (gradleVer.isAtLeast("4.7")) {
-      return new Version("10");
-    } else if (gradleVer.isAtLeast("4.3")) {
-      return new Version("9");
-    } else if (gradleVer.isAtLeast("2.0")) {
-      return new Version("1.8");
-    }
-    return new Version("1.7");
   }
 
   private Environment buildEnvironment(ProjectConnection connection) {
@@ -325,16 +297,13 @@ public class GetBuildHandler {
             .build());
   }
 
-  private void replyWithCompatibilityCheckError(
-      String gradleVersion, String javaVersion, int jdkMajorVersion) {
+  private void replyWithCompatibilityCheckError(String gradleVersion, String javaVersion) {
     String errorMessage =
         "Could not use Gradle version "
             + gradleVersion
             + " and Java version "
             + javaVersion
-            + " to configure the build. Please consider either to change your Java Runtime to no higher than Java "
-            + jdkMajorVersion
-            + " or to change your Gradle settings.";
+            + " to configure the build. Please consider either to change your Java Runtime or your Gradle settings.";
     responseObserver.onNext(
         GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
   }
