@@ -23,6 +23,7 @@ import {
   getGradleConfig,
   getConfigIsAutoDetectionEnabled,
   getConfigReuseTerminals,
+  getConfigJavaDebug,
 } from '../util/config';
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
@@ -202,6 +203,72 @@ export function createTaskFromDefinition(
     reveal: vscode.TaskRevealKind.Always,
   };
   terminal.setTask(task);
+  return task;
+}
+
+export function resolveTaskFromDefinition(
+  definition: Required<GradleTaskDefinition>,
+  workspaceFolder: vscode.WorkspaceFolder,
+  client: GradleClient
+): vscode.Task | undefined {
+  const taskName = buildTaskName(definition);
+  const args = [definition.script]
+    .concat(parseArgsStringToArgv(definition.args.trim()))
+    .filter(Boolean);
+  const task = new vscode.Task(
+    definition,
+    workspaceFolder,
+    taskName,
+    'gradle',
+    new vscode.CustomExecution(
+      async (
+        resolvedDefinition: vscode.TaskDefinition
+      ): Promise<vscode.Pseudoterminal> => {
+        const resolvedTaskDefinition =
+          resolvedDefinition as GradleTaskDefinition;
+        const resolvedWorkspaceFolder =
+          vscode.workspace.getWorkspaceFolder(
+            vscode.Uri.file(resolvedTaskDefinition.workspaceFolder)
+          ) || workspaceFolder;
+        const javaDebug = getConfigJavaDebug(resolvedWorkspaceFolder);
+        const rootProject = new RootProject(
+          resolvedWorkspaceFolder,
+          vscode.Uri.file(resolvedTaskDefinition.projectFolder),
+          javaDebug
+        );
+        const cancellationKey = getRunTaskCommandCancellationKey(
+          rootProject.getProjectUri().fsPath,
+          definition.script
+        );
+
+        const executeTerminal = new GradleRunnerTerminal(
+          rootProject,
+          args,
+          cancellationKey,
+          client
+        );
+        executeTerminal.setTask(task);
+        return executeTerminal;
+      }
+    ),
+    ['$gradle']
+  );
+
+  const reuseTerminals = getConfigReuseTerminals();
+  let panelKind = vscode.TaskPanelKind.Dedicated;
+  if (reuseTerminals === 'off') {
+    panelKind = vscode.TaskPanelKind.New;
+  } else if (reuseTerminals === 'all') {
+    panelKind = vscode.TaskPanelKind.Shared;
+  }
+  task.presentationOptions = {
+    showReuseMessage: false,
+    clear: true,
+    echo: true,
+    focus: true,
+    panel: panelKind,
+    reveal: vscode.TaskRevealKind.Always,
+  };
   return task;
 }
 
