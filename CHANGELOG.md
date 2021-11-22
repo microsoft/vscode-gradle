@@ -4,6 +4,14 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.8.3
+### Added
+- Add refresh button in default project view. [PR#1078](https://github.com/microsoft/vscode-gradle/pull/1078)
+- Support VSCode variables in custom task definition. [PR#1035](https://github.com/microsoft/vscode-gradle/pull/1035)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.3+is%3Aclosed)
+
 ## 3.8.2
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.2+is%3Aclosed)
