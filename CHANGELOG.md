@@ -4,7 +4,7 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 3.8.3
+## [3.8.3](https://github.com/microsoft/vscode-gradle/compare/3.8.2...3.8.3) (2020-11-24)
 ### Added
 - Add refresh button in default project view. [PR#1078](https://github.com/microsoft/vscode-gradle/pull/1078)
 - Support VSCode variables in custom task definition. [PR#1035](https://github.com/microsoft/vscode-gradle/pull/1035)
@@ -12,11 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.3+is%3Aclosed)
 
-## 3.8.2
+## [3.8.2](https://github.com/microsoft/vscode-gradle/compare/3.8.1...3.8.2) (2021-11-05)
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.2+is%3Aclosed)
 
-## 3.8.1
+## [3.8.1](https://github.com/microsoft/vscode-gradle/compare/3.8.0...3.8.1) (2021-10-28)
 ### Added
 - Support auto completion for closures from plugins. [#1022](https://github.com/microsoft/vscode-gradle/issues/1022)
 - Support managed properties. [PR#1053](https://github.com/microsoft/vscode-gradle/pull/1053)
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.1+is%3Aclosed)
 
-## 3.8.0
+## [3.8.0](https://github.com/microsoft/vscode-gradle/compare/3.7.1...3.8.0) (2021-09-29)
 ### Added
 - Support highlighting of Gradle file. [PR#960](https://github.com/microsoft/vscode-gradle/pull/960), [PR#967](https://github.com/microsoft/vscode-gradle/pull/967)
 - Provide document outline of Gradle file. [PR#969](https://github.com/microsoft/vscode-gradle/pull/969)
@@ -45,12 +45,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.0+is%3Aclosed)
 
-## 3.7.1
+## [3.7.1](https://github.com/microsoft/vscode-gradle/compare/3.7.0...3.7.1) (2021-09-23)
 ### Fixed
 - Fix the `Details` and `Changelog` tabs in the marketplace page. [PR#1012](https://github.com/microsoft/vscode-gradle/pull/1012)
 
 
-## 3.7.0
+## [3.7.0](https://github.com/microsoft/vscode-gradle/compare/3.6.2...3.7.0) (2021-09-22)
 ### Added
 - Support dependency view. [PR#887](https://github.com/microsoft/vscode-gradle/pull/887)
 - Support local Gradle installation. [PR#926](https://github.com/microsoft/vscode-gradle/pull/926)
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.7.0+is%3Aclosed)
 
-## 3.6.2
+## [3.6.2](https://github.com/microsoft/vscode-gradle/compare/3.6.1...3.6.2) (2021-09-22)
 ### Changed
 - The publisher is changed from `richardwillis` to `Microsoft`.
 
