@@ -28,5 +28,5 @@ bin/
 # Ignore Gradle build output directory
 build
 
-# Jar files
-*.jar
+# build plugin jar files
+gradle-server/src/main/resources/*.jar
