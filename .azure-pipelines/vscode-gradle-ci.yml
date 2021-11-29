@@ -65,6 +65,20 @@ jobs:
         cd $(Build.SourcesDirectory)/extension/lib
         chmod +x gradle-server
       displayName: Set permission
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        scanType: 'Register'
+        verbosity: 'Verbose'
+        alertWarningLevel: 'High'
+    - task: notice@0
+      displayName: 'NOTICE File Generator'
+      inputs:
+        outputformat: 'text'
+    - task: DownloadPipelineArtifact@2
+      displayName: Download NOTICE file
+      inputs:
+        artifact: 'NOTICE.txt'
+        path: $(Build.SourcesDirectory)/extension
     - bash: |
         cd $(Build.SourcesDirectory)/extension
         npx vsce@latest package
@@ -78,8 +92,3 @@ jobs:
       displayName: Publish VSIX
       inputs:
         ArtifactName: extension
-    - task: ComponentGovernanceComponentDetection@0
-      inputs:
-        scanType: 'Register'
-        verbosity: 'Verbose'
-        alertWarningLevel: 'High'

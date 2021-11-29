@@ -67,6 +67,20 @@ steps:
     cd $(Build.SourcesDirectory)/extension
     npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
   displayName: Replace AI Key
+- task: ComponentGovernanceComponentDetection@0
+  inputs:
+    scanType: 'Register'
+    verbosity: 'Verbose'
+    alertWarningLevel: 'High'
+- task: notice@0
+  displayName: 'NOTICE File Generator'
+  inputs:
+    outputformat: 'text'
+- task: DownloadPipelineArtifact@2
+  displayName: Download NOTICE file
+  inputs:
+    artifact: 'NOTICE.txt'
+    path: $(Build.SourcesDirectory)/extension
 - bash: |
     cd $(Build.SourcesDirectory)/extension
     npx vsce@latest package
@@ -80,8 +94,3 @@ steps:
   displayName: Publish VSIX
   inputs:
     ArtifactName: extension
-- task: ComponentGovernanceComponentDetection@0
-  inputs:
-    scanType: 'Register'
-    verbosity: 'Verbose'
-    alertWarningLevel: 'High'

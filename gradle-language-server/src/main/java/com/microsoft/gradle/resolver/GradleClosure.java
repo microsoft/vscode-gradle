@@ -7,4 +7,10 @@ public class GradleClosure {
   public String name;
   public GradleMethod[] methods;
   public GradleField[] fields;
+
+  public GradleClosure(String name, GradleMethod[] methods, GradleField[] fields) {
+    this.name = name;
+    this.methods = methods;
+    this.fields = fields;
+  }
 }

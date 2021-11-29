@@ -4,6 +4,10 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.8.4](https://github.com/microsoft/vscode-gradle/compare/3.8.3...3.8.4) (2021-11-24)
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.4+is%3Aclosed)
+
 ## [3.8.3](https://github.com/microsoft/vscode-gradle/compare/3.8.2...3.8.3) (2020-11-24)
 ### Added
 - Add refresh button in default project view. [PR#1078](https://github.com/microsoft/vscode-gradle/pull/1078)

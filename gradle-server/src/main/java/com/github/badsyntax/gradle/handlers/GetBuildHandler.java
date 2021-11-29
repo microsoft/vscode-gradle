@@ -104,7 +104,8 @@ public class GetBuildHandler {
             new Version(this.environment.getGradleEnvironment().getGradleVersion());
         Version javaVersion = new Version(System.getProperty("java.version"));
         if (Utils.hasCompatibilityError(gradleVersion, javaVersion)) {
-          replyWithCompatibilityCheckError(gradleVersion.toString(), javaVersion.toString());
+          replyWithCompatibilityCheckError(
+              gradleVersion.getOriginalString(), javaVersion.getOriginalString());
         }
       } else {
         String rootCause = getRootCause(e);
