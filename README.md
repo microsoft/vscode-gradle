@@ -2,7 +2,6 @@
 
 [![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/vscjava.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-gradle)
 [![Build & Publish](https://github.com/microsoft/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/microsoft/vscode-gradle/actions/workflows/main.yml?query=workflow%3A%22%5C%22Build%22)
-[![CodeQL](https://github.com/microsoft/vscode-gradle/workflows/CodeQL/badge.svg)](https://github.com/microsoft/vscode-gradle/actions?query=workflow%3ACodeQL)
 [![GitHub bug issues](https://img.shields.io/github/issues/microsoft/vscode-gradle/bug?label=bug%20reports)](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
 This VS Code extension provides a visual interface for your Gradle build. You can use this interface to view Gradle Tasks and Project dependencies, or run Gradle Tasks as VS Code Task. The extension also offers better Gradle file (e.g. `build.gradle`) authoring experience including syntax highlighting, error reporting and auto completion. The extension works nicely alongside other Java extensions in the [Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack).
