@@ -125,7 +125,7 @@
       },
       {
         "command": "gradle.runBuild",
-        "title": "Run a Gradle Build",
+        "title": "Gradle: Run a Gradle Build",
         "icon": {
           "light": "resources/light/console.svg",
           "dark": "resources/dark/console.svg"
@@ -265,7 +265,7 @@
       },
       {
         "command": "gradle.refresh",
-        "title": "Refresh Gradle Tasks",
+        "title": "Gradle: Refresh Gradle Tasks",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -298,7 +298,7 @@
       },
       {
         "command": "gradle.findTask",
-        "title": "Find Gradle Task"
+        "title": "Gradle: Find Gradle Task"
       },
       {
         "command": "gradle.openPinHelp",
@@ -451,6 +451,18 @@
         {
           "command": "gradle.hideStoppedDaemons",
           "when": "false"
+        },
+        {
+          "command": "gradle.refresh",
+          "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.runBuild",
+          "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.findTask",
+          "when": "gradle:extensionActivated"
         }
       ],
       "view/title": [
