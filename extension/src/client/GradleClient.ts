@@ -311,6 +311,7 @@ export class GradleClient implements vscode.Disposable {
           this.statusBarItem.command = COMMAND_SHOW_LOGS;
           this.statusBarItem.text = '$(warning) Gradle: Get Dependencies Error';
           this.statusBarItem.show();
+          return undefined;
         }
       }
     );

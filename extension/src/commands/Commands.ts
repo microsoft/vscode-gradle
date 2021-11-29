@@ -136,19 +136,11 @@ export class Commands {
     );
     this.registerCommand(
       COMMAND_RUN_TASK,
-      new RunTaskCommand(
-        this.rootProjectsStore,
-        this.taskTerminalsStore,
-        this.client
-      )
+      new RunTaskCommand(this.rootProjectsStore, this.client)
     );
     this.registerCommand(
       COMMAND_DEBUG_TASK,
-      new DebugTaskCommand(
-        this.rootProjectsStore,
-        this.taskTerminalsStore,
-        this.client
-      )
+      new DebugTaskCommand(this.rootProjectsStore, this.client)
     );
     this.registerCommand(
       COMMAND_RESTART_TASK,
@@ -156,19 +148,11 @@ export class Commands {
     );
     this.registerCommand(
       COMMAND_RUN_TASK_WITH_ARGS,
-      new RunTaskWithArgsCommand(
-        this.rootProjectsStore,
-        this.taskTerminalsStore,
-        this.client
-      )
+      new RunTaskWithArgsCommand(this.rootProjectsStore, this.client)
     );
     this.registerCommand(
       COMMAND_DEBUG_TASK_WITH_ARGS,
-      new DebugTaskWithArgsCommand(
-        this.rootProjectsStore,
-        this.taskTerminalsStore,
-        this.client
-      )
+      new DebugTaskWithArgsCommand(this.rootProjectsStore, this.client)
     );
     this.registerCommandWithoutInstrument(
       COMMAND_RENDER_TASK,

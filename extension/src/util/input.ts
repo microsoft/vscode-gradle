@@ -9,6 +9,7 @@ function returnTrimmedInput(value: string | undefined): string | undefined {
   if (value !== undefined) {
     return value.trim();
   }
+  return undefined;
 }
 
 export function getTaskArgs(): Thenable<TaskArgs | undefined> {
@@ -69,6 +70,7 @@ export async function getRootProjectFolder(
   if (selectedRootProjectPath) {
     return rootProjects[rootProjectPaths.indexOf(selectedRootProjectPath)];
   }
+  return undefined;
 }
 
 export async function confirmModal(message: string): Promise<boolean> {
