@@ -18,7 +18,7 @@ import { COMMAND_RENDER_TASK } from '../commands';
 import { RootProject } from '../rootProject/RootProject';
 import { getRunTaskCommandCancellationKey } from '../client/CancellationKeys';
 import { GradleClient } from '../client';
-import { RootProjectsStore, TaskTerminalsStore } from '../stores';
+import { RootProjectsStore } from '../stores';
 import {
   getGradleConfig,
   getConfigIsAutoDetectionEnabled,
@@ -354,7 +354,6 @@ export async function loadTasksForProjectRoots(
 
 export async function runTask(
   rootProjectsStore: RootProjectsStore,
-  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
   client: GradleClient,
   args = '',
@@ -410,21 +409,13 @@ export async function runTask(
 
 export async function runTaskWithArgs(
   rootProjectsStore: RootProjectsStore,
-  taskTerminalsStore: TaskTerminalsStore,
   task: vscode.Task,
   client: GradleClient,
   debug = false
 ): Promise<void> {
   const args = await getTaskArgs();
   if (args !== undefined) {
-    await runTask(
-      rootProjectsStore,
-      taskTerminalsStore,
-      task,
-      client,
-      args,
-      debug
-    );
+    await runTask(rootProjectsStore, task, client, args, debug);
   } else {
     logger.error('Args not supplied');
   }

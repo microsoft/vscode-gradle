@@ -5,7 +5,7 @@
 export function createDecorator(
   mapFn: (fn: Function, key: string) => Function
 ): Function {
-  return (target: any, key: string, descriptor: any): void => {
+  return (_target: any, key: string, descriptor: any): void => {
     let fnKey: string | null = null;
     let fn: Function | null = null;
 

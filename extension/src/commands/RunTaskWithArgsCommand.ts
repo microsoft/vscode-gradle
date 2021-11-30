@@ -2,14 +2,13 @@ import { GradleTaskTreeItem } from '../views';
 import { runTaskWithArgs } from '../tasks/taskUtil';
 import { logger } from '../logger';
 import { Command } from './Command';
-import { RootProjectsStore, TaskTerminalsStore } from '../stores';
+import { RootProjectsStore } from '../stores';
 import { GradleClient } from '../client';
 export const COMMAND_RUN_TASK_WITH_ARGS = 'gradle.runTaskWithArgs';
 
 export class RunTaskWithArgsCommand extends Command {
   constructor(
     private rootProjectsStore: RootProjectsStore,
-    private taskTerminalsStore: TaskTerminalsStore,
     private client: GradleClient
   ) {
     super();
@@ -18,7 +17,6 @@ export class RunTaskWithArgsCommand extends Command {
     if (treeItem && treeItem.task) {
       await runTaskWithArgs(
         this.rootProjectsStore,
-        this.taskTerminalsStore,
         treeItem.task,
         this.client,
         false
