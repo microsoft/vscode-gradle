@@ -47,6 +47,7 @@ import {
 } from './languageServer/languageServer';
 import { DefaultProjectsTreeDataProvider } from './views/defaultProject/DefaultProjectsTreeDataProvider';
 import { GradleProjectContentProvider } from './projectContent/GradleProjectContentProvider';
+import { Context } from './constant';
 
 export class Extension {
   private readonly client: GradleClient;
@@ -229,6 +230,11 @@ export class Extension {
 
     void this.activate();
     void startLanguageServer(this.context, this.gradleProjectContentProvider);
+    void vscode.commands.executeCommand(
+      'setContext',
+      Context.ACTIVATION_CONTEXT_KEY,
+      true
+    );
   }
 
   private storeSubscriptions(): void {
