@@ -21,7 +21,6 @@ build/**
 .gradle/**
 node_modules
 webpack.config.js
-.snyk
 beta/**
 ARCHITECTURE.md
 # Ignore output of code sign

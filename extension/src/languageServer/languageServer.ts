@@ -28,7 +28,6 @@ export async function startLanguageServer(
 ): Promise<void> {
   void vscode.window.withProgress(
     { location: vscode.ProgressLocation.Window },
-    // eslint-disable-next-line sonarjs/cognitive-complexity
     (progress) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       return new Promise<void>(async (resolve, _reject) => {

@@ -154,7 +154,6 @@ export class GradleClient implements vscode.Disposable {
       async (
         progress: vscode.Progress<{ message?: string }>,
         token: vscode.CancellationToken
-        // eslint-disable-next-line sonarjs/cognitive-complexity
       ) => {
         const progressHandler = new ProgressHandler(
           progress,
@@ -348,7 +347,6 @@ export class GradleClient implements vscode.Disposable {
         );
 
         const progressHandler = new ProgressHandler(progress);
-        // eslint-disable-next-line sonarjs/no-identical-functions
         progressHandler.onDidProgressStart(async () => {
           await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         });

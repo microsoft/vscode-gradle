@@ -155,7 +155,6 @@ describe(getSuiteName('Pinned tasks'), () => {
         const taskItem = gradleTasks[0];
         assert.ok(
           taskItem instanceof GradleTaskTreeItem,
-          // eslint-disable-next-line sonarjs/no-duplicate-string
           'TreeItem is not a GradleTaskTreeItem'
         );
         await new PinTaskCommand(pinnedTasksTreeDataProvider).run(taskItem);
@@ -268,12 +267,10 @@ describe(getSuiteName('Pinned tasks'), () => {
         assert.strictEqual(childrenAfter.length, 2);
         assert.ok(
           childrenAfter[0] instanceof PinnedTaskTreeItem,
-          // eslint-disable-next-line sonarjs/no-duplicate-string
           'Pinned task is not PinnedTaskTreeItem'
         );
         assert.ok(
           childrenAfter[1] instanceof PinnedTaskTreeItem,
-          // eslint-disable-next-line sonarjs/no-duplicate-string
           'Pinned task is not PinnedTaskTreeItem'
         );
         assert.strictEqual(
@@ -316,7 +313,6 @@ describe(getSuiteName('Pinned tasks'), () => {
         const pinnedTask = childrenBefore[0];
         assert.ok(
           pinnedTask instanceof PinnedTaskTreeItem,
-          // eslint-disable-next-line sonarjs/no-duplicate-string
           'Pinned task is not PinnedTaskTreeItem'
         );
         await new RemovePinnedTaskCommand(pinnedTasksTreeDataProvider).run(

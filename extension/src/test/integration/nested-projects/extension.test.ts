@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-identical-functions */
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { Api } from '../../../api';
@@ -36,7 +35,6 @@ describe(getSuiteName('Extension'), () => {
     }
   });
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   describe('Task provider', () => {
     describe('Without nestedProjects enabled', () => {
       it('should not load any tasks', async () => {

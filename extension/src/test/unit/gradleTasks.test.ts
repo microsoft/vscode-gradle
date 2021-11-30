@@ -242,7 +242,6 @@ describe(getSuiteName('Gradle tasks'), () => {
           const taskItem = gradleTasks[0];
           assert.ok(
             taskItem instanceof GradleTaskTreeItem,
-            // eslint-disable-next-line sonarjs/no-duplicate-string
             'TreeItem is not a GradleTaskTreeItem'
           );
           assert.strictEqual(taskItem.contextValue, TREE_ITEM_STATE_TASK_IDLE);

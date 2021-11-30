@@ -43,5 +43,5 @@ subprojects {
 }
 
 task(format) {
-  dependsOn(spotlessApply)
+  dependsOn(':gradle-server:spotlessApply')
 }

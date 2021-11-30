@@ -69,9 +69,7 @@ describe(`${suiteName} - ${fixtureName}`, () => {
       );
       assert.ok(task);
       const spy = sinon.spy(extension.exports.getLogger(), 'append');
-      // eslint-disable-next-line sonarjs/no-identical-functions
       await new Promise(async (resolve) => {
-        // eslint-disable-next-line sonarjs/no-identical-functions
         const disposable = vscode.tasks.onDidEndTaskProcess((e) => {
           if (e.execution.task === task) {
             disposable.dispose();

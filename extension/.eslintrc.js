@@ -1,0 +1,17 @@
+// eslint-disable-next-line no-undef
+module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint', 'prettier'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended',
+  ],
+  rules: {
+    '@typescript-eslint/no-non-null-assertion': 'off',
+    'no-case-declarations': 'off',
+    'no-async-promise-executor': 'off',
+  },
+  ignorePatterns: 'scripts/update-third-party-notice.js',
+};
