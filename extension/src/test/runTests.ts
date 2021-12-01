@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/no-duplicate-string */
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs-extra';

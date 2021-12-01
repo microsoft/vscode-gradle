@@ -128,7 +128,9 @@ export class DefaultProjectProvider {
         command: 'vscode.open',
         arguments: [
           buildFileUri,
-          <vscode.TextDocumentShowOptions>{ selection: dependencyItem.range },
+          {
+            selection: dependencyItem.range,
+          } as vscode.TextDocumentShowOptions,
         ],
       };
       configurationItem.getChildren().push(dependencyTreeItem);

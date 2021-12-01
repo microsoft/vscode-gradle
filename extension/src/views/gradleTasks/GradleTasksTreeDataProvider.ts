@@ -172,7 +172,6 @@ export class GradleTasksTreeDataProvider
     return [...results, projectDependencyTreeItem];
   }
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
   public static buildItemsTreeFromTasks(
     tasks: vscode.Task[],
     rootProjectStore: RootProjectsStore,

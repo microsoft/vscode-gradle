@@ -245,7 +245,6 @@ describe(getSuiteName('Recent tasks'), () => {
         assert.strictEqual(childrenBefore.length, 1);
         assert.ok(
           childrenBefore[0] instanceof RecentTaskTreeItem,
-          // eslint-disable-next-line sonarjs/no-duplicate-string
           'Task is not a RecentTaskTreeItem'
         );
 
