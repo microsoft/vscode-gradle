@@ -77,8 +77,28 @@ public class GradleCompletionTest {
 		services.didOpen(new DidOpenTextDocumentParams(textDocumentItem));
 		CompletionParams params = new CompletionParams(new TextDocumentIdentifier(uri), new Position(19, 37));
 		CompletableFuture<Either<List<CompletionItem>, CompletionList>> result = services.completion(params);
-		Assertions.assertTrue(completionItemExists(result.get().getLeft(),
-				"org.springframework.boot:spring-boot-dependencies", CompletionItemKind.Module));
+		Assertions.assertTrue(
+				completionItemExists(result.get().getLeft(), "org.springframework.boot", CompletionItemKind.Module));
+	}
+
+	@Test
+	public void testDependencyIndexCompletions() throws Exception {
+		Path filePath = GradleTestConstants.testPath.resolve("app").resolve("build.gradle").normalize();
+		String content = Files.asCharSource(filePath.toFile(), Charsets.UTF_8).read();
+		String uri = filePath.toUri().toString();
+		TextDocumentItem textDocumentItem = new TextDocumentItem(uri, GradleTestConstants.LANGUAGE_GRADLE, 1, content);
+		services.didOpen(new DidOpenTextDocumentParams(textDocumentItem));
+		CompletionParams springBootArtifactParams = new CompletionParams(new TextDocumentIdentifier(uri),
+				new Position(19, 43));
+		CompletableFuture<Either<List<CompletionItem>, CompletionList>> springBootArtifactResults = services
+				.completion(springBootArtifactParams);
+		Assertions.assertTrue(completionItemExists(springBootArtifactResults.get().getLeft(), "spring-boot-devtools",
+				CompletionItemKind.Module));
+		CompletionParams orgGroupParams = new CompletionParams(new TextDocumentIdentifier(uri), new Position(19, 22));
+		CompletableFuture<Either<List<CompletionItem>, CompletionList>> orgGroupResults = services
+				.completion(orgGroupParams);
+		Assertions.assertTrue(
+				completionItemExists(orgGroupResults.get().getLeft(), "org.slf4j", CompletionItemKind.Module));
 	}
 
 	@Test
