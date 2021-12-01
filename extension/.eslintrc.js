@@ -10,6 +10,13 @@ module.exports = {
   ],
   rules: {
     '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/consistent-type-assertions': [
+      2,
+      {
+        assertionStyle: 'as',
+        objectLiteralTypeAssertions: 'allow',
+      },
+    ],
     'no-case-declarations': 'off',
     'no-async-promise-executor': 'off',
   },
