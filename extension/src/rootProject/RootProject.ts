@@ -1,32 +1,32 @@
-import * as vscode from 'vscode';
-import { Environment } from '../proto/gradle_pb';
-import { JavaDebug } from '../util/config';
+import * as vscode from "vscode";
+import { Environment } from "../proto/gradle_pb";
+import { JavaDebug } from "../util/config";
 
 export class RootProject {
-  private environment?: Environment;
-  constructor(
-    private readonly workspaceFolder: vscode.WorkspaceFolder,
-    private readonly projectUri: vscode.Uri,
-    private readonly javaDebug: JavaDebug
-  ) {}
+    private environment?: Environment;
+    constructor(
+        private readonly workspaceFolder: vscode.WorkspaceFolder,
+        private readonly projectUri: vscode.Uri,
+        private readonly javaDebug: JavaDebug
+    ) {}
 
-  public setEnvironment(environment: Environment): void {
-    this.environment = environment;
-  }
+    public setEnvironment(environment: Environment): void {
+        this.environment = environment;
+    }
 
-  public getEnvironment(): Environment | undefined {
-    return this.environment;
-  }
+    public getEnvironment(): Environment | undefined {
+        return this.environment;
+    }
 
-  public getJavaDebug(): JavaDebug {
-    return this.javaDebug;
-  }
+    public getJavaDebug(): JavaDebug {
+        return this.javaDebug;
+    }
 
-  public getWorkspaceFolder(): vscode.WorkspaceFolder {
-    return this.workspaceFolder;
-  }
+    public getWorkspaceFolder(): vscode.WorkspaceFolder {
+        return this.workspaceFolder;
+    }
 
-  public getProjectUri(): vscode.Uri {
-    return this.projectUri;
-  }
+    public getProjectUri(): vscode.Uri {
+        return this.projectUri;
+    }
 }

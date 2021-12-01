@@ -1,2 +1,2 @@
-export * from './GradleDaemonTreeItem';
-export * from './GradleDaemonsTreeDataProvider';
+export * from "./GradleDaemonTreeItem";
+export * from "./GradleDaemonsTreeDataProvider";

@@ -1,3 +1,3 @@
-import { TaskStore } from '.';
+import { TaskStore } from ".";
 
 export class RecentTasksStore extends TaskStore {}

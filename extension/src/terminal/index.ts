@@ -1,1 +1,1 @@
-export * from './GradleRunnerTerminal';
+export * from "./GradleRunnerTerminal";
