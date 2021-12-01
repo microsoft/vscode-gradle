@@ -6,3 +6,15 @@ java {
 dependencies {
   implementation ("org.gradle:gradle-tooling-api:${gradlingToolingApi}")
 }
+
+spotless {
+  java {
+    importOrder()
+    eclipse()
+    removeUnusedImports()
+    trimTrailingWhitespace()
+    targetExclude "build/**"
+  }
+}
+
+compileJava.dependsOn 'spotlessCheck'

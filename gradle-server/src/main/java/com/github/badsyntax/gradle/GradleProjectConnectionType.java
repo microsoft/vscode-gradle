@@ -4,7 +4,5 @@
 package com.github.badsyntax.gradle;
 
 public enum GradleProjectConnectionType {
-  WRAPPER,
-  SPECIFICVERSION,
-  LOCALINSTALLATION,
+	WRAPPER, SPECIFICVERSION, LOCALINSTALLATION,
 }

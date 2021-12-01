@@ -4,13 +4,13 @@
 package com.microsoft.gradle.resolver;
 
 public class GradleMethod {
-  public String name;
-  public String[] parameterTypes;
-  public boolean deprecated;
+	public String name;
+	public String[] parameterTypes;
+	public boolean deprecated;
 
-  public GradleMethod(String name, String[] parameterTypes, boolean deprecated) {
-    this.name = name;
-    this.parameterTypes = parameterTypes;
-    this.deprecated = deprecated;
-  }
+	public GradleMethod(String name, String[] parameterTypes, boolean deprecated) {
+		this.name = name;
+		this.parameterTypes = parameterTypes;
+		this.deprecated = deprecated;
+	}
 }

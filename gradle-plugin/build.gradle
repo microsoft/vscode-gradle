@@ -31,4 +31,15 @@ task copyJar(type: Copy) {
   into "../gradle-server/src/main/resources"
 }
 
+spotless {
+  java {
+    importOrder()
+    eclipse()
+    removeUnusedImports()
+    trimTrailingWhitespace()
+    targetExclude "build/**"
+  }
+}
+
 tasks.build.dependsOn tasks.copyJar
+compileJava.dependsOn 'spotlessCheck'

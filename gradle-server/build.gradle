@@ -95,7 +95,8 @@ distTar.enabled = false
 
 spotless {
   java {
-    googleJavaFormat()
+    importOrder()
+    eclipse()
     removeUnusedImports()
     trimTrailingWhitespace()
     targetExclude "build/**"

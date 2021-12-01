@@ -6,17 +6,17 @@ package com.microsoft.gradle.semantictokens;
 import org.eclipse.lsp4j.SemanticTokenTypes;
 
 public enum TokenType {
-  FUNCTION(SemanticTokenTypes.Function), PROPERTY(SemanticTokenTypes.Property), VARIABLE(SemanticTokenTypes.Variable),
-  PARAMETER(SemanticTokenTypes.Parameter);
+	FUNCTION(SemanticTokenTypes.Function), PROPERTY(SemanticTokenTypes.Property), VARIABLE(
+			SemanticTokenTypes.Variable), PARAMETER(SemanticTokenTypes.Parameter);
 
-  private String genericName;
+	private String genericName;
 
-  TokenType(String genericName) {
-    this.genericName = genericName;
-  }
+	TokenType(String genericName) {
+		this.genericName = genericName;
+	}
 
-  @Override
-  public String toString() {
-    return genericName;
-  }
+	@Override
+	public String toString() {
+		return genericName;
+	}
 }

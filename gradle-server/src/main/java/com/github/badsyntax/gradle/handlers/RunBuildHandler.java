@@ -26,128 +26,97 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RunBuildHandler {
-  private static final Logger logger = LoggerFactory.getLogger(RunBuildHandler.class.getName());
+	private static final Logger logger = LoggerFactory.getLogger(RunBuildHandler.class.getName());
 
-  private RunBuildRequest req;
-  private StreamObserver<RunBuildReply> responseObserver;
-  private ProgressListener progressListener;
-  private ByteBufferOutputStream standardOutputListener;
-  private ByteBufferOutputStream standardErrorListener;
+	private RunBuildRequest req;
+	private StreamObserver<RunBuildReply> responseObserver;
+	private ProgressListener progressListener;
+	private ByteBufferOutputStream standardOutputListener;
+	private ByteBufferOutputStream standardErrorListener;
 
-  public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
-    this.req = req;
-    this.responseObserver = responseObserver;
-    this.progressListener =
-        (ProgressEvent event) -> {
-          synchronized (RunBuildHandler.class) {
-            replyWithProgress(event);
-          }
-        };
-    this.standardOutputListener =
-        new ByteBufferOutputStream() {
-          @Override
-          public void onFlush(byte[] bytes) {
-            synchronized (RunBuildHandler.class) {
-              replyWithStandardOutput(bytes);
-            }
-          }
-        };
-    this.standardErrorListener =
-        new ByteBufferOutputStream() {
-          @Override
-          public void onFlush(byte[] bytes) {
-            synchronized (RunBuildHandler.class) {
-              replyWithStandardError(bytes);
-            }
-          }
-        };
-  }
+	public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
+		this.req = req;
+		this.responseObserver = responseObserver;
+		this.progressListener = (ProgressEvent event) -> {
+			synchronized (RunBuildHandler.class) {
+				replyWithProgress(event);
+			}
+		};
+		this.standardOutputListener = new ByteBufferOutputStream() {
+			@Override
+			public void onFlush(byte[] bytes) {
+				synchronized (RunBuildHandler.class) {
+					replyWithStandardOutput(bytes);
+				}
+			}
+		};
+		this.standardErrorListener = new ByteBufferOutputStream() {
+			@Override
+			public void onFlush(byte[] bytes) {
+				synchronized (RunBuildHandler.class) {
+					replyWithStandardError(bytes);
+				}
+			}
+		};
+	}
 
-  public void run() {
-    GradleBuildRunner gradleRunner =
-        new GradleBuildRunner(
-            req.getProjectDir(),
-            req.getArgsList(),
-            req.getGradleConfig(),
-            req.getCancellationKey(),
-            req.getShowOutputColors(),
-            req.getJavaDebugPort(),
-            req.getJavaDebugCleanOutputCache());
-    gradleRunner
-        .setProgressListener(progressListener)
-        .setStandardOutputStream(standardOutputListener)
-        .setStandardErrorStream(standardErrorListener);
+	public void run() {
+		GradleBuildRunner gradleRunner = new GradleBuildRunner(req.getProjectDir(), req.getArgsList(),
+				req.getGradleConfig(), req.getCancellationKey(), req.getShowOutputColors(), req.getJavaDebugPort(),
+				req.getJavaDebugCleanOutputCache());
+		gradleRunner.setProgressListener(progressListener).setStandardOutputStream(standardOutputListener)
+				.setStandardErrorStream(standardErrorListener);
 
-    if (!Strings.isNullOrEmpty(req.getInput())) {
-      gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));
-    }
+		if (!Strings.isNullOrEmpty(req.getInput())) {
+			gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));
+		}
 
-    try {
-      gradleRunner.run();
-      replyWithSuccess();
-      responseObserver.onCompleted();
-    } catch (BuildCancelledException e) {
-      replyWithCancelled(e);
-      responseObserver.onCompleted();
-    } catch (GradleConnectionException
-        | BuildException
-        | UnsupportedVersionException
-        | UnsupportedBuildArgumentException
-        | IllegalStateException
-        | IOException
-        | GradleBuildRunnerException e) {
-      logger.error(e.getMessage());
-      replyWithError(e);
-    }
-  }
+		try {
+			gradleRunner.run();
+			replyWithSuccess();
+			responseObserver.onCompleted();
+		} catch (BuildCancelledException e) {
+			replyWithCancelled(e);
+			responseObserver.onCompleted();
+		} catch (GradleConnectionException | BuildException | UnsupportedVersionException
+				| UnsupportedBuildArgumentException | IllegalStateException | IOException
+				| GradleBuildRunnerException e) {
+			logger.error(e.getMessage());
+			replyWithError(e);
+		}
+	}
 
-  public void replyWithCancelled(BuildCancelledException e) {
-    responseObserver.onNext(
-        RunBuildReply.newBuilder()
-            .setCancelled(
-                Cancelled.newBuilder()
-                    .setMessage(e.getMessage())
-                    .setProjectDir(req.getProjectDir()))
-            .build());
-  }
+	public void replyWithCancelled(BuildCancelledException e) {
+		responseObserver.onNext(RunBuildReply.newBuilder()
+				.setCancelled(Cancelled.newBuilder().setMessage(e.getMessage()).setProjectDir(req.getProjectDir()))
+				.build());
+	}
 
-  public void replyWithError(Exception e) {
-    responseObserver.onError(ErrorMessageBuilder.build(e));
-  }
+	public void replyWithError(Exception e) {
+		responseObserver.onError(ErrorMessageBuilder.build(e));
+	}
 
-  public void replyWithSuccess() {
-    responseObserver.onNext(
-        RunBuildReply.newBuilder()
-            .setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build"))
-            .build());
-  }
+	public void replyWithSuccess() {
+		responseObserver.onNext(RunBuildReply.newBuilder()
+				.setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build")).build());
+	}
 
-  private void replyWithProgress(ProgressEvent progressEvent) {
-    responseObserver.onNext(
-        RunBuildReply.newBuilder()
-            .setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
-            .build());
-  }
+	private void replyWithProgress(ProgressEvent progressEvent) {
+		responseObserver.onNext(RunBuildReply.newBuilder()
+				.setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName())).build());
+	}
 
-  private void replyWithStandardOutput(byte[] bytes) {
-    ByteString byteString = ByteString.copyFrom(bytes);
-    responseObserver.onNext(
-        RunBuildReply.newBuilder()
-            .setOutput(
-                Output.newBuilder()
-                    .setOutputType(Output.OutputType.STDOUT)
-                    .setOutputBytes(byteString))
-            .build());
-  }
+	private void replyWithStandardOutput(byte[] bytes) {
+		ByteString byteString = ByteString.copyFrom(bytes);
+		responseObserver.onNext(RunBuildReply.newBuilder()
+				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setOutputBytes(byteString))
+				.build());
+	}
 
-  private void replyWithStandardError(byte[] bytes) {
-    ByteString byteString = ByteString.copyFrom(bytes);
-    responseObserver.onNext(
-        RunBuildReply.newBuilder()
-            .setOutput(
-                Output.newBuilder()
-                    .setOutputType(Output.OutputType.STDERR)
-                    .setOutputBytes(byteString))
-            .build());
-  }
+	private void replyWithStandardError(byte[] bytes) {
+		ByteString byteString = ByteString.copyFrom(bytes);
+		responseObserver.onNext(RunBuildReply.newBuilder()
+				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDERR).setOutputBytes(byteString))
+				.build());
+	}
 }
