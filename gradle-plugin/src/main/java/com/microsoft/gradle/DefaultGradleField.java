@@ -3,24 +3,23 @@
 
 package com.microsoft.gradle;
 
+import com.microsoft.gradle.api.GradleField;
 import java.io.Serializable;
 
-import com.microsoft.gradle.api.GradleField;
-
 public class DefaultGradleField implements Serializable, GradleField {
-  private String name;
-  private boolean deprecated;
+	private String name;
+	private boolean deprecated;
 
-  public DefaultGradleField(String name, boolean deprecated) {
-    this.name = name;
-    this.deprecated = deprecated;
-  }
+	public DefaultGradleField(String name, boolean deprecated) {
+		this.name = name;
+		this.deprecated = deprecated;
+	}
 
-  public String getName() {
-    return this.name;
-  }
+	public String getName() {
+		return this.name;
+	}
 
-  public boolean getDeprecated() {
-    return this.deprecated;
-  }
+	public boolean getDeprecated() {
+		return this.deprecated;
+	}
 }

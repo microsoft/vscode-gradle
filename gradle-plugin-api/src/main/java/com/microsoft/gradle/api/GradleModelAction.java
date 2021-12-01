@@ -7,8 +7,8 @@ import org.gradle.tooling.BuildAction;
 import org.gradle.tooling.BuildController;
 
 public class GradleModelAction implements BuildAction<GradleProjectModel> {
-  @Override
-  public GradleProjectModel execute(BuildController controller) {
-    return controller.getModel(GradleProjectModel.class);
-  }
+	@Override
+	public GradleProjectModel execute(BuildController controller) {
+		return controller.getModel(GradleProjectModel.class);
+	}
 }

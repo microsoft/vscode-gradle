@@ -8,36 +8,29 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class DaemonStatus {
-  private GradleExecution gradleExecution;
+	private GradleExecution gradleExecution;
 
-  //  56783 IDLE     6.4
-  //  39762 STOPPED  (other compatible daemons were started ...)
-  private static final Pattern STATUS_REGEX =
-      Pattern.compile("^\\s+([0-9]+)\\s+([A-Z]+)\\s+([\\p{ASCII}]+)$");
+	// 56783 IDLE 6.4
+	// 39762 STOPPED (other compatible daemons were started ...)
+	private static final Pattern STATUS_REGEX = Pattern.compile("^\\s+([0-9]+)\\s+([A-Z]+)\\s+([\\p{ASCII}]+)$");
 
-  public DaemonStatus(GradleExecution gradleExecution) {
-    this.gradleExecution = gradleExecution;
-  }
+	public DaemonStatus(GradleExecution gradleExecution) {
+		this.gradleExecution = gradleExecution;
+	}
 
-  public synchronized List<DaemonInfo> get() throws GradleExecutionException {
-    ArrayList<DaemonInfo> daemonStatus = new ArrayList<>();
-    String processOutput = gradleExecution.exec("--status", "--quiet");
-    Stream.of(processOutput.split("\n"))
-        .forEach(
-            line -> {
-              Matcher statusMatcher = STATUS_REGEX.matcher(line);
-              if (statusMatcher.matches()) {
-                String pid = statusMatcher.group(1);
-                String status = statusMatcher.group(2);
-                String info = statusMatcher.group(3);
-                daemonStatus.add(
-                    DaemonInfo.newBuilder()
-                        .setPid(pid)
-                        .setInfo(info)
-                        .setStatus(DaemonInfo.DaemonStatus.valueOf(status))
-                        .build());
-              }
-            });
-    return daemonStatus;
-  }
+	public synchronized List<DaemonInfo> get() throws GradleExecutionException {
+		ArrayList<DaemonInfo> daemonStatus = new ArrayList<>();
+		String processOutput = gradleExecution.exec("--status", "--quiet");
+		Stream.of(processOutput.split("\n")).forEach(line -> {
+			Matcher statusMatcher = STATUS_REGEX.matcher(line);
+			if (statusMatcher.matches()) {
+				String pid = statusMatcher.group(1);
+				String status = statusMatcher.group(2);
+				String info = statusMatcher.group(3);
+				daemonStatus.add(DaemonInfo.newBuilder().setPid(pid).setInfo(info)
+						.setStatus(DaemonInfo.DaemonStatus.valueOf(status)).build());
+			}
+		});
+		return daemonStatus;
+	}
 }

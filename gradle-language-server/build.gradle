@@ -44,3 +44,15 @@ jar {
 test {
   useJUnitPlatform()
 }
+
+spotless {
+  java {
+    importOrder()
+    eclipse()
+    removeUnusedImports()
+    trimTrailingWhitespace()
+    targetExclude "build/**"
+  }
+}
+
+compileJava.dependsOn 'spotlessCheck'

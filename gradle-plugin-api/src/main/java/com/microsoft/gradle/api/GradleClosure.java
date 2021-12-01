@@ -6,7 +6,7 @@ package com.microsoft.gradle.api;
 import java.util.List;
 
 public interface GradleClosure {
-  String getName();
-  List<GradleMethod> getMethods();
-  List<GradleField> getFields();
+	String getName();
+	List<GradleMethod> getMethods();
+	List<GradleField> getFields();
 }

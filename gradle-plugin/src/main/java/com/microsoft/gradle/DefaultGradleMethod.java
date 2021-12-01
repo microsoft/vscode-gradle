@@ -3,31 +3,30 @@
 
 package com.microsoft.gradle;
 
+import com.microsoft.gradle.api.GradleMethod;
 import java.io.Serializable;
 import java.util.List;
 
-import com.microsoft.gradle.api.GradleMethod;
-
 public class DefaultGradleMethod implements Serializable, GradleMethod {
-  private String name;
-  private List<String> parameterTypes;
-  private boolean deprecated;
+	private String name;
+	private List<String> parameterTypes;
+	private boolean deprecated;
 
-  public DefaultGradleMethod(String name, List<String> parameterTypes, boolean deprecated) {
-    this.name = name;
-    this.parameterTypes = parameterTypes;
-    this.deprecated = deprecated;
-  }
+	public DefaultGradleMethod(String name, List<String> parameterTypes, boolean deprecated) {
+		this.name = name;
+		this.parameterTypes = parameterTypes;
+		this.deprecated = deprecated;
+	}
 
-  public String getName() {
-    return this.name;
-  }
+	public String getName() {
+		return this.name;
+	}
 
-  public List<String> getParameterTypes() {
-    return this.parameterTypes;
-  }
+	public List<String> getParameterTypes() {
+		return this.parameterTypes;
+	}
 
-  public boolean getDeprecated() {
-    return this.deprecated;
-  }
+	public boolean getDeprecated() {
+		return this.deprecated;
+	}
 }

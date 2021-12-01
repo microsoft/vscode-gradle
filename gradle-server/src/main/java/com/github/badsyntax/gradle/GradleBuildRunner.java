@@ -24,143 +24,127 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class GradleBuildRunner {
-  private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
-  private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
+	private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+	private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
 
-  private String projectDir;
-  private List<String> args;
-  private GradleConfig gradleConfig;
-  private String cancellationKey;
-  private Boolean colorOutput;
-  private int javaDebugPort;
-  private OutputStream standardOutputStream;
-  private OutputStream standardErrorStream;
-  private InputStream standardInputStream;
-  private ProgressListener progressListener;
-  private Boolean javaDebugCleanOutputCache;
+	private String projectDir;
+	private List<String> args;
+	private GradleConfig gradleConfig;
+	private String cancellationKey;
+	private Boolean colorOutput;
+	private int javaDebugPort;
+	private OutputStream standardOutputStream;
+	private OutputStream standardErrorStream;
+	private InputStream standardInputStream;
+	private ProgressListener progressListener;
+	private Boolean javaDebugCleanOutputCache;
 
-  public GradleBuildRunner(
-      String projectDir,
-      List<String> args,
-      GradleConfig gradleConfig,
-      String cancellationKey,
-      Boolean colorOutput,
-      int javaDebugPort,
-      Boolean javaDebugCleanOutputCache) {
-    this.projectDir = projectDir;
-    this.args = args;
-    this.gradleConfig = gradleConfig;
-    this.cancellationKey = cancellationKey;
-    this.colorOutput = colorOutput;
-    this.javaDebugPort = javaDebugPort;
-    this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
-  }
+	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
+			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache) {
+		this.projectDir = projectDir;
+		this.args = args;
+		this.gradleConfig = gradleConfig;
+		this.cancellationKey = cancellationKey;
+		this.colorOutput = colorOutput;
+		this.javaDebugPort = javaDebugPort;
+		this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
+	}
 
-  public GradleBuildRunner(
-      String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
-    this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
-  }
+	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
+		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
+	}
 
-  public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
-    this.standardOutputStream = standardOutputStream;
-    return this;
-  }
+	public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
+		this.standardOutputStream = standardOutputStream;
+		return this;
+	}
 
-  public GradleBuildRunner setStandardInputStream(InputStream standardInputStream) {
-    this.standardInputStream = standardInputStream;
-    return this;
-  }
+	public GradleBuildRunner setStandardInputStream(InputStream standardInputStream) {
+		this.standardInputStream = standardInputStream;
+		return this;
+	}
 
-  public GradleBuildRunner setStandardErrorStream(OutputStream standardErrorStream) {
-    this.standardErrorStream = standardErrorStream;
-    return this;
-  }
+	public GradleBuildRunner setStandardErrorStream(OutputStream standardErrorStream) {
+		this.standardErrorStream = standardErrorStream;
+		return this;
+	}
 
-  public GradleBuildRunner setProgressListener(ProgressListener progressListener) {
-    this.progressListener = progressListener;
-    return this;
-  }
+	public GradleBuildRunner setProgressListener(ProgressListener progressListener) {
+		this.progressListener = progressListener;
+		return this;
+	}
 
-  public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
-    if (Boolean.TRUE.equals(args.isEmpty())) {
-      throw new GradleBuildRunnerException("No args supplied");
-    }
-    GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
-    try (ProjectConnection connection = gradleConnector.connect()) {
-      runBuild(connection);
-    } finally {
-      GradleBuildCancellation.clearToken(cancellationKey);
-    }
-  }
+	public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
+		if (Boolean.TRUE.equals(args.isEmpty())) {
+			throw new GradleBuildRunnerException("No args supplied");
+		}
+		GradleConnector gradleConnector = GradleProjectConnector.build(projectDir, gradleConfig);
+		try (ProjectConnection connection = gradleConnector.connect()) {
+			runBuild(connection);
+		} finally {
+			GradleBuildCancellation.clearToken(cancellationKey);
+		}
+	}
 
-  private void runBuild(ProjectConnection connection)
-      throws GradleBuildRunnerException, IOException {
-    Set<OperationType> progressEvents = new HashSet<>();
-    progressEvents.add(OperationType.PROJECT_CONFIGURATION);
-    progressEvents.add(OperationType.TASK);
-    progressEvents.add(OperationType.TRANSFORM);
+	private void runBuild(ProjectConnection connection) throws GradleBuildRunnerException, IOException {
+		Set<OperationType> progressEvents = new HashSet<>();
+		progressEvents.add(OperationType.PROJECT_CONFIGURATION);
+		progressEvents.add(OperationType.TASK);
+		progressEvents.add(OperationType.TRANSFORM);
 
-    CancellationToken cancellationToken = GradleBuildCancellation.buildToken(cancellationKey);
+		CancellationToken cancellationToken = GradleBuildCancellation.buildToken(cancellationKey);
 
-    Boolean isDebugging = javaDebugPort != 0;
+		Boolean isDebugging = javaDebugPort != 0;
 
-    BuildLauncher build =
-        connection
-            .newBuild()
-            .withCancellationToken(cancellationToken)
-            .addProgressListener(progressListener, progressEvents)
-            .setStandardOutput(standardOutputStream)
-            .setStandardError(standardErrorStream)
-            .setColorOutput(colorOutput)
-            .withArguments(buildArguments(isDebugging));
+		BuildLauncher build = connection.newBuild().withCancellationToken(cancellationToken)
+				.addProgressListener(progressListener, progressEvents).setStandardOutput(standardOutputStream)
+				.setStandardError(standardErrorStream).setColorOutput(colorOutput)
+				.withArguments(buildArguments(isDebugging));
 
-    if (this.standardInputStream != null) {
-      build.setStandardInput(standardInputStream);
-    }
+		if (this.standardInputStream != null) {
+			build.setStandardInput(standardInputStream);
+		}
 
-    if (Boolean.TRUE.equals(isDebugging)) {
-      build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
-    }
+		if (Boolean.TRUE.equals(isDebugging)) {
+			build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
+		}
 
-    if (!Strings.isNullOrEmpty(gradleConfig.getJvmArguments())) {
-      build.setJvmArguments(gradleConfig.getJvmArguments());
-    }
+		if (!Strings.isNullOrEmpty(gradleConfig.getJvmArguments())) {
+			build.setJvmArguments(gradleConfig.getJvmArguments());
+		}
 
-    build.run();
-  }
+		build.run();
+	}
 
-  private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
-    if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
-      return args;
-    }
-    if (args.size() > 1) {
-      throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
-    }
+	private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
+		if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
+			return args;
+		}
+		if (args.size() > 1) {
+			throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
+		}
 
-    List<String> parts = new LinkedList<>(Arrays.asList(args.get(0).split(":")));
-    String taskName = parts.get(parts.size() - 1);
-    parts.remove(parts.size() - 1);
+		List<String> parts = new LinkedList<>(Arrays.asList(args.get(0).split(":")));
+		String taskName = parts.get(parts.size() - 1);
+		parts.remove(parts.size() - 1);
 
-    String capitalizedTaskName = taskName.substring(0, 1).toUpperCase() + taskName.substring(1);
-    parts.add("clean" + capitalizedTaskName);
+		String capitalizedTaskName = taskName.substring(0, 1).toUpperCase() + taskName.substring(1);
+		parts.add("clean" + capitalizedTaskName);
 
-    String cleanTaskName = String.join(":", parts);
+		String cleanTaskName = String.join(":", parts);
 
-    List<String> newArgs = new ArrayList<>(args);
-    newArgs.add(0, cleanTaskName);
+		List<String> newArgs = new ArrayList<>(args);
+		newArgs.add(0, cleanTaskName);
 
-    logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
+		logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
 
-    return newArgs;
-  }
+		return newArgs;
+	}
 
-  private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
-    HashMap<String, String> envVars = new HashMap<>(System.getenv());
-    envVars.put(
-        JAVA_TOOL_OPTIONS_ENV,
-        String.format(
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
-            javaDebugPort));
-    return envVars;
-  }
+	private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
+		HashMap<String, String> envVars = new HashMap<>(System.getenv());
+		envVars.put(JAVA_TOOL_OPTIONS_ENV, String
+				.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort));
+		return envVars;
+	}
 }

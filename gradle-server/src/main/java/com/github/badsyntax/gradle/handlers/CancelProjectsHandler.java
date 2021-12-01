@@ -12,36 +12,34 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CancelProjectsHandler {
-  private static final Logger logger =
-      LoggerFactory.getLogger(CancelProjectsHandler.class.getName());
+	private static final Logger logger = LoggerFactory.getLogger(CancelProjectsHandler.class.getName());
 
-  private CancelProjectsRequest req;
-  private StreamObserver<CancelProjectsReply> responseObserver;
+	private CancelProjectsRequest req;
+	private StreamObserver<CancelProjectsReply> responseObserver;
 
-  public CancelProjectsHandler(
-      CancelProjectsRequest req, StreamObserver<CancelProjectsReply> responseObserver) {
-    this.req = req;
-    this.responseObserver = responseObserver;
-  }
+	public CancelProjectsHandler(CancelProjectsRequest req, StreamObserver<CancelProjectsReply> responseObserver) {
+		this.req = req;
+		this.responseObserver = responseObserver;
+	}
 
-  public void run() {
-    try {
-      GradleBuildCancellation.cancelBuild(req.getCancellationKey());
-      replyWithCancelledSuccess();
-    } catch (GradleCancellationException e) {
-      logger.error(e.getMessage());
-      replyWithCancelError(e);
-    } finally {
-      responseObserver.onCompleted();
-    }
-  }
+	public void run() {
+		try {
+			GradleBuildCancellation.cancelBuild(req.getCancellationKey());
+			replyWithCancelledSuccess();
+		} catch (GradleCancellationException e) {
+			logger.error(e.getMessage());
+			replyWithCancelError(e);
+		} finally {
+			responseObserver.onCompleted();
+		}
+	}
 
-  private void replyWithCancelledSuccess() {
-    responseObserver.onNext(
-        CancelProjectsReply.newBuilder().setMessage("Cancel getting projects requested").build());
-  }
+	private void replyWithCancelledSuccess() {
+		responseObserver
+				.onNext(CancelProjectsReply.newBuilder().setMessage("Cancel getting projects requested").build());
+	}
 
-  private void replyWithCancelError(Exception e) {
-    responseObserver.onNext(CancelProjectsReply.newBuilder().setMessage(e.getMessage()).build());
-  }
+	private void replyWithCancelError(Exception e) {
+		responseObserver.onNext(CancelProjectsReply.newBuilder().setMessage(e.getMessage()).build());
+	}
 }

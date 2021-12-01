@@ -5,34 +5,33 @@ package com.microsoft.gradle.semantictokens;
 
 import java.util.Arrays;
 import java.util.List;
-
 import org.eclipse.lsp4j.SemanticTokenModifiers;
 
 public enum TokenModifier {
 
-  DEFAULT_LIBRARY(SemanticTokenModifiers.DefaultLibrary);
+	DEFAULT_LIBRARY(SemanticTokenModifiers.DefaultLibrary);
 
-  private String genericName;
-  // See https://docs.gradle.org/current/javadoc/org/gradle/api/Project.html
-  private static List<String> defaultLibrary = Arrays.asList("afterEvaluate", "allprojects", "ant", "apply", "artifacts",
-      "beforeEvaluate", "buildscript", "configurations", "configure", "copy", "copySpec", "dependencies", "javaexec",
-      "repositories", "subprojects", "task");
+	private String genericName;
+	// See https://docs.gradle.org/current/javadoc/org/gradle/api/Project.html
+	private static List<String> defaultLibrary = Arrays.asList("afterEvaluate", "allprojects", "ant", "apply",
+			"artifacts", "beforeEvaluate", "buildscript", "configurations", "configure", "copy", "copySpec",
+			"dependencies", "javaexec", "repositories", "subprojects", "task");
 
-  public final int bitmask = 1 << ordinal();
+	public final int bitmask = 1 << ordinal();
 
-  TokenModifier(String genericName) {
-    this.genericName = genericName;
-  }
+	TokenModifier(String genericName) {
+		this.genericName = genericName;
+	}
 
-  @Override
-  public String toString() {
-    return genericName;
-  }
+	@Override
+	public String toString() {
+		return genericName;
+	}
 
-  public static boolean isDefaultLibrary(String method) {
-    if (TokenModifier.defaultLibrary.contains(method)) {
-      return true;
-    }
-    return false;
-  }
+	public static boolean isDefaultLibrary(String method) {
+		if (TokenModifier.defaultLibrary.contains(method)) {
+			return true;
+		}
+		return false;
+	}
 }

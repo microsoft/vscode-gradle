@@ -4,7 +4,5 @@
 package com.microsoft.gradle.api;
 
 public enum GradleDependencyType {
-  PROJECT,
-  CONFIGURATION,
-  DEPENDENCY,
+	PROJECT, CONFIGURATION, DEPENDENCY,
 }
