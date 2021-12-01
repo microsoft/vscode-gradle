@@ -1,7 +1,7 @@
-import { NoTasksTreeItem } from '..';
+import { NoTasksTreeItem } from "..";
 
 export class NoRecentTasksTreeItem extends NoTasksTreeItem {
-  constructor() {
-    super('No recent tasks');
-  }
+    constructor() {
+        super("No recent tasks");
+    }
 }

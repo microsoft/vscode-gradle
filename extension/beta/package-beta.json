@@ -1,5 +1,5 @@
 {
-  "name": "vscode-gradle-preview",
-  "displayName": "Gradle Tasks - Preview",
-  "preview": true
+    "name": "vscode-gradle-preview",
+    "displayName": "Gradle Tasks - Preview",
+    "preview": true
 }

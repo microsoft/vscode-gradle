@@ -1,1 +1,1 @@
-export * from './GradleServer';
+export * from "./GradleServer";

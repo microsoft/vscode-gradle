@@ -3,5 +3,5 @@
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Context {
-  export const ACTIVATION_CONTEXT_KEY = 'gradle:extensionActivated';
+    export const ACTIVATION_CONTEXT_KEY = "gradle:extensionActivated";
 }
