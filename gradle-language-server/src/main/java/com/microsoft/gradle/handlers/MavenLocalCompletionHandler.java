@@ -32,6 +32,7 @@ public class MavenLocalCompletionHandler {
 		Path localRepositoryPath = Paths.get(System.getProperty("user.home"), ".m2", "repository");
 		List<File> pomFiles = Utils.listAllFiles(localRepositoryPath.toFile(), "pom");
 		Set<String> groupIds = new HashSet<>();
+		Map<String, Set<String>> repository = new HashMap<>();
 		for (File pomFile : pomFiles) {
 			Path path = pomFile.toPath();
 			Path relativePath = localRepositoryPath.relativize(path);
@@ -45,19 +46,20 @@ public class MavenLocalCompletionHandler {
 			relativePath.subpath(0, nameCount - 3).iterator().forEachRemaining(e -> groupIdParts.add(e.toString()));
 			String groupId = String.join(".", groupIdParts);
 			groupIds.add(groupId);
-			if (this.localRepository.containsKey(groupId)) {
-				this.localRepository.get(groupId).add(artifactId);
+			if (repository.containsKey(groupId)) {
+				repository.get(groupId).add(artifactId);
 			} else {
-				List<String> artifactIds = new ArrayList<>();
+				Set<String> artifactIds = new HashSet<>();
 				artifactIds.add(artifactId);
-				this.localRepository.put(groupId, artifactIds);
+				repository.put(groupId, artifactIds);
 			}
 		}
 		this.sortedGroupIds = new ArrayList<>(groupIds);
 		Collections.sort(this.sortedGroupIds);
-		for (List<String> artifacts : this.localRepository.values()) {
-			artifacts = artifacts.stream().distinct().collect(Collectors.toList());
-			Collections.sort(artifacts);
+		for (Map.Entry<String, Set<String>> entry : repository.entrySet()) {
+			List<String> values = entry.getValue().stream().collect(Collectors.toList());
+			Collections.sort(values);
+			this.localRepository.put(entry.getKey(), values);
 		}
 	}
 
@@ -77,7 +79,7 @@ public class MavenLocalCompletionHandler {
 	}
 
 	private List<CompletionItem> getGroupIdCompletions(String text, Range range) {
-		return CompletionUtils.getGroupIdCompletions(text, range, this.localRepository.keySet(), sequence);
+		return CompletionUtils.getGroupIdCompletions(text, range, this.sortedGroupIds, sequence);
 	}
 
 	private List<CompletionItem> getArtifactIdCompletions(String groupId, String text, Range range) {
