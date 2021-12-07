@@ -4,12 +4,18 @@
 package com.microsoft.gradle.utils;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class Utils {
 
@@ -46,15 +52,25 @@ public class Utils {
 		if (!isValidFolder(folder)) {
 			return Collections.emptyList();
 		}
-		List<String> allFiles = new ArrayList<>();
-		for (File file : folder.listFiles()) {
-			if (file.isDirectory()) {
-				allFiles.addAll(listAllFiles(file));
-			} else {
-				allFiles.add(file.getAbsolutePath());
-			}
+		try {
+			return Files.walk(folder.toPath()).filter(Files::isRegularFile).map(p -> p.toString())
+					.collect(Collectors.toList());
+		} catch (IOException e) {
+			return Collections.emptyList();
 		}
-		return allFiles;
+	}
+
+	public static List<File> listAllFiles(File folder, String ext) {
+		if (!isValidFolder(folder)) {
+			return Collections.emptyList();
+		}
+		try {
+			return Files.walk(folder.toPath())
+					.filter(path -> path.toFile().isFile() && path.toFile().getName().endsWith(ext))
+					.map(p -> p.toFile()).collect(Collectors.toList());
+		} catch (IOException e) {
+			return Collections.emptyList();
+		}
 	}
 
 	public static String getFolderPath(URI uri) {
@@ -64,5 +80,10 @@ public class Utils {
 			return null;
 		}
 		return folderPath.toString();
+	}
+
+	public static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+		Set<Object> seen = ConcurrentHashMap.newKeySet();
+		return t -> seen.add(keyExtractor.apply(t));
 	}
 }
