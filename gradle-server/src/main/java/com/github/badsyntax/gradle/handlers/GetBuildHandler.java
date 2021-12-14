@@ -89,7 +89,7 @@ public class GetBuildHandler {
 			this.environment = buildEnvironment(connection);
 			replyWithBuildEnvironment(this.environment);
 			org.gradle.tooling.model.GradleProject gradleProject = getGradleProject(connection);
-			replyWithProject(getProjectData(gradleProject, gradleProject));
+			replyWithProject(getProjectData(gradleProject, gradleProject, new HashSet<>()));
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
 		} catch (ServiceCreationException | IOException | IllegalStateException
@@ -189,10 +189,10 @@ public class GetBuildHandler {
 	}
 
 	private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject,
-			org.gradle.tooling.model.GradleProject rootGradleProject) {
+			org.gradle.tooling.model.GradleProject rootGradleProject, Set<GradleTask> taskSelectors) {
 		GradleProject.Builder project = GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
-		gradleProject.getChildren().stream().forEach(
-				childGradleProject -> project.addProjects(getProjectData(childGradleProject, rootGradleProject)));
+		gradleProject.getChildren().stream().forEach(childGradleProject -> project
+				.addProjects(getProjectData(childGradleProject, rootGradleProject, taskSelectors)));
 		gradleProject.getTasks().stream().forEach(task -> {
 			GradleTask.Builder gradleTask = GradleTask.newBuilder().setProject(task.getProject().getName())
 					.setName(task.getName()).setPath(task.getPath())
@@ -205,7 +205,30 @@ public class GetBuildHandler {
 				gradleTask.setGroup(task.getGroup());
 			}
 			project.addTasks(gradleTask.build());
+			taskSelectors.add(gradleTask.build());
 		});
+		if (gradleProject.getPath().equals(rootGradleProject.getPath())) {
+			Set<String> taskNames = new HashSet<>();
+			for (GradleTask existingTask : project.getTasksList()) {
+				taskNames.add(existingTask.getName());
+			}
+			for (GradleTask task : taskSelectors) {
+				if (!taskNames.contains(task.getName())) {
+					taskNames.add(task.getName());
+					GradleTask.Builder taskSelector = GradleTask.newBuilder().setProject(gradleProject.getName())
+							.setName(task.getName()).setPath(task.getName())
+							.setBuildFile(gradleProject.getBuildScript().getSourceFile().getAbsolutePath())
+							.setRootProject(task.getRootProject());
+					if (task.getDescription() != null) {
+						taskSelector.setDescription(task.getDescription());
+					}
+					if (task.getGroup() != null) {
+						taskSelector.setGroup(task.getGroup());
+					}
+					project.addTasks(taskSelector.build());
+				}
+			}
+		}
 		return project.build();
 	}
 
