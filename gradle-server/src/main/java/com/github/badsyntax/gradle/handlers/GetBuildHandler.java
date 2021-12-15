@@ -190,7 +190,8 @@ public class GetBuildHandler {
 
 	private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject,
 			org.gradle.tooling.model.GradleProject rootGradleProject, Set<GradleTask> taskSelectors) {
-		GradleProject.Builder project = GradleProject.newBuilder().setIsRoot(gradleProject.getParent() == null);
+		boolean isRoot = gradleProject.getParent() == null;
+		GradleProject.Builder project = GradleProject.newBuilder().setIsRoot(isRoot);
 		gradleProject.getChildren().stream().forEach(childGradleProject -> project
 				.addProjects(getProjectData(childGradleProject, rootGradleProject, taskSelectors)));
 		gradleProject.getTasks().stream().forEach(task -> {
@@ -207,9 +208,7 @@ public class GetBuildHandler {
 			project.addTasks(gradleTask.build());
 			taskSelectors.add(gradleTask.build());
 		});
-		String projectPath = gradleProject.getPath();
-		String rootProjectPath = rootGradleProject.getPath();
-		if (projectPath != null && rootProjectPath != null && projectPath.equals(rootProjectPath)) {
+		if (isRoot) {
 			Set<String> taskNames = new HashSet<>();
 			for (GradleTask existingTask : project.getTasksList()) {
 				taskNames.add(existingTask.getName());
