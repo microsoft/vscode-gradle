@@ -760,7 +760,7 @@
           "type": "boolean",
           "default": false,
           "scope": "window",
-          "markdownDescription": "Allow to run tasks in parallel. When enabled, you can run a task multiple times even the previous running is not terminated. This configuration takes effect only when `gradle.reuseTerminals` is set to `off`."
+          "markdownDescription": "Allow to run tasks in parallel, each running will create a new terminal. This configuration takes effect only when `gradle.reuseTerminals` is set to `off`."
         }
       }
     },
