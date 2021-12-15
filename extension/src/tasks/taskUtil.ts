@@ -24,7 +24,7 @@ import {
     getConfigIsAutoDetectionEnabled,
     getConfigReuseTerminals,
     getConfigJavaDebug,
-    getAllowParallelRun,
+    isAllowedParallelRun,
 } from "../util/config";
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
@@ -131,7 +131,7 @@ export function createTaskFromDefinition(
     client: GradleClient,
     useUniqueId = false
 ): vscode.Task {
-    if (getAllowParallelRun() && useUniqueId) {
+    if (isAllowedParallelRun() && useUniqueId) {
         // use a random id to distinguish tasks
         definition.id = definition.id + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
     }
@@ -298,7 +298,7 @@ export async function runTask(
     debug = false
 ): Promise<void> {
     const isRunning = isTaskRunning(task, args);
-    if (!getAllowParallelRun() && isRunning) {
+    if (!isAllowedParallelRun() && isRunning) {
         logger.warn("Unable to run task, task is already running:", task.name);
         return;
     }
@@ -325,7 +325,7 @@ export async function runTask(
         }
     }
     try {
-        if (debug || args || getAllowParallelRun()) {
+        if (debug || args || isAllowedParallelRun()) {
             const clonedTask = cloneTask(rootProjectsStore, task, args, client, debug, isRunning);
             await vscode.tasks.executeTask(clonedTask);
         } else {
