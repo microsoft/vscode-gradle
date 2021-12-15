@@ -207,7 +207,9 @@ public class GetBuildHandler {
 			project.addTasks(gradleTask.build());
 			taskSelectors.add(gradleTask.build());
 		});
-		if (gradleProject.getPath().equals(rootGradleProject.getPath())) {
+		String projectPath = gradleProject.getPath();
+		String rootProjectPath = rootGradleProject.getPath();
+		if (projectPath != null && rootProjectPath != null && projectPath.equals(rootProjectPath)) {
 			Set<String> taskNames = new HashSet<>();
 			for (GradleTask existingTask : project.getTasksList()) {
 				taskNames.add(existingTask.getName());
