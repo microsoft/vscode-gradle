@@ -24,6 +24,7 @@ import {
     getConfigIsAutoDetectionEnabled,
     getConfigReuseTerminals,
     getConfigJavaDebug,
+    getAllowParallelRun,
 } from "../util/config";
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
@@ -127,8 +128,13 @@ export function buildTaskName(definition: GradleTaskDefinition): string {
 export function createTaskFromDefinition(
     definition: Required<GradleTaskDefinition>,
     rootProject: RootProject,
-    client: GradleClient
+    client: GradleClient,
+    useUniqueId = false
 ): vscode.Task {
+    if (getAllowParallelRun() && useUniqueId) {
+        // use a random id to distinguish tasks
+        definition.id = definition.id + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+    }
     const args = [definition.script].concat(parseArgsStringToArgv(definition.args.trim())).filter(Boolean);
     const taskName = buildTaskName(definition);
     const cancellationKey = getRunTaskCommandCancellationKey(rootProject.getProjectUri().fsPath, definition.script);
@@ -291,7 +297,8 @@ export async function runTask(
     args = "",
     debug = false
 ): Promise<void> {
-    if (isTaskRunning(task, args)) {
+    const isRunning = isTaskRunning(task, args);
+    if (!getAllowParallelRun() && isRunning) {
         logger.warn("Unable to run task, task is already running:", task.name);
         return;
     }
@@ -318,8 +325,8 @@ export async function runTask(
         }
     }
     try {
-        if (debug || args) {
-            const clonedTask = cloneTask(rootProjectsStore, task, args, client, debug);
+        if (debug || args || getAllowParallelRun()) {
+            const clonedTask = cloneTask(rootProjectsStore, task, args, client, debug, isRunning);
             await vscode.tasks.executeTask(clonedTask);
         } else {
             await vscode.tasks.executeTask(task);
@@ -348,7 +355,8 @@ export function cloneTask(
     task: vscode.Task,
     args: string,
     client: GradleClient,
-    javaDebug = false
+    javaDebug = false,
+    useUniqueId = false
 ): vscode.Task {
     const definition: Required<GradleTaskDefinition> = {
         ...(task.definition as GradleTaskDefinition),
@@ -356,7 +364,7 @@ export function cloneTask(
         javaDebug,
     };
     const rootProject = rootProjectsStore.get(definition.projectFolder);
-    return createTaskFromDefinition(definition, rootProject!, client);
+    return createTaskFromDefinition(definition, rootProject!, client, useUniqueId);
 }
 
 export function getGradleTasks(): Thenable<vscode.Task[]> {

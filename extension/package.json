@@ -576,7 +576,7 @@
         },
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/ || viewItem =~ /^runningTask.*$/ && allowParallelRun == true",
           "group": "inline@3"
         },
         {
@@ -755,6 +755,12 @@
           "default": false,
           "scope": "application",
           "description": "Show stopped daemons in the Gradle Daemons view"
+        },
+        "gradle.allowParallelRun": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Allow to run tasks in parallel. When enabled, you can run a task multiple times even the previous running is not terminated. This configuration takes effect only when `gradle.reuseTerminals` is set to `off`."
         }
       }
     },

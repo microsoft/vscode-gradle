@@ -89,6 +89,13 @@ export function getConfigJavaDebug(workspaceFolder: vscode.WorkspaceFolder): Jav
     return vscode.workspace.getConfiguration("gradle", workspaceFolder.uri).get<JavaDebug>("javaDebug", defaultValue);
 }
 
+export function getAllowParallelRun(): boolean {
+    return (
+        vscode.workspace.getConfiguration("gradle").get<boolean>("allowParallelRun", false) &&
+        getConfigReuseTerminals() === "off"
+    );
+}
+
 export function getGradleConfig(): GradleConfig {
     const gradleConfig = new GradleConfig();
     const gradleHome = getConfigJavaImportGradleHome();
