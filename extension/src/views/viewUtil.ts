@@ -5,6 +5,7 @@ import {
     TREE_ITEM_STATE_TASK_RUNNING,
     TREE_ITEM_STATE_TASK_DEBUG_IDLE,
     TREE_ITEM_STATE_TASK_IDLE,
+    TREE_ITEM_STATE_TASK_DEBUG_RUNNING,
 } from "./constants";
 import { GradleTaskDefinition } from "../tasks";
 import { logger } from "../logger";
@@ -123,15 +124,14 @@ export async function focusProjectInGradleTasksTree(
 }
 
 function getTreeItemRunningState(task: vscode.Task, javaDebug?: JavaDebug, args?: TaskArgs): string {
+    const isDebug = javaDebug && javaDebug.tasks.includes(task.definition.script);
     if (isTaskCancelling(task, args)) {
         return TREE_ITEM_STATE_TASK_CANCELLING;
     }
     if (isTaskRunning(task, args)) {
-        return TREE_ITEM_STATE_TASK_RUNNING;
+        return isDebug ? TREE_ITEM_STATE_TASK_DEBUG_RUNNING : TREE_ITEM_STATE_TASK_RUNNING;
     }
-    return javaDebug && javaDebug.tasks.includes(task.definition.script)
-        ? TREE_ITEM_STATE_TASK_DEBUG_IDLE
-        : TREE_ITEM_STATE_TASK_IDLE;
+    return isDebug ? TREE_ITEM_STATE_TASK_DEBUG_IDLE : TREE_ITEM_STATE_TASK_IDLE;
 }
 
 export function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug, args?: TaskArgs): string {

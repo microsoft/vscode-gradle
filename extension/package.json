@@ -561,32 +561,32 @@
         },
         {
           "command": "gradle.showTaskTerminal",
-          "when": "view == recentTasksView && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$/",
+          "when": "view == recentTasksView && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$|^runningDebugTask(WithArgs)?WithTerminals.*$/",
           "group": "inline@0"
         },
         {
           "command": "gradle.closeTaskTerminals",
-          "when": "view == recentTasksView  && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$/",
+          "when": "view == recentTasksView  && viewItem =~ /^debugTask(WithArgs)?WithTerminals.*$|^task(WithArgs)?WithTerminals.*$|^runningTask(WithArgs)?WithTerminals.*$|^runningDebugTask(WithArgs)?WithTerminals.*$/",
           "group": "inline@1"
         },
         {
           "command": "gradle.debugTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask.*$/ || viewItem =~ /^runningDebugTask.*$/ && allowParallelRun == true",
           "group": "inline@2"
         },
         {
           "command": "gradle.runTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/ || viewItem =~ /^runningTask.*$/ && allowParallelRun == true",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$|^gradleDefaultProjectsView$/ && viewItem =~ /^debugTask.*$|^task.*$/ || viewItem =~ /^runningTask.*$|^runningDebugTask.*$/ && allowParallelRun == true",
           "group": "inline@3"
         },
         {
           "command": "gradle.restartTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/",
           "group": "inline@4"
         },
         {
           "command": "gradle.cancelTreeItemTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/",
           "group": "inline@5"
         },
         {
