@@ -237,6 +237,7 @@ This extension contributes the following settings:
 - `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
 - `gradle.debug`: Show extra debug info in the output panel (boolean)
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
+- `gradle.allowParallelRun`: Allow to run tasks in parallel, each running will create a new terminal. This configuration takes effect only when `gradle.reuseTerminals` is set to `off`
 
 ## Gradle & Java Settings
 

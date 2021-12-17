@@ -23,7 +23,7 @@ import {
 import { focusTaskInGradleTasksTree } from "./views/viewUtil";
 import { COMMAND_RENDER_TASK, COMMAND_REFRESH } from "./commands";
 import { Commands } from "./commands/Commands";
-import { getConfigIsDebugEnabled, getConfigFocusTaskInExplorer } from "./util/config";
+import { getConfigIsDebugEnabled, getConfigFocusTaskInExplorer, getAllowParallelRun } from "./util/config";
 import { FileWatcher } from "./util/FileWatcher";
 import { DependencyTreeItem } from "./views/gradleTasks/DependencyTreeItem";
 import { GRADLE_DEPENDENCY_REVEAL } from "./views/gradleTasks/DependencyUtils";
@@ -183,6 +183,7 @@ export class Extension {
 
         void this.activate();
         void startLanguageServer(this.context, this.gradleProjectContentProvider);
+        void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
         void vscode.commands.executeCommand("setContext", Context.ACTIVATION_CONTEXT_KEY, true);
     }
 
@@ -322,6 +323,8 @@ export class Extension {
                     event.affectsConfiguration("java.import.gradle.wrapper.enabled")
                 ) {
                     await this.refresh();
+                } else if (event.affectsConfiguration("gradle.allowParallelRun")) {
+                    void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
                 }
             }),
             vscode.window.onDidCloseTerminal((terminal: vscode.Terminal) => {
