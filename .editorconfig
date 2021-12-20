@@ -8,7 +8,17 @@ root = true
 end_of_line = lf
 insert_final_newline = true
 
-[*.{java,gradle,ts}]
+[*.gradle]
 charset = utf-8
 indent_style = space
 indent_size = 2
+
+[*.java]
+charset = utf-8
+indent_style = tab
+indent_size = 4
+
+[*.ts]
+charset = utf-8
+indent_style = space
+indent_size = 4
