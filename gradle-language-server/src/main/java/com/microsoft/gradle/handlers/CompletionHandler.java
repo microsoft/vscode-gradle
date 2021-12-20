@@ -8,6 +8,8 @@ import com.microsoft.gradle.resolver.GradleClosure;
 import com.microsoft.gradle.resolver.GradleField;
 import com.microsoft.gradle.resolver.GradleLibraryResolver;
 import com.microsoft.gradle.resolver.GradleMethod;
+import com.microsoft.gradle.utils.CompletionUtils;
+import com.microsoft.gradle.utils.CompletionUtils.CompletionKinds;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +23,7 @@ import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
 import org.apache.bcel.generic.ObjectType;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionItemTag;
@@ -121,6 +124,11 @@ public class CompletionHandler {
 					property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
 				}
 				property.setKind(CompletionItemKind.Property);
+				List<Object> propertyArguments = new ArrayList<>();
+				propertyArguments.add(CompletionKinds.PROPERTY.toString());
+				propertyArguments.add(propertyName);
+				item.setCommand(new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand,
+						propertyArguments));
 				if (resultSet.add(propertyName)) {
 					results.add(property);
 				}
@@ -140,6 +148,11 @@ public class CompletionHandler {
 				item.setKind(CompletionItemKind.Function);
 				item.setInsertTextFormat(InsertTextFormat.Snippet);
 				item.setInsertText(insertBuilder.toString());
+				List<Object> arguments = new ArrayList<>();
+				arguments.add(CompletionKinds.METHOD_CALL.toString());
+				arguments.add(plugin);
+				item.setCommand(
+						new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand, arguments));
 				results.add(item);
 			}
 		}
@@ -164,6 +177,10 @@ public class CompletionHandler {
 			insertTextBuilder.append(closure.name);
 			insertTextBuilder.append(" {$0}");
 			item.setInsertText(insertTextBuilder.toString());
+			List<Object> arguments = new ArrayList<>();
+			arguments.add(CompletionKinds.METHOD_CALL.toString());
+			arguments.add(closure.name);
+			item.setCommand(new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand, arguments));
 			if (resultSet.add(item.getLabel())) {
 				results.add(item);
 			}
@@ -193,6 +210,11 @@ public class CompletionHandler {
 					if (field.deprecated) {
 						property.setTags(Arrays.asList(CompletionItemTag.Deprecated));
 					}
+					List<Object> arguments = new ArrayList<>();
+					arguments.add(CompletionKinds.PROPERTY.toString());
+					arguments.add(field.name);
+					property.setCommand(
+							new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand, arguments));
 					if (resultSet.add(field.name)) {
 						results.add(property);
 					}
@@ -237,6 +259,10 @@ public class CompletionHandler {
 			builder.append("($0)");
 		}
 		item.setInsertText(builder.toString());
+		List<Object> itemArguments = new ArrayList<>();
+		itemArguments.add(CompletionKinds.METHOD_CALL.toString());
+		itemArguments.add(name);
+		item.setCommand(new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand, itemArguments));
 		return item;
 	}
 

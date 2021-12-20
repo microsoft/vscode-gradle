@@ -11,3 +11,15 @@ export const GRADLE_BUILD_FILE_CHANGE = "gradle.buildFileChanged";
 export const GRADLE_BUILD_FILE_OPEN = "gradle.buildFileOpened";
 
 export const GRADLE_PROPERTIES_FILE_CHANGE = "gradle.propertiesFileChanged";
+
+export const GRADLE_COMPLETION = "gradle.triggerCompletion";
+
+export const VSCODE_TRIGGER_COMPLETION = "editor.action.triggerSuggest";
+
+export enum CompletionKinds {
+    DEPENDENCY_GROUP = "dependency_group",
+    DEPENDENCY_ARTIFACT = "dependency_artifact",
+    DEPENDENCY_VERSION = "dependency_version",
+    METHOD_CALL = "method_call",
+    PROPERTY = "property",
+}

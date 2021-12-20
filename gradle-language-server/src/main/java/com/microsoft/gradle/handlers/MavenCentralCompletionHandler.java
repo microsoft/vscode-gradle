@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.microsoft.gradle.compile.CompletionVisitor.DependencyItem;
 import com.microsoft.gradle.utils.CompletionUtils;
+import com.microsoft.gradle.utils.CompletionUtils.CompletionKinds;
 import com.microsoft.gradle.utils.LSPUtils;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -100,6 +101,7 @@ public class MavenCentralCompletionHandler {
 					CompletionItem completionItem = new CompletionItem();
 					String groupId = ((JsonObject) element).get("g").getAsJsonPrimitive().getAsString();
 					String artifactId = ((JsonObject) element).get("a").getAsJsonPrimitive().getAsString();
+					List<Object> arguments = new ArrayList<>();
 					if (kind == DependencyCompletionKind.GROUPID) {
 						TextEdit textEdit = new TextEdit(range, groupId + ":");
 						completionItem.setTextEdit(Either.forLeft(textEdit));
@@ -108,6 +110,8 @@ public class MavenCentralCompletionHandler {
 						completionItem.setDetail("GroupID: " + groupId);
 						completionItem.setCommand(
 								new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand));
+						arguments.add(CompletionKinds.DEPENDENCY_GROUP.toString());
+						arguments.add(groupId);
 					} else if (kind == DependencyCompletionKind.ARTIFACTID) {
 						// ${groupId}:${artifactId}
 						int character = range.getStart().getCharacter() + groupId.length() + 1;
@@ -120,6 +124,8 @@ public class MavenCentralCompletionHandler {
 						completionItem.setDetail("ArtifactID: " + artifactId);
 						completionItem.setCommand(
 								new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand));
+						arguments.add(CompletionKinds.DEPENDENCY_ARTIFACT.toString());
+						arguments.add(groupId + ":" + artifactId);
 					} else if (kind == DependencyCompletionKind.VERSION) {
 						String version = ((JsonObject) element).get("v").getAsJsonPrimitive().getAsString();
 						String timestampValue = ((JsonObject) element).get("timestamp").getAsJsonPrimitive()
@@ -136,7 +142,11 @@ public class MavenCentralCompletionHandler {
 						completionItem.setLabel(version);
 						completionItem.setKind(CompletionItemKind.Constant);
 						completionItem.setDetail("Updated: " + date.toString());
+						arguments.add(CompletionKinds.DEPENDENCY_VERSION.toString());
+						arguments.add(groupId + ":" + artifactId + ":" + version);
 					}
+					completionItem.setCommand(
+							new Command(CompletionUtils.completionTitle, CompletionUtils.completionCommand, arguments));
 					completionItem.setSortText(sequence + String.format("%08d", i));
 					completions.add(completionItem);
 				}

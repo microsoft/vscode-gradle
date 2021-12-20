@@ -18,8 +18,24 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 public class CompletionUtils {
 
-	public static String completionCommand = "editor.action.triggerSuggest";
+	public static String completionCommand = "gradle.triggerCompletion";
 	public static String completionTitle = "completion";
+
+	public enum CompletionKinds {
+		DEPENDENCY_GROUP("dependency_group"), DEPENDENCY_ARTIFACT("dependency_artifact"), DEPENDENCY_VERSION(
+				"dependency_version"), METHOD_CALL("method_call"), PROPERTY("property");
+
+		private final String text;
+
+		CompletionKinds(final String text) {
+			this.text = text;
+		}
+
+		@Override
+		public String toString() {
+			return text;
+		}
+	}
 
 	public static List<CompletionItem> getGroupIdCompletions(String text, Range range, Collection<String> keys,
 			String sequence) {
@@ -34,7 +50,10 @@ public class CompletionUtils {
 			completionItem.setKind(CompletionItemKind.Module);
 			completionItem.setDetail("GroupID: " + groupId);
 			completionItem.setSortText(sequence + String.format("%08d", i));
-			completionItem.setCommand(new Command(completionTitle, completionCommand));
+			List<Object> arguments = new ArrayList<>();
+			arguments.add(CompletionKinds.DEPENDENCY_GROUP.toString());
+			arguments.add(groupId);
+			completionItem.setCommand(new Command(completionTitle, completionCommand, arguments));
 			items.add(completionItem);
 		}
 		return items;
@@ -56,7 +75,10 @@ public class CompletionUtils {
 			completionItem.setKind(CompletionItemKind.Module);
 			completionItem.setDetail("ArtifactID: " + artifactId);
 			completionItem.setSortText(sequence + String.format("%08d", i));
-			completionItem.setCommand(new Command(completionTitle, completionCommand));
+			List<Object> arguments = new ArrayList<>();
+			arguments.add(CompletionKinds.DEPENDENCY_ARTIFACT.toString());
+			arguments.add(groupId + ":" + artifactId);
+			completionItem.setCommand(new Command(completionTitle, completionCommand, arguments));
 			items.add(completionItem);
 		}
 		return items;

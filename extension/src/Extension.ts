@@ -31,8 +31,16 @@ import { GradleDependencyProvider } from "./dependencies/GradleDependencyProvide
 import { isLanguageServerStarted, startLanguageServer, syncLanguageServer } from "./languageServer/languageServer";
 import { DefaultProjectsTreeDataProvider } from "./views/defaultProject/DefaultProjectsTreeDataProvider";
 import { GradleProjectContentProvider } from "./projectContent/GradleProjectContentProvider";
-import { Context, GRADLE_BUILD_FILE_CHANGE, GRADLE_BUILD_FILE_OPEN, GRADLE_PROPERTIES_FILE_CHANGE } from "./constant";
-import { instrumentOperation } from "vscode-extension-telemetry-wrapper";
+import {
+    CompletionKinds,
+    Context,
+    GRADLE_BUILD_FILE_CHANGE,
+    GRADLE_BUILD_FILE_OPEN,
+    GRADLE_COMPLETION,
+    GRADLE_PROPERTIES_FILE_CHANGE,
+    VSCODE_TRIGGER_COMPLETION,
+} from "./constant";
+import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 
 export class Extension {
     private readonly client: GradleClient;
@@ -181,6 +189,28 @@ export class Extension {
                 await this.gradleTasksTreeView.reveal(omittedTreeItem);
             }
         });
+
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand(
+                GRADLE_COMPLETION,
+                instrumentOperation(GRADLE_COMPLETION, async (operationId: string, ...args: string[]) => {
+                    if (args.length === 2) {
+                        const completionKind = args[0];
+                        const completionContent = args[1];
+                        sendInfo(operationId, {
+                            kind: completionKind,
+                            content: completionContent,
+                        });
+                        if (
+                            completionKind === CompletionKinds.DEPENDENCY_GROUP ||
+                            completionKind === CompletionKinds.DEPENDENCY_ARTIFACT
+                        ) {
+                            vscode.commands.executeCommand(VSCODE_TRIGGER_COMPLETION);
+                        }
+                    }
+                })
+            )
+        );
 
         void this.activate();
         void startLanguageServer(this.context, this.gradleProjectContentProvider);
