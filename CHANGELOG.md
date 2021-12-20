@@ -4,7 +4,7 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [3.8.5](https://github.com/microsoft/vscode-gradle/compare/3.8.4...3.8.5) (2021-12-22)
+## [3.9.0](https://github.com/microsoft/vscode-gradle/compare/3.8.4...3.9.0) (2021-12-22)
 ### Added
 - Show task selectors. [PR#1121](https://github.com/microsoft/vscode-gradle/pull/1121)
 - Support parallel running of tasks. [#1045](https://github.com/microsoft/vscode-gradle/issues/1045)
