@@ -4,6 +4,18 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.8.5](https://github.com/microsoft/vscode-gradle/compare/3.8.4...3.8.5) (2021-12-22)
+### Added
+- Show task selectors. [PR#1121](https://github.com/microsoft/vscode-gradle/pull/1121)
+- Support parallel running of tasks. [#1045](https://github.com/microsoft/vscode-gradle/issues/1045)
+
+### Changed
+- Improve dependency completion quality. [PR#1090](https://github.com/microsoft/vscode-gradle/pull/1090)
+- Hide Gradle commands in non-Gradle workspace. [#1108](https://github.com/microsoft/vscode-gradle/issues/1108)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A%22December+2021%22+is%3Aclosed)
+
 ## [3.8.4](https://github.com/microsoft/vscode-gradle/compare/3.8.3...3.8.4) (2021-11-24)
 ### Fixed
 - [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A3.8.4+is%3Aclosed)
