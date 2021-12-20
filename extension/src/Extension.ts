@@ -31,7 +31,8 @@ import { GradleDependencyProvider } from "./dependencies/GradleDependencyProvide
 import { isLanguageServerStarted, startLanguageServer, syncLanguageServer } from "./languageServer/languageServer";
 import { DefaultProjectsTreeDataProvider } from "./views/defaultProject/DefaultProjectsTreeDataProvider";
 import { GradleProjectContentProvider } from "./projectContent/GradleProjectContentProvider";
-import { Context } from "./constant";
+import { Context, GRADLE_BUILD_FILE_CHANGE, GRADLE_BUILD_FILE_OPEN, GRADLE_PROPERTIES_FILE_CHANGE } from "./constant";
+import { instrumentOperation } from "vscode-extension-telemetry-wrapper";
 
 export class Extension {
     private readonly client: GradleClient;
@@ -258,22 +259,28 @@ export class Extension {
     }
 
     private handleWatchEvents(): void {
-        this.buildFileWatcher.onDidChange(async (uri: vscode.Uri) => {
-            logger.info("Build file changed:", uri.fsPath);
-            await this.refresh();
-            void this.syncBuildFile(uri);
-        });
-        this.buildFileWatcher.onDidOpen(async (uri: vscode.Uri) => {
-            logger.info("Build file opened:", uri.fsPath);
-            void this.syncBuildFile(uri);
-        });
-        this.gradleWrapperWatcher.onDidChange(async (uri: vscode.Uri) => {
-            logger.info("Gradle wrapper properties changed:", uri.fsPath);
-            await this.restartServer();
-            if (isLanguageServerStarted) {
-                void vscode.commands.executeCommand("gradle.distributionChanged");
-            }
-        });
+        this.buildFileWatcher.onDidChange(
+            instrumentOperation(GRADLE_BUILD_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
+                logger.info("Build file changed:", uri.fsPath);
+                await this.refresh();
+                void this.syncBuildFile(uri);
+            })
+        );
+        this.buildFileWatcher.onDidOpen(
+            instrumentOperation(GRADLE_BUILD_FILE_OPEN, async (_operationId: string, uri: vscode.Uri) => {
+                logger.info("Build file opened:", uri.fsPath);
+                void this.syncBuildFile(uri);
+            })
+        );
+        this.gradleWrapperWatcher.onDidChange(
+            instrumentOperation(GRADLE_PROPERTIES_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
+                logger.info("Gradle wrapper properties changed:", uri.fsPath);
+                await this.restartServer();
+                if (isLanguageServerStarted) {
+                    void vscode.commands.executeCommand("gradle.distributionChanged");
+                }
+            })
+        );
     }
 
     private async syncBuildFile(uri: vscode.Uri): Promise<void> {
