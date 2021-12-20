@@ -12,7 +12,7 @@ export const GRADLE_BUILD_FILE_OPEN = "gradle.buildFileOpened";
 
 export const GRADLE_PROPERTIES_FILE_CHANGE = "gradle.propertiesFileChanged";
 
-export const GRADLE_COMPLETION = "gradle.triggerCompletion";
+export const GRADLE_COMPLETION = "gradle.completion";
 
 export const VSCODE_TRIGGER_COMPLETION = "editor.action.triggerSuggest";
 

@@ -18,7 +18,7 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 public class CompletionUtils {
 
-	public static String completionCommand = "gradle.triggerCompletion";
+	public static String completionCommand = "gradle.completion";
 	public static String completionTitle = "completion";
 
 	public enum CompletionKinds {
