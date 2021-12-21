@@ -581,12 +581,12 @@
         },
         {
           "command": "gradle.restartTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/ && !allowParallelRun",
           "group": "inline@4"
         },
         {
           "command": "gradle.cancelTreeItemTask",
-          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/",
+          "when": "view =~ /^gradleTasksView$|^pinnedTasksView$|^recentTasksView$/ && viewItem =~ /^runningTask.*$|^runningDebugTask.*$/ && !allowParallelRun",
           "group": "inline@5"
         },
         {
