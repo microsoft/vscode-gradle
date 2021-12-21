@@ -51,6 +51,9 @@ export function getConfigIsDebugEnabled(): boolean {
 export type ReuseTerminalsValue = "task" | "off" | "all";
 
 export function getConfigReuseTerminals(): ReuseTerminalsValue {
+    if (getAllowParallelRun()) {
+        return "off";
+    }
     return vscode.workspace.getConfiguration("gradle").get<ReuseTerminalsValue>("reuseTerminals", "task");
 }
 
@@ -87,10 +90,6 @@ export function getConfigJavaDebug(workspaceFolder: vscode.WorkspaceFolder): Jav
         clean: true,
     };
     return vscode.workspace.getConfiguration("gradle", workspaceFolder.uri).get<JavaDebug>("javaDebug", defaultValue);
-}
-
-export function isAllowedParallelRun(): boolean {
-    return getAllowParallelRun() && getConfigReuseTerminals() === "off";
 }
 
 export function getAllowParallelRun(): boolean {

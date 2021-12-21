@@ -695,7 +695,7 @@
           ],
           "default": "task",
           "scope": "window",
-          "description": "Reuse task terminals behaviour"
+          "markdownDescription": "Reuse task terminals behaviour, will be overridden to `off` if `gradle.allowParallelRun` is true."
         },
         "gradle.debug": {
           "type": "boolean",
@@ -760,7 +760,7 @@
           "type": "boolean",
           "default": false,
           "scope": "window",
-          "markdownDescription": "Allow to run tasks in parallel, each running will create a new terminal. This configuration takes effect only when `gradle.reuseTerminals` is set to `off`."
+          "markdownDescription": "Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task."
         }
       }
     },
