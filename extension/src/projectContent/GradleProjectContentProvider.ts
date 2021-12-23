@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+import * as vscode from "vscode";
 import { GradleClient } from "../client";
 import { GetProjectsReply } from "../proto/gradle_pb";
 import { getGradleConfig } from "../util/config";
@@ -10,13 +11,14 @@ export class GradleProjectContentProvider {
 
     constructor(private readonly client: GradleClient) {}
 
-    public async getProjectContent(projectPath: string, projectName: string): Promise<GetProjectsReply | undefined> {
-        if (this.cachedContent.has(projectPath)) {
-            return this.cachedContent.get(projectPath);
+    public async getProjectContent(projectPath: string): Promise<GetProjectsReply | undefined> {
+        const realPath = vscode.Uri.file(projectPath).fsPath;
+        if (this.cachedContent.has(realPath)) {
+            return this.cachedContent.get(realPath);
         }
-        const projectContent = await this.client.getProjects(projectPath, getGradleConfig(), projectName);
+        const projectContent = await this.client.getProjects(realPath, getGradleConfig());
         if (projectContent) {
-            this.cachedContent.set(projectPath, projectContent);
+            this.cachedContent.set(realPath, projectContent);
         }
         return projectContent;
     }

@@ -19,6 +19,8 @@ import { DependencyTreeItem } from "./DependencyTreeItem";
 import { ProjectDependencyTreeItem } from "./ProjectDependencyTreeItem";
 import { ProjectTaskTreeItem } from "./ProjectTaskTreeItem";
 import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
+import { GradleProjectContentProvider } from "../../projectContent/GradleProjectContentProvider";
+import { getConfigJavaDebug, JavaDebug } from "../../util/config";
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -51,6 +53,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         private readonly rootProjectStore: RootProjectsStore,
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly gradleDependencyProvider: GradleDependencyProvider,
+        private readonly gradleProjectContentProvider: GradleProjectContentProvider,
         private readonly icons: Icons
     ) {
         const collapsed = this.context.workspaceState.get("gradleTasksCollapsed", false);
@@ -76,7 +79,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                   tasks,
                   this.rootProjectStore,
                   this.collapsed,
-                  this.icons
+                  this.icons,
+                  this.gradleProjectContentProvider
               );
     }
 
@@ -150,20 +154,21 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         return [...results, projectDependencyTreeItem];
     }
 
-    public static buildItemsTreeFromTasks(
+    public static async buildItemsTreeFromTasks(
         tasks: vscode.Task[],
         rootProjectStore: RootProjectsStore,
         collapsed: boolean,
-        icons: Icons
-    ): RootProjectTreeItem[] | NoGradleTasksTreeItem[] {
+        icons: Icons,
+        gradleProjectContentProvider?: GradleProjectContentProvider
+    ): Promise<RootProjectTreeItem[] | NoGradleTasksTreeItem[]> {
         let gradleProjectTreeItem = null;
 
-        tasks.forEach((task) => {
+        for (const task of tasks) {
             const definition = task.definition as GradleTaskDefinition;
             if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
                 const rootProject = rootProjectStore.get(definition.projectFolder);
                 if (!rootProject) {
-                    return;
+                    continue;
                 }
                 gradleProjectTreeItem = gradleProjectTreeItemMap.get(definition.projectFolder);
                 if (!gradleProjectTreeItem) {
@@ -198,7 +203,28 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     }
                     parentTreeItem = groupTreeItem;
                 }
-
+                const taskDefinition = task.definition as GradleTaskDefinition;
+                let javaDebug: JavaDebug | undefined;
+                if (gradleProjectContentProvider) {
+                    const projectContent = await gradleProjectContentProvider.getProjectContent(
+                        path.dirname(taskDefinition.buildFile)
+                    );
+                    const debugTasks = projectContent?.getDebugtasksList();
+                    const fixedDebugTasks = [];
+                    if (debugTasks) {
+                        for (const debugTask of debugTasks) {
+                            if (debugTask.charAt(0) === ":") {
+                                fixedDebugTasks.push(debugTask.substring(1));
+                            } else {
+                                fixedDebugTasks.push(debugTask);
+                            }
+                        }
+                        javaDebug = {
+                            tasks: fixedDebugTasks,
+                            clean: true,
+                        };
+                    }
+                }
                 const taskTreeItem = new GradleTaskTreeItem(
                     parentTreeItem,
                     task,
@@ -206,14 +232,13 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     definition.description || taskName,
                     "",
                     icons,
-                    rootProject.getJavaDebug()
+                    javaDebug || getConfigJavaDebug(vscode.workspace.workspaceFolders![0])
                 );
                 taskTreeItem.setContext();
-
                 gradleTaskTreeItemMap.set(task.definition.id, taskTreeItem);
                 parentTreeItem.addTask(taskTreeItem);
             }
-        });
+        }
 
         if (gradleProjectTreeItemMap.size === 1) {
             return gradleProjectTreeItemMap.values().next().value.projects;

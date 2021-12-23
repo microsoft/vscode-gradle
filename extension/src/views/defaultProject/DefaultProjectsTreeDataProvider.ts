@@ -38,7 +38,8 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
                 ),
                 this.rootProjectStore,
                 false,
-                this.icons
+                this.icons,
+                undefined
             );
         } else if (element instanceof ProjectTreeItem) {
             return GradleTasksTreeDataProvider.getChildrenForProjectTreeItem(element);

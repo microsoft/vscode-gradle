@@ -11,4 +11,5 @@ public interface GradleProjectModel extends Model {
 	List<String> getPlugins();
 	List<GradleClosure> getClosures();
 	List<String> getScriptClasspaths();
+	List<String> getDebugTasks();
 }

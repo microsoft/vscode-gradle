@@ -32,6 +32,9 @@ import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionsSchema;
 import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
 import org.gradle.api.reflect.TypeOf;
+import org.gradle.api.tasks.JavaExec;
+import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.testing.Test;
 import org.gradle.internal.classpath.ClassPath;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
@@ -50,7 +53,8 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
-		return new DefaultGradleProjectModel(node, plugins, closures, scriptClasspaths);
+		List<String> debugTasks = getDebugTasks(project);
+		return new DefaultGradleProjectModel(node, plugins, closures, scriptClasspaths, debugTasks);
 	}
 
 	private GradleDependencyNode generateDefaultGradleDependencyNode(Project project) {
@@ -149,5 +153,13 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 			}
 		}
 		return false;
+	}
+
+	private List<String> getDebugTasks(Project project) {
+		List<String> results = new ArrayList<>();
+		TaskContainer taskContainer = project.getTasks();
+		taskContainer.withType(JavaExec.class).forEach(task -> results.add(task.getPath()));
+		taskContainer.withType(Test.class).forEach(task -> results.add(task.getPath()));
+		return results;
 	}
 }

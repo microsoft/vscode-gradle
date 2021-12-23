@@ -19,7 +19,7 @@ export class GradleDependencyProvider {
         if (this.cachedDependencies.has(projectPath)) {
             return this.cachedDependencies.get(projectPath)!;
         }
-        const project = await this.contentProvider.getProjectContent(projectPath, element.getProjectName());
+        const project = await this.contentProvider.getProjectContent(projectPath);
         if (!project) {
             const noDependencies = [new HintItem("No dependencies")];
             this.cachedDependencies.set(projectPath, noDependencies);

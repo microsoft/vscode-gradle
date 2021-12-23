@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as grpc from "@grpc/grpc-js";
+import * as path from "path";
 import { connectivityState as ConnectivityState } from "@grpc/grpc-js";
 
 import {
@@ -223,11 +224,7 @@ export class GradleClient implements vscode.Disposable {
         );
     }
 
-    public async getProjects(
-        projectDir: string,
-        gradleConfig: GradleConfig,
-        projectName: string
-    ): Promise<GetProjectsReply | undefined> {
+    public async getProjects(projectDir: string, gradleConfig: GradleConfig): Promise<GetProjectsReply | undefined> {
         await this.waitForConnect();
         return vscode.window.withProgress(
             {
@@ -236,6 +233,7 @@ export class GradleClient implements vscode.Disposable {
                 cancellable: true,
             },
             async (progress: vscode.Progress<{ message?: string }>, token: vscode.CancellationToken) => {
+                const projectName = path.basename(projectDir);
                 progress.report({
                     message: `Getting Projects for ${projectName}`,
                 });

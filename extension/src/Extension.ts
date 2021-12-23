@@ -106,6 +106,7 @@ export class Extension {
             this.rootProjectsStore,
             this.gradleTaskProvider,
             this.gradleDependencyProvider,
+            this.gradleProjectContentProvider,
             this.icons
         );
         this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
@@ -316,8 +317,7 @@ export class Extension {
     private async syncBuildFile(uri: vscode.Uri): Promise<void> {
         const fsPath = uri.fsPath;
         const dirName = path.dirname(fsPath);
-        const baseName = path.basename(dirName);
-        const projectContent = await this.gradleProjectContentProvider.getProjectContent(dirName, baseName);
+        const projectContent = await this.gradleProjectContentProvider.getProjectContent(dirName);
         if (projectContent) {
             await syncLanguageServer(dirName, projectContent);
         }
