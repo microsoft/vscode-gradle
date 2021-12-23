@@ -8,11 +8,6 @@ export function isJavaLanguageSupportExtensionActivated(): boolean {
     return javaExt?.isActive || false;
 }
 
-export function isJavaDebuggerExtensionActivated(): boolean {
-    const javaExt: vscode.Extension<unknown> | undefined = getJavaDebuggerExtension();
-    return javaExt?.isActive || false;
-}
-
 export function getJavaLanguageSupportExtension(): vscode.Extension<unknown> | undefined {
     return vscode.extensions.getExtension(JAVA_LANGUAGE_EXTENSION_ID);
 }
