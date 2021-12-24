@@ -10,7 +10,6 @@ import {
     getJavaDebuggerExtension,
     JAVA_LANGUAGE_EXTENSION_ID,
     JAVA_DEBUGGER_EXTENSION_ID,
-    isJavaDebuggerExtensionActivated,
     isJavaLanguageSupportExtensionActivated,
 } from "../util/compat";
 import { getTaskArgs } from "../util/input";
@@ -315,9 +314,6 @@ export async function runTask(
                     JAVA_DEBUGGER_EXTENSION_ID,
                 ]);
             }
-            return;
-        } else if (!isJavaDebuggerExtensionActivated()) {
-            await vscode.window.showErrorMessage("The Java Debugger extension is not activated.");
             return;
         } else if (!isJavaLanguageSupportExtensionActivated()) {
             await vscode.window.showErrorMessage("The Java Language Support extension is not activated.");
