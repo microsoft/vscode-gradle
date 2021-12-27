@@ -15,7 +15,7 @@ import {
     buildMockGradleTask,
     stubWorkspaceFolders,
 } from "../testUtil";
-import { GradleBuild, GradleProject } from "../../proto/gradle_pb";
+import { GetProjectsReply, GradleBuild, GradleProject } from "../../proto/gradle_pb";
 import {
     GradleTasksTreeDataProvider,
     GradleTaskTreeItem,
@@ -85,6 +85,9 @@ mockGradleProjectWithoutTasks.setIsRoot(true);
 const mockGradleBuildWithoutTasks = new GradleBuild();
 mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
 
+const mockGradleProjectReplyWithoutTasks = new GetProjectsReply();
+mockGradleProjectReplyWithoutTasks.setDebugtasksList([]);
+
 describe(getSuiteName("Gradle tasks"), () => {
     let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
     let gradleTaskProvider: GradleTaskProvider;
@@ -141,6 +144,7 @@ describe(getSuiteName("Gradle tasks"), () => {
             beforeEach(async () => {
                 stubWorkspaceFolders([mockWorkspaceFolder1]);
                 client.getBuild.resolves(mockGradleBuildWithTasks);
+                client.getProjects.resolves(mockGradleProjectReplyWithoutTasks);
                 await rootProjectsStore.populate();
             });
 
@@ -149,7 +153,6 @@ describe(getSuiteName("Gradle tasks"), () => {
                 beforeEach(async () => {
                     gradleProjects = await gradleTasksTreeDataProvider.getChildren();
                 });
-
                 it("should build project items at top level", () => {
                     assert.ok(gradleProjects.length > 0, "No gradle projects found");
                     assert.strictEqual(

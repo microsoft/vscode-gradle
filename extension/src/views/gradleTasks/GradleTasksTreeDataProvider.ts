@@ -207,7 +207,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                 let javaDebug: JavaDebug | undefined;
                 if (gradleProjectContentProvider) {
                     const projectContent = await gradleProjectContentProvider.getProjectContent(
-                        path.dirname(taskDefinition.buildFile)
+                        path.dirname(taskDefinition.buildFile) || taskDefinition.buildFile
                     );
                     const debugTasks = projectContent?.getDebugtasksList();
                     const fixedDebugTasks = [];
