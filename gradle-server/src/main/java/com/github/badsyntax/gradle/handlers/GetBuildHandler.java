@@ -16,7 +16,6 @@ import com.github.badsyntax.gradle.GradleTask;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
-import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
@@ -37,6 +36,7 @@ import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
+import org.gradle.tooling.GradleConnectionException;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ModelBuilder;
 import org.gradle.tooling.ProjectConnection;
@@ -84,15 +84,7 @@ public class GetBuildHandler {
 	}
 
 	public void run() {
-		GradleConnector gradleConnector;
-		try {
-			gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
-		} catch (GradleConnectionException e) {
-			logger.error(e.getMessage());
-			responseObserver.onError(ErrorMessageBuilder.build(e));
-			return;
-		}
-
+		GradleConnector gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
 		try (ProjectConnection connection = gradleConnector.connect()) {
 			this.environment = buildEnvironment(connection);
 			replyWithBuildEnvironment(this.environment);
@@ -120,8 +112,7 @@ public class GetBuildHandler {
 			replyWithProject(project);
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
-		} catch (ServiceCreationException | IOException | IllegalStateException
-				| org.gradle.tooling.GradleConnectionException e) {
+		} catch (ServiceCreationException | IOException | IllegalStateException | GradleConnectionException e) {
 			if (this.environment != null) {
 				Version gradleVersion = new Version(this.environment.getGradleEnvironment().getGradleVersion());
 				Version javaVersion = new Version(System.getProperty("java.version"));

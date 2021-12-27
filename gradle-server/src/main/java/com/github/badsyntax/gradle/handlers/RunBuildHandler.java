@@ -10,7 +10,6 @@ import com.github.badsyntax.gradle.RunBuildReply;
 import com.github.badsyntax.gradle.RunBuildRequest;
 import com.github.badsyntax.gradle.RunBuildResult;
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
-import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
@@ -78,9 +77,8 @@ public class RunBuildHandler {
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
 			responseObserver.onCompleted();
-		} catch (GradleConnectionException | BuildException | UnsupportedVersionException
-				| UnsupportedBuildArgumentException | IllegalStateException | IOException
-				| GradleBuildRunnerException e) {
+		} catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
+				| IllegalStateException | IOException | GradleBuildRunnerException e) {
 			logger.error(e.getMessage());
 			replyWithError(e);
 		}

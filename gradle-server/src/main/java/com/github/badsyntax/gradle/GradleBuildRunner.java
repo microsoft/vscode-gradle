@@ -1,7 +1,6 @@
 package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
-import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.InputStream;
@@ -74,7 +73,7 @@ public class GradleBuildRunner {
 		return this;
 	}
 
-	public void run() throws GradleConnectionException, IOException, GradleBuildRunnerException {
+	public void run() throws IOException, GradleBuildRunnerException {
 		if (Boolean.TRUE.equals(args.isEmpty())) {
 			throw new GradleBuildRunnerException("No args supplied");
 		}
