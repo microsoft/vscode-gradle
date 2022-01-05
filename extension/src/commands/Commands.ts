@@ -79,6 +79,7 @@ import {
     RecentTasksTreeDataProvider,
 } from "../views";
 import { Command } from "./Command";
+import { COMMAND_CREATE_PROJECT, COMMAND_CREATE_PROJECT_ADVANCED, CreateProjectCommand } from "./CreateProjectCommand";
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
 import { ShowStoppedDaemonsCommand, SHOW_STOPPED_DAEMONS } from "./ShowStoppedDaemonsCommand";
 
@@ -99,10 +100,10 @@ export class Commands {
         private gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>
     ) {}
 
-    private registerCommand(commandId: string, command: Command): void {
+    private registerCommand(commandId: string, command: Command, params?: unknown[]): void {
         this.context.subscriptions.push(
             instrumentOperationAsVsCodeCommand(commandId, (...args: unknown[]) => {
-                return command.run(...args);
+                return command.run(...args, params || []);
             })
         );
     }
@@ -180,5 +181,7 @@ export class Commands {
         this.registerCommand(COMMAND_FIND_TASK, new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider));
         this.registerCommand(SHOW_STOPPED_DAEMONS, new ShowStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
         this.registerCommand(HIDE_STOPPED_DAEMONS, new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
+        this.registerCommand(COMMAND_CREATE_PROJECT, new CreateProjectCommand(this.client), [false]);
+        this.registerCommand(COMMAND_CREATE_PROJECT_ADVANCED, new CreateProjectCommand(this.client), [true]);
     }
 }
