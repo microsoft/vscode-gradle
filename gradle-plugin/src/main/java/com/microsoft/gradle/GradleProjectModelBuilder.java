@@ -8,7 +8,9 @@ import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
 import com.microsoft.gradle.api.GradleField;
 import com.microsoft.gradle.api.GradleMethod;
+import com.microsoft.gradle.api.GradleProjectContent;
 import com.microsoft.gradle.api.GradleProjectModel;
+import com.microsoft.gradle.api.GradleTask;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
@@ -32,15 +34,42 @@ import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionsSchema;
 import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
 import org.gradle.api.reflect.TypeOf;
+import org.gradle.api.tasks.TaskContainer;
 import org.gradle.internal.classpath.ClassPath;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
 public class GradleProjectModelBuilder implements ToolingModelBuilder {
+
+	private Set<GradleTask> cachedTasks = new HashSet<>();
+
 	public boolean canBuild(String modelName) {
 		return modelName.equals(GradleProjectModel.class.getName());
 	}
 
 	public Object buildAll(String modelName, Project project) {
+		cachedTasks.clear();
+		GradleProjectModel rootModel = buildModel(project, project);
+		// add task selectors for root project
+		Set<String> taskNames = new HashSet<>();
+		for (GradleTask existingTask : rootModel.getTasks()) {
+			taskNames.add(existingTask.getName());
+		}
+		for (GradleTask task : cachedTasks) {
+			if (!taskNames.contains(task.getName())) {
+				taskNames.add(task.getName());
+				GradleTask newTask = new DefaultGradleTask(task.getName(), task.getGroup(), task.getPath(),
+						project.getName(), project.getBuildscript().getSourceFile().getAbsolutePath(),
+						task.getRootProject(), task.getDescription());
+				rootModel.getTasks().add(newTask);
+			}
+		}
+		return rootModel;
+	}
+
+	private GradleProjectModel buildModel(Project rootProject, Project project) {
+		if (rootProject == null || project == null) {
+			return null;
+		}
 		ScriptHandler buildScript = project.getBuildscript();
 		ClassPath classpath = ((DefaultScriptHandler) buildScript).getScriptClassPath();
 		List<String> scriptClasspaths = new ArrayList<>();
@@ -50,7 +79,18 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
-		return new DefaultGradleProjectModel(node, plugins, closures, scriptClasspaths);
+		GradleProjectContent content = new DefaultGradleProjectContent(node, plugins, closures, scriptClasspaths);
+		List<GradleProjectModel> subModels = new ArrayList<>();
+		Set<Project> subProjects = project.getSubprojects();
+		for (Project subProject : subProjects) {
+			GradleProjectModel subModel = buildModel(rootProject, subProject);
+			if (subModel != null) {
+				subModels.add(subModel);
+			}
+		}
+		List<GradleTask> tasks = getGradleTasks(rootProject, project);
+		return new DefaultGradleProjectModel(project.getParent() == null, project.getProjectDir().getAbsolutePath(),
+				subModels, tasks, content);
 	}
 
 	private GradleDependencyNode generateDefaultGradleDependencyNode(Project project) {
@@ -149,5 +189,24 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 			}
 		}
 		return false;
+	}
+
+	private List<GradleTask> getGradleTasks(Project rootProject, Project project) {
+		List<GradleTask> tasks = new ArrayList<>();
+		TaskContainer taskContainer = project.getTasks();
+		taskContainer.forEach(task -> {
+			String name = task.getName();
+			String group = task.getGroup() == null ? null : task.getGroup();
+			String path = task.getPath();
+			String projectName = task.getProject().getName();
+			String buildFile = task.getProject().getBuildscript().getSourceFile().getAbsolutePath();
+			String rootProjectName = rootProject.getName();
+			String description = task.getDescription() == null ? null : task.getDescription();
+			GradleTask newTask = new DefaultGradleTask(name, group, path, projectName, buildFile, rootProjectName,
+					description);
+			tasks.add(newTask);
+			cachedTasks.add(newTask);
+		});
+		return tasks;
 	}
 }

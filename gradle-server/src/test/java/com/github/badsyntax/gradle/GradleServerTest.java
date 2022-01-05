@@ -220,7 +220,7 @@ public class GradleServerTest {
 
 		stub.getBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
-		verify(mockGradleProjectBuilder).setJvmArguments(jvmArgs.split(" "));
+		verify(mockBuildEnvironmentBuilder).setJvmArguments(jvmArgs.split(" "));
 	}
 
 	@Test
@@ -232,13 +232,13 @@ public class GradleServerTest {
 
 		stub.getBuild(req1, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
-		verify(mockGradleProjectBuilder).setColorOutput(false);
+		verify(mockBuildEnvironmentBuilder).setColorOutput(false);
 
 		GetBuildRequest req2 = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).setShowOutputColors(true).build();
 		stub.getBuild(req2, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
-		verify(mockGradleProjectBuilder).setColorOutput(true);
+		verify(mockBuildEnvironmentBuilder).setColorOutput(true);
 	}
 
 	@Test
@@ -253,11 +253,11 @@ public class GradleServerTest {
 		stub.getBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
 
-		verify(mockGradleProjectBuilder).addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
+		verify(mockBuildEnvironmentBuilder).addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
 				onAddProgressListener.capture());
 
 		assertEquals(1, onAddProgressListener.getValue().size());
-		assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
+		assertTrue(onAddProgressListener.getValue().contains(OperationType.GENERIC));
 	}
 
 	@Test

@@ -2,6 +2,7 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
+import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.Environment;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
@@ -13,20 +14,35 @@ import com.github.badsyntax.gradle.GradleEnvironment;
 import com.github.badsyntax.gradle.GradleProject;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GradleTask;
+import com.github.badsyntax.gradle.GrpcGradleClosure;
+import com.github.badsyntax.gradle.GrpcGradleField;
+import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
 import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
+import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
+import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleField;
+import com.microsoft.gradle.api.GradleMethod;
+import com.microsoft.gradle.api.GradleModelAction;
+import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.gradle.internal.service.ServiceCreationException;
+import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
 import org.gradle.tooling.GradleConnector;
@@ -88,8 +104,28 @@ public class GetBuildHandler {
 		try (ProjectConnection connection = gradleConnector.connect()) {
 			this.environment = buildEnvironment(connection);
 			replyWithBuildEnvironment(this.environment);
-			org.gradle.tooling.model.GradleProject gradleProject = getGradleProject(connection);
-			replyWithProject(getProjectData(gradleProject, gradleProject, new HashSet<>()));
+			BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
+			if (action == null) {
+				responseObserver.onCompleted();
+				return;
+			}
+			File initScript = PluginUtils.createInitScript();
+			List<String> arguments = Arrays.asList("--init-script", initScript.getAbsolutePath());
+			String jvmArguments = req.getGradleConfig().getJvmArguments();
+			if (!Strings.isNullOrEmpty(jvmArguments)) {
+				arguments.addAll(Arrays.stream(jvmArguments.split(" ")).filter(e -> e != null && !e.isEmpty())
+						.collect(Collectors.toList()));
+			}
+			action.withArguments(arguments);
+			CancellationToken cancellationToken = GradleBuildCancellation.buildToken(req.getCancellationKey());
+			Set<OperationType> progressEvents = new HashSet<>();
+			progressEvents.add(OperationType.PROJECT_CONFIGURATION);
+			action.withCancellationToken(cancellationToken).addProgressListener(progressListener, progressEvents)
+					.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
+					.setColorOutput(req.getShowOutputColors());
+			GradleProjectModel gradleModel = action.run();
+			GradleProject project = getProjectData(gradleModel);
+			replyWithProject(project);
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
 		} catch (ServiceCreationException | IOException | IllegalStateException
@@ -138,7 +174,8 @@ public class GetBuildHandler {
 		CancellationToken cancellationToken = GradleBuildCancellation.buildToken(req.getCancellationKey());
 
 		buildEnvironment.withCancellationToken(cancellationToken).addProgressListener(progressListener, progressEvents)
-				.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener);
+				.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
+				.setColorOutput(req.getShowOutputColors());
 		String jvmArguments = req.getGradleConfig().getJvmArguments();
 		if (!Strings.isNullOrEmpty(jvmArguments)) {
 			buildEnvironment.setJvmArguments(Arrays.stream(jvmArguments.split(" "))
@@ -162,75 +199,78 @@ public class GetBuildHandler {
 		}
 	}
 
-	private org.gradle.tooling.model.GradleProject getGradleProject(ProjectConnection connection) throws IOException {
-
-		ModelBuilder<org.gradle.tooling.model.GradleProject> projectBuilder = connection
-				.model(org.gradle.tooling.model.GradleProject.class);
-
-		Set<OperationType> progressEvents = new HashSet<>();
-		progressEvents.add(OperationType.PROJECT_CONFIGURATION);
-
-		CancellationToken cancellationToken = GradleBuildCancellation.buildToken(req.getCancellationKey());
-
-		projectBuilder.withCancellationToken(cancellationToken).addProgressListener(progressListener, progressEvents)
-				.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
-				.setColorOutput(req.getShowOutputColors());
-		String jvmArguments = req.getGradleConfig().getJvmArguments();
-		if (!Strings.isNullOrEmpty(jvmArguments)) {
-			projectBuilder.setJvmArguments(Arrays.stream(jvmArguments.split(" ")).filter(e -> e != null && !e.isEmpty())
-					.toArray(String[]::new));
+	private GradleProject getProjectData(GradleProjectModel gradleModel) {
+		GradleProject.Builder project = GradleProject.newBuilder();
+		project.setIsRoot(gradleModel.getIsRoot());
+		project.setProjectPath(gradleModel.getProjectPath());
+		project.addAllTasks(getGradleTasks(gradleModel));
+		List<GradleProject> subProjects = new ArrayList<>();
+		for (GradleProjectModel subProjectModel : gradleModel.getSubProjects()) {
+			subProjects.add(getProjectData(subProjectModel));
 		}
-
-		try {
-			return projectBuilder.get();
-		} finally {
-			GradleBuildCancellation.clearToken(req.getCancellationKey());
-		}
+		project.addAllProjects(subProjects);
+		project.setDependencyItem(getDependencyItem(gradleModel.getGradleProjectContent().getDependencyNode()));
+		project.addAllPlugins(gradleModel.getGradleProjectContent().getPlugins());
+		project.addAllPluginClosures(getPluginClosures(gradleModel));
+		project.addAllScriptClasspaths(gradleModel.getGradleProjectContent().getScriptClasspaths());
+		return project.build();
 	}
 
-	private GradleProject getProjectData(org.gradle.tooling.model.GradleProject gradleProject,
-			org.gradle.tooling.model.GradleProject rootGradleProject, Set<GradleTask> taskSelectors) {
-		boolean isRoot = gradleProject.getParent() == null;
-		GradleProject.Builder project = GradleProject.newBuilder().setIsRoot(isRoot);
-		gradleProject.getChildren().stream().forEach(childGradleProject -> project
-				.addProjects(getProjectData(childGradleProject, rootGradleProject, taskSelectors)));
-		gradleProject.getTasks().stream().forEach(task -> {
-			GradleTask.Builder gradleTask = GradleTask.newBuilder().setProject(task.getProject().getName())
-					.setName(task.getName()).setPath(task.getPath())
-					.setBuildFile(task.getProject().getBuildScript().getSourceFile().getAbsolutePath())
-					.setRootProject(rootGradleProject.getName());
-			if (task.getDescription() != null) {
-				gradleTask.setDescription(task.getDescription());
+	private List<GradleTask> getGradleTasks(GradleProjectModel model) {
+		List<GradleTask> tasks = new ArrayList<>();
+		model.getTasks().forEach(task -> {
+			GradleTask.Builder builder = GradleTask.newBuilder();
+			builder.setName(task.getName()).setPath(task.getPath()).setProject(task.getProject())
+					.setBuildFile(task.getBuildFile()).setRootProject(task.getRootProject());
+			String group = task.getGroup();
+			if (group != null) {
+				builder.setGroup(group);
 			}
-			if (task.getGroup() != null) {
-				gradleTask.setGroup(task.getGroup());
+			String description = task.getDescription();
+			if (description != null) {
+				builder.setDescription(description);
 			}
-			project.addTasks(gradleTask.build());
-			taskSelectors.add(gradleTask.build());
+			tasks.add(builder.build());
 		});
-		if (isRoot) {
-			Set<String> taskNames = new HashSet<>();
-			for (GradleTask existingTask : project.getTasksList()) {
-				taskNames.add(existingTask.getName());
-			}
-			for (GradleTask task : taskSelectors) {
-				if (!taskNames.contains(task.getName())) {
-					taskNames.add(task.getName());
-					GradleTask.Builder taskSelector = GradleTask.newBuilder().setProject(gradleProject.getName())
-							.setName(task.getName()).setPath(task.getName())
-							.setBuildFile(gradleProject.getBuildScript().getSourceFile().getAbsolutePath())
-							.setRootProject(task.getRootProject());
-					if (task.getDescription() != null) {
-						taskSelector.setDescription(task.getDescription());
-					}
-					if (task.getGroup() != null) {
-						taskSelector.setGroup(task.getGroup());
-					}
-					project.addTasks(taskSelector.build());
-				}
-			}
+		return tasks;
+	}
+
+	private DependencyItem getDependencyItem(GradleDependencyNode node) {
+		DependencyItem.Builder item = DependencyItem.newBuilder();
+		item.setName(node.getName());
+		item.setTypeValue(node.getType().ordinal());
+		if (node.getChildren() == null) {
+			return item.build();
 		}
-		return project.build();
+		List<DependencyItem> children = new ArrayList<>();
+		for (GradleDependencyNode child : node.getChildren()) {
+			children.add(getDependencyItem(child));
+		}
+		item.addAllChildren(children);
+		return item.build();
+	}
+
+	private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {
+		List<GrpcGradleClosure> closures = new ArrayList<>();
+		for (GradleClosure closure : model.getGradleProjectContent().getClosures()) {
+			GrpcGradleClosure.Builder closureBuilder = GrpcGradleClosure.newBuilder();
+			for (GradleMethod method : closure.getMethods()) {
+				GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
+				methodBuilder.setName(method.getName());
+				methodBuilder.addAllParameterTypes(method.getParameterTypes());
+				methodBuilder.setDeprecated(method.getDeprecated());
+				closureBuilder.addMethods(methodBuilder.build());
+			}
+			closureBuilder.setName(closure.getName());
+			for (GradleField field : closure.getFields()) {
+				GrpcGradleField.Builder fieldBuilder = GrpcGradleField.newBuilder();
+				fieldBuilder.setName(field.getName());
+				fieldBuilder.setDeprecated(field.getDeprecated());
+				closureBuilder.addFields(fieldBuilder.build());
+			}
+			closures.add(closureBuilder.build());
+		}
+		return closures;
 	}
 
 	private void replyWithProject(GradleProject gradleProject) {

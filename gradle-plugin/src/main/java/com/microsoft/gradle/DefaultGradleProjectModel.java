@@ -3,39 +3,46 @@
 
 package com.microsoft.gradle;
 
-import com.microsoft.gradle.api.GradleClosure;
-import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleProjectContent;
 import com.microsoft.gradle.api.GradleProjectModel;
+import com.microsoft.gradle.api.GradleTask;
 import java.io.Serializable;
 import java.util.List;
 
 public class DefaultGradleProjectModel implements Serializable, GradleProjectModel {
-	private GradleDependencyNode node;
-	private List<String> plugins;
-	private List<GradleClosure> closures;
-	private List<String> scriptClasspaths;
+	private boolean isRoot;
+	private String projectPath;
+	private List<GradleProjectModel> subProjects;
+	private List<GradleTask> tasks;
+	private GradleProjectContent gradleProjectContent;
 
-	public DefaultGradleProjectModel(GradleDependencyNode node, List<String> plugins, List<GradleClosure> closures,
-			List<String> scriptClasspaths) {
-		this.node = node;
-		this.plugins = plugins;
-		this.closures = closures;
-		this.scriptClasspaths = scriptClasspaths;
+	public DefaultGradleProjectModel(boolean isRoot, String projectPath, List<GradleProjectModel> subProjects,
+			List<GradleTask> tasks, GradleProjectContent gradleProjectContent) {
+		this.isRoot = isRoot;
+		this.projectPath = projectPath;
+		this.subProjects = subProjects;
+		this.tasks = tasks;
+		this.gradleProjectContent = gradleProjectContent;
 	}
 
-	public GradleDependencyNode getDependencyNode() {
-		return this.node;
+	public boolean getIsRoot() {
+		return this.isRoot;
 	}
 
-	public List<String> getPlugins() {
-		return this.plugins;
+	public String getProjectPath() {
+		return this.projectPath;
 	}
 
-	public List<GradleClosure> getClosures() {
-		return this.closures;
+	public List<GradleProjectModel> getSubProjects() {
+		return this.subProjects;
 	}
 
-	public List<String> getScriptClasspaths() {
-		return this.scriptClasspaths;
+	public List<GradleTask> getTasks() {
+		return this.tasks;
 	}
+
+	public GradleProjectContent getGradleProjectContent() {
+		return this.gradleProjectContent;
+	}
+
 }

@@ -7,8 +7,9 @@ import java.util.List;
 import org.gradle.tooling.model.Model;
 
 public interface GradleProjectModel extends Model {
-	GradleDependencyNode getDependencyNode();
-	List<String> getPlugins();
-	List<GradleClosure> getClosures();
-	List<String> getScriptClasspaths();
+	boolean getIsRoot();
+	String getProjectPath();
+	List<GradleProjectModel> getSubProjects();
+	List<GradleTask> getTasks();
+	GradleProjectContent getGradleProjectContent();
 }
