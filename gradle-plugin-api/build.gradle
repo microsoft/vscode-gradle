@@ -4,7 +4,7 @@ java {
 }
 
 dependencies {
-  implementation ("org.gradle:gradle-tooling-api:${gradlingToolingApi}")
+  implementation ("org.gradle:gradle-tooling-api:${toolingAPIVersion}")
 }
 
 spotless {
