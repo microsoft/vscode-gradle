@@ -70,3 +70,7 @@ spotless {
 }
 
 compileJava.dependsOn 'spotlessCheck'
+
+project.tasks.named("processResources") {
+  duplicatesStrategy = 'include'
+}
