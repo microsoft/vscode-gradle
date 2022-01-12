@@ -148,6 +148,8 @@ public class GetBuildHandler {
 			}
 			logger.error(e.getMessage());
 			replyWithError(e);
+		} catch (Exception e) {
+			replyWithError(e);
 		} finally {
 			GradleBuildCancellation.clearToken(req.getCancellationKey());
 		}
