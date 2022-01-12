@@ -54,7 +54,7 @@ jobs:
       - name: Build & Analyse Gradle Server
         uses: eskatos/gradle-command-action@v1
         with:
-          arguments: gradle-server:build -x :test -x extension:test -x npm-package:test
+          arguments: build -x test
           wrapper-cache-enabled: false
         env:
           JAVA_HOME: ""
