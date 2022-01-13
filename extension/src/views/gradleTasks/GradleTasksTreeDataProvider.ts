@@ -117,7 +117,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             return [];
         }
         if (element instanceof ProjectDependencyTreeItem) {
-            const rootProject = this.rootProjectStore.get(element.getProjectPath());
+            const rootProject = (await this.rootProjectStore.getProjectRoots())[0];
             if (!rootProject) {
                 return [];
             }
