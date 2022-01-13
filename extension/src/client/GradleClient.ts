@@ -37,7 +37,7 @@ import { COMMAND_REFRESH_DAEMON_STATUS, COMMAND_SHOW_LOGS, COMMAND_CANCEL_BUILD 
 import { RootProject } from "../rootProject/RootProject";
 import { getBuildCancellationKey, getProjectsCancellationKey } from "./CancellationKeys";
 import { EventWaiter } from "../util/EventWaiter";
-import { getGradleConfig, getConfigJavaDebug } from "../util/config";
+import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
 import { setDefault, unsetDefault } from "../views/defaultProject/DefaultProjectUtils";
 
 function logBuildEnvironment(environment: Environment): void {
@@ -310,8 +310,7 @@ export class GradleClient implements vscode.Disposable {
                 if (javaDebugPort > 0) {
                     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
                     if (workspaceFolder) {
-                        const javaDebug = getConfigJavaDebug(workspaceFolder);
-                        request.setJavaDebugCleanOutputCache(javaDebug.clean ?? true);
+                        request.setJavaDebugCleanOutputCache(getJavaDebugCleanOutput());
                     }
                 }
 

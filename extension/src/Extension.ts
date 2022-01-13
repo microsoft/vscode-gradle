@@ -343,7 +343,7 @@ export class Extension {
                 ) {
                     await this.restartServer();
                 } else if (
-                    event.affectsConfiguration("gradle.javaDebug") ||
+                    event.affectsConfiguration("gradle.javaDebug.cleanOutput") ||
                     event.affectsConfiguration("gradle.nestedProjects")
                 ) {
                     this.rootProjectsStore.clear();

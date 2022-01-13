@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { Icons } from "../../icons";
-import { JavaDebug } from "../../util/config";
 import { TASK_STATE_RUNNING_REGEX } from "../constants";
 import { getTreeItemState } from "../viewUtil";
 
@@ -12,7 +11,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
         public tooltip: string,
         public description: string,
         protected readonly icons: Icons,
-        protected readonly javaDebug?: JavaDebug
+        protected readonly javaDebug: boolean
     ) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.command = {
@@ -23,7 +22,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     }
 
     public setContext(): void {
-        this.contextValue = getTreeItemState(this.task, this.javaDebug);
+        this.contextValue = getTreeItemState(this.task);
         this.setIconState();
     }
 

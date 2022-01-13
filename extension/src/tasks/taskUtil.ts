@@ -22,7 +22,6 @@ import {
     getGradleConfig,
     getConfigIsAutoDetectionEnabled,
     getConfigReuseTerminals,
-    getConfigJavaDebug,
     getAllowParallelRun,
 } from "../util/config";
 
@@ -185,11 +184,9 @@ export function resolveTaskFromDefinition(
                 const resolvedWorkspaceFolder =
                     vscode.workspace.getWorkspaceFolder(vscode.Uri.file(resolvedTaskDefinition.workspaceFolder)) ||
                     workspaceFolder;
-                const javaDebug = getConfigJavaDebug(resolvedWorkspaceFolder);
                 const rootProject = new RootProject(
                     resolvedWorkspaceFolder,
-                    vscode.Uri.file(resolvedTaskDefinition.projectFolder),
-                    javaDebug
+                    vscode.Uri.file(resolvedTaskDefinition.projectFolder)
                 );
                 const cancellationKey = getRunTaskCommandCancellationKey(
                     rootProject.getProjectUri().fsPath,
@@ -226,8 +223,7 @@ function createVSCodeTaskFromGradleTask(
     gradleTask: GradleTask,
     rootProject: RootProject,
     client: GradleClient,
-    args = "",
-    javaDebug = false
+    args = ""
 ): vscode.Task {
     const taskPath = gradleTask.getPath();
     const script = taskPath[0] === ":" ? taskPath.substr(1) : taskPath;
@@ -243,7 +239,7 @@ function createVSCodeTaskFromGradleTask(
         projectFolder: rootProject.getProjectUri().fsPath,
         workspaceFolder: rootProject.getWorkspaceFolder().uri.fsPath,
         args,
-        javaDebug,
+        javaDebug: gradleTask.getDebuggable(),
     };
     return createTaskFromDefinition(definition, rootProject, client);
 }

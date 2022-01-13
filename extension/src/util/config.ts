@@ -79,17 +79,8 @@ export function setShowStoppedDaemons(value: boolean): void {
     void vscode.workspace.getConfiguration("gradle").update("showStoppedDaemons", value, true);
 }
 
-export type JavaDebug = {
-    tasks: ReadonlyArray<string>;
-    clean: boolean;
-};
-
-export function getConfigJavaDebug(workspaceFolder: vscode.WorkspaceFolder): JavaDebug {
-    const defaultValue = {
-        tasks: ["run", "runBoot", "test", "intTest", "integration"],
-        clean: true,
-    };
-    return vscode.workspace.getConfiguration("gradle", workspaceFolder.uri).get<JavaDebug>("javaDebug", defaultValue);
+export function getJavaDebugCleanOutput(): boolean {
+    return vscode.workspace.getConfiguration("gradle").get<boolean>("javaDebug.cleanOutput", true);
 }
 
 export function getAllowParallelRun(): boolean {
