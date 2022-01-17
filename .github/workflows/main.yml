@@ -36,7 +36,7 @@ jobs:
       - name: Build & Analyse Gradle Server
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: gradle-server:build -x :test -x extension:test -x npm-package:test
+          arguments: build -x test
         env:
           JAVA_HOME: ""
       - name: Upload lib
