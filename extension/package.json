@@ -331,6 +331,16 @@
       {
         "command": "gradle.hideStoppedDaemons",
         "title": "Hide Stopped Daemons"
+      },
+      {
+        "command": "gradle.createProject",
+        "category": "Gradle",
+        "title": "Create a Gradle Java Project..."
+      },
+      {
+        "command": "gradle.createProjectAdvanced",
+        "category": "Gradle",
+        "title": "Create a Gradle Java Project... (Advanced)"
       }
     ],
     "menus": {
@@ -465,6 +475,14 @@
         },
         {
           "command": "gradle.findTask",
+          "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.createProject",
+          "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.createProjectAdvanced",
           "when": "gradle:extensionActivated"
         }
       ],
