@@ -6,6 +6,7 @@ import { TaskId } from "../stores/types";
 import { RootProjectsStore } from "../stores";
 import { GradleClient } from "../client";
 import { EventWaiter } from "../util/EventWaiter";
+import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 
 export class GradleTaskProvider implements vscode.TaskProvider, vscode.Disposable {
     private cachedTasks: vscode.Task[] = [];
@@ -13,7 +14,11 @@ export class GradleTaskProvider implements vscode.TaskProvider, vscode.Disposabl
     private readonly _onDidStartRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStopRefresh: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
 
-    constructor(private readonly rootProjectsStore: RootProjectsStore, private readonly client: GradleClient) {}
+    constructor(
+        private readonly rootProjectsStore: RootProjectsStore,
+        private readonly client: GradleClient,
+        private readonly gradleBuildContentProvider: GradleBuildContentProvider
+    ) {}
 
     public readonly onDidLoadTasks: vscode.Event<vscode.Task[]> = this._onDidLoadTasks.event;
     public readonly onDidStartRefresh: vscode.Event<null> = this._onDidStartRefresh.event;
@@ -56,7 +61,7 @@ export class GradleTaskProvider implements vscode.TaskProvider, vscode.Disposabl
             return Promise.resolve(this.cachedTasks);
         }
 
-        this.loadTasksPromise = loadTasksForProjectRoots(this.client, folders)
+        this.loadTasksPromise = loadTasksForProjectRoots(this.client, folders, this.gradleBuildContentProvider)
             .then(
                 (tasks) => {
                     this.cachedTasks = tasks;

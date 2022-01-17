@@ -9,10 +9,8 @@ package gradle;
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
-  rpc GetProjects(GetProjectsRequest) returns (GetProjectsReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
-  rpc CancelProjects(CancelProjectsRequest) returns (CancelProjectsReply) {}
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
@@ -39,19 +37,6 @@ message GetBuildReply {
 message GetBuildResult {
   string message = 1;
   GradleBuild build = 2;
-}
-
-message GetProjectsRequest {
-  string project_dir = 1;
-  GradleConfig gradle_config = 2;
-  string cancellation_key = 3;
-}
-
-message GetProjectsReply {
-  DependencyItem item = 1;
-  repeated string plugins = 2;
-  repeated GrpcGradleClosure pluginClosures = 3;
-  repeated string scriptClasspaths = 4;
 }
 
 enum GradleDependencyType
@@ -123,14 +108,6 @@ message CancelBuildsReply {
   string message = 1;
 }
 
-message CancelProjectsRequest {
-  string cancellation_key = 1;
-}
-
-message CancelProjectsReply {
-  string message = 1;
-}
-
 message GetDaemonsStatusRequest {
   string project_dir = 1;
 }
@@ -183,6 +160,11 @@ message GradleProject {
   bool is_root = 1;
   repeated GradleTask tasks = 2;
   repeated GradleProject projects = 3;
+  string projectPath = 4;
+  DependencyItem dependencyItem = 5;
+  repeated string plugins = 6;
+  repeated GrpcGradleClosure pluginClosures = 7;
+  repeated string scriptClasspaths = 8;
 }
 
 message GradleTask {

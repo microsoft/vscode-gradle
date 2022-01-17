@@ -9,7 +9,3 @@ export function getRunBuildCancellationKey(rootProjectFolder: string, args: Read
 export function getRunTaskCommandCancellationKey(rootProjectFolder: string, taskName: string): string {
     return "runTask" + rootProjectFolder + taskName;
 }
-
-export function getProjectsCancellationKey(projectDir: string): string {
-    return "getProjects" + projectDir;
-}

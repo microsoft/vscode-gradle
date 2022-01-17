@@ -45,6 +45,7 @@ import {
     RemovePinnedTaskCommand,
 } from "../../commands";
 import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
+import { GradleBuildContentProvider } from "../../client/GradleBuildContentProvider";
 
 const mockContext = buildMockContext();
 
@@ -71,10 +72,12 @@ describe(getSuiteName("Pinned tasks"), () => {
     let gradleDependencyProvider: GradleDependencyProvider;
     let pinnedTasksStore: PinnedTasksStore;
     let rootProjectsStore: RootProjectsStore;
+    let gradleBuildContentProvider: GradleBuildContentProvider;
     beforeEach(async () => {
         const client = buildMockClient();
         rootProjectsStore = new RootProjectsStore();
-        gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client);
+        gradleBuildContentProvider = new GradleBuildContentProvider(client);
+        gradleTaskProvider = new GradleTaskProvider(rootProjectsStore, client, gradleBuildContentProvider);
         gradleDependencyProvider = new GradleDependencyProvider(client);
         const icons = new Icons(mockContext);
         gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(

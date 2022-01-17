@@ -2,10 +2,8 @@ package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.handlers.CancelBuildHandler;
 import com.github.badsyntax.gradle.handlers.CancelBuildsHandler;
-import com.github.badsyntax.gradle.handlers.CancelProjectsHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetDaemonsStatusHandler;
-import com.github.badsyntax.gradle.handlers.GetProjectsHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonsHandler;
@@ -17,12 +15,6 @@ public class GradleService extends GradleGrpc.GradleImplBase {
 	public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
 		GetBuildHandler getBuildHandler = new GetBuildHandler(req, responseObserver);
 		getBuildHandler.run();
-	}
-
-	@Override
-	public void getProjects(GetProjectsRequest req, StreamObserver<GetProjectsReply> responseObserver) {
-		GetProjectsHandler getProjectsHandler = new GetProjectsHandler(req, responseObserver);
-		getProjectsHandler.run();
 	}
 
 	@Override
@@ -41,12 +33,6 @@ public class GradleService extends GradleGrpc.GradleImplBase {
 	public void cancelBuilds(CancelBuildsRequest req, StreamObserver<CancelBuildsReply> responseObserver) {
 		CancelBuildsHandler cancelRunBuildsHandler = new CancelBuildsHandler(responseObserver);
 		cancelRunBuildsHandler.run();
-	}
-
-	@Override
-	public void cancelProjects(CancelProjectsRequest req, StreamObserver<CancelProjectsReply> responseObserver) {
-		CancelProjectsHandler cancelProjectsHandler = new CancelProjectsHandler(req, responseObserver);
-		cancelProjectsHandler.run();
 	}
 
 	@Override
