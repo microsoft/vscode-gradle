@@ -479,7 +479,7 @@
         },
         {
           "command": "gradle.createProject",
-          "when": "gradle:extensionActivated"
+          "when": "gradle:extensionActivated && !java:projectManagerActivated"
         },
         {
           "command": "gradle.createProjectAdvanced",
