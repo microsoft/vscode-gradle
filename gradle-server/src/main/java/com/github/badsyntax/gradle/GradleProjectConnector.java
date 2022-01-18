@@ -72,15 +72,9 @@ public class GradleProjectConnector {
 		Map<String, String> env = System.getenv();
 		Properties sysProperties = System.getProperties();
 		String gradleHome = env.get(GRADLE_HOME);
-		if (gradleHome == null || !new File(gradleHome).isDirectory()) {
+		if (gradleHome == null) {
 			gradleHome = sysProperties.getProperty(GRADLE_HOME);
 		}
-		if (gradleHome != null) {
-			File gradleHomeFile = new File(gradleHome);
-			if (gradleHomeFile.isDirectory()) {
-				return gradleHomeFile;
-			}
-		}
-		return null;
+		return (gradleHome == null) ? null : new File(gradleHome);
 	}
 }
