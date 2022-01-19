@@ -12,7 +12,6 @@ import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GrpcGradleClosure;
 import com.github.badsyntax.gradle.GrpcGradleField;
 import com.github.badsyntax.gradle.GrpcGradleMethod;
-import com.github.badsyntax.gradle.exceptions.GradleConnectionException;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.microsoft.gradle.api.GradleClosure;
 import com.microsoft.gradle.api.GradleDependencyNode;
@@ -45,15 +44,7 @@ public class GetProjectsHandler {
 	}
 
 	public void run() {
-		GradleConnector gradleConnector;
-		try {
-			gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
-		} catch (GradleConnectionException e) {
-			logger.error(e.getMessage());
-			responseObserver.onError(ErrorMessageBuilder.build(e));
-			return;
-		}
-
+		GradleConnector gradleConnector = GradleProjectConnector.build(req.getProjectDir(), req.getGradleConfig());
 		try (ProjectConnection connection = gradleConnector.connect()) {
 			BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
 			File initScript = PluginUtils.createInitScript();

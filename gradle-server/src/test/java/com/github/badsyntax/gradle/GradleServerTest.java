@@ -183,17 +183,22 @@ public class GradleServerTest {
 	}
 
 	@Test
-	public void getBuild_shouldThrowIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified() throws IOException {
+	public void getBuild_shouldUseInternalVersionIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
+			throws IOException {
 		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
 
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false)).build();
 
-		ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
 		stub.getBuild(req, mockResponseObserver);
-		verify(mockResponseObserver).onError(onError.capture());
-		assertEquals("INTERNAL: java.import.gradle.home is invalid, please check it again.",
-				onError.getValue().getMessage());
+		mockResponseObserver.onCompleted();
+		verify(mockResponseObserver, never()).onError(any());
+		File gradleHomeFile = GradleProjectConnector.getSystemGradleHome();
+		if (gradleHomeFile != null) {
+			verify(mockConnector).useInstallation(gradleHomeFile);
+		} else {
+			verify(mockConnector).useGradleVersion(GradleProjectConnector.TOOLING_API_VERSION);
+		}
 	}
 
 	@Test
@@ -287,17 +292,22 @@ public class GradleServerTest {
 	}
 
 	@Test
-	public void runBuild_shouldThrowIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified() throws IOException {
+	public void runBuild_shouldUseInternalVersionIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
+			throws IOException {
 		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
 
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false)).build();
 
-		ArgumentCaptor<Throwable> onError = ArgumentCaptor.forClass(Throwable.class);
 		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver).onError(onError.capture());
-		assertEquals("INTERNAL: java.import.gradle.home is invalid, please check it again.",
-				onError.getValue().getMessage());
+		mockResponseObserver.onCompleted();
+		verify(mockResponseObserver, never()).onError(any());
+		File gradleHomeFile = GradleProjectConnector.getSystemGradleHome();
+		if (gradleHomeFile != null) {
+			verify(mockConnector).useInstallation(gradleHomeFile);
+		} else {
+			verify(mockConnector).useGradleVersion(GradleProjectConnector.TOOLING_API_VERSION);
+		}
 	}
 
 	@Test
