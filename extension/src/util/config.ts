@@ -106,5 +106,12 @@ export function getGradleConfig(): GradleConfig {
         gradleConfig.setVersion(gradleVersion);
     }
     gradleConfig.setWrapperEnabled(getConfigJavaImportGradleWrapperEnabled());
+    const javaExtension = vscode.extensions.getExtension("redhat.java");
+    if (javaExtension) {
+        const version = javaExtension.packageJSON.version;
+        if (version) {
+            gradleConfig.setJavaExtensionVersion(version);
+        }
+    }
     return gradleConfig;
 }
