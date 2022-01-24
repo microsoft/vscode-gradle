@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [3.10.0](https://github.com/microsoft/vscode-gradle/compare/3.9.0...3.10.0) (2022-01-26)
 
 ### Added
-- Automatically detect debug tasks. [PR#1149](https://github.com/microsoft/vscode-gradle/pull/1149)
-- Support to create new project. [PR#1146](https://github.com/microsoft/vscode-gradle/pull/1146)
+- Support automatically detecting debug tasks. [PR#1149](https://github.com/microsoft/vscode-gradle/pull/1149)
+- Support creating new project. [PR#1146](https://github.com/microsoft/vscode-gradle/pull/1146)
 
 ### Changed
 - Upgrade repository wrapper to `7.3.3`. [PR#1145](https://github.com/microsoft/vscode-gradle/pull/1145)
