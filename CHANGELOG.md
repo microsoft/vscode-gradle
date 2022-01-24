@@ -4,6 +4,18 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.10.0](https://github.com/microsoft/vscode-gradle/compare/3.9.0...3.10.0) (2022-01-26)
+
+### Added
+- Support automatically detecting debug tasks. [PR#1149](https://github.com/microsoft/vscode-gradle/pull/1149)
+- Support creating new project. [PR#1146](https://github.com/microsoft/vscode-gradle/pull/1146)
+
+### Changed
+- Upgrade repository wrapper to `7.3.3`. [PR#1145](https://github.com/microsoft/vscode-gradle/pull/1145)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A%22January+2022%22+is%3Aclosed)
+
 ## [3.9.0](https://github.com/microsoft/vscode-gradle/compare/3.8.4...3.9.0) (2021-12-22)
 ### Added
 - Show task selectors. [PR#1121](https://github.com/microsoft/vscode-gradle/pull/1121)
