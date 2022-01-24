@@ -25,9 +25,11 @@ export class SelectProjectTypeStep implements IProjectCreationStep {
                         switch (selectedType.label) {
                             case "application":
                                 metadata.projectType = ProjectType.JAVA_APPLICATION;
+                                metadata.totalSteps = 5;
                                 break;
                             case "library":
                                 metadata.projectType = ProjectType.JAVA_LIBRARY;
+                                metadata.totalSteps = 5;
                                 break;
                             case "Gradle plugin":
                                 metadata.projectType = ProjectType.JAVA_GRADLE_PLUGIN;
