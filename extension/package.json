@@ -38,7 +38,8 @@
     "workspaceContains:build.gradle",
     "workspaceContains:settings.gradle",
     "workspaceContains:build.gradle.kts",
-    "workspaceContains:settings.gradle.kts"
+    "workspaceContains:settings.gradle.kts",
+    "onCommand:gradle.createProject"
   ],
   "main": "./dist/index.js",
   "contributes": {
@@ -479,11 +480,7 @@
         },
         {
           "command": "gradle.createProject",
-          "when": "gradle:extensionActivated && !java:projectManagerActivated"
-        },
-        {
-          "command": "gradle.createProjectAdvanced",
-          "when": "gradle:extensionActivated"
+          "when": "!java:projectManagerActivated"
         }
       ],
       "view/title": [

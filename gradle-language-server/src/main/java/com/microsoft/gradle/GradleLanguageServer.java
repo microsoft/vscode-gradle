@@ -71,10 +71,12 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 		Map<?, ?> initOptions = new Gson().fromJson((JsonElement) params.getInitializationOptions(), Map.class);
 		// TODO: support multiple workspace folders
 		List<WorkspaceFolder> workspaceFolders = params.getWorkspaceFolders();
-		for (WorkspaceFolder folder : workspaceFolders) {
-			URI uri = URI.create(folder.getUri());
-			this.gradleServices.getLibraryResolver().setWorkspacePath(Paths.get(uri));
-			break;
+		if (workspaceFolders != null) {
+			for (WorkspaceFolder folder : workspaceFolders) {
+				URI uri = URI.create(folder.getUri());
+				this.gradleServices.getLibraryResolver().setWorkspacePath(Paths.get(uri));
+				break;
+			}
 		}
 		Object settings = initOptions.get("settings");
 		this.gradleServices.applySetting(settings);

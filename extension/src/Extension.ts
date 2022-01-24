@@ -240,7 +240,7 @@ export class Extension {
 
     private async activate(): Promise<void> {
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
-        if (activated && !this.server.isReady()) {
+        if (!this.server.isReady()) {
             await this.server.start();
         }
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
