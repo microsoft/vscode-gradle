@@ -733,9 +733,16 @@
           "scope": "window",
           "description": "Focus the task in the explorer when running a task"
         },
+        "gradle.javaDebug.cleanOutput": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "description": "Clean the task output cache before debugging"
+        },
         "gradle.javaDebug": {
           "type": "object",
           "description": "Java debug options",
+          "deprecationMessage": "This setting will be removed in the future since the extension can automatically get debug tasks, for clean options, please see `gradle.javaDebug.cleanOutput`.",
           "scope": "resource",
           "properties": {
             "tasks": {

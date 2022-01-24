@@ -14,10 +14,7 @@ const mockWorkspaceFolder: vscode.WorkspaceFolder = {
     name: "folder1",
 };
 
-const mockRootProject = new RootProject(mockWorkspaceFolder, vscode.Uri.file("folder1"), {
-    tasks: [],
-    clean: false,
-});
+const mockRootProject = new RootProject(mockWorkspaceFolder, vscode.Uri.file("folder1"));
 const mockClient = buildMockClient();
 
 function buildProject(project: string, rootProject: string, isRoot: boolean, tasksPerProject: number): GradleProject {

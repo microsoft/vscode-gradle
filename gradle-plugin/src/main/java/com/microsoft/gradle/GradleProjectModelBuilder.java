@@ -33,7 +33,9 @@ import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionsSchema;
 import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
 import org.gradle.api.reflect.TypeOf;
+import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.testing.Test;
 import org.gradle.internal.classpath.ClassPath;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
@@ -58,7 +60,7 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 				taskNames.add(task.getName());
 				GradleTask newTask = new DefaultGradleTask(task.getName(), task.getGroup(), task.getPath(),
 						project.getName(), project.getBuildscript().getSourceFile().getAbsolutePath(),
-						task.getRootProject(), task.getDescription());
+						task.getRootProject(), task.getDescription(), task.getDebuggable());
 				rootModel.getTasks().add(newTask);
 			}
 		}
@@ -191,8 +193,9 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 			String buildFile = task.getProject().getBuildscript().getSourceFile().getAbsolutePath();
 			String rootProjectName = rootProject.getName();
 			String description = task.getDescription() == null ? null : task.getDescription();
+			boolean debuggable = (task instanceof JavaExec) || (task instanceof Test);
 			GradleTask newTask = new DefaultGradleTask(name, group, path, projectName, buildFile, rootProjectName,
-					description);
+					description, debuggable);
 			tasks.add(newTask);
 			cachedTasks.add(newTask);
 		});

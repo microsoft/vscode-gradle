@@ -11,4 +11,5 @@ public interface GradleTask {
 	String getBuildFile();
 	String getRootProject();
 	String getDescription();
+	boolean getDebuggable();
 }

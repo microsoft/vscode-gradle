@@ -3,7 +3,6 @@ import { GradleTaskTreeItem } from "..";
 import { Icons } from "../../icons";
 import { TaskTerminalsStore } from "../../stores";
 import { GradleTaskDefinition } from "../../tasks";
-import { JavaDebug } from "../../util/config";
 import { getTreeItemState } from "../viewUtil";
 
 function getRecentTaskTreeItemState(gradleTaskTreeItemState: string, numTerminals: number): string {
@@ -18,7 +17,7 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
         description: string,
         icons: Icons,
         private readonly taskTerminalsStore: TaskTerminalsStore,
-        protected readonly javaDebug: JavaDebug = { tasks: [], clean: true }
+        protected readonly javaDebug: boolean
     ) {
         // On construction, don't set a description, this will be set in setContext
         super(parentTreeItem, task, label, description || label, "", icons, javaDebug);
@@ -30,10 +29,7 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
         const taskTerminalsStore = this.taskTerminalsStore.getItem(definition.id + definition.args);
         const numTerminals = taskTerminalsStore ? taskTerminalsStore.size : 0;
         this.description = `(${numTerminals})`;
-        this.contextValue = getRecentTaskTreeItemState(
-            getTreeItemState(this.task, this.javaDebug, definition.args),
-            numTerminals
-        );
+        this.contextValue = getRecentTaskTreeItemState(getTreeItemState(this.task, definition.args), numTerminals);
         this.setIconState();
     }
 }

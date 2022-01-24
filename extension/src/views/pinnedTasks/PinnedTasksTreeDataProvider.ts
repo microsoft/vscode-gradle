@@ -7,7 +7,6 @@ import { isWorkspaceFolder } from "../../util";
 import { PinnedTasksStore, RootProjectsStore } from "../../stores";
 import { TaskId, TaskArgs } from "../../stores/types";
 import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
-import { RootProject } from "../../rootProject/RootProject";
 import { Icons } from "../../icons";
 import { GradleClient } from "../../client";
 
@@ -22,7 +21,6 @@ export function getPinnedTasksTreeItemMap(): Map<string, PinnedTaskTreeItem> {
 function buildTaskTreeItem(
     gradleProjectTreeItem: PinnedTasksRootProjectTreeItem,
     task: vscode.Task,
-    rootProject: RootProject,
     icons: Icons
 ): GradleTaskTreeItem {
     const definition = task.definition as GradleTaskDefinition;
@@ -34,13 +32,13 @@ function buildTaskTreeItem(
         definition.description || taskName, // tooltip
         "", // description
         icons,
-        rootProject.getJavaDebug()
+        definition.javaDebug
     );
     pinnedTaskTreeItem.setContext();
     return pinnedTaskTreeItem;
 }
 
-function buildGradleProjectTreeItem(task: vscode.Task, rootProject: RootProject, icons: Icons): void {
+function buildGradleProjectTreeItem(task: vscode.Task, icons: Icons): void {
     const definition = task.definition as GradleTaskDefinition;
     if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
         let gradleProjectTreeItem = pinnedTasksGradleProjectTreeItemMap.get(definition.projectFolder);
@@ -49,7 +47,7 @@ function buildGradleProjectTreeItem(task: vscode.Task, rootProject: RootProject,
             pinnedTasksGradleProjectTreeItemMap.set(definition.projectFolder, gradleProjectTreeItem);
         }
 
-        const pinnedTaskTreeItem = buildTaskTreeItem(gradleProjectTreeItem, task, rootProject, icons);
+        const pinnedTaskTreeItem = buildTaskTreeItem(gradleProjectTreeItem, task, icons);
         pinnedTasksTreeItemMap.set(definition.id + definition.args, pinnedTaskTreeItem);
 
         gradleProjectTreeItem.addTask(pinnedTaskTreeItem);
@@ -132,7 +130,7 @@ export class PinnedTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             if (taskArgs) {
                 Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
                     const pinnedTask = cloneTask(this.rootProjectsStore, task, args, this.client);
-                    buildGradleProjectTreeItem(pinnedTask, rootProject, this.icons);
+                    buildGradleProjectTreeItem(pinnedTask, this.icons);
                 });
             }
         });

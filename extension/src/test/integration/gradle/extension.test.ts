@@ -102,7 +102,8 @@ describe(getSuiteName("Extension"), () => {
                     task.name,
                     "",
                     task.definition.description,
-                    extension!.exports.getIcons()
+                    extension!.exports.getIcons(),
+                    false
                 );
                 await vscode.commands.executeCommand(COMMAND_RUN_TASK_WITH_ARGS, treeItem);
             });

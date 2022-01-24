@@ -98,28 +98,13 @@ Don't re-use terminals for any tasks. A new terminal will be created for each ta
 
 </details>
 
-<details><summary>Debug JavaExec tasks</summary>
+<details><summary>Debug tasks</summary>
 
-This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
+This extension provides an experimental feature to debug [JavaExec](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.JavaExec.html) and [Test](https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html) tasks. Before using this feature you need to install the [Debugger for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug) and [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) extensions.
 
-To enable this feature you need to specify which tasks can be debugged within your project `.vscode/settings.json`.
-
-You also need to specify whether you want to clean output cache before debugging, to ensure Gradle doesn't skip any tasks due to output caching (this is most useful when debugging tests).
+You might need to specify whether you want to clean output cache before debugging, to ensure Gradle doesn't skip any tasks due to output caching (this is most useful when debugging tests).
 
 > Output cache is cleaned by adding a `cleanTaskName` task (eg `cleanTest`) to the build.
-
-Example config:
-
-```json
-"gradle.javaDebug": {
-    "tasks": [
-        "run",
-        "test",
-        "subproject:customJavaExecTask"
-    ],
-    "clean": true
-}
-```
 
 You should now see a `debug` command next to the `run` command in the Gradle Projects view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
@@ -213,7 +198,7 @@ We will continue improving the auto completion feature to support more cases in 
 - Supports nested projects (enabled via setting)
 - Show flat or nested tasks in the explorer
 - Gracefully cancel a running task
-- Debug JavaExec tasks
+- Debug tasks
 - Run/debug a task with arguments (supports both build & task args, eg `gradle tasks --all --info`)
 - Pin tasks
 - List recent tasks
@@ -234,7 +219,7 @@ This extension contributes the following settings:
 - `gradle.focusTaskInExplorer`: Focus the task in the explorer when running a task (boolean)
 - `gradle.nestedProjects`: Process nested projects (boolean or an array of directories)
 - `gradle.reuseTerminals`: Reuse task terminals ("task" [default], "all", or "off")
-- `gradle.javaDebug`: Debug JavaExec tasks (see below for usage)
+- `gradle.javaDebug.cleanOutput`: Clean the task output cache before debugging (boolean)
 - `gradle.debug`: Show extra debug info in the output panel (boolean)
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
 - `gradle.allowParallelRun`: Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task.

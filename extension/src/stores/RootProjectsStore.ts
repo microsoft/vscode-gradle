@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { getNestedProjectsConfig, getConfigJavaDebug } from "../util/config";
+import { getNestedProjectsConfig } from "../util/config";
 import { StoreMap } from ".";
 import { isGradleRootProject } from "../util";
 import { RootProject } from "../rootProject/RootProject";
@@ -12,8 +12,7 @@ async function getNestedRootProjectFolders(): Promise<string[]> {
 
 function buildRootFolder(folderUri: vscode.Uri): RootProject {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(folderUri)!;
-    const javaDebug = getConfigJavaDebug(workspaceFolder);
-    return new RootProject(workspaceFolder, folderUri, javaDebug);
+    return new RootProject(workspaceFolder, folderUri);
 }
 
 function getGradleProjectFoldersOutsideRoot(

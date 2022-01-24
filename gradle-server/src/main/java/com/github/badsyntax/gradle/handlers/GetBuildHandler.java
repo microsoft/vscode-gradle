@@ -201,7 +201,8 @@ public class GetBuildHandler {
 		model.getTasks().forEach(task -> {
 			GradleTask.Builder builder = GradleTask.newBuilder();
 			builder.setName(task.getName()).setPath(task.getPath()).setProject(task.getProject())
-					.setBuildFile(task.getBuildFile()).setRootProject(task.getRootProject());
+					.setBuildFile(task.getBuildFile()).setRootProject(task.getRootProject())
+					.setDebuggable(task.getDebuggable());
 			String group = task.getGroup();
 			if (group != null) {
 				builder.setGroup(group);

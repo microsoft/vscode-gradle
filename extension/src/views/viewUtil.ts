@@ -21,7 +21,6 @@ import {
     PinnedTasksTreeDataProvider,
     RecentTasksTreeDataProvider,
 } from ".";
-import { JavaDebug } from "../util/config";
 
 export function treeItemSortCompareFunc(a: vscode.TreeItem, b: vscode.TreeItem): number {
     return a.label!.toString().localeCompare(b.label!.toString());
@@ -123,8 +122,9 @@ export async function focusProjectInGradleTasksTree(
     }
 }
 
-function getTreeItemRunningState(task: vscode.Task, javaDebug?: JavaDebug, args?: TaskArgs): string {
-    const isDebug = javaDebug && javaDebug.tasks.includes(task.definition.script);
+function getTreeItemRunningState(task: vscode.Task, args?: TaskArgs): string {
+    const definition = task.definition as GradleTaskDefinition;
+    const isDebug = definition.javaDebug;
     if (isTaskCancelling(task, args)) {
         return TREE_ITEM_STATE_TASK_CANCELLING;
     }
@@ -134,7 +134,7 @@ function getTreeItemRunningState(task: vscode.Task, javaDebug?: JavaDebug, args?
     return isDebug ? TREE_ITEM_STATE_TASK_DEBUG_IDLE : TREE_ITEM_STATE_TASK_IDLE;
 }
 
-export function getTreeItemState(task: vscode.Task, javaDebug?: JavaDebug, args?: TaskArgs): string {
-    const runningState = getTreeItemRunningState(task, javaDebug, args);
+export function getTreeItemState(task: vscode.Task, args?: TaskArgs): string {
+    const runningState = getTreeItemRunningState(task, args);
     return args ? `${runningState}WithArgs` : runningState;
 }

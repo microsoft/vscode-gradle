@@ -7,7 +7,6 @@ import { GradleTaskTreeItem } from "..";
 import { isWorkspaceFolder } from "../../util";
 import { TaskId, TaskArgs } from "../../stores/types";
 import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
-import { RootProject } from "../../rootProject/RootProject";
 import { GradleClient } from "../../client";
 import { Icons } from "../../icons";
 
@@ -22,7 +21,6 @@ export function getRecentTaskTreeItemMap(): Map<string, RecentTaskTreeItem> {
 function buildTaskTreeItem(
     gradleProjectTreeItem: RecentTasksRootProjectTreeItem,
     task: vscode.Task,
-    rootProject: RootProject,
     taskTerminalsStore: TaskTerminalsStore,
     icons: Icons
 ): RecentTaskTreeItem {
@@ -35,18 +33,13 @@ function buildTaskTreeItem(
         definition.description || taskName, // used for tooltip
         icons,
         taskTerminalsStore,
-        rootProject.getJavaDebug()
+        definition.javaDebug
     );
     recentTaskTreeItem.setContext();
     return recentTaskTreeItem;
 }
 
-function buildGradleProjectTreeItem(
-    task: vscode.Task,
-    rootProject: RootProject,
-    taskTerminalsStore: TaskTerminalsStore,
-    icons: Icons
-): void {
+function buildGradleProjectTreeItem(task: vscode.Task, taskTerminalsStore: TaskTerminalsStore, icons: Icons): void {
     const definition = task.definition as GradleTaskDefinition;
     if (isWorkspaceFolder(task.scope) && isGradleTask(task)) {
         let gradleProjectTreeItem = recentTasksGradleProjectTreeItemMap.get(definition.projectFolder);
@@ -55,13 +48,7 @@ function buildGradleProjectTreeItem(
             recentTasksGradleProjectTreeItemMap.set(definition.projectFolder, gradleProjectTreeItem);
         }
 
-        const recentTaskTreeItem = buildTaskTreeItem(
-            gradleProjectTreeItem,
-            task,
-            rootProject,
-            taskTerminalsStore,
-            icons
-        );
+        const recentTaskTreeItem = buildTaskTreeItem(gradleProjectTreeItem, task, taskTerminalsStore, icons);
         recentTasksTreeItemMap.set(definition.id + definition.args, recentTaskTreeItem);
 
         gradleProjectTreeItem.addTask(recentTaskTreeItem);
@@ -162,7 +149,7 @@ export class RecentTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             if (taskArgs) {
                 Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
                     const recentTask = cloneTask(this.rootProjectsStore, task, args, this.client, definition.javaDebug);
-                    buildGradleProjectTreeItem(recentTask, rootProject, this.taskTerminalsStore, this.icons);
+                    buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore, this.icons);
                 });
             }
         });
