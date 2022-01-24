@@ -47,7 +47,7 @@ export class CreateProjectCommand extends Command {
             const success = await this.runSteps(metadata);
             if (success) {
                 await this.createProject(metadata);
-                const openInNewWindow = folders && folders.length;
+                const openInNewWindow = folders !== undefined;
                 vscode.commands.executeCommand(
                     "vscode.openFolder",
                     vscode.Uri.file(metadata.targetFolder),
