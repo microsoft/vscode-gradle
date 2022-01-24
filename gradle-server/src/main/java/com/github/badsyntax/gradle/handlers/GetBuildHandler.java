@@ -113,20 +113,25 @@ public class GetBuildHandler {
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
 		} catch (ServiceCreationException | IOException | IllegalStateException | GradleConnectionException e) {
-			if (this.environment != null) {
-				Version gradleVersion = new Version(this.environment.getGradleEnvironment().getGradleVersion());
-				Version javaVersion = new Version(System.getProperty("java.version"));
-				if (Utils.hasCompatibilityError(gradleVersion, javaVersion)) {
-					replyWithCompatibilityCheckError(gradleVersion.getOriginalString(),
-							javaVersion.getOriginalString());
-				}
-			} else {
-				String rootCause = getRootCause(e);
-				if (rootCause.contains("Could not determine java version")) {
-					// Current Gradle version requires no more than Java 8.
-					// Since the language server requires JDK11+,
-					// We recommend the user to change gradle settings
-					replyWithCompatibilityCheckError();
+			String javaExtensionVersion = req.getGradleConfig().getJavaExtensionVersion();
+			boolean shouldCheckCompatibility = !(javaExtensionVersion != null
+					&& new Version(javaExtensionVersion).isAtLeast("1.3.0"));
+			if (shouldCheckCompatibility) {
+				if (this.environment != null) {
+					Version gradleVersion = new Version(this.environment.getGradleEnvironment().getGradleVersion());
+					Version javaVersion = new Version(System.getProperty("java.version"));
+					if (Utils.hasCompatibilityError(gradleVersion, javaVersion)) {
+						replyWithCompatibilityCheckError(gradleVersion.getOriginalString(),
+								javaVersion.getOriginalString());
+					}
+				} else {
+					String rootCause = getRootCause(e);
+					if (rootCause.contains("Could not determine java version")) {
+						// Current Gradle version requires no more than Java 8.
+						// Since the language server requires JDK11+,
+						// We recommend the user to change gradle settings
+						replyWithCompatibilityCheckError();
+					}
 				}
 			}
 			logger.error(e.getMessage());
