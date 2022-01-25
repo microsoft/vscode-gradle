@@ -102,6 +102,17 @@ export class CreateProjectCommand extends Command {
             args.push("--package");
             args.push(metadata.sourcePackageName);
         }
-        await this.client.runBuild(metadata.targetFolder, cancellationKey, args);
+        await this.client.runBuild(
+            metadata.targetFolder,
+            cancellationKey,
+            args,
+            "",
+            0,
+            undefined,
+            undefined,
+            true,
+            "Create Gradle project",
+            vscode.ProgressLocation.Notification
+        );
     }
 }
