@@ -277,14 +277,16 @@ export class GradleClient implements vscode.Disposable {
         javaDebugPort = 0,
         task?: vscode.Task,
         onOutput?: (output: Output) => void,
-        showOutputColors = true
+        showOutputColors = true,
+        title?: string,
+        location?: vscode.ProgressLocation
     ): Promise<void> {
         await this.waitForConnect();
         this.statusBarItem.hide();
         return vscode.window.withProgress(
             {
-                location: vscode.ProgressLocation.Window,
-                title: "Gradle",
+                location: location || vscode.ProgressLocation.Window,
+                title: title || "Gradle",
                 cancellable: true,
             },
             async (progress: vscode.Progress<{ message?: string }>, token: vscode.CancellationToken) => {
