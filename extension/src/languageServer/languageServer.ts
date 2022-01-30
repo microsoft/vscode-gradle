@@ -54,12 +54,12 @@ export async function startLanguageServer(
                 if (!javaHome) {
                     void vscode.window
                         .showErrorMessage(
-                            'There is no valid JAVA_HOME setting to launch Gradle Language Server. Please check your "java.home" setting.',
+                            'There is no valid JAVA_HOME setting to launch Gradle Language Server. Please check your "java.jdt.ls.java.home" setting.',
                             "Open Settings"
                         )
                         .then((answer) => {
                             if (answer === "Open Settings") {
-                                void vscode.commands.executeCommand("workbench.action.openSettings", "java.home");
+                                void vscode.commands.executeCommand("workbench.action.openSettings", "java.jdt.ls.java.home");
                             }
                         });
                     return;

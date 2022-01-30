@@ -245,7 +245,8 @@ Use an environment manager like [direnv](https://direnv.net/) to set project spe
 
 This extension supports the following settings which are contributed by the [Java language support](https://github.com/redhat-developer/vscode-java) extension:
 
-- `java.home`: Absolute path to JDK home folder used to launch the Gradle daemons
+- `java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (recommended to use `java.jdt.ls.java.home`)
+- `java.jdt.ls.java.home`: Absolute path to JDK home folder as per the latest VS code, used to launch the Gradle daemons
 - `java.import.gradle.java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (if set, this value takes precedence over `java.home`)
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
