@@ -1,5 +1,6 @@
 plugins {
   id "java"
+  id "application"
 }
 
 java {
@@ -9,6 +10,11 @@ java {
 
 repositories  {
   mavenCentral()
+}
+
+application {
+  applicationName = "gradle-language-server"
+  mainClass = "com.microsoft.gradle.GradleLanguageServer"
 }
 
 dependencies {
