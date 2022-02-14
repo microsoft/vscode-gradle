@@ -16,5 +16,5 @@ module.exports = {
         "no-case-declarations": "off",
         "no-async-promise-executor": "off",
     },
-    ignorePatterns: "scripts/update-third-party-notice.js",
+    ignorePatterns: "scripts/*.js",
 };
