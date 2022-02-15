@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as vscode from "vscode";
+import * as path from "path";
 import { GradleTasksTreeDataProvider, GroupTreeItem, ProjectTreeItem } from "..";
 import { GradleClient } from "../../client";
 import { RootProjectsStore } from "../../stores";
@@ -41,7 +42,7 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
                 this.icons
             );
         } else if (element instanceof ProjectTreeItem) {
-            return GradleTasksTreeDataProvider.getChildrenForProjectTreeItem(element);
+            return this.getChildrenForProjectTreeItem(element);
         } else if (element instanceof ProjectDependencyTreeItem) {
             return this.defaultProjectProvider.getDefaultDependencyItems(element);
         } else if (element instanceof ProjectTaskTreeItem) {
@@ -50,5 +51,23 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
             return element.tasks;
         }
         return [];
+    }
+
+    private async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
+        const projectTaskItem = new ProjectTaskTreeItem("Tasks", vscode.TreeItemCollapsibleState.Collapsed, element);
+        projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        const results: vscode.TreeItem[] = [projectTaskItem];
+        const resourceUri = element.resourceUri;
+        if (!resourceUri) {
+            return results;
+        }
+        const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
+            "Dependencies",
+            vscode.TreeItemCollapsibleState.Collapsed,
+            element,
+            path.dirname(resourceUri.fsPath),
+            typeof element.label === "string" ? element.label : resourceUri.fsPath
+        );
+        return [...results, projectDependencyTreeItem];
     }
 }

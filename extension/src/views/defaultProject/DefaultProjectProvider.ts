@@ -78,6 +78,7 @@ export class DefaultProjectProvider {
             workspaceFolder: rootProject.getWorkspaceFolder().uri.fsPath,
             args: "",
             javaDebug: false,
+            isPinned: false,
         };
     }
 

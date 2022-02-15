@@ -11,8 +11,8 @@ import {
 
 import { GradleTaskDefinition, GradleTaskProvider } from "../../tasks";
 import { isWorkspaceFolder } from "../../util";
-import { isGradleTask } from "../../tasks/taskUtil";
-import { RootProjectsStore } from "../../stores";
+import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
+import { PinnedTasksStore, RootProjectsStore } from "../../stores";
 import { Icons } from "../../icons";
 import { DependencyConfigurationTreeItem } from "./DependencyConfigurationTreeItem";
 import { DependencyTreeItem } from "./DependencyTreeItem";
@@ -20,6 +20,9 @@ import { ProjectDependencyTreeItem } from "./ProjectDependencyTreeItem";
 import { ProjectTaskTreeItem } from "./ProjectTaskTreeItem";
 import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
 import { findRootProject } from "../../client/utils";
+import { TaskArgs, TaskId } from "../../stores/types";
+import { GradleClient } from "../../client";
+import { buildPinnedTaskTreeItem } from "./utils";
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -50,9 +53,11 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
     constructor(
         private readonly context: vscode.ExtensionContext,
         private readonly rootProjectStore: RootProjectsStore,
+        private readonly pinnedTasksStore: PinnedTasksStore,
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly gradleDependencyProvider: GradleDependencyProvider,
-        private readonly icons: Icons
+        private readonly icons: Icons,
+        private readonly client: GradleClient
     ) {
         const collapsed = this.context.workspaceState.get("gradleTasksCollapsed", false);
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -109,7 +114,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             return element.projects;
         }
         if (element instanceof ProjectTreeItem) {
-            return GradleTasksTreeDataProvider.getChildrenForProjectTreeItem(element);
+            return this.getChildrenForProjectTreeItem(element);
         }
         if (element instanceof GroupTreeItem) {
             return element.tasks;
@@ -137,9 +142,36 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         return [];
     }
 
-    public static async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
+    public async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
         const projectTaskItem = new ProjectTaskTreeItem("Tasks", vscode.TreeItemCollapsibleState.Collapsed, element);
-        projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        const pinnedTasks = this.pinnedTasksStore.getData();
+        const pinnedTasksArray: GradleTaskTreeItem[] = [];
+        Array.from(pinnedTasks.keys()).forEach((taskId: TaskId) => {
+            const task = this.gradleTaskProvider.findByTaskId(taskId);
+            if (!task) {
+                return;
+            }
+            const definition = task.definition as GradleTaskDefinition;
+            if (definition.project !== element.label) {
+                return;
+            }
+            const rootProject = this.rootProjectStore.get(definition.projectFolder);
+            if (!rootProject) {
+                return;
+            }
+            const taskArgs = pinnedTasks.get(taskId) || "";
+            if (taskArgs) {
+                Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
+                    const pinnedTask = cloneTask(this.rootProjectStore, task, args, this.client, definition.javaDebug);
+                    const gradleTaskTreeItem = buildPinnedTaskTreeItem(element, pinnedTask, this.icons);
+                    pinnedTasksArray.push(gradleTaskTreeItem);
+                });
+            } else {
+                const gradleTaskTreeItem = buildPinnedTaskTreeItem(element, task, this.icons);
+                pinnedTasksArray.push(gradleTaskTreeItem);
+            }
+        });
+        projectTaskItem.setChildren([...pinnedTasksArray, ...element.groups, ...element.tasks]);
         const results: vscode.TreeItem[] = [projectTaskItem];
         const resourceUri = element.resourceUri;
         if (!resourceUri) {

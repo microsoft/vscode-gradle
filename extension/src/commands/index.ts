@@ -11,7 +11,6 @@ export * from "./ExplorerFlatCommand";
 export * from "./ExplorerTreeCommand";
 export * from "./LoadTasksCommand";
 export * from "./OpenBuildFileCommand";
-export * from "./OpenPinHelpCommand";
 export * from "./OpenSettingsCommand";
 export * from "./PinTaskCommand";
 export * from "./PinTaskWithArgsCommand";

@@ -22,7 +22,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
     }
 
     public setContext(): void {
-        this.contextValue = getTreeItemState(this.task);
+        this.contextValue = getTreeItemState(this.task, this.task.definition.args);
         this.setIconState();
     }
 

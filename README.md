@@ -43,11 +43,11 @@ The project's dependencies are included in the `Dependencies` item under the pro
 
 Tasks can be run via:
 
-- `Gradle Projects`, `Pinned Tasks` or `Recent Tasks` treeviews
+- `Gradle Projects` or `Recent Tasks` tree views
 - `Run Task` command
 - `Run a Gradle Build` command
 
-A running task will be shown with an animated "spinner" icon in the treeviews, along with `Cancel Task` & `Restart Task` buttons. The `Cancel Task` button will gracefully cancel the task. The `Restart Task` button will first cancel the task, then restart it.
+A running task will be shown with an animated "spinner" icon in the tree views, along with `Cancel Task` & `Restart Task` buttons. The `Cancel Task` button will gracefully cancel the task. The `Restart Task` button will first cancel the task, then restart it.
 
 <img src="images/task-run.png" width="350" alt="Gradle Tasks Running" />
 
@@ -113,18 +113,18 @@ You should now see a `debug` command next to the `run` command in the Gradle Pro
 </details>
 <details><summary>Pin tasks</summary>
 
-As there could be many tasks in a Gradle project, it can be useful to pin commonly used tasks. Pinned tasks will be shown in a seperate view. Pin a task by accessing the task context menu (by right-clicking a task). You can also pin a task with specific arguments.
+As there could be many tasks in a Gradle project, it can be useful to pin commonly used tasks. Pinned tasks will be shown under their project item. Pin a task by accessing the task context menu (by right-clicking a task). You can also pin a task with specific arguments.
 
 <img src="./images/pin-task.png" width="350" alt="Pin a Gradle Task" />
 
-To remove a pinned a task, access the task context menu and select `Remove Pinned Task`, or clear all pinned tasks by clicking on the `Clear Pinned Tasks` button in the treeview header.
+To remove a pinned a task, access the task context menu and select `Remove Pinned Task`, or clear all pinned tasks by clicking on the `Clear Pinned Tasks` button in the overflow button of tree view header.
 
 <img src="./images/remove-pinned-task.png" width="350" alt="Remove a pinned Gradle Task" />
 
 </details>
 <details><summary>List recent tasks</summary>
 
-Recently run Gradle tasks are listed in a seperate treeview. This can be useful to see a history of tasks and to easily access the associated task terminals.
+Recently run Gradle tasks are listed in a separate tree view. This can be useful to see a history of tasks and to easily access the associated task terminals.
 
 The number shown next to the task is the amount of times the task has been run. Click on the `Show Terminal` button next to a task to view the most recent terminal for that task. Click on the `Close Terminal/s` button to close the terminal/s for that task.
 
