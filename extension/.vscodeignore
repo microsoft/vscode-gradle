@@ -26,3 +26,5 @@ ARCHITECTURE.md
 # Ignore output of code sign
 lib/*.md
 scripts
+# for nightly build
+package.insiders.json
