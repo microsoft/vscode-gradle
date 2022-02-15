@@ -27,4 +27,4 @@ ARCHITECTURE.md
 lib/*.md
 scripts
 # for nightly build
-extension/package.insiders.json
+package.insiders.json
