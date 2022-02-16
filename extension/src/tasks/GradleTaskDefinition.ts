@@ -10,7 +10,10 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
     buildFile: string;
     projectFolder: string;
     workspaceFolder: string;
+    // the task can be debugged or not
+    debugEnabled: boolean;
     args: string;
+    // this run session of the task should be debugged or not
     javaDebug: boolean;
     isPinned: boolean;
 }

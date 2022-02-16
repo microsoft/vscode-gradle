@@ -33,7 +33,7 @@ function buildTaskTreeItem(
         definition.description || taskName, // used for tooltip
         icons,
         taskTerminalsStore,
-        definition.javaDebug
+        definition.debugEnabled
     );
     recentTaskTreeItem.setContext();
     return recentTaskTreeItem;
@@ -148,7 +148,13 @@ export class RecentTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             const taskArgs = recentTasks.get(taskId) || "";
             if (taskArgs) {
                 Array.from(taskArgs.values()).forEach((args: TaskArgs) => {
-                    const recentTask = cloneTask(this.rootProjectsStore, task, args, this.client, definition.javaDebug);
+                    const recentTask = cloneTask(
+                        this.rootProjectsStore,
+                        task,
+                        args,
+                        this.client,
+                        definition.debugEnabled
+                    );
                     buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore, this.icons);
                 });
             }

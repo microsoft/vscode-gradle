@@ -114,7 +114,7 @@ export async function focusProjectInGradleTasksTree(
 function getTreeItemRunningState(task: vscode.Task, args?: TaskArgs): string {
     let state = "";
     const definition = task.definition as GradleTaskDefinition;
-    const isDebug = definition.javaDebug;
+    const isDebug = definition.debugEnabled;
     if (isTaskCancelling(task, args)) {
         return state + TREE_ITEM_STATE_TASK_CANCELLING;
     }
