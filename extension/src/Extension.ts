@@ -221,7 +221,6 @@ export class Extension {
     private storeSubscriptions(): void {
         this.context.subscriptions.push(
             this.client,
-            this.server,
             this.pinnedTasksStore,
             this.recentTasksStore,
             this.taskTerminalsStore,
@@ -236,6 +235,10 @@ export class Extension {
             this.recentTasksTreeView,
             this.defaultProjectsTreeView
         );
+    }
+
+    public async deactivate() {
+        await this.server.asyncDispose();
     }
 
     private async activate(): Promise<void> {
