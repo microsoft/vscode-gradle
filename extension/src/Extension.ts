@@ -237,7 +237,7 @@ export class Extension {
         );
     }
 
-    public async deactivate() {
+    public async stop() {
         await this.server.asyncDispose();
     }
 
