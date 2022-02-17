@@ -3,6 +3,7 @@
 import * as assert from "assert";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
+import { GradleBuildContentProvider } from "../../client/GradleBuildContentProvider";
 import { GradleBuild, GradleProject, GradleTask } from "../../proto/gradle_pb";
 import { RootProject } from "../../rootProject/RootProject";
 import { getVSCodeTasksFromGradleProject, loadTasksForProjectRoots } from "../../tasks/taskUtil";
@@ -66,7 +67,11 @@ describe(getSuiteName("taskUtil"), () => {
         gradleBuild.setProject(rootGradleProject);
         mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-        const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
+        const tasks = await loadTasksForProjectRoots(
+            mockClient,
+            [mockRootProject],
+            new GradleBuildContentProvider(mockClient)
+        );
         assert.strictEqual(tasks.length, 2);
     });
 
@@ -80,7 +85,11 @@ describe(getSuiteName("taskUtil"), () => {
         gradleBuild.setProject(rootGradleProject);
         mockClient.getBuild.resolves(Promise.resolve(gradleBuild));
 
-        const tasks = await loadTasksForProjectRoots(mockClient, [mockRootProject]);
+        const tasks = await loadTasksForProjectRoots(
+            mockClient,
+            [mockRootProject],
+            new GradleBuildContentProvider(mockClient)
+        );
         assert.strictEqual(tasks.length, 255101);
     });
 

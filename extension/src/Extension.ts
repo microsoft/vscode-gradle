@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as path from "path";
 import { logger, LogVerbosity, Logger } from "./logger";
 import { Api } from "./api";
 import { GradleClient } from "./client";
@@ -28,9 +27,8 @@ import { FileWatcher } from "./util/FileWatcher";
 import { DependencyTreeItem } from "./views/gradleTasks/DependencyTreeItem";
 import { GRADLE_DEPENDENCY_REVEAL } from "./views/gradleTasks/DependencyUtils";
 import { GradleDependencyProvider } from "./dependencies/GradleDependencyProvider";
-import { isLanguageServerStarted, startLanguageServer, syncLanguageServer } from "./languageServer/languageServer";
+import { isLanguageServerStarted, startLanguageServer } from "./languageServer/languageServer";
 import { DefaultProjectsTreeDataProvider } from "./views/defaultProject/DefaultProjectsTreeDataProvider";
-import { GradleProjectContentProvider } from "./projectContent/GradleProjectContentProvider";
 import {
     CompletionKinds,
     Context,
@@ -41,6 +39,7 @@ import {
     VSCODE_TRIGGER_COMPLETION,
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
+import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 
 export class Extension {
     private readonly client: GradleClient;
@@ -49,7 +48,7 @@ export class Extension {
     private readonly recentTasksStore: RecentTasksStore;
     private readonly taskTerminalsStore: TaskTerminalsStore;
     private readonly rootProjectsStore: RootProjectsStore;
-    private readonly gradleProjectContentProvider: GradleProjectContentProvider;
+    private readonly gradleBuildContentProvider: GradleBuildContentProvider;
     private readonly gradleTaskProvider: GradleTaskProvider;
     private readonly gradleDependencyProvider: GradleDependencyProvider;
     private readonly taskProvider: vscode.Disposable;
@@ -95,9 +94,13 @@ export class Extension {
         this.recentTasksStore = new RecentTasksStore();
         this.taskTerminalsStore = new TaskTerminalsStore();
         this.rootProjectsStore = new RootProjectsStore();
-        this.gradleProjectContentProvider = new GradleProjectContentProvider(this.client);
-        this.gradleTaskProvider = new GradleTaskProvider(this.rootProjectsStore, this.client);
-        this.gradleDependencyProvider = new GradleDependencyProvider(this.gradleProjectContentProvider);
+        this.gradleBuildContentProvider = new GradleBuildContentProvider(this.client);
+        this.gradleTaskProvider = new GradleTaskProvider(
+            this.rootProjectsStore,
+            this.client,
+            this.gradleBuildContentProvider
+        );
+        this.gradleDependencyProvider = new GradleDependencyProvider(this.gradleBuildContentProvider);
         this.taskProvider = vscode.tasks.registerTaskProvider("gradle", this.gradleTaskProvider);
         this.icons = new Icons(context);
 
@@ -165,7 +168,7 @@ export class Extension {
             this.context,
             this.pinnedTasksStore,
             this.gradleTaskProvider,
-            this.gradleProjectContentProvider,
+            this.gradleBuildContentProvider,
             this.gradleTasksTreeDataProvider,
             this.pinnedTasksTreeDataProvider,
             this.recentTasksTreeDataProvider,
@@ -213,7 +216,7 @@ export class Extension {
         );
 
         void this.activate();
-        void startLanguageServer(this.context, this.gradleProjectContentProvider);
+        void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore);
         void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
         void vscode.commands.executeCommand("setContext", Context.ACTIVATION_CONTEXT_KEY, true);
     }
@@ -293,13 +296,11 @@ export class Extension {
             instrumentOperation(GRADLE_BUILD_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
                 logger.info("Build file changed:", uri.fsPath);
                 await this.refresh();
-                void this.syncBuildFile(uri);
             })
         );
         this.buildFileWatcher.onDidOpen(
             instrumentOperation(GRADLE_BUILD_FILE_OPEN, async (_operationId: string, uri: vscode.Uri) => {
                 logger.info("Build file opened:", uri.fsPath);
-                void this.syncBuildFile(uri);
             })
         );
         this.gradleWrapperWatcher.onDidChange(
@@ -311,16 +312,6 @@ export class Extension {
                 }
             })
         );
-    }
-
-    private async syncBuildFile(uri: vscode.Uri): Promise<void> {
-        const fsPath = uri.fsPath;
-        const dirName = path.dirname(fsPath);
-        const baseName = path.basename(dirName);
-        const projectContent = await this.gradleProjectContentProvider.getProjectContent(dirName, baseName);
-        if (projectContent) {
-            await syncLanguageServer(dirName, projectContent);
-        }
     }
 
     private async restartServer(): Promise<void> {

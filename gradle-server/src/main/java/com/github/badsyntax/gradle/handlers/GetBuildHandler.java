@@ -2,6 +2,7 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
+import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.Environment;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
@@ -13,6 +14,9 @@ import com.github.badsyntax.gradle.GradleEnvironment;
 import com.github.badsyntax.gradle.GradleProject;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GradleTask;
+import com.github.badsyntax.gradle.GrpcGradleClosure;
+import com.github.badsyntax.gradle.GrpcGradleField;
+import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
@@ -20,6 +24,10 @@ import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
+import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleDependencyNode;
+import com.microsoft.gradle.api.GradleField;
+import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
@@ -198,6 +206,11 @@ public class GetBuildHandler {
 			subProjects.add(getProjectData(subProjectModel));
 		}
 		project.addAllProjects(subProjects);
+		project.setProjectPath(gradleModel.getProjectPath());
+		project.setDependencyItem(getDependencyItem(gradleModel.getDependencyNode()));
+		project.addAllPlugins(gradleModel.getPlugins());
+		project.addAllPluginClosures(getPluginClosures(gradleModel));
+		project.addAllScriptClasspaths(gradleModel.getScriptClasspaths());
 		return project.build();
 	}
 
@@ -219,6 +232,44 @@ public class GetBuildHandler {
 			tasks.add(builder.build());
 		});
 		return tasks;
+	}
+
+	private DependencyItem getDependencyItem(GradleDependencyNode node) {
+		DependencyItem.Builder item = DependencyItem.newBuilder();
+		item.setName(node.getName());
+		item.setTypeValue(node.getType().ordinal());
+		if (node.getChildren() == null) {
+			return item.build();
+		}
+		List<DependencyItem> children = new ArrayList<>();
+		for (GradleDependencyNode child : node.getChildren()) {
+			children.add(getDependencyItem(child));
+		}
+		item.addAllChildren(children);
+		return item.build();
+	}
+
+	private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {
+		List<GrpcGradleClosure> closures = new ArrayList<>();
+		for (GradleClosure closure : model.getClosures()) {
+			GrpcGradleClosure.Builder closureBuilder = GrpcGradleClosure.newBuilder();
+			for (GradleMethod method : closure.getMethods()) {
+				GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
+				methodBuilder.setName(method.getName());
+				methodBuilder.addAllParameterTypes(method.getParameterTypes());
+				methodBuilder.setDeprecated(method.getDeprecated());
+				closureBuilder.addMethods(methodBuilder.build());
+			}
+			closureBuilder.setName(closure.getName());
+			for (GradleField field : closure.getFields()) {
+				GrpcGradleField.Builder fieldBuilder = GrpcGradleField.newBuilder();
+				fieldBuilder.setName(field.getName());
+				fieldBuilder.setDeprecated(field.getDeprecated());
+				closureBuilder.addFields(fieldBuilder.build());
+			}
+			closures.add(closureBuilder.build());
+		}
+		return closures;
 	}
 
 	private void replyWithProject(GradleProject gradleProject) {

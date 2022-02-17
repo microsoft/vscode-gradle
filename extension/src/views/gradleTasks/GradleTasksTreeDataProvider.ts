@@ -19,6 +19,7 @@ import { DependencyTreeItem } from "./DependencyTreeItem";
 import { ProjectDependencyTreeItem } from "./ProjectDependencyTreeItem";
 import { ProjectTaskTreeItem } from "./ProjectTaskTreeItem";
 import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
+import { findRootProject } from "../../client/utils";
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -117,7 +118,11 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             return [];
         }
         if (element instanceof ProjectDependencyTreeItem) {
-            return this.gradleDependencyProvider.getDependencies(element);
+            const rootProject = await findRootProject(this.rootProjectStore, element.projectPath);
+            if (!rootProject) {
+                return GradleDependencyProvider.getNoDependencies();
+            }
+            return this.gradleDependencyProvider.getDependencies(element, rootProject);
         }
         if (
             element instanceof ProjectTaskTreeItem ||
