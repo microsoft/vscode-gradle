@@ -14,7 +14,7 @@ export interface ServerOptions {
     host: string;
 }
 
-export class GradleServer implements vscode.Disposable {
+export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
@@ -108,9 +108,11 @@ export class GradleServer implements vscode.Disposable {
         }
     };
 
-    private killProcess(): void {
+    private async killProcess(): Promise<void> {
         if (this.process) {
-            kill(this.process.pid, "SIGTERM");
+            return new Promise((resolve, _reject) => {
+                kill(this.process!.pid, () => resolve);
+            });
         }
     }
 
@@ -123,14 +125,10 @@ export class GradleServer implements vscode.Disposable {
         this._onDidStart.fire(null);
     }
 
-    public stop(): void {
+    public async asyncDispose(): Promise<void> {
         this.process?.removeAllListeners();
-        this.killProcess();
+        await this.killProcess();
         this.ready = false;
-    }
-
-    public dispose(): void {
-        this.stop();
         this._onDidStart.dispose();
         this._onDidStop.dispose();
     }

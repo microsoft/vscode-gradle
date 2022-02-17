@@ -4,13 +4,16 @@ import { initialize, instrumentOperation } from "vscode-extension-telemetry-wrap
 import { Api } from "./api";
 import { Extension } from "./Extension";
 
+let extension: Extension;
+
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     initializeTelemetry();
     return instrumentOperation("activation", activateExtension)(context);
 }
 
 function activateExtension(_operationId: string, context: vscode.ExtensionContext): Api {
-    return new Extension(context).getApi();
+    extension = new Extension(context);
+    return extension.getApi();
 }
 
 function initializeTelemetry(): void {
@@ -24,4 +27,6 @@ function initializeTelemetry(): void {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-export function deactivate(): void {}
+export async function deactivate(): Promise<void> {
+    await extension?.stop();
+}
