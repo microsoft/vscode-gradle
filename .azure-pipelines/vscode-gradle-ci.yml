@@ -5,6 +5,7 @@
 
 trigger:
 - main
+- develop
 
 jobs:
   - job: cred_scan
