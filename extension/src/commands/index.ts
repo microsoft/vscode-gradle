@@ -1,7 +1,7 @@
 export * from "./CancelBuildCommand";
 export * from "./CancelTreeItemTaskCommand";
 export * from "./CancellingTreeItemTaskCommand";
-export * from "./ClearAllPinnedTasksCommand";
+export * from "./UnpinAllTasksCommand";
 export * from "./ClearAllRecentTasksCommand";
 export * from "./CloseAllTaskTerminalsCommand";
 export * from "./CloseTaskTerminalsCommand";
@@ -16,7 +16,7 @@ export * from "./PinTaskCommand";
 export * from "./PinTaskWithArgsCommand";
 export * from "./RefreshCommand";
 export * from "./RefreshDaemonStatusCommand";
-export * from "./RemovePinnedTaskCommand";
+export * from "./UnpinTaskCommand";
 export * from "./RemoveRecentTaskCommand";
 export * from "./RenderTaskCommand";
 export * from "./RestartTaskCommand";

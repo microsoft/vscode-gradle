@@ -3,9 +3,9 @@ import { GradleTaskDefinition } from "../tasks";
 import { Command } from "./Command";
 import { PinnedTasksStore } from "../stores";
 
-export const COMMAND_REMOVE_PINNED_TASK = "gradle.removePinnedTask";
+export const COMMAND_UNPIN_TASK = "gradle.unpinTask";
 
-export class RemovePinnedTaskCommand extends Command {
+export class UnpinTaskCommand extends Command {
     constructor(
         private pinnedTasksStore: PinnedTasksStore,
         private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider

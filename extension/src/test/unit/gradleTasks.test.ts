@@ -44,8 +44,8 @@ import {
     ExplorerFlatCommand,
     PinTaskCommand,
     PinTaskWithArgsCommand,
-    RemovePinnedTaskCommand,
-    ClearAllPinnedTasksCommand,
+    UnpinTaskCommand,
+    UnpinAllTasksCommand,
 } from "../../commands";
 import { removeCancellingTask } from "../../tasks/taskUtil";
 import { PinnedTasksStore, RootProjectsStore } from "../../stores";
@@ -462,7 +462,7 @@ describe(getSuiteName("Gradle tasks"), () => {
                 assert.strictEqual(pinnedTaskWithArgsTreeItem.tooltip, mockTaskDefinition1ForFolder1.description);
             });
 
-            it("should remove a pinned task", async () => {
+            it("should unpin a task", async () => {
                 const taskItem = gradleTasks[0];
                 await new PinTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(taskItem);
                 const childrenBefore = await gradleTasksTreeDataProvider.getChildren();
@@ -486,9 +486,7 @@ describe(getSuiteName("Gradle tasks"), () => {
                 );
                 const pinnedTaskItemBefore = taskTreeItemChildrenBefore[0] as GradleTaskTreeItem;
                 assert.ok(pinnedTaskItemBefore instanceof GradleTaskTreeItem, "Pinned task is not PinnedTaskTreeItem");
-                await new RemovePinnedTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(
-                    pinnedTaskItemBefore
-                );
+                await new UnpinTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(pinnedTaskItemBefore);
                 const childrenAfter = await gradleTasksTreeDataProvider.getChildren();
                 assert.strictEqual(childrenAfter.length, 1);
                 assert.ok(childrenAfter[0] instanceof ProjectTreeItem, "Gradle project is not a ProjectTreeItem");
@@ -506,7 +504,7 @@ describe(getSuiteName("Gradle tasks"), () => {
                 assert.strictEqual(taskTreeItemChildrenAfter?.length, 1, "no pinned task item should exist");
             });
 
-            it("should remove all pinned tasks", async () => {
+            it("should unpin all tasks", async () => {
                 await new PinTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(gradleTasks[0]);
                 await new PinTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(gradleTasks[1]);
                 const childrenBefore = await gradleTasksTreeDataProvider.getChildren();
@@ -535,7 +533,7 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves(
                     "Yes"
                 );
-                await new ClearAllPinnedTasksCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run();
+                await new UnpinAllTasksCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run();
                 assert.ok(
                     showWarningMessageStub.calledWith("Are you sure you want to clear the pinned tasks?"),
                     "Clear all pinned tasks confirmation message not shown"

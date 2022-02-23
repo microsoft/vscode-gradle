@@ -139,8 +139,8 @@
         "title": "Pin Task With Args"
       },
       {
-        "command": "gradle.removePinnedTask",
-        "title": "Remove Pinned Task"
+        "command": "gradle.unpinTask",
+        "title": "Unpin Task"
       },
       {
         "command": "gradle.debugTask",
@@ -191,8 +191,8 @@
         }
       },
       {
-        "command": "gradle.clearAllPinnedTasks",
-        "title": "Clear Pinned Tasks",
+        "command": "gradle.unpinAllTasks",
+        "title": "Unpin all Tasks",
         "icon": {
           "light": "resources/light/clear-all.svg",
           "dark": "resources/dark/clear-all.svg"
@@ -372,7 +372,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.clearAllPinnedTasks",
+          "command": "gradle.unpinAllTasks",
           "when": "false"
         },
         {
@@ -452,7 +452,7 @@
           "when": "false"
         },
         {
-          "command": "gradle.removePinnedTask",
+          "command": "gradle.unpinTask",
           "when": "false"
         },
         {
@@ -474,7 +474,7 @@
       ],
       "view/title": [
         {
-          "command": "gradle.clearAllPinnedTasks",
+          "command": "gradle.unpinAllTasks",
           "when": "view == gradleTasksView",
           "group": "overflow_0@0"
         },
@@ -604,7 +604,7 @@
           "group": "contextGroup3@1"
         },
         {
-          "command": "gradle.removePinnedTask",
+          "command": "gradle.unpinTask",
           "when": "view == gradleTasksView && viewItem =~ /^pinned.*$/",
           "group": "contextGroup3@2"
         },

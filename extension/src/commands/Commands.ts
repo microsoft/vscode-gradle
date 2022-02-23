@@ -47,8 +47,6 @@ import {
     PinTaskCommand,
     COMMAND_PIN_TASK_WITH_ARGS,
     PinTaskWithArgsCommand,
-    COMMAND_REMOVE_PINNED_TASK,
-    RemovePinnedTaskCommand,
     COMMAND_SHOW_TASK_TERMINAL,
     ShowTaskTerminalCommand,
     COMMAND_CLOSE_TASK_TERMINALS,
@@ -57,14 +55,16 @@ import {
     CloseAllTaskTerminalsCommand,
     COMMAND_CLEAR_ALL_RECENT_TASKS,
     ClearAllRecentTasksCommand,
-    COMMAND_CLEAR_ALL_PINNED_TASKS,
-    ClearAllPinnedTasksCommand,
+    COMMAND_UNPIN_ALL_TASKS,
+    UnpinAllTasksCommand,
     COMMAND_REMOVE_RECENT_TASK,
     RemoveRecentTaskCommand,
     COMMAND_RUN_BUILD,
     RunBuildCommand,
     COMMAND_FIND_TASK,
     FindTaskCommand,
+    UnpinTaskCommand,
+    COMMAND_UNPIN_TASK,
 } from ".";
 import { GradleClient } from "../client";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
@@ -160,8 +160,8 @@ export class Commands {
             new PinTaskWithArgsCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
         );
         this.registerCommand(
-            COMMAND_REMOVE_PINNED_TASK,
-            new RemovePinnedTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+            COMMAND_UNPIN_TASK,
+            new UnpinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
         );
         this.registerCommand(COMMAND_SHOW_TASK_TERMINAL, new ShowTaskTerminalCommand(this.taskTerminalsStore));
         this.registerCommand(COMMAND_CLOSE_TASK_TERMINALS, new CloseTaskTerminalsCommand(this.taskTerminalsStore));
@@ -171,8 +171,8 @@ export class Commands {
         );
         this.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, new ClearAllRecentTasksCommand(this.recentTasksStore));
         this.registerCommand(
-            COMMAND_CLEAR_ALL_PINNED_TASKS,
-            new ClearAllPinnedTasksCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+            COMMAND_UNPIN_ALL_TASKS,
+            new UnpinAllTasksCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
         );
         this.registerCommand(COMMAND_REMOVE_RECENT_TASK, new RemoveRecentTaskCommand(this.recentTasksStore));
         this.registerCommand(COMMAND_RUN_BUILD, new RunBuildCommand(this.rootProjectsStore, this.client));
