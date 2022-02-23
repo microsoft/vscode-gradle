@@ -116,7 +116,7 @@ export function buildTaskId(projectFolder: string, script: string, project: stri
 
 export function buildTaskName(definition: GradleTaskDefinition): string {
     const argsLabel = definition.args ? ` ${definition.args}` : "";
-    return `${definition.project}${definition.script}${argsLabel}`;
+    return `${definition.script}${argsLabel}`;
 }
 
 export function createTaskFromDefinition(
