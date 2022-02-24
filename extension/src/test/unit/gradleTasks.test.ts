@@ -54,6 +54,7 @@ import { GradleDependencyProvider } from "../../dependencies/GradleDependencyPro
 import { GradleBuildContentProvider } from "../../client/GradleBuildContentProvider";
 import { SinonStub } from "sinon";
 import { ProjectTaskTreeItem } from "../../views/gradleTasks/ProjectTaskTreeItem";
+import { PinnedTasksTreeItem } from "../../views/gradleTasks/PinnedTasksTreeItem";
 
 const mockContext = buildMockContext();
 
@@ -345,10 +346,13 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const taskTreeItemChildren = projectTaskTreeItem.getChildren();
                 assert.strictEqual(taskTreeItemChildren?.length, 2);
                 assert.ok(
-                    taskTreeItemChildren[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildren[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                const pinnedTaskItem = taskTreeItemChildren[0] as GradleTaskTreeItem;
+                const pinnedTasksItem = taskTreeItemChildren[0] as PinnedTasksTreeItem;
+                const pinnedTaskItems = pinnedTasksItem.getPinnedTaskItems();
+                assert.strictEqual(pinnedTaskItems?.length, 1);
+                const pinnedTaskItem = pinnedTaskItems[0] as GradleTaskTreeItem;
                 assert.strictEqual(pinnedTaskItem.collapsibleState, vscode.TreeItemCollapsibleState.None);
                 assert.strictEqual(
                     pinnedTaskItem.contextValue,
@@ -382,10 +386,13 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const taskTreeItemChildren = projectTaskTreeItem.getChildren();
                 assert.strictEqual(taskTreeItemChildren?.length, 2);
                 assert.ok(
-                    taskTreeItemChildren[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildren[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                const pinnedTaskItem = taskTreeItemChildren[0] as GradleTaskTreeItem;
+                const pinnedTasksItem = taskTreeItemChildren[0] as PinnedTasksTreeItem;
+                const pinnedTaskItems = pinnedTasksItem.getPinnedTaskItems();
+                assert.strictEqual(pinnedTaskItems?.length, 1);
+                const pinnedTaskItem = pinnedTaskItems[0] as GradleTaskTreeItem;
                 assert.strictEqual(pinnedTaskItem.collapsibleState, vscode.TreeItemCollapsibleState.None);
                 assert.strictEqual(
                     pinnedTaskItem.contextValue,
@@ -420,10 +427,13 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const taskTreeItemChildrenBefore = projectTaskTreeItemBefore.getChildren();
                 assert.strictEqual(taskTreeItemChildrenBefore?.length, 2);
                 assert.ok(
-                    taskTreeItemChildrenBefore[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildrenBefore[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                const pinnedTaskItemBefore = taskTreeItemChildrenBefore[0] as GradleTaskTreeItem;
+                const pinnedTasksItem = taskTreeItemChildrenBefore[0] as PinnedTasksTreeItem;
+                const pinnedTaskItems = pinnedTasksItem.getPinnedTaskItems();
+                assert.strictEqual(pinnedTaskItems?.length, 1);
+                const pinnedTaskItemBefore = pinnedTaskItems[0] as GradleTaskTreeItem;
                 sinon.stub(vscode.window, "showInputBox").resolves("--info "); // intentional trailing space
                 await new PinTaskWithArgsCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(
                     pinnedTaskItemBefore as GradleTaskTreeItem
@@ -442,16 +452,19 @@ describe(getSuiteName("Gradle tasks"), () => {
                 );
                 const projectTaskTreeItemAfter = projectTreeItemChildrenAfter[0] as ProjectTaskTreeItem;
                 const taskTreeItemChildrenAfter = projectTaskTreeItemAfter.getChildren();
-                assert.strictEqual(taskTreeItemChildrenAfter?.length, 3);
+                assert.strictEqual(taskTreeItemChildrenAfter?.length, 2);
                 assert.ok(
-                    taskTreeItemChildrenAfter[1] instanceof GradleTaskTreeItem,
-                    "second child is not GradleTaskTreeItem"
+                    taskTreeItemChildrenAfter[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
+                const pinnedTasksTreeItem = taskTreeItemChildrenAfter[0] as PinnedTasksTreeItem;
+                const PinnedTaskTreeItems = pinnedTasksTreeItem.getPinnedTaskItems();
+                assert.strictEqual(PinnedTaskTreeItems?.length, 2);
                 assert.strictEqual(
-                    (taskTreeItemChildrenAfter[0] as GradleTaskTreeItem).task.definition.script,
-                    (taskTreeItemChildrenAfter[1] as GradleTaskTreeItem).task.definition.script
+                    (PinnedTaskTreeItems[0] as GradleTaskTreeItem).task.definition.script,
+                    (PinnedTaskTreeItems[1] as GradleTaskTreeItem).task.definition.script
                 );
-                const pinnedTaskWithArgsTreeItem = taskTreeItemChildrenAfter[1] as GradleTaskTreeItem;
+                const pinnedTaskWithArgsTreeItem = PinnedTaskTreeItems[1] as GradleTaskTreeItem;
                 assert.strictEqual(pinnedTaskWithArgsTreeItem.collapsibleState, vscode.TreeItemCollapsibleState.None);
                 assert.strictEqual(
                     pinnedTaskWithArgsTreeItem.contextValue,
@@ -481,10 +494,13 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const taskTreeItemChildrenBefore = projectTaskTreeItemBefore.getChildren();
                 assert.strictEqual(taskTreeItemChildrenBefore?.length, 2);
                 assert.ok(
-                    taskTreeItemChildrenBefore[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildrenBefore[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                const pinnedTaskItemBefore = taskTreeItemChildrenBefore[0] as GradleTaskTreeItem;
+                const pinnedTasksItem = taskTreeItemChildrenBefore[0] as PinnedTasksTreeItem;
+                const pinnedTaskItems = pinnedTasksItem.getPinnedTaskItems();
+                assert.strictEqual(pinnedTaskItems?.length, 1);
+                const pinnedTaskItemBefore = pinnedTaskItems[0] as GradleTaskTreeItem;
                 assert.ok(pinnedTaskItemBefore instanceof GradleTaskTreeItem, "Pinned task is not PinnedTaskTreeItem");
                 await new UnpinTaskCommand(pinnedTasksStore, gradleTasksTreeDataProvider).run(pinnedTaskItemBefore);
                 const childrenAfter = await gradleTasksTreeDataProvider.getChildren();
@@ -521,15 +537,12 @@ describe(getSuiteName("Gradle tasks"), () => {
                 );
                 const projectTaskTreeItemBefore = projectTreeItemChildrenBefore[0] as ProjectTaskTreeItem;
                 const taskTreeItemChildrenBefore = projectTaskTreeItemBefore.getChildren();
-                assert.strictEqual(taskTreeItemChildrenBefore?.length, 3);
+                assert.strictEqual(taskTreeItemChildrenBefore?.length, 2);
                 assert.ok(
-                    taskTreeItemChildrenBefore[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildrenBefore[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                assert.ok(
-                    taskTreeItemChildrenBefore[1] instanceof GradleTaskTreeItem,
-                    "second child is not GradleTaskTreeItem"
-                );
+                assert.ok(taskTreeItemChildrenBefore[1] instanceof GroupTreeItem, "second child is not GroupTreeItem");
                 const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves(
                     "Yes"
                 );
@@ -648,10 +661,13 @@ describe(getSuiteName("Gradle tasks"), () => {
                 const taskTreeItemChildren = projectTaskTreeItem.getChildren();
                 assert.strictEqual(taskTreeItemChildren?.length, 2);
                 assert.ok(
-                    taskTreeItemChildren[0] instanceof GradleTaskTreeItem,
-                    "first child is not GradleTaskTreeItem"
+                    taskTreeItemChildren[0] instanceof PinnedTasksTreeItem,
+                    "first child is not PinnedTasksTreeItem"
                 );
-                const pinnedTaskTreeItem = taskTreeItemChildren[0] as GradleTaskTreeItem;
+                const pinnedTasksTreeItem = taskTreeItemChildren[0] as PinnedTasksTreeItem;
+                const pinnedTaskTreeItems = pinnedTasksTreeItem.getPinnedTaskItems();
+                assert.strictEqual(pinnedTaskTreeItems?.length, 1);
+                const pinnedTaskTreeItem = pinnedTaskTreeItems[0] as GradleTaskTreeItem;
                 assert.strictEqual(pinnedTaskTreeItem.collapsibleState, vscode.TreeItemCollapsibleState.None);
                 assert.strictEqual(
                     pinnedTaskTreeItem.contextValue,
