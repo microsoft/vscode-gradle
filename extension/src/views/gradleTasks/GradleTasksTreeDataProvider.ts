@@ -23,6 +23,7 @@ import { findRootProject } from "../../client/utils";
 import { TaskArgs, TaskId } from "../../stores/types";
 import { GradleClient } from "../../client";
 import { buildPinnedTaskTreeItem } from "./utils";
+import { PinnedTasksTreeItem } from "./PinnedTasksTreeItem";
 
 const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
@@ -136,6 +137,9 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         ) {
             return element.getChildren() || [];
         }
+        if (element instanceof PinnedTasksTreeItem) {
+            return element.getPinnedTaskItems();
+        }
         if (!element) {
             return this.buildTreeItems();
         }
@@ -171,7 +175,13 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                 pinnedTasksArray.push(gradleTaskTreeItem);
             }
         });
-        projectTaskItem.setChildren([...pinnedTasksArray, ...element.groups, ...element.tasks]);
+        if (pinnedTasksArray.length) {
+            const pinnedTasksItem = new PinnedTasksTreeItem("Pinned Tasks", element);
+            pinnedTasksItem.setPinnedTaskItems(pinnedTasksArray);
+            projectTaskItem.setChildren([pinnedTasksItem, ...element.groups, ...element.tasks]);
+        } else {
+            projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        }
         const results: vscode.TreeItem[] = [projectTaskItem];
         const resourceUri = element.resourceUri;
         if (!resourceUri) {
