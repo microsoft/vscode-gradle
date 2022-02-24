@@ -37,8 +37,6 @@ import {
     OpenSettingsCommand,
     COMMAND_OPEN_BUILD_FILE,
     OpenBuildFileCommand,
-    COMMAND_OPEN_BUILD_FILE_DOUBLE_CLICK,
-    OpenBuildFileDoubleClickCommand,
     COMMAND_CANCELLING_TREE_ITEM_TASK,
     CancellingTreeItemTaskCommand,
     COMMAND_SHOW_LOGS,
@@ -65,6 +63,8 @@ import {
     FindTaskCommand,
     UnpinTaskCommand,
     COMMAND_UNPIN_TASK,
+    COMMAND_RUN_TASK_DOUBLE_CLICK,
+    RunTaskDoubleClickCommand,
 } from ".";
 import { GradleClient } from "../client";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
@@ -111,6 +111,10 @@ export class Commands {
     register(): void {
         this.registerCommand(COMMAND_SHOW_TASKS, new ShowTasksCommand(this.gradleTasksTreeView));
         this.registerCommand(COMMAND_RUN_TASK, new RunTaskCommand(this.rootProjectsStore, this.client));
+        this.registerCommand(
+            COMMAND_RUN_TASK_DOUBLE_CLICK,
+            new RunTaskDoubleClickCommand(this.rootProjectsStore, this.client)
+        );
         this.registerCommand(COMMAND_DEBUG_TASK, new DebugTaskCommand(this.rootProjectsStore, this.client));
         this.registerCommand(COMMAND_RESTART_TASK, new RestartTaskCommand(this.client));
         this.registerCommand(
@@ -148,7 +152,6 @@ export class Commands {
         this.registerCommand(COMMAND_OPEN_SETTINGS, new OpenSettingsCommand());
         this.registerCommand(COMMAND_OPEN_BUILD_FILE, new OpenBuildFileCommand());
 
-        this.registerCommand(COMMAND_OPEN_BUILD_FILE_DOUBLE_CLICK, new OpenBuildFileDoubleClickCommand());
         this.registerCommand(COMMAND_CANCELLING_TREE_ITEM_TASK, new CancellingTreeItemTaskCommand());
         this.registerCommand(COMMAND_SHOW_LOGS, new ShowLogsCommand());
         this.registerCommand(
