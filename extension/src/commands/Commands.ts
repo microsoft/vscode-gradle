@@ -47,10 +47,6 @@ import {
     PinTaskCommand,
     COMMAND_PIN_TASK_WITH_ARGS,
     PinTaskWithArgsCommand,
-    COMMAND_REMOVE_PINNED_TASK,
-    RemovePinnedTaskCommand,
-    COMMAND_OPEN_PIN_HELP,
-    OpenPinHelpCommand,
     COMMAND_SHOW_TASK_TERMINAL,
     ShowTaskTerminalCommand,
     COMMAND_CLOSE_TASK_TERMINALS,
@@ -59,25 +55,22 @@ import {
     CloseAllTaskTerminalsCommand,
     COMMAND_CLEAR_ALL_RECENT_TASKS,
     ClearAllRecentTasksCommand,
-    COMMAND_CLEAR_ALL_PINNED_TASKS,
-    ClearAllPinnedTasksCommand,
+    COMMAND_UNPIN_ALL_TASKS,
+    UnpinAllTasksCommand,
     COMMAND_REMOVE_RECENT_TASK,
     RemoveRecentTaskCommand,
     COMMAND_RUN_BUILD,
     RunBuildCommand,
     COMMAND_FIND_TASK,
     FindTaskCommand,
+    UnpinTaskCommand,
+    COMMAND_UNPIN_TASK,
 } from ".";
 import { GradleClient } from "../client";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 import { PinnedTasksStore, RecentTasksStore, RootProjectsStore, TaskTerminalsStore } from "../stores";
 import { GradleTaskProvider } from "../tasks";
-import {
-    GradleDaemonsTreeDataProvider,
-    GradleTasksTreeDataProvider,
-    PinnedTasksTreeDataProvider,
-    RecentTasksTreeDataProvider,
-} from "../views";
+import { GradleDaemonsTreeDataProvider, GradleTasksTreeDataProvider, RecentTasksTreeDataProvider } from "../views";
 import { Command } from "./Command";
 import { COMMAND_CREATE_PROJECT, COMMAND_CREATE_PROJECT_ADVANCED, CreateProjectCommand } from "./CreateProjectCommand";
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
@@ -90,7 +83,6 @@ export class Commands {
         private gradleTaskProvider: GradleTaskProvider,
         private gradleBuildContentProvider: GradleBuildContentProvider,
         private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-        private pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
         private recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
         private gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
         private client: GradleClient,
@@ -131,11 +123,7 @@ export class Commands {
         );
         this.registerCommandWithoutInstrument(
             COMMAND_RENDER_TASK,
-            new RenderTaskCommand(
-                this.gradleTasksTreeDataProvider,
-                this.pinnedTasksTreeDataProvider,
-                this.recentTasksTreeDataProvider
-            )
+            new RenderTaskCommand(this.gradleTasksTreeDataProvider, this.recentTasksTreeDataProvider)
         );
         this.registerCommand(COMMAND_CANCEL_BUILD, new CancelBuildCommand(this.client));
         this.registerCommand(COMMAND_CANCEL_TREE_ITEM_TASK, new CancelTreeItemTaskCommand());
@@ -145,7 +133,6 @@ export class Commands {
                 this.gradleTaskProvider,
                 this.gradleBuildContentProvider,
                 this.gradleTasksTreeDataProvider,
-                this.pinnedTasksTreeDataProvider,
                 this.recentTasksTreeDataProvider
             )
         );
@@ -164,10 +151,18 @@ export class Commands {
         this.registerCommand(COMMAND_OPEN_BUILD_FILE_DOUBLE_CLICK, new OpenBuildFileDoubleClickCommand());
         this.registerCommand(COMMAND_CANCELLING_TREE_ITEM_TASK, new CancellingTreeItemTaskCommand());
         this.registerCommand(COMMAND_SHOW_LOGS, new ShowLogsCommand());
-        this.registerCommand(COMMAND_PIN_TASK, new PinTaskCommand(this.pinnedTasksTreeDataProvider));
-        this.registerCommand(COMMAND_PIN_TASK_WITH_ARGS, new PinTaskWithArgsCommand(this.pinnedTasksTreeDataProvider));
-        this.registerCommand(COMMAND_REMOVE_PINNED_TASK, new RemovePinnedTaskCommand(this.pinnedTasksTreeDataProvider));
-        this.registerCommand(COMMAND_OPEN_PIN_HELP, new OpenPinHelpCommand());
+        this.registerCommand(
+            COMMAND_PIN_TASK,
+            new PinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(
+            COMMAND_PIN_TASK_WITH_ARGS,
+            new PinTaskWithArgsCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(
+            COMMAND_UNPIN_TASK,
+            new UnpinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
         this.registerCommand(COMMAND_SHOW_TASK_TERMINAL, new ShowTaskTerminalCommand(this.taskTerminalsStore));
         this.registerCommand(COMMAND_CLOSE_TASK_TERMINALS, new CloseTaskTerminalsCommand(this.taskTerminalsStore));
         this.registerCommand(
@@ -175,7 +170,10 @@ export class Commands {
             new CloseAllTaskTerminalsCommand(this.taskTerminalsStore)
         );
         this.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, new ClearAllRecentTasksCommand(this.recentTasksStore));
-        this.registerCommand(COMMAND_CLEAR_ALL_PINNED_TASKS, new ClearAllPinnedTasksCommand(this.pinnedTasksStore));
+        this.registerCommand(
+            COMMAND_UNPIN_ALL_TASKS,
+            new UnpinAllTasksCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
         this.registerCommand(COMMAND_REMOVE_RECENT_TASK, new RemoveRecentTaskCommand(this.recentTasksStore));
         this.registerCommand(COMMAND_RUN_BUILD, new RunBuildCommand(this.rootProjectsStore, this.client));
         this.registerCommand(COMMAND_FIND_TASK, new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider));

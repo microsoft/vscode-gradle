@@ -6,6 +6,7 @@ import {
     TREE_ITEM_STATE_TASK_DEBUG_IDLE,
     TREE_ITEM_STATE_TASK_IDLE,
     TREE_ITEM_STATE_TASK_DEBUG_RUNNING,
+    TREE_ITEM_STATE_TASK_PINNED_PREFIX,
 } from "./constants";
 import { GradleTaskDefinition } from "../tasks";
 import { logger } from "../logger";
@@ -15,10 +16,8 @@ import {
     GradleTaskTreeItem,
     getGradleTaskTreeItemMap,
     getProjectTreeItemMap,
-    getPinnedTasksTreeItemMap,
     getRecentTaskTreeItemMap,
     GradleTasksTreeDataProvider,
-    PinnedTasksTreeDataProvider,
     RecentTasksTreeDataProvider,
 } from ".";
 
@@ -46,10 +45,6 @@ export function getTreeItemForTask(task: vscode.Task): GradleTaskTreeItem | null
     if (gradleTaskTreeItem && gradleTaskTreeItem.task === task) {
         return gradleTaskTreeItem;
     }
-    const pinnedTaskTreeItem = getPinnedTasksTreeItemMap().get(definition.id + definition.args);
-    if (pinnedTaskTreeItem && pinnedTaskTreeItem.task === task) {
-        return pinnedTaskTreeItem;
-    }
     const recentTaskTreeItem = getRecentTaskTreeItemMap().get(definition.id + definition.args);
     if (recentTaskTreeItem && recentTaskTreeItem.task === task) {
         return recentTaskTreeItem;
@@ -60,7 +55,6 @@ export function getTreeItemForTask(task: vscode.Task): GradleTaskTreeItem | null
 export function updateGradleTreeItemStateForTask(
     task: vscode.Task,
     gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
-    pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider,
     recentTasksTreeDataProvider: RecentTasksTreeDataProvider
 ): void {
     const definition = task.definition as GradleTaskDefinition;
@@ -68,11 +62,6 @@ export function updateGradleTreeItemStateForTask(
     if (gradleTaskTreeItem) {
         gradleTaskTreeItem.setContext();
         gradleTasksTreeDataProvider.refresh(gradleTaskTreeItem);
-    }
-    const pinTaskTreeItem = getPinnedTasksTreeItemMap().get(definition.id + definition.args);
-    if (pinTaskTreeItem) {
-        pinTaskTreeItem.setContext();
-        pinnedTasksTreeDataProvider.refresh(pinTaskTreeItem);
     }
     const recentTaskTreeItem = getRecentTaskTreeItemMap().get(definition.id + definition.args);
     if (recentTaskTreeItem) {
@@ -123,15 +112,22 @@ export async function focusProjectInGradleTasksTree(
 }
 
 function getTreeItemRunningState(task: vscode.Task, args?: TaskArgs): string {
+    let state = "";
     const definition = task.definition as GradleTaskDefinition;
     const isDebug = definition.javaDebug;
     if (isTaskCancelling(task, args)) {
-        return TREE_ITEM_STATE_TASK_CANCELLING;
+        return state + TREE_ITEM_STATE_TASK_CANCELLING;
     }
-    if (isTaskRunning(task, args)) {
-        return isDebug ? TREE_ITEM_STATE_TASK_DEBUG_RUNNING : TREE_ITEM_STATE_TASK_RUNNING;
+    const isRunning = isTaskRunning(task, args);
+    if (definition.isPinned) {
+        state += TREE_ITEM_STATE_TASK_PINNED_PREFIX;
     }
-    return isDebug ? TREE_ITEM_STATE_TASK_DEBUG_IDLE : TREE_ITEM_STATE_TASK_IDLE;
+    if (isRunning) {
+        state += isDebug ? TREE_ITEM_STATE_TASK_DEBUG_RUNNING : TREE_ITEM_STATE_TASK_RUNNING;
+        return state;
+    }
+    state += isDebug ? TREE_ITEM_STATE_TASK_DEBUG_IDLE : TREE_ITEM_STATE_TASK_IDLE;
+    return state;
 }
 
 export function getTreeItemState(task: vscode.Task, args?: TaskArgs): string {

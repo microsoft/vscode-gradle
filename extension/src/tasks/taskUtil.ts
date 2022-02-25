@@ -236,6 +236,7 @@ function createVSCodeTaskFromGradleTask(
         workspaceFolder: rootProject.getWorkspaceFolder().uri.fsPath,
         args,
         javaDebug: gradleTask.getDebuggable(),
+        isPinned: false,
     };
     return createTaskFromDefinition(definition, rootProject, client);
 }

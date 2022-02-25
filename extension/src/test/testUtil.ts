@@ -81,7 +81,6 @@ export function buildMockExtension(): any {
         getTaskTerminalsStore: sinon.stub(),
         getIcons: sinon.stub(),
         getGradleDaemonsTreeDataProvider: sinon.stub(),
-        getPinnedTasksTreeDataProvider: sinon.stub(),
         getPinnedTasksStore: sinon.stub(),
         getGradleTasksTreeDataProvider: sinon.stub(),
         getRootProjectsStore: sinon.stub(),
@@ -167,6 +166,7 @@ export function buildMockTaskDefinition(
         workspaceFolder: workspaceFolder.uri.fsPath,
         args,
         javaDebug: false,
+        isPinned: false,
     };
 }
 
