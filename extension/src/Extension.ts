@@ -4,17 +4,11 @@ import { Api } from "./api";
 import { GradleClient } from "./client";
 import { GradleServer } from "./server";
 import { Icons } from "./icons";
-import {
-    GradleDaemonsTreeDataProvider,
-    PinnedTasksTreeDataProvider,
-    RecentTasksTreeDataProvider,
-    GradleTasksTreeDataProvider,
-} from "./views";
+import { GradleDaemonsTreeDataProvider, RecentTasksTreeDataProvider, GradleTasksTreeDataProvider } from "./views";
 import { PinnedTasksStore, RecentTasksStore, TaskTerminalsStore, RootProjectsStore } from "./stores";
 import { GradleTaskProvider, GradleTaskManager, GradleTaskDefinition } from "./tasks";
 import {
     GRADLE_TASKS_VIEW,
-    PINNED_TASKS_VIEW,
     GRADLE_DAEMONS_VIEW,
     RECENT_TASKS_VIEW,
     GRADLE_DEFAULT_PROJECTS_VIEW,
@@ -59,8 +53,6 @@ export class Extension {
     private readonly gradleDaemonsTreeView: vscode.TreeView<vscode.TreeItem>;
     private readonly gradleTasksTreeView: vscode.TreeView<vscode.TreeItem>;
     private readonly gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider;
-    private readonly pinnedTasksTreeDataProvider: PinnedTasksTreeDataProvider;
-    private readonly pinnedTasksTreeView: vscode.TreeView<vscode.TreeItem>;
     private readonly recentTasksTreeDataProvider: RecentTasksTreeDataProvider;
     private readonly recentTasksTreeView: vscode.TreeView<vscode.TreeItem>;
     private readonly gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
@@ -107,9 +99,11 @@ export class Extension {
         this.gradleTasksTreeDataProvider = new GradleTasksTreeDataProvider(
             this.context,
             this.rootProjectsStore,
+            this.pinnedTasksStore,
             this.gradleTaskProvider,
             this.gradleDependencyProvider,
-            this.icons
+            this.icons,
+            this.client
         );
         this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
             treeDataProvider: this.gradleTasksTreeDataProvider,
@@ -124,18 +118,6 @@ export class Extension {
             treeDataProvider: this.gradleDaemonsTreeDataProvider,
             showCollapseAll: false,
         });
-        this.pinnedTasksTreeDataProvider = new PinnedTasksTreeDataProvider(
-            this.pinnedTasksStore,
-            this.rootProjectsStore,
-            this.gradleTaskProvider,
-            this.icons,
-            this.client
-        );
-        this.pinnedTasksTreeView = vscode.window.createTreeView(PINNED_TASKS_VIEW, {
-            treeDataProvider: this.pinnedTasksTreeDataProvider,
-            showCollapseAll: false,
-        });
-
         this.recentTasksTreeDataProvider = new RecentTasksTreeDataProvider(
             this.recentTasksStore,
             this.taskTerminalsStore,
@@ -170,7 +152,6 @@ export class Extension {
             this.gradleTaskProvider,
             this.gradleBuildContentProvider,
             this.gradleTasksTreeDataProvider,
-            this.pinnedTasksTreeDataProvider,
             this.recentTasksTreeDataProvider,
             this.gradleDaemonsTreeDataProvider,
             this.client,
@@ -234,7 +215,6 @@ export class Extension {
             this.gradleWrapperWatcher,
             this.gradleDaemonsTreeView,
             this.gradleTasksTreeView,
-            this.pinnedTasksTreeView,
             this.recentTasksTreeView,
             this.defaultProjectsTreeView
         );
@@ -283,7 +263,7 @@ export class Extension {
                 });
             }
 
-            if (this.gradleTasksTreeView.visible && getConfigFocusTaskInExplorer()) {
+            if (this.gradleTasksTreeView.visible && getConfigFocusTaskInExplorer() && !definition.isPinned) {
                 await focusTaskInGradleTasksTree(task, this.gradleTasksTreeView);
             }
             this.recentTasksStore.addEntry(definition.id, definition.args);

@@ -20,11 +20,11 @@ A root project (`projectDir`) is defined by having a gradle wrapper script at th
 
 Once the client has discovered the root projects for all workspaces, it requests project data for each root project via separate gRPC method calls using `getBuild`. Gradle progress and output (`STDERR` & `STDOUT`) are streamed to the client. Once the tasks have been discovered and returned to the client, it builds a single-dimensional list of vscode tasks from the Gradle project tasks. These vscode tasks have definitions that contain all the relevant task & project information.
 
-The extension models the project hierarchical structure using the vscode treeView. The treeview data provider consumes the vscode tasks, and builds a tree of projects & tasks using the information provided in the task definitions.
+The extension models the project hierarchical structure using the vscode tree view. The tree view data provider consumes the vscode tasks, and builds a tree of projects & tasks using the information provided in the task definitions.
 
 ## Running Tasks
 
-Gradle tasks can be run through either the [treeView](https://code.visualstudio.com/api/extension-guides/tree-view) or the Command Palette.
+Gradle tasks can be run through either the [Tree View](https://code.visualstudio.com/api/extension-guides/tree-view) or the Command Palette.
 
 Tasks are run via the `runBuild` gRPC method. Similar to getting project data, Gradle progress and output (`STDERR` & `STDOUT`) is streamed to the client. Tasks are run in a custom vscode terminal. The `runBuild` gRPC method accepts a list of arguments which are passed to the `BuildLauncher`.
 

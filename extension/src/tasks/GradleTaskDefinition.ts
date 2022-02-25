@@ -12,4 +12,5 @@ export interface GradleTaskDefinition extends vscode.TaskDefinition {
     workspaceFolder: string;
     args: string;
     javaDebug: boolean;
+    isPinned: boolean;
 }
