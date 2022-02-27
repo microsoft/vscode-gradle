@@ -1,0 +1,108 @@
+# Gradle
+# Build your Java project and run tests with Gradle using a Gradle wrapper script.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+
+trigger: none
+pr: none
+
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily midnight build
+  branches:
+    include:
+    - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: JavaToolInstaller@0
+  displayName: Install Java 11
+  inputs:
+    versionSpec: '11'
+    jdkArchitectureOption: 'x64'
+    jdkSourceOption: 'PreInstalled'
+- task: NodeTool@0
+  displayName: Install Node 14.15.4
+  inputs:
+    versionSpec: '14.15.4'
+- task: Gradle@2
+  displayName: Build
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    gradleOptions: '-Xmx3072m'
+    tasks: 'build'
+- task: Gradle@2
+  displayName: PrepareForRelease
+  inputs:
+    gradleWrapperFile: 'gradlew'
+    gradleOptions: '-Xmx3072m'
+    tasks: 'prepareForRelease'
+- bash: |
+    cd $(Build.SourcesDirectory)/extension/lib
+    chmod +x gradle-server
+  displayName: Set permission
+- task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+  displayName: 'ESRP CodeSigning'
+  inputs:
+    ConnectedServiceName: 'vscjavaci_codesign'
+    FolderPath: extension/lib
+    Pattern: 'gradle-server.jar'
+    signConfigType: inlineSignParams
+    inlineOperation: |
+     [
+             {
+                 "KeyCode" : "CP-447347-Java",
+                 "OperationCode" : "JavaSign",
+                 "Parameters" : {
+                     "SigAlg" : "SHA256withRSA",
+                     "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                 },
+                 "ToolName" : "sign",
+                 "ToolVersion" : "1.0"
+             },
+             {
+                 "KeyCode" : "CP-447347-Java",
+                 "OperationCode" : "JavaVerify",
+                 "Parameters" : {},
+                 "ToolName" : "sign",
+                 "ToolVersion" : "1.0"
+             }
+     ]
+- bash: |
+    cd $(Build.SourcesDirectory)/extension
+    npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
+  displayName: Replace AI Key
+- bash: |
+    cd $(Build.SourcesDirectory)/extension
+    node ./scripts/prepare-nightly-build.js
+    mv ./package.insiders.json ./package.json
+  displayName: Generate new package.json
+- task: ComponentGovernanceComponentDetection@0
+  inputs:
+    scanType: 'Register'
+    verbosity: 'Verbose'
+    alertWarningLevel: 'High'
+- task: notice@0
+  displayName: 'NOTICE File Generator'
+  inputs:
+    outputformat: 'text'
+- task: DownloadPipelineArtifact@2
+  displayName: Download NOTICE file
+  inputs:
+    artifact: 'NOTICE.txt'
+    path: $(Build.SourcesDirectory)/extension
+- bash: |
+    cd $(Build.SourcesDirectory)/extension
+    npx vsce@latest package --pre-release
+  displayName: Package VSIX
+- task: CopyFiles@2
+  displayName: Copy VSIX
+  inputs:
+    Contents: 'extension/*.vsix'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+- task: PublishBuildArtifacts@1
+  displayName: Publish VSIX
+  inputs:
+    ArtifactName: extension

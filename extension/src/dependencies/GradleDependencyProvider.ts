@@ -2,8 +2,9 @@
 // Licensed under the MIT license.
 
 import * as vscode from "vscode";
-import { syncLanguageServer } from "../languageServer/languageServer";
-import { GradleProjectContentProvider } from "../projectContent/GradleProjectContentProvider";
+import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
+import { findGradleProjectFromBuild } from "../client/utils";
+import { RootProject } from "../rootProject";
 import { getDependencyConfigurationTreeItems } from "../views/gradleTasks/DependencyUtils";
 import { HintItem } from "../views/gradleTasks/HintItem";
 import { ProjectDependencyTreeItem } from "../views/gradleTasks/ProjectDependencyTreeItem";
@@ -12,30 +13,36 @@ export class GradleDependencyProvider {
     // <projectPath, configItem[]>
     private cachedDependencies: Map<string, vscode.TreeItem[]> = new Map();
 
-    constructor(private readonly contentProvider: GradleProjectContentProvider) {}
+    constructor(private readonly contentProvider: GradleBuildContentProvider) {}
 
-    public async getDependencies(element: ProjectDependencyTreeItem): Promise<vscode.TreeItem[]> {
+    public async getDependencies(
+        element: ProjectDependencyTreeItem,
+        rootProject: RootProject
+    ): Promise<vscode.TreeItem[]> {
         const projectPath = element.getProjectPath();
         if (this.cachedDependencies.has(projectPath)) {
             return this.cachedDependencies.get(projectPath)!;
         }
-        const project = await this.contentProvider.getProjectContent(projectPath, element.getProjectName());
-        if (!project) {
-            const noDependencies = [new HintItem("No dependencies")];
-            this.cachedDependencies.set(projectPath, noDependencies);
-            return noDependencies;
-        }
-        await syncLanguageServer(projectPath, project);
-        const dependencyItem = project.getItem();
-        if (dependencyItem) {
-            const configItems = getDependencyConfigurationTreeItems(dependencyItem, element);
-            if (configItems) {
-                this.cachedDependencies.set(projectPath, configItems);
-                return configItems;
+        const gradleBuild = await this.contentProvider.getGradleBuild(rootProject);
+        if (gradleBuild) {
+            const project = findGradleProjectFromBuild(projectPath, gradleBuild);
+            if (project) {
+                const dependencyItem = project.getDependencyitem();
+                if (dependencyItem) {
+                    const configItems = getDependencyConfigurationTreeItems(dependencyItem, element);
+                    if (configItems) {
+                        this.cachedDependencies.set(projectPath, configItems);
+                        return configItems;
+                    }
+                }
             }
         }
-        const noDependencies = [new HintItem("No dependencies")];
+        const noDependencies = GradleDependencyProvider.getNoDependencies();
         this.cachedDependencies.set(projectPath, noDependencies);
         return noDependencies;
+    }
+
+    public static getNoDependencies(): vscode.TreeItem[] {
+        return [new HintItem("No dependencies")];
     }
 }
