@@ -61,7 +61,10 @@ export async function startLanguageServer(
                         )
                         .then((answer) => {
                             if (answer === "Open Settings") {
-                                void vscode.commands.executeCommand("workbench.action.openSettings", "java.jdt.ls.java.home");
+                                void vscode.commands.executeCommand(
+                                    "workbench.action.openSettings",
+                                    "java.jdt.ls.java.home"
+                                );
                             }
                         });
                     return;
