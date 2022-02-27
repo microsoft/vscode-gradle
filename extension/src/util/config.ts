@@ -16,7 +16,7 @@ export function getConfigJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("home", null);
 }
 
-export function getJdtConfigJavaHome(): string | null {
+export function getJdtlsConfigJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("jdt.ls.java.home", null);
 }
 
@@ -25,7 +25,7 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
 }
 
 export function getConfigGradleJavaHome(): string | null {
-    return getConfigJavaImportGradleJavaHome() || getJdtConfigJavaHome() || getConfigJavaHome();
+    return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {

@@ -211,7 +211,7 @@ We will continue improving the auto completion feature to support more cases in 
 
 </details>
 
-## VS Code Settings
+## Extension Settings
 
 This extension contributes the following settings:
 
@@ -241,16 +241,18 @@ Use an environment manager like [direnv](https://direnv.net/) to set project spe
 
 ## Compatibility with the [Java language support](https://github.com/redhat-developer/vscode-java) extension
 
-### VS Code Settings
+### Java-Specific Settings
 
 This extension supports the following settings which are contributed by the [Java language support](https://github.com/redhat-developer/vscode-java) extension:
 
-- `java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (recommended to use `java.jdt.ls.java.home`)
+- `java.home`: (**deprecated** Please use `java.jdt.ls.java.home` as given below) Absolute path to JDK home folder used to launch the Gradle daemons
 - `java.jdt.ls.java.home`: Absolute path to JDK home folder as per the latest VS code, used to launch the Gradle daemons
 - `java.import.gradle.java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (if set, this value takes precedence over `java.home`)
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
-> Note: There should be a space ` ` between two arguments
+
+  >Note: There should be a `space` between two arguments
+
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
 - `java.import.gradle.version`: Gradle version, used if the Gradle wrapper is missing or disabled
 - `java.import.gradle.home`: Use Gradle from the specified local installation directory or GRADLE_HOME if the Gradle wrapper is missing or disabled and no 'java.import.gradle.version' is specified.
