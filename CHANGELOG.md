@@ -4,6 +4,19 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.11.0](https://github.com/microsoft/vscode-gradle/compare/3.10.0...3.11.0) (2022-03-02)
+
+### Added
+- Support `java.jdt.ls.java.home` configuration from redhat.java. [PR#1169](https://github.com/microsoft/vscode-gradle/pull/1169)
+
+### Changed
+- Double-click to run tasks in `Gradle Project` view. [PR#1174](https://github.com/microsoft/vscode-gradle/pull/1174)
+- Move pinned tasks to `Gradle Project` view and remove `Pinned Tasks` view. [PR#1182](https://github.com/microsoft/vscode-gradle/pull/1182)
+- Reorganize requests and TAPI usages to improve performance. [#1088](https://github.com/microsoft/vscode-gradle/issues/1088)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A%22February+2022%22+is%3Aclosed)
+
 ## [3.10.0](https://github.com/microsoft/vscode-gradle/compare/3.9.0...3.10.0) (2022-01-26)
 
 ### Added
