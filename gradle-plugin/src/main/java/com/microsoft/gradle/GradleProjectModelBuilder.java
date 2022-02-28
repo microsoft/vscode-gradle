@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +30,7 @@ import org.gradle.api.artifacts.result.ResolvedComponentResult;
 import org.gradle.api.artifacts.result.ResolvedDependencyResult;
 import org.gradle.api.initialization.dsl.ScriptHandler;
 import org.gradle.api.internal.initialization.DefaultScriptHandler;
+import org.gradle.api.internal.tasks.TaskContainerInternal;
 import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionsSchema;
 import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
@@ -191,21 +193,27 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	private List<GradleTask> getGradleTasks(Project rootProject, Project project) {
 		List<GradleTask> tasks = new ArrayList<>();
 		TaskContainer taskContainer = project.getTasks();
-		taskContainer.forEach(task -> {
-			String name = task.getName();
-			String group = task.getGroup() == null ? null : task.getGroup();
-			String path = task.getPath();
-			String projectName = task.getProject().getName();
-			String buildFile = task.getProject().getBuildscript().getSourceFile().getAbsolutePath();
-			String rootProjectName = rootProject.getName();
-			String description = task.getDescription() == null ? null : task.getDescription();
-			boolean debuggable = (task instanceof JavaExec) || (task instanceof Test);
-			GradleTask newTask = new DefaultGradleTask(name, group, path, projectName, buildFile, rootProjectName,
-					description, debuggable);
-			tasks.add(newTask);
-			cachedTasks.add(newTask);
-		});
-		return tasks;
+		if (taskContainer instanceof TaskContainerInternal) {
+			TaskContainerInternal taskContainerInternal = (TaskContainerInternal) taskContainer;
+			taskContainerInternal.discoverTasks();
+			taskContainerInternal.realize();
+			taskContainerInternal.forEach(task -> {
+				String name = task.getName();
+				String group = task.getGroup() == null ? null : task.getGroup();
+				String path = task.getPath();
+				String projectName = task.getProject().getName();
+				String buildFile = task.getProject().getBuildscript().getSourceFile().getAbsolutePath();
+				String rootProjectName = rootProject.getName();
+				String description = task.getDescription() == null ? null : task.getDescription();
+				boolean debuggable = (task instanceof JavaExec) || (task instanceof Test);
+				GradleTask newTask = new DefaultGradleTask(name, group, path, projectName, buildFile, rootProjectName,
+						description, debuggable);
+				tasks.add(newTask);
+				cachedTasks.add(newTask);
+			});
+			return tasks;
+		}
+		return Collections.emptyList();
 	}
 
 	private boolean isDeprecated(AccessibleObject object) {
