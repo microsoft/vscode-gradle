@@ -58,9 +58,15 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		for (GradleTask task : cachedTasks) {
 			if (!taskNames.contains(task.getName())) {
 				taskNames.add(task.getName());
-				GradleTask newTask = new DefaultGradleTask(task.getName(), task.getGroup(), task.getPath(),
-						project.getName(), project.getBuildscript().getSourceFile().getAbsolutePath(),
-						task.getRootProject(), task.getDescription(), task.getDebuggable());
+				String path = task.getPath();
+				int index = path.lastIndexOf(":");
+				if (index > -1) {
+					// use task selector to run a task for all subprojects
+					path = path.substring(index);
+				}
+				GradleTask newTask = new DefaultGradleTask(task.getName(), task.getGroup(), path, project.getName(),
+						project.getBuildscript().getSourceFile().getAbsolutePath(), task.getRootProject(),
+						task.getDescription(), task.getDebuggable());
 				rootModel.getTasks().add(newTask);
 			}
 		}
