@@ -73,8 +73,8 @@ public class GradleLibraryResolver {
 		this.gradleVersion = gradleVersion;
 	}
 
-	public void setGradleWrapperEnabled(boolean gradleWrapperEnabled) {
-		this.gradleWrapperEnabled = gradleWrapperEnabled;
+	public void setGradleWrapperEnabled(Boolean gradleWrapperEnabled) {
+		this.gradleWrapperEnabled = gradleWrapperEnabled == null ? true : gradleWrapperEnabled;
 	}
 
 	public void setGradleUserHomePath(String gradleUserHome) {
