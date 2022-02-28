@@ -16,12 +16,16 @@ export function getConfigJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("home", null);
 }
 
+export function getJdtlsConfigJavaHome(): string | null {
+    return vscode.workspace.getConfiguration("java").get<string | null>("jdt.ls.java.home", null);
+}
+
 export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
 export function getConfigGradleJavaHome(): string | null {
-    return getConfigJavaImportGradleJavaHome() || getConfigJavaHome();
+    return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {

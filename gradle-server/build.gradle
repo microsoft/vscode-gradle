@@ -86,7 +86,7 @@ jar {
 }
 
 application {
-  mainClassName = 'com.github.badsyntax.gradle.GradleServer'
+  mainClass = 'com.github.badsyntax.gradle.GradleServer'
 }
 
 startScripts.enabled = false
@@ -108,7 +108,7 @@ task serverStartScripts(type: CreateStartScripts) {
   dependsOn jar
   dependsOn 'copyRuntimeLibs'
   outputDir = file(libsDir)
-  mainClassName = 'com.github.badsyntax.gradle.GradleServer'
+  mainClass = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
   classpath = jar.outputs.files
   defaultJvmOpts = ["-Dfile.encoding=UTF-8"]

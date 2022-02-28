@@ -313,6 +313,7 @@ export class Extension {
             vscode.workspace.onDidChangeConfiguration(async (event: vscode.ConfigurationChangeEvent) => {
                 if (
                     event.affectsConfiguration("java.home") ||
+                    event.affectsConfiguration("java.jdt.ls.java.home") ||
                     event.affectsConfiguration("java.import.gradle.java.home")
                 ) {
                     await this.restartServer();
