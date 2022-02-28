@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { COMMAND_RUN_TASK_DOUBLE_CLICK } from "../../commands";
 import { Icons } from "../../icons";
 import { TASK_STATE_RUNNING_REGEX } from "../constants";
 import { getTreeItemState } from "../viewUtil";
@@ -16,7 +17,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.command = {
             title: "Run Task",
-            command: "gradle.openBuildFileDoubleClick",
+            command: COMMAND_RUN_TASK_DOUBLE_CLICK,
             arguments: [this],
         };
     }
