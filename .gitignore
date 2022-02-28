@@ -30,3 +30,6 @@ build
 
 # build plugin jar files
 gradle-server/src/main/resources/*.jar
+
+# Ignore user-specified .tool-versions file (asdf-vm configuration)
+.tool-versions
