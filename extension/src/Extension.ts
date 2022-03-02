@@ -196,6 +196,7 @@ export class Extension {
             )
         );
 
+        this.client.onDidConnect(() => this.refresh());
         void this.activate();
         void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore);
         void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
