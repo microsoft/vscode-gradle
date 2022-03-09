@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
@@ -105,7 +106,10 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		DefaultGradleDependencyNode rootNode = new DefaultGradleDependencyNode(project.getName(),
 				GradleDependencyType.PROJECT);
 		ConfigurationContainer configurationContainer = project.getConfigurations();
-		for (String configName : configurationContainer.getNames()) {
+		// iterate through a snapshot of apparent configurations, because resolving
+		// dependencies can trigger plugins dynamically adding other configurations
+		// (e.g. io.quarkus plugin)
+		for (String configName : new TreeSet<>(configurationContainer.getNames())) {
 			Configuration config = configurationContainer.getByName(configName);
 			if (!config.isCanBeResolved()) {
 				continue;
