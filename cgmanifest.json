@@ -61,7 +61,7 @@
                 "Maven": {
                     "GroupId": "org.gradle",
                     "ArtifactId": "gradle-tooling-api",
-                    "Version": "6.4"
+                    "Version": "7.3"
                 }
             },
             "DevelopmentDependency": false
@@ -83,7 +83,7 @@
                 "Maven": {
                     "GroupId": "io.grpc",
                     "ArtifactId": "grpc-protobuf",
-                    "Version": "1.30.0"
+                    "Version": "1.45.0"
                 }
             },
             "DevelopmentDependency": false
@@ -94,7 +94,7 @@
                 "Maven": {
                     "GroupId": "io.grpc",
                     "ArtifactId": "grpc-stub",
-                    "Version": "1.30.0"
+                    "Version": "1.45.0"
                 }
             },
             "DevelopmentDependency": false
@@ -116,7 +116,7 @@
                 "Maven": {
                     "GroupId": "io.grpc",
                     "ArtifactId": "grpc-netty",
-                    "Version": "1.30.0"
+                    "Version": "1.45.0"
                 }
             },
             "DevelopmentDependency": false
@@ -127,7 +127,7 @@
                 "Maven": {
                     "GroupId": "org.slf4j",
                     "ArtifactId": "slf4j-simple",
-                    "Version": "2.0.0-alpha1"
+                    "Version": "2.0.0-alpha6"
                 }
             },
             "DevelopmentDependency": false
@@ -138,7 +138,7 @@
                 "Maven": {
                     "GroupId": "io.grpc",
                     "ArtifactId": "grpc-testing",
-                    "Version": "1.30.0"
+                    "Version": "1.45.0"
                 }
             },
             "DevelopmentDependency": true
