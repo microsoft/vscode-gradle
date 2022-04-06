@@ -2,12 +2,13 @@
 // Licensed under the MIT license.
 
 import * as vscode from "vscode";
-import { GradleTaskTreeItem, ProjectTreeItem } from ".";
+import { GradleTaskTreeItem } from ".";
 import { Icons } from "../../icons";
 import { GradleTaskDefinition } from "../../tasks";
+import { PinnedTasksTreeItem } from "./PinnedTasksTreeItem";
 
 export function buildPinnedTaskTreeItem(
-    projectTreeItem: ProjectTreeItem,
+    parentTreeItem: PinnedTasksTreeItem,
     task: vscode.Task,
     icons: Icons
 ): GradleTaskTreeItem {
@@ -15,7 +16,7 @@ export function buildPinnedTaskTreeItem(
     definition.isPinned = true;
     const taskName = task.name;
     const pinnedTaskTreeItem = new GradleTaskTreeItem(
-        projectTreeItem,
+        parentTreeItem,
         task,
         taskName,
         definition.description || taskName, // tooltip
