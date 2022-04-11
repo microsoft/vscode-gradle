@@ -22,6 +22,8 @@ import {
     CancelBuildReply,
     CancelBuildsRequest,
     CancelBuildsReply,
+    ExecuteCommandRequest,
+    ExecuteCommandReply,
 } from "../proto/gradle_pb";
 
 import { GradleClient as GrpcClient } from "../proto/gradle_grpc_pb";
@@ -35,6 +37,7 @@ import { getBuildCancellationKey } from "./CancellationKeys";
 import { EventWaiter } from "../util/EventWaiter";
 import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
 import { setDefault, unsetDefault } from "../views/defaultProject/DefaultProjectUtils";
+import { SpecifySourcePackageNameStep } from "../createProject/SpecifySourcePackageNameStep";
 
 function logBuildEnvironment(environment: Environment): void {
     const javaEnv = environment.getJavaEnvironment()!;
@@ -434,6 +437,29 @@ export class GradleClient implements vscode.Disposable {
             logger.error("Error stopping daemon:", err.details || err.message);
         } finally {
             await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+        }
+    }
+
+    public async getNormalizedPackageName(name: string): Promise<string | undefined> {
+        await this.waitForConnect();
+        const request = new ExecuteCommandRequest();
+        request.setCommand(SpecifySourcePackageNameStep.GET_NORMALIZED_PACKAGE_NAME);
+        request.addArguments(name);
+        try {
+            return await new Promise((resolve, reject) => {
+                this.grpcClient!.executeCommand(
+                    request,
+                    (err: grpc.ServiceError | null, executeCommandReply: ExecuteCommandReply | undefined) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(executeCommandReply?.getResult());
+                        }
+                    }
+                );
+            });
+        } catch (err) {
+            return undefined;
         }
     }
 

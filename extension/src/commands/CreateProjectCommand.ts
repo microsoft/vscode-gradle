@@ -40,9 +40,10 @@ export class CreateProjectCommand extends Command {
                 projectType: ProjectType.JAVA_APPLICATION,
                 targetFolder: targetFolderUri[0].fsPath,
                 projectName: path.basename(targetFolderUri[0].fsPath),
-                sourcePackageName: path.basename(targetFolderUri[0].fsPath),
+                sourcePackageName: await this.client.getNormalizedPackageName(path.basename(targetFolderUri[0].fsPath)),
                 steps: [],
                 nextStep: isAdvanced ? selectProjectTypeStep : selectScriptDSLStep,
+                client: this.client,
             };
             const success = await this.runSteps(metadata);
             if (success) {
