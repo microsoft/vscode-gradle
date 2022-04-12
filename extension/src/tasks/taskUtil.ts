@@ -97,6 +97,7 @@ export function removeCancellingTask(task: vscode.Task): void {
     const cancellingTask = getCancellingTask(task);
     if (cancellingTask) {
         cancellingTasks.delete(cancellingTask.definition.id);
+        vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     }
 }
 
