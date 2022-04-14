@@ -47,7 +47,7 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                         resolve(StepResult.NEXT);
                     } else {
                         inputBox.enabled = false;
-                        inputBox.validationMessage = `Invalid Source Package Name, suggest Name: ${normalizedName}`;
+                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
                     }
                 }),
                 inputBox.onDidHide(() => {
