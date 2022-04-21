@@ -2,15 +2,16 @@
 // Licensed under the MIT license.
 
 import * as vscode from "vscode";
+import { TREE_ITEM_STATE_FOLDER } from "../constants";
 
-export class PinnedTasksTreeItem extends vscode.TreeItem {
+export class PinnedTasksRootProjectTreeItem extends vscode.TreeItem {
     private children: vscode.TreeItem[] = [];
-    public readonly parentTreeItem?: vscode.TreeItem;
-    public readonly iconPath = new vscode.ThemeIcon("star-full");
-    public readonly contextValue = "PinnedTasks";
-    constructor(label: string, resourceUri?: vscode.Uri, collapsibleState = vscode.TreeItemCollapsibleState.Expanded) {
-        super(label, collapsibleState);
+
+    constructor(name: string, resourceUri: vscode.Uri) {
+        super(name, vscode.TreeItemCollapsibleState.Expanded);
+        this.contextValue = TREE_ITEM_STATE_FOLDER;
         this.resourceUri = resourceUri;
+        this.iconPath = vscode.ThemeIcon.Folder;
     }
 
     public setChildren(children: vscode.TreeItem[]): void {
