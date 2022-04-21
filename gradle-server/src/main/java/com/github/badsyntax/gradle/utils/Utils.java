@@ -5,6 +5,7 @@ package com.github.badsyntax.gradle.utils;
 
 import io.github.g00fy2.versioncompare.Version;
 import java.io.File;
+import java.util.Locale;
 
 public class Utils {
 	public static boolean isValidFile(File file) {
@@ -38,5 +39,32 @@ public class Utils {
 			return new Version("4.3");
 		}
 		return new Version("2.0");
+	}
+
+	public static String normalizePackageName(String name) {
+		return Utils.toPackageName(name).toLowerCase(Locale.US);
+	}
+
+	private static String toPackageName(String name) {
+		StringBuilder result = new StringBuilder();
+		int pos = 0;
+		while (pos < name.length()) {
+			while (pos < name.length() && !Character.isJavaIdentifierStart(name.charAt(pos))) {
+				pos++;
+			}
+			if (pos == name.length()) {
+				break;
+			}
+			if (result.length() != 0) {
+				result.append('.');
+			}
+			result.append(name.charAt(pos));
+			pos++;
+			while (pos < name.length() && Character.isJavaIdentifierPart(name.charAt(pos))) {
+				result.append(name.charAt(pos));
+				pos++;
+			}
+		}
+		return result.toString();
 	}
 }

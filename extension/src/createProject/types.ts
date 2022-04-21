@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+import { GradleClient } from "../client";
+
 export interface IProjectCreationMetadata {
     isAdvanced: boolean;
     totalSteps: number;
@@ -12,6 +14,7 @@ export interface IProjectCreationMetadata {
     targetFolder: string;
     steps: IProjectCreationStep[];
     nextStep?: IProjectCreationStep;
+    client: GradleClient;
 }
 
 export interface IProjectCreationStep {
