@@ -277,7 +277,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     definition.description || taskName,
                     "",
                     icons,
-                    definition.javaDebug
+                    definition.debuggable
                 );
                 taskTreeItem.setContext();
 
