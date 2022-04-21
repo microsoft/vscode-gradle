@@ -5,22 +5,29 @@ import * as vscode from "vscode";
 import { IProjectCreationMetadata, IProjectCreationStep, StepResult } from "./types";
 
 export class SpecifySourcePackageNameStep implements IProjectCreationStep {
+    public static GET_NORMALIZED_PACKAGE_NAME = "getNormalizedPackageName";
+
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
+        if (!metadata.client) {
+            return StepResult.STOP;
+        }
         const disposables: vscode.Disposable[] = [];
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const specifySourcePackageNamePromise = new Promise<StepResult>(async (resolve, _reject) => {
             const inputBox = vscode.window.createInputBox();
             const defaultName = metadata.sourcePackageName || "";
+            const normalizedName = await metadata.client.getNormalizedPackageName(defaultName);
+            if (!normalizedName) {
+                return resolve(StepResult.STOP);
+            }
             inputBox.title = `Create Gradle project: Specify package name (${metadata.steps.length + 1}/${
                 metadata.totalSteps
             })`;
             inputBox.prompt = "Input source package name of your project.";
-            inputBox.placeholder = "e.g. " + defaultName;
-            inputBox.value = defaultName;
+            inputBox.placeholder = "e.g. " + normalizedName;
+            inputBox.value = normalizedName;
             inputBox.ignoreFocusOut = true;
-            const validationMessage: string | undefined = this.isValidSourcePackageName(defaultName);
-            inputBox.enabled = validationMessage === undefined;
-            inputBox.validationMessage = validationMessage;
+            inputBox.enabled = true;
             if (metadata.steps.length) {
                 inputBox.buttons = [vscode.QuickInputButtons.Back];
                 disposables.push(
@@ -32,15 +39,16 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                 );
             }
             disposables.push(
-                inputBox.onDidChangeValue(() => {
-                    const validationMessage: string | undefined = this.isValidSourcePackageName(inputBox.value);
-                    inputBox.enabled = validationMessage === undefined;
-                    inputBox.validationMessage = validationMessage;
-                }),
                 inputBox.onDidAccept(async () => {
-                    metadata.sourcePackageName = inputBox.value;
-                    metadata.nextStep = undefined;
-                    resolve(StepResult.NEXT);
+                    const normalizedName = await metadata.client.getNormalizedPackageName(inputBox.value);
+                    if (normalizedName === inputBox.value) {
+                        metadata.sourcePackageName = inputBox.value;
+                        metadata.nextStep = undefined;
+                        resolve(StepResult.NEXT);
+                    } else {
+                        inputBox.enabled = false;
+                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+                    }
                 }),
                 inputBox.onDidHide(() => {
                     resolve(StepResult.STOP);
@@ -55,10 +63,6 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
         } finally {
             disposables.forEach((d) => d.dispose());
         }
-    }
-
-    private isValidSourcePackageName(value: string): string | undefined {
-        return /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)*$/.test(value) ? undefined : "Invalid Source Package Name.";
     }
 }
 

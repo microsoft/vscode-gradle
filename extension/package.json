@@ -39,7 +39,8 @@
     "workspaceContains:settings.gradle",
     "workspaceContains:build.gradle.kts",
     "workspaceContains:settings.gradle.kts",
-    "onCommand:gradle.createProject"
+    "onCommand:gradle.createProject",
+    "onCommand:gradle.createProjectAdvanced"
   ],
   "main": "./dist/index.js",
   "contributes": {

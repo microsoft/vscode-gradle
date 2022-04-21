@@ -14,6 +14,7 @@ service Gradle {
   rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
   rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
   rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
+  rpc executeCommand(ExecuteCommandRequest) returns (ExecuteCommandReply) {}
 }
 
 message GetBuildRequest {
@@ -208,4 +209,13 @@ message Output {
 
   OutputType output_type = 1;
   bytes output_bytes = 2;
+}
+
+message ExecuteCommandRequest {
+    string command = 1;
+    repeated string arguments = 2;
+}
+
+message ExecuteCommandReply {
+    string result = 1;
 }
