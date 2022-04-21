@@ -610,6 +610,11 @@
           "group": "contextGroup3@2"
         },
         {
+          "command": "gradle.unpinAllTasks",
+          "when": "view == gradleTasksView && viewItem == PinnedTasks",
+          "group": "contextGroup3@3"
+        },
+        {
           "command": "gradle.removeRecentTask",
           "when": "view == recentTasksView && viewItem =~ /^debugTask.*$|^task.*$/",
           "group": "contextGroup4@0"
