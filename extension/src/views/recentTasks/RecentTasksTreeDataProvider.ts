@@ -33,7 +33,7 @@ function buildTaskTreeItem(
         definition.description || taskName, // used for tooltip
         icons,
         taskTerminalsStore,
-        definition.debugEnabled
+        definition.debuggable
     );
     recentTaskTreeItem.setContext();
     return recentTaskTreeItem;
@@ -153,7 +153,7 @@ export class RecentTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                         task,
                         args,
                         this.client,
-                        definition.debugEnabled
+                        definition.debuggable
                     );
                     buildGradleProjectTreeItem(recentTask, this.taskTerminalsStore, this.icons);
                 });

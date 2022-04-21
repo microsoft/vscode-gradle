@@ -234,7 +234,7 @@ function createVSCodeTaskFromGradleTask(
         rootProject: gradleTask.getRootproject(),
         projectFolder: rootProject.getProjectUri().fsPath,
         workspaceFolder: rootProject.getWorkspaceFolder().uri.fsPath,
-        debugEnabled: gradleTask.getDebuggable(),
+        debuggable: gradleTask.getDebuggable(),
         args,
         isPinned: false,
         javaDebug: false,

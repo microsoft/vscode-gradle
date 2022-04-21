@@ -164,7 +164,7 @@ export function buildMockTaskDefinition(
         rootProject: project,
         projectFolder: workspaceFolder.uri.fsPath,
         workspaceFolder: workspaceFolder.uri.fsPath,
-        debugEnabled: false,
+        debuggable: false,
         args,
         javaDebug: false,
         isPinned: false,
