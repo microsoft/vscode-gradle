@@ -12,7 +12,7 @@ export class GradleTaskTreeItem extends vscode.TreeItem {
         public tooltip: string,
         public description: string,
         protected readonly icons: Icons,
-        protected readonly javaDebug: boolean
+        protected readonly debuggable: boolean
     ) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.command = {

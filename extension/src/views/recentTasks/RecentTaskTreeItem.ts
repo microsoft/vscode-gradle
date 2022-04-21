@@ -17,10 +17,10 @@ export class RecentTaskTreeItem extends GradleTaskTreeItem {
         description: string,
         icons: Icons,
         private readonly taskTerminalsStore: TaskTerminalsStore,
-        protected readonly javaDebug: boolean
+        protected readonly debuggable: boolean
     ) {
         // On construction, don't set a description, this will be set in setContext
-        super(parentTreeItem, task, label, description || label, "", icons, javaDebug);
+        super(parentTreeItem, task, label, description || label, "", icons, debuggable);
     }
 
     public setContext(): void {
