@@ -47,16 +47,21 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             disposables.push(
                 inputBox.onDidChangeValue(async () => {
                     const normalizedName = await getNormalizedPackageNameTrigger(inputBox.value);
-                    if (normalizedName !== inputBox.value) {
-                        inputBox.enabled = false;
-                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+                    if (!normalizedName) {
+                        return;
+                    } else if (normalizedName !== inputBox.value) {
+                        this.setInputInvalid(inputBox, normalizedName as string);
                     } else {
-                        inputBox.enabled = true;
-                        inputBox.validationMessage = undefined;
+                        this.setInputValid(inputBox);
                     }
                 }),
                 inputBox.onDidAccept(async () => {
-                    if (inputBox.enabled) {
+                    const normalizedName = await getNormalizedPackageNameTrigger(inputBox.value);
+                    if (!normalizedName) {
+                        return;
+                    } else if (normalizedName !== inputBox.value) {
+                        this.setInputInvalid(inputBox, normalizedName as string);
+                    } else {
                         metadata.sourcePackageName = inputBox.value;
                         metadata.nextStep = undefined;
                         resolve(StepResult.NEXT);
@@ -75,6 +80,16 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
         } finally {
             disposables.forEach((d) => d.dispose());
         }
+    }
+
+    private setInputInvalid(inputBox: vscode.InputBox, normalizedName: string) {
+        inputBox.enabled = false;
+        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+    }
+
+    private setInputValid(inputBox: vscode.InputBox) {
+        inputBox.enabled = true;
+        inputBox.validationMessage = undefined;
     }
 }
 
