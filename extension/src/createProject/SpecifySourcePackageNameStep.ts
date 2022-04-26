@@ -3,6 +3,7 @@
 
 import * as vscode from "vscode";
 import { IProjectCreationMetadata, IProjectCreationStep, StepResult } from "./types";
+import { asyncDebounce } from "./utils";
 
 export class SpecifySourcePackageNameStep implements IProjectCreationStep {
     public static GET_NORMALIZED_PACKAGE_NAME = "getNormalizedPackageName";
@@ -11,12 +12,17 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
         if (!metadata.client) {
             return StepResult.STOP;
         }
+        const getNormalizedPackageNameTrigger = asyncDebounce(
+            metadata.client.getNormalizedPackageName,
+            500 /** ms */,
+            metadata.client
+        );
         const disposables: vscode.Disposable[] = [];
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const specifySourcePackageNamePromise = new Promise<StepResult>(async (resolve, _reject) => {
             const inputBox = vscode.window.createInputBox();
             const defaultName = metadata.sourcePackageName || "";
-            const normalizedName = await metadata.client.getNormalizedPackageName(defaultName);
+            const normalizedName = await getNormalizedPackageNameTrigger(defaultName);
             if (!normalizedName) {
                 return resolve(StepResult.STOP);
             }
@@ -25,7 +31,7 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             })`;
             inputBox.prompt = "Input source package name of your project.";
             inputBox.placeholder = "e.g. " + normalizedName;
-            inputBox.value = normalizedName;
+            inputBox.value = normalizedName as string;
             inputBox.ignoreFocusOut = true;
             inputBox.enabled = true;
             if (metadata.steps.length) {
@@ -39,15 +45,26 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                 );
             }
             disposables.push(
+                inputBox.onDidChangeValue(async () => {
+                    const normalizedName = await getNormalizedPackageNameTrigger(inputBox.value);
+                    if (!normalizedName) {
+                        return;
+                    } else if (normalizedName !== inputBox.value) {
+                        this.setInputInvalid(inputBox, normalizedName as string);
+                    } else {
+                        this.setInputValid(inputBox);
+                    }
+                }),
                 inputBox.onDidAccept(async () => {
                     const normalizedName = await metadata.client.getNormalizedPackageName(inputBox.value);
-                    if (normalizedName === inputBox.value) {
+                    if (!normalizedName) {
+                        return;
+                    } else if (normalizedName !== inputBox.value) {
+                        this.setInputInvalid(inputBox, normalizedName as string);
+                    } else {
                         metadata.sourcePackageName = inputBox.value;
                         metadata.nextStep = undefined;
                         resolve(StepResult.NEXT);
-                    } else {
-                        inputBox.enabled = false;
-                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
                     }
                 }),
                 inputBox.onDidHide(() => {
@@ -62,6 +79,20 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             return await specifySourcePackageNamePromise;
         } finally {
             disposables.forEach((d) => d.dispose());
+        }
+    }
+
+    private setInputInvalid(inputBox: vscode.InputBox, normalizedName: string) {
+        if (inputBox) {
+            inputBox.enabled = false;
+            inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+        }
+    }
+
+    private setInputValid(inputBox: vscode.InputBox) {
+        if (inputBox) {
+            inputBox.enabled = true;
+            inputBox.validationMessage = undefined;
         }
     }
 }
