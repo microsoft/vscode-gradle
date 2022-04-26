@@ -56,7 +56,7 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                     }
                 }),
                 inputBox.onDidAccept(async () => {
-                    const normalizedName = await getNormalizedPackageNameTrigger(inputBox.value);
+                    const normalizedName = await metadata.client.getNormalizedPackageName(inputBox.value);
                     if (!normalizedName) {
                         return;
                     } else if (normalizedName !== inputBox.value) {
@@ -83,13 +83,17 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
     }
 
     private setInputInvalid(inputBox: vscode.InputBox, normalizedName: string) {
-        inputBox.enabled = false;
-        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+        if (inputBox) {
+            inputBox.enabled = false;
+            inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
+        }
     }
 
     private setInputValid(inputBox: vscode.InputBox) {
-        inputBox.enabled = true;
-        inputBox.validationMessage = undefined;
+        if (inputBox) {
+            inputBox.enabled = true;
+            inputBox.validationMessage = undefined;
+        }
     }
 }
 
