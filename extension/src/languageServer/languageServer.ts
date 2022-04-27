@@ -16,6 +16,7 @@ import {
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
 } from "../util/config";
+import { prepareLanguageServerParams } from "./utils";
 const CHANNEL_NAME = "Gradle for Java (Language Server)";
 
 export let isLanguageServerStarted = false;
@@ -69,7 +70,11 @@ export async function startLanguageServer(
                         });
                     return;
                 }
-                const args = ["-jar", path.resolve(context.extensionPath, "lib", "gradle-language-server.jar")];
+                const args = [
+                    ...prepareLanguageServerParams(),
+                    "-jar",
+                    path.resolve(context.extensionPath, "lib", "gradle-language-server.jar"),
+                ];
                 serverOptions = {
                     command: path.join(javaHome, "bin", "java"),
                     args: args,
