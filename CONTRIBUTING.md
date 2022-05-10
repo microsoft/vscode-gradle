@@ -17,6 +17,13 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 
+## Debugging Gradle plugin
+
+The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get a lot of information from your project's Gradle build. If you want to debug the Gradle plugin, you can follow these steps:
+
+1. Run vscode launch configuration `Debug Extension & Gradle Plugin`
+2. Run vscode launch configuration `Attach to Gradle Plugin`
+
 ## Development Workflow
 
 Open the root of the project in VS Code.

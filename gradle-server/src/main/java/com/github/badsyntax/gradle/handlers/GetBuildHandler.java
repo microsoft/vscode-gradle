@@ -102,7 +102,12 @@ public class GetBuildHandler {
 				return;
 			}
 			File initScript = PluginUtils.createInitScript();
-			List<String> arguments = Arrays.asList("--init-script", initScript.getAbsolutePath());
+			List<String> arguments = new ArrayList<>();
+			String debugPlugin = System.getenv("VSCODE_DEBUG_PLUGIN");
+			if (debugPlugin.equals("true")) {
+				arguments.add("-Dorg.gradle.debug=true");
+			}
+			arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
 			String jvmArguments = req.getGradleConfig().getJvmArguments();
 			if (!Strings.isNullOrEmpty(jvmArguments)) {
 				arguments.addAll(Arrays.stream(jvmArguments.split(" ")).filter(e -> e != null && !e.isEmpty())

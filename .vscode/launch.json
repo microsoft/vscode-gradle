@@ -50,6 +50,26 @@
       }
     },
     {
+      "name": "Debug Extension & Gradle Plugin",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extension/dist/**/*.js"
+      ],
+      "preLaunchTask": "Gradle: Build",
+      "env": {
+        "VSCODE_DEBUG_PLUGIN": "true"
+      },
+      "presentation": {
+        "group": "debug",
+        "order": 2
+      }
+    },
+    {
       "name": "Debug Language Server: Launch Extension",
       "type": "extensionHost",
       "request": "launch",
@@ -86,7 +106,7 @@
     },
     {
       "type": "java",
-      "name": "Debug Gradle Plugin",
+      "name": "Attach to Gradle Plugin",
       "request": "attach",
       "hostName": "localhost",
       "projectName": "gradle-plugin",
