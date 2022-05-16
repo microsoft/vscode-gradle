@@ -104,7 +104,7 @@ public class GetBuildHandler {
 			File initScript = PluginUtils.createInitScript();
 			List<String> arguments = new ArrayList<>();
 			String debugPlugin = System.getenv("VSCODE_DEBUG_PLUGIN");
-			if (debugPlugin != null && debugPlugin.equals("true")) {
+			if ("true".equals(debugPlugin)) {
 				arguments.add("-Dorg.gradle.debug=true");
 			}
 			arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
