@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.gradle.api.Project;
@@ -90,9 +91,9 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
 		List<GradleProjectModel> subModels = new ArrayList<>();
-		Set<Project> subProjects = project.getSubprojects();
-		for (Project subProject : subProjects) {
-			GradleProjectModel subModel = buildModel(rootProject, subProject);
+		Map<String, Project> childProjects = project.getChildProjects();
+		for (Project childProject : childProjects.values()) {
+			GradleProjectModel subModel = buildModel(rootProject, childProject);
 			if (subModel != null) {
 				subModels.add(subModel);
 			}
