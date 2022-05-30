@@ -4,6 +4,11 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.12.1](https://github.com/microsoft/vscode-gradle/compare/3.12.0...3.12.1) (2022-06-01)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A%22May+2022%22+is%3Aclosed)
+
 ## [3.12.0](https://github.com/microsoft/vscode-gradle/compare/3.11.0...3.12.0) (2022-04-27)
 
 ### Changed
