@@ -42,8 +42,11 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.internal.classpath.ClassPath;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
+import org.gradle.util.GradleVersion;
 
 public class GradleProjectModelBuilder implements ToolingModelBuilder {
+
+	private static String MINIMAL_SUPPORTED_PLUGIN_CLOSURE_VERSION = "5.0";
 
 	private Set<GradleTask> cachedTasks = new HashSet<>();
 
@@ -161,6 +164,10 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	}
 
 	private List<GradleClosure> getPluginClosures(Project project) {
+		if (GradleVersion.version(project.getGradle().getGradleVersion())
+				.compareTo(GradleVersion.version(MINIMAL_SUPPORTED_PLUGIN_CLOSURE_VERSION)) < 0) {
+			return Collections.emptyList();
+		}
 		Convention convention = project.getConvention();
 		ExtensionsSchema extensionsSchema = convention.getExtensionsSchema();
 		List<GradleClosure> closures = new ArrayList<>();
