@@ -11,15 +11,8 @@
       },
       "args": [
         "build",
-        "extension:buildDev",
-        "-x",
-        "extension:buildProd",
         "-x",
         "test",
-        "-x",
-        "npm-package:build",
-        "-x",
-        "extension:buildTest"
       ],
       "presentation": {
         "reveal": "always"
