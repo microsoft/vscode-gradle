@@ -14,7 +14,7 @@ export class RootProject {
         if (gradleVersion && gradleVersion !== this.gradleVersion) {
             this.gradleVersion = gradleVersion;
             if (!isTest()) {
-                sendInfo("", { gradleVersion: gradleVersion });
+                sendInfo("", { name: "changeGradleVersion", gradleVersion: gradleVersion });
             }
         }
     }
