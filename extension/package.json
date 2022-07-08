@@ -801,7 +801,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique identifoier for this task"
+            "description": "Unique identifier for this task"
           },
           "script": {
             "type": "string",
