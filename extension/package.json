@@ -332,6 +332,11 @@
         "command": "gradle.createProjectAdvanced",
         "category": "Gradle",
         "title": "Create a Gradle Java Project... (Advanced)"
+      },
+      {
+        "command": "gradle.showGradleProjectsView",
+        "category": "Gradle",
+        "title": "Focus on Gradle Projects View"
       }
     ],
     "menus": {
@@ -471,6 +476,10 @@
         {
           "command": "gradle.createProject",
           "when": "!java:projectManagerActivated"
+        },
+        {
+          "command": "gradle.showGradleProjectsView",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -652,6 +661,16 @@
           "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
           "command": "gradle.showTasks",
           "group": "gradle@0"
+        }
+      ],
+      "javaProject.gradle": [
+        {
+          "command": "gradle.showGradleProjectsView",
+          "group": "gradle@20"
+        },
+        {
+          "command": "gradle.openBuildFile",
+          "group": "gradle@30"
         }
       ]
     },
