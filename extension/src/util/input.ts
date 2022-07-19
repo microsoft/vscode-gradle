@@ -64,7 +64,7 @@ export function getRunTasks(gradleTaskProvider: GradleTaskProvider, projectUri: 
                 .map((task) => task.name)
         ),
         {
-            placeHolder: "Search for a Gradle task",
+            placeHolder: "Select a Gradle task to run",
             ignoreFocusOut: true,
             canPickMany: false,
         }
