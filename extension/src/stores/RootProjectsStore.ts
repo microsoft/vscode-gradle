@@ -4,6 +4,7 @@ import { getNestedProjectsConfig } from "../util/config";
 import { StoreMap } from ".";
 import { isGradleRootProject } from "../util";
 import { RootProject } from "../rootProject/RootProject";
+import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
 async function getNestedRootProjectFolders(): Promise<string[]> {
     const matchingNestedWrapperFiles = await vscode.workspace.findFiles("**/{gradlew,gradlew.bat}");
@@ -78,10 +79,7 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
         if (
             (
                 await vscode.workspace.findFiles(
-                    new vscode.RelativePattern(
-                        folder,
-                        "{build.gradle,settings.gradle,build.gradle.kts,settings.gradle.kts}"
-                    )
+                    new vscode.RelativePattern(folder, `{${GRADLE_BUILD_FILE_NAMES.join(",")}}`)
                 )
             )?.length
         ) {
