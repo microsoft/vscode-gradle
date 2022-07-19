@@ -334,9 +334,9 @@
         "title": "Create a Gradle Java Project... (Advanced)"
       },
       {
-        "command": "gradle.showGradleProjectsView",
+        "command": "gradle.runTasks",
         "category": "Gradle",
-        "title": "Focus on Gradle Projects View"
+        "title": "Run Gradle Tasks..."
       }
     ],
     "menus": {
@@ -478,7 +478,7 @@
           "when": "!java:projectManagerActivated"
         },
         {
-          "command": "gradle.showGradleProjectsView",
+          "command": "gradle.runTasks",
           "when": "false"
         }
       ],
@@ -665,7 +665,7 @@
       ],
       "javaProject.gradle": [
         {
-          "command": "gradle.showGradleProjectsView",
+          "command": "gradle.runTasks",
           "group": "gradle@20"
         },
         {

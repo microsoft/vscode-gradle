@@ -16,6 +16,8 @@ export const GRADLE_COMPLETION = "gradle.completion";
 
 export const VSCODE_TRIGGER_COMPLETION = "editor.action.triggerSuggest";
 
+export const GRADLE_BUILD_FILE_NAMES = ["build.gradle", "settings.gradle", "build.gradle.kts", "settings.gradle.kts"];
+
 export enum CompletionKinds {
     DEPENDENCY_GROUP = "dependency_group",
     DEPENDENCY_ARTIFACT = "dependency_artifact",

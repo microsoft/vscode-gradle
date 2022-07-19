@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fse from "fs-extra";
 import { GradleTaskTreeItem } from "../views";
 import { Command } from "./Command";
+import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
 export const COMMAND_OPEN_BUILD_FILE = "gradle.openBuildFile";
 
@@ -15,14 +16,21 @@ export class OpenBuildFileCommand extends Command {
         if (item instanceof GradleTaskTreeItem) {
             return run(item.task.definition.buildFile);
         } else if (item.uri) {
-            const buildFilePath: string = path.join(vscode.Uri.parse(item.uri).fsPath, "build.gradle");
-            if (await fse.pathExists(buildFilePath)) {
+            const buildFilePath = await ensureBuildFilePath(item.uri);
+            if (buildFilePath) {
                 return run(buildFilePath);
-            }
-            const settingsFilePath: string = path.join(vscode.Uri.parse(item.uri).fsPath, "settings.gradle");
-            if (await fse.pathExists(settingsFilePath)) {
-                return run(settingsFilePath);
             }
         }
     }
+}
+
+export async function ensureBuildFilePath(projectUri: string): Promise<string | undefined> {
+    const projectFsPath = vscode.Uri.parse(projectUri).fsPath;
+    for (const buildFileName of GRADLE_BUILD_FILE_NAMES) {
+        const buildFilePath: string = path.join(projectFsPath, buildFileName);
+        if (await fse.pathExists(buildFilePath)) {
+            return buildFilePath;
+        }
+    }
+    return undefined;
 }

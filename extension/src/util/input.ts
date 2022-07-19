@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { TaskArgs } from "../stores/types";
 import { RootProject } from "../rootProject/RootProject";
 import { RootProjectsStore } from "../stores";
@@ -41,6 +42,30 @@ export function getFindTask(gradleTaskProvider: GradleTaskProvider): Thenable<st
         {
             placeHolder: "Search for a Gradle task",
             ignoreFocusOut: false,
+            canPickMany: false,
+        }
+    );
+}
+
+export function getRunTasks(gradleTaskProvider: GradleTaskProvider, projectUri: string): Thenable<string | undefined> {
+    const buildFilePath = path.join(vscode.Uri.parse(projectUri).fsPath, "build.gradle");
+    return vscode.window.showQuickPick(
+        gradleTaskProvider.loadTasks().then((tasks) =>
+            tasks
+                .filter((task) => {
+                    const buildFile = task.definition.buildFile;
+                    if (buildFile) {
+                        if (vscode.Uri.file(buildFile).fsPath === buildFilePath) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .map((task) => task.name)
+        ),
+        {
+            placeHolder: "Search for a Gradle task",
+            ignoreFocusOut: true,
             canPickMany: false,
         }
     );

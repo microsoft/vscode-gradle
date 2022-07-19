@@ -74,7 +74,7 @@ import { GradleDaemonsTreeDataProvider, GradleTasksTreeDataProvider, RecentTasks
 import { Command } from "./Command";
 import { COMMAND_CREATE_PROJECT, COMMAND_CREATE_PROJECT_ADVANCED, CreateProjectCommand } from "./CreateProjectCommand";
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
-import { COMMAND_SHOW_PROJECTS_VIEW, ShowGradleProjectsViewCommand } from "./ShowGradleProjectsViewCommand";
+import { COMMAND_RUN_TASKS, RunTasksCommand } from "./RunTasksCommand";
 import { ShowStoppedDaemonsCommand, SHOW_STOPPED_DAEMONS } from "./ShowStoppedDaemonsCommand";
 
 export class Commands {
@@ -185,6 +185,6 @@ export class Commands {
         this.registerCommand(HIDE_STOPPED_DAEMONS, new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
         this.registerCommand(COMMAND_CREATE_PROJECT, new CreateProjectCommand(this.client), [false]);
         this.registerCommand(COMMAND_CREATE_PROJECT_ADVANCED, new CreateProjectCommand(this.client), [true]);
-        this.registerCommand(COMMAND_SHOW_PROJECTS_VIEW, new ShowGradleProjectsViewCommand());
+        this.registerCommand(COMMAND_RUN_TASKS, new RunTasksCommand(this.gradleTaskProvider));
     }
 }
