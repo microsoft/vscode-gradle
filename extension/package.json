@@ -266,7 +266,7 @@
       {
         "command": "gradle.refresh",
         "category": "Gradle",
-        "title": "Refresh Gradle Tasks",
+        "title": "Refresh Gradle Projects View",
         "icon": {
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
@@ -337,6 +337,12 @@
         "command": "gradle.runTasks",
         "category": "Gradle",
         "title": "Run Gradle Tasks..."
+      },
+      {
+        "command": "gradle.java.projectConfiguration.update",
+        "category": "Gradle",
+        "title": "Reload All Gradle Projects",
+        "icon": "$(sync)"
       }
     ],
     "menus": {
@@ -480,6 +486,10 @@
         {
           "command": "gradle.runTasks",
           "when": "false"
+        },
+        {
+          "command": "gradle.java.projectConfiguration.update",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -514,6 +524,11 @@
         {
           "command": "gradle.refresh",
           "when": "view == gradleTasksView || view == gradleDefaultProjectsView",
+          "group": "overflow@3"
+        },
+        {
+          "command": "gradle.java.projectConfiguration.update",
+          "when": "view == gradleTasksView && javaLSReady",
           "group": "navigation@3"
         },
         {
