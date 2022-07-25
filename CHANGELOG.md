@@ -4,6 +4,15 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.12.3](https://github.com/microsoft/vscode-gradle/compare/3.12.2...3.12.3) (2022-07-27)
+
+### Added
+- Show Gradle commands in Project Manager's submenu. [PR#1252](https://github.com/microsoft/vscode-gradle/pull/1252)
+- Show shortcut for reload all Java projects in Gradle Project view. [PR#1259](https://github.com/microsoft/vscode-gradle/pull/1259)
+
+### Changed
+- Move the previous refresh button to overflow group. [PR#1259](https://github.com/microsoft/vscode-gradle/pull/1259)
+
 ## [3.12.2](https://github.com/microsoft/vscode-gradle/compare/3.12.1...3.12.2) (2022-06-30)
 
 ### Fixed
