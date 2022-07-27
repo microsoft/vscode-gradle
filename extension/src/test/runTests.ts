@@ -149,8 +149,7 @@ function runTestsWithMultiProject(vscodeExecutablePath: string, userDir: string)
     });
 }
 
-async function runTestsForVsCodeVersion(version: string): Promise<void> {
-    console.log(`Running tests for VsCode version: ${version}`);
+async function runTestsForVsCodeVersion(version?: string): Promise<void> {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-user"));
     fs.copySync(path.resolve(__dirname, "../../test-fixtures/vscode-user/User"), path.join(tmpDir, "User"));
     const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
@@ -173,6 +172,8 @@ async function main(): Promise<void> {
     for (const version of VSCODE_TEST_VERSIONS) {
         await runTestsForVsCodeVersion(version);
     }
+    // run tests on the latest version
+    await runTestsForVsCodeVersion();
     console.log("Finished running tests");
     process.exit(0);
 }

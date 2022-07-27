@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-analyse:
     name: Build & Analyse
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -56,7 +56,7 @@ jobs:
       matrix:
         node-version: [14.15.4]
         java-version: ["8", "11", "17"]
-        os: [ubuntu-20.04, windows-2019, macos-10.15]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v2
       - name: Use Node ${{ matrix.node-version }}
@@ -90,12 +90,12 @@ jobs:
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
       - name: Set permissions
         run: |
           chmod +x extension/lib/gradle-server
           unset npm_config_prefix
-        if: matrix.os != 'windows-2019'
+        if: matrix.os != 'windows-latest'
       - name: Test Gradle Language Server
         uses: gradle/gradle-build-action@v2
         with:
