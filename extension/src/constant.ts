@@ -18,6 +18,9 @@ export const VSCODE_TRIGGER_COMPLETION = "editor.action.triggerSuggest";
 
 export const GRADLE_BUILD_FILE_NAMES = ["build.gradle", "settings.gradle", "build.gradle.kts", "settings.gradle.kts"];
 
+export const NO_JAVA_EXECUTABLE =
+    "No Java executable found, please consider to configure your 'java.jdt.ls.java.home' setting or set JAVA_HOME in your path or put a Java executable in your path.";
+
 export enum CompletionKinds {
     DEPENDENCY_GROUP = "dependency_group",
     DEPENDENCY_ARTIFACT = "dependency_artifact",

@@ -10,11 +10,12 @@ import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider
 import { GradleBuild, GradleProject } from "../proto/gradle_pb";
 import { RootProjectsStore } from "../stores";
 import {
-    getConfigGradleJavaHome,
+    checkEnvJavaExecutable,
     getConfigJavaImportGradleHome,
     getConfigJavaImportGradleUserHome,
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
+    getJavaHome,
 } from "../util/config";
 import { prepareLanguageServerParams } from "./utils";
 const CHANNEL_NAME = "Gradle for Java (Language Server)";
@@ -28,7 +29,7 @@ export async function startLanguageServer(
 ): Promise<void> {
     void vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, (progress) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        return new Promise<void>(async (resolve, _reject) => {
+        return new Promise<void>(async (resolve, reject) => {
             progress.report({
                 message: "Initializing Gradle Language Server",
             });
@@ -53,22 +54,16 @@ export async function startLanguageServer(
                 serverOptions = awaitServerConnection.bind(null, port);
             } else {
                 // keep consistent with gRPC server
-                const javaHome = getConfigGradleJavaHome() || process.env.JAVA_HOME;
+                const javaHome = getJavaHome();
+                let javaCommand;
                 if (!javaHome) {
-                    void vscode.window
-                        .showErrorMessage(
-                            'There is no valid JAVA_HOME setting to launch Gradle Language Server. Please check your "java.jdt.ls.java.home" setting.',
-                            "Open Settings"
-                        )
-                        .then((answer) => {
-                            if (answer === "Open Settings") {
-                                void vscode.commands.executeCommand(
-                                    "workbench.action.openSettings",
-                                    "java.jdt.ls.java.home"
-                                );
-                            }
-                        });
-                    return;
+                    if (!(await checkEnvJavaExecutable())) {
+                        // we have already show error message in gRPC server for no java executable found, so here we will just reject and return
+                        return reject();
+                    }
+                    javaCommand = "java";
+                } else {
+                    javaCommand = path.join(javaHome, "bin", "java");
                 }
                 const args = [
                     ...prepareLanguageServerParams(),
@@ -76,7 +71,7 @@ export async function startLanguageServer(
                     path.resolve(context.extensionPath, "lib", "gradle-language-server.jar"),
                 ];
                 serverOptions = {
-                    command: path.join(javaHome, "bin", "java"),
+                    command: javaCommand,
                     args: args,
                 };
             }

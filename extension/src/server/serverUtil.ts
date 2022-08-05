@@ -1,4 +1,4 @@
-import { getConfigGradleJavaHome } from "../util/config";
+import { checkEnvJavaExecutable, getJavaHome } from "../util/config";
 
 export function getGradleServerCommand(): string {
     const platform = process.platform;
@@ -15,13 +15,15 @@ export interface ProcessEnv {
     [key: string]: string | undefined;
 }
 
-export function getGradleServerEnv(): ProcessEnv {
-    const javaHome = getConfigGradleJavaHome();
+export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
+    const javaHome = getJavaHome();
     const env = { ...process.env };
     if (javaHome) {
         Object.assign(env, {
             VSCODE_JAVA_HOME: javaHome,
         });
+    } else if (!(await checkEnvJavaExecutable())) {
+        return undefined;
     }
     return env;
 }
