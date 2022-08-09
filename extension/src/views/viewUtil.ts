@@ -19,6 +19,7 @@ import {
     getRecentTaskTreeItemMap,
     GradleTasksTreeDataProvider,
     RecentTasksTreeDataProvider,
+    getPinnedTaskTreeItemMap,
 } from ".";
 
 export function treeItemSortCompareFunc(a: vscode.TreeItem, b: vscode.TreeItem): number {
@@ -58,6 +59,11 @@ export function updateGradleTreeItemStateForTask(
     recentTasksTreeDataProvider: RecentTasksTreeDataProvider
 ): void {
     const definition = task.definition as GradleTaskDefinition;
+    const pinnedTaskTreeItem = getPinnedTaskTreeItemMap().get(definition.id);
+    if (pinnedTaskTreeItem) {
+        pinnedTaskTreeItem.setContext();
+        gradleTasksTreeDataProvider.refresh(pinnedTaskTreeItem);
+    }
     const gradleTaskTreeItem = getGradleTaskTreeItemMap().get(definition.id);
     if (gradleTaskTreeItem) {
         gradleTaskTreeItem.setContext();
