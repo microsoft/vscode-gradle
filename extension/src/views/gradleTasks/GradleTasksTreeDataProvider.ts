@@ -49,6 +49,7 @@ function resetCachedTreeItems(): void {
     gradleProjectTreeItemMap.clear();
     projectTreeItemMap.clear();
     groupTreeItemMap.clear();
+    pinnedTaskTreeItemMap.clear();
 }
 
 export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
