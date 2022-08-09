@@ -30,6 +30,7 @@ const gradleTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 const gradleProjectTreeItemMap: Map<string, RootProjectTreeItem> = new Map();
 const projectTreeItemMap: Map<string, ProjectTreeItem> = new Map();
 const groupTreeItemMap: Map<string, GroupTreeItem> = new Map();
+const pinnedTaskTreeItemMap: Map<string, GradleTaskTreeItem> = new Map();
 
 export function getGradleTaskTreeItemMap(): Map<string, GradleTaskTreeItem> {
     return gradleTaskTreeItemMap;
@@ -39,11 +40,16 @@ export function getProjectTreeItemMap(): Map<string, ProjectTreeItem> {
     return projectTreeItemMap;
 }
 
+export function getPinnedTaskTreeItemMap(): Map<string, GradleTaskTreeItem> {
+    return pinnedTaskTreeItemMap;
+}
+
 function resetCachedTreeItems(): void {
     gradleTaskTreeItemMap.clear();
     gradleProjectTreeItemMap.clear();
     projectTreeItemMap.clear();
     groupTreeItemMap.clear();
+    pinnedTaskTreeItemMap.clear();
 }
 
 export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
@@ -114,10 +120,12 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     const pinnedTask = cloneTask(this.rootProjectStore, task, args, this.client, definition.javaDebug);
                     const gradleTaskTreeItem = buildPinnedTaskTreeItem(pinnedTasksItem, pinnedTask, this.icons);
                     pinnedTasksArray!.push(gradleTaskTreeItem);
+                    pinnedTaskTreeItemMap.set(definition.id, gradleTaskTreeItem);
                 });
             } else {
                 const gradleTaskTreeItem = buildPinnedTaskTreeItem(pinnedTasksItem, task, this.icons);
                 pinnedTasksArray.push(gradleTaskTreeItem);
+                pinnedTaskTreeItemMap.set(definition.id, gradleTaskTreeItem);
             }
         });
         if (pinnedTasksMap.size) {
