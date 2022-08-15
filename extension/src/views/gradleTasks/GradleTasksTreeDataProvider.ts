@@ -268,7 +268,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                 let parentTreeItem: ProjectTreeItem | GroupTreeItem = projectTreeItem;
 
                 if (!collapsed) {
-                    const groupId = definition.group + definition.project;
+                    const groupId = definition.group + definition.project + definition.projectFolder;
                     let groupTreeItem = groupTreeItemMap.get(groupId);
                     if (!groupTreeItem) {
                         groupTreeItem = new GroupTreeItem(definition.group, projectTreeItem, undefined);
