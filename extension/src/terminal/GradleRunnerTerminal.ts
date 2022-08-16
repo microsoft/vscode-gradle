@@ -57,9 +57,8 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 reject(new Error("The task completed without the debugger being attached"));
             });
         });
-        const logError = (err: Error): void => logger.error("Unable to start Java debugging:", err.message);
-        Promise.race([waitOnTcp("localhost", javaDebugPort), closePromise])
-            .then(async () => {
+        Promise.race([waitOnTcp("localhost", javaDebugPort), closePromise]).then(
+            async () => {
                 const definition = this.task?.definition as GradleTaskDefinition;
                 const projectName = definition ? definition.project : undefined;
                 const debugConfig = {
@@ -77,11 +76,14 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 if (!startedDebugging) {
                     throw new Error("The debugger was not started");
                 }
-            }, logError)
-            .catch((err) => {
-                logError(err);
-                return this.close();
-            });
+            },
+            (err) => {
+                const errorMessage = "Unable to start Java debugging:" + err.message;
+                logger.error(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+                this.close();
+            }
+        );
     }
 
     private async runBuild(): Promise<void> {
