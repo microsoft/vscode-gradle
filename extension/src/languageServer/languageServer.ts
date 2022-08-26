@@ -56,14 +56,14 @@ export async function startLanguageServer(
                 // keep consistent with gRPC server
                 const javaHome = getJavaHome();
                 let javaCommand;
-                if (!javaHome) {
-                    if (!(await checkEnvJavaExecutable())) {
+                if (javaHome) {
+                    javaCommand = path.join(javaHome, "bin", "java");
+                } else {
+                    if (!checkEnvJavaExecutable()) {
                         // we have already show error message in gRPC server for no java executable found, so here we will just reject and return
                         return reject();
                     }
                     javaCommand = "java";
-                } else {
-                    javaCommand = path.join(javaHome, "bin", "java");
                 }
                 const args = [
                     ...prepareLanguageServerParams(),

@@ -15,14 +15,14 @@ export interface ProcessEnv {
     [key: string]: string | undefined;
 }
 
-export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
+export function getGradleServerEnv(): ProcessEnv | undefined {
     const javaHome = getJavaHome();
     const env = { ...process.env };
     if (javaHome) {
         Object.assign(env, {
             VSCODE_JAVA_HOME: javaHome,
         });
-    } else if (!(await checkEnvJavaExecutable())) {
+    } else if (!checkEnvJavaExecutable()) {
         return undefined;
     }
     return env;

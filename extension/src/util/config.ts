@@ -33,7 +33,7 @@ export function getJavaHome(): string | undefined {
     return getConfigGradleJavaHome() || process.env.JAVA_HOME;
 }
 
-export async function checkEnvJavaExecutable(): Promise<boolean> {
+export function checkEnvJavaExecutable(): boolean {
     try {
         execSync("java -version", { stdio: "pipe" });
     } catch (e) {
