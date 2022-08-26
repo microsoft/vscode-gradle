@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "path";
 import { parseArgsStringToArgv } from "string-argv";
 import { GradleProject, GradleTask } from "../proto/gradle_pb";
 import { TaskArgs } from "../stores/types";
@@ -275,6 +276,27 @@ export async function loadTasksForProjectRoots(
             if (gradleProject) {
                 const vsCodeTasks = getVSCodeTasksFromGradleProject(rootProject, gradleProject, client);
                 allTasks = allTasks.concat(vsCodeTasks);
+            }
+        }
+    }
+    // detect duplicate task names
+    const tasksMap: Map<string, vscode.Task[]> = new Map();
+    for (const task of allTasks) {
+        if (tasksMap.has(task.name)) {
+            tasksMap.get(task.name)!.push(task);
+        } else {
+            tasksMap.set(task.name, [task]);
+        }
+    }
+    // rename duplicate task names with additional relative path
+    for (const tasks of tasksMap.values()) {
+        if (tasks.length !== 1) {
+            for (const task of tasks) {
+                const definition = task.definition as GradleTaskDefinition;
+                const relativePath = path.relative(definition.workspaceFolder, definition.projectFolder);
+                if (relativePath) {
+                    task.name = task.name + ` (${relativePath})`;
+                }
             }
         }
     }
