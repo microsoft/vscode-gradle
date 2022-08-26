@@ -1,3 +1,4 @@
+import { execSync } from "child_process";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
@@ -26,6 +27,19 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
 
 export function getConfigGradleJavaHome(): string | null {
     return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
+}
+
+export function getJavaHome(): string | undefined {
+    return getConfigGradleJavaHome() || process.env.JAVA_HOME;
+}
+
+export function checkEnvJavaExecutable(): boolean {
+    try {
+        execSync("java -version", { stdio: "pipe" });
+    } catch (e) {
+        return false;
+    }
+    return true;
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {

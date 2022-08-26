@@ -6,6 +6,7 @@ import * as kill from "tree-kill";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
+import { NO_JAVA_EXECUTABLE } from "../constant";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -40,6 +41,10 @@ export class GradleServer {
             const cwd = this.context.asAbsolutePath("lib");
             const cmd = path.join(cwd, getGradleServerCommand());
             const env = getGradleServerEnv();
+            if (!env) {
+                await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+                return;
+            }
             const args = [String(this.port)];
 
             this.logger.debug("Starting server");
