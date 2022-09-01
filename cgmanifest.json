@@ -1,180 +1,181 @@
 {
-    "Registrations": [
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.eclipse.lsp4j",
-                    "ArtifactId": "org.eclipse.lsp4j",
-                    "Version": "0.12.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.eclipse.lsp4j",
-                    "ArtifactId": "org.eclipse.lsp4j.jsonrpc",
-                    "Version": "0.12.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.codehaus.groovy",
-                    "ArtifactId": "groovy-eclipse-batch",
-                    "Version": "3.0.8-01"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "com.google.code.gson",
-                    "ArtifactId": "gson",
-                    "Version": "2.8.9"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.apache.bcel",
-                    "ArtifactId": "bcel",
-                    "Version": "6.5.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.gradle",
-                    "ArtifactId": "gradle-tooling-api",
-                    "Version": "7.3"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "javax.annotation",
-                    "ArtifactId": "javax.annotation-api",
-                    "Version": "1.3.2"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "io.grpc",
-                    "ArtifactId": "grpc-protobuf",
-                    "Version": "1.45.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "io.grpc",
-                    "ArtifactId": "grpc-stub",
-                    "Version": "1.45.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "com.github.zafarkhaja",
-                    "ArtifactId": "java-semver",
-                    "Version": "0.9.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "io.grpc",
-                    "ArtifactId": "grpc-netty",
-                    "Version": "1.45.0"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.slf4j",
-                    "ArtifactId": "slf4j-simple",
-                    "Version": "2.0.0-alpha6"
-                }
-            },
-            "DevelopmentDependency": false
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "io.grpc",
-                    "ArtifactId": "grpc-testing",
-                    "Version": "1.45.0"
-                }
-            },
-            "DevelopmentDependency": true
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "junit",
-                    "ArtifactId": "junit",
-                    "Version": "4.13.1"
-                }
-            },
-            "DevelopmentDependency": true
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.powermock",
-                    "ArtifactId": "powermock-module-junit4",
-                    "Version": "2.0.9"
-                }
-            },
-            "DevelopmentDependency": true
-        },
-        {
-            "Component": {
-                "Type": "maven",
-                "Maven": {
-                    "GroupId": "org.powermock",
-                    "ArtifactId": "powermock-api-mockito2",
-                    "Version": "2.0.7"
-                }
-            },
-            "DevelopmentDependency": true
+  "$schema": "https://json.schemastore.org/component-detection-manifest.json",
+  "Registrations": [
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.eclipse.lsp4j",
+          "ArtifactId": "org.eclipse.lsp4j",
+          "Version": "0.12.0"
         }
-    ]
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.eclipse.lsp4j",
+          "ArtifactId": "org.eclipse.lsp4j.jsonrpc",
+          "Version": "0.12.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.codehaus.groovy",
+          "ArtifactId": "groovy-eclipse-batch",
+          "Version": "3.0.8-01"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "com.google.code.gson",
+          "ArtifactId": "gson",
+          "Version": "2.8.9"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.apache.bcel",
+          "ArtifactId": "bcel",
+          "Version": "6.5.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.gradle",
+          "ArtifactId": "gradle-tooling-api",
+          "Version": "7.3"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "javax.annotation",
+          "ArtifactId": "javax.annotation-api",
+          "Version": "1.3.2"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "io.grpc",
+          "ArtifactId": "grpc-protobuf",
+          "Version": "1.45.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "io.grpc",
+          "ArtifactId": "grpc-stub",
+          "Version": "1.45.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "com.github.zafarkhaja",
+          "ArtifactId": "java-semver",
+          "Version": "0.9.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "io.grpc",
+          "ArtifactId": "grpc-netty",
+          "Version": "1.45.0"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.slf4j",
+          "ArtifactId": "slf4j-simple",
+          "Version": "2.0.0-alpha6"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "io.grpc",
+          "ArtifactId": "grpc-testing",
+          "Version": "1.45.0"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "junit",
+          "ArtifactId": "junit",
+          "Version": "4.13.1"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.powermock",
+          "ArtifactId": "powermock-module-junit4",
+          "Version": "2.0.9"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
+          "GroupId": "org.powermock",
+          "ArtifactId": "powermock-api-mockito2",
+          "Version": "2.0.7"
+        }
+      },
+      "DevelopmentDependency": true
+    }
+  ]
 }
