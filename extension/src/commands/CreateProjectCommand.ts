@@ -50,12 +50,12 @@ export class CreateProjectCommand extends Command {
             if (success) {
                 await this.createProject(metadata);
                 const hasOpenFolder = folders !== undefined;
+                const insideWorkspace: boolean | undefined =
+                    folders?.find((workspaceFolder) =>
+                        metadata.targetFolder.startsWith(workspaceFolder.uri?.fsPath)
+                    ) !== undefined;
                 let openProjectBehaviour = getProjectOpenBehaviour();
                 if (openProjectBehaviour === ProjectOpenBehaviourValue.INTERACTIVE) {
-                    const insideWorkspace: boolean | undefined =
-                        folders?.find((workspaceFolder) =>
-                            metadata.targetFolder.startsWith(workspaceFolder.uri?.fsPath)
-                        ) !== undefined;
                     const candidates: string[] = [
                         ProjectOpenBehaviourValue.OPEN,
                         hasOpenFolder && insideWorkspace === false
@@ -77,9 +77,12 @@ export class CreateProjectCommand extends Command {
                         hasOpenFolder
                     );
                 } else if (openProjectBehaviour === ProjectOpenBehaviourValue.ADDTOWORKSPACE) {
-                    vscode.workspace.updateWorkspaceFolders(folders!.length, null, {
-                        uri: vscode.Uri.file(metadata.targetFolder),
-                    });
+                    // check here in case of setting to "Add to Workspace" manually
+                    if (hasOpenFolder && insideWorkspace === false) {
+                        vscode.workspace.updateWorkspaceFolders(folders.length, null, {
+                            uri: vscode.Uri.file(metadata.targetFolder),
+                        });
+                    }
                 }
             }
         }
