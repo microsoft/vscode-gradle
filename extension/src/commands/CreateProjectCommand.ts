@@ -50,7 +50,7 @@ export class CreateProjectCommand extends Command {
             if (success) {
                 await this.createProject(metadata);
                 const hasOpenFolder = folders !== undefined;
-                const insideWorkspace: boolean | undefined =
+                const insideWorkspace: boolean =
                     folders?.find((workspaceFolder) =>
                         metadata.targetFolder.startsWith(workspaceFolder.uri?.fsPath)
                     ) !== undefined;
@@ -78,8 +78,9 @@ export class CreateProjectCommand extends Command {
                     );
                 } else if (openProjectBehaviour === ProjectOpenBehaviourValue.ADDTOWORKSPACE) {
                     // check here in case of setting to "Add to Workspace" manually
-                    if (hasOpenFolder && insideWorkspace === false) {
-                        vscode.workspace.updateWorkspaceFolders(folders.length, null, {
+                    // if generated folder is inside any current workspace (insideWorkspace === true), extension will do nothing
+                    if (!insideWorkspace) {
+                        vscode.workspace.updateWorkspaceFolders(folders ? folders.length : 0, null, {
                             uri: vscode.Uri.file(metadata.targetFolder),
                         });
                     }
