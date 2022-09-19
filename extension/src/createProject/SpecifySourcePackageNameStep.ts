@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { IProjectCreationMetadata, IProjectCreationStep, StepResult } from "./types";
-import { asyncDebounce } from "./utils";
+import { asyncDebounce, createQuickInputButtons } from "./utils";
 
 export class SpecifySourcePackageNameStep implements IProjectCreationStep {
     public static GET_NORMALIZED_PACKAGE_NAME = "getNormalizedPackageName";
@@ -33,16 +33,7 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             inputBox.placeholder = "e.g. " + normalizedName;
             inputBox.value = normalizedName as string;
             inputBox.ignoreFocusOut = true;
-            if (metadata.steps.length) {
-                inputBox.buttons = [vscode.QuickInputButtons.Back];
-                disposables.push(
-                    inputBox.onDidTriggerButton((item) => {
-                        if (item === vscode.QuickInputButtons.Back) {
-                            resolve(StepResult.PREVIOUS);
-                        }
-                    })
-                );
-            }
+            inputBox.buttons = createQuickInputButtons(metadata);
             disposables.push(
                 inputBox.onDidChangeValue(async () => {
                     const normalizedName = await getNormalizedPackageNameTrigger(inputBox.value);
@@ -64,6 +55,11 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                         metadata.sourcePackageName = inputBox.value;
                         metadata.nextStep = undefined;
                         resolve(StepResult.NEXT);
+                    }
+                }),
+                inputBox.onDidTriggerButton((item) => {
+                    if (item === vscode.QuickInputButtons.Back) {
+                        resolve(StepResult.PREVIOUS);
                     }
                 }),
                 inputBox.onDidHide(() => {

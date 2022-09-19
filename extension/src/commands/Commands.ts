@@ -73,7 +73,7 @@ import { GradleTaskProvider } from "../tasks";
 import { isJavaExtEnabled } from "../util/javaExtension";
 import { GradleDaemonsTreeDataProvider, GradleTasksTreeDataProvider, RecentTasksTreeDataProvider } from "../views";
 import { Command } from "./Command";
-import { COMMAND_CREATE_PROJECT, COMMAND_CREATE_PROJECT_ADVANCED, CreateProjectCommand } from "./CreateProjectCommand";
+import { COMMAND_CREATE_PROJECT, CreateProjectCommand } from "./CreateProjectCommand";
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
 import { COMMAND_RELOAD_JAVA_PROJECT, ReloadJavaProjectsCommand } from "./ReloadJavaProjectsCommand";
 import { COMMAND_RUN_TASKS, RunTasksCommand } from "./RunTasksCommand";
@@ -186,7 +186,6 @@ export class Commands {
         this.registerCommand(SHOW_STOPPED_DAEMONS, new ShowStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
         this.registerCommand(HIDE_STOPPED_DAEMONS, new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
         this.registerCommand(COMMAND_CREATE_PROJECT, new CreateProjectCommand(this.client), [false]);
-        this.registerCommand(COMMAND_CREATE_PROJECT_ADVANCED, new CreateProjectCommand(this.client), [true]);
         this.registerCommand(COMMAND_RUN_TASKS, new RunTasksCommand(this.gradleTaskProvider));
         if (isJavaExtEnabled()) {
             this.registerCommand(COMMAND_RELOAD_JAVA_PROJECT, new ReloadJavaProjectsCommand());

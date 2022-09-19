@@ -12,7 +12,6 @@ import { getProjectOpenBehaviour, ProjectOpenBehaviourValue } from "../util/conf
 import { Command } from "./Command";
 
 export const COMMAND_CREATE_PROJECT = "gradle.createProject";
-export const COMMAND_CREATE_PROJECT_ADVANCED = "gradle.createProjectAdvanced";
 
 export class CreateProjectCommand extends Command {
     constructor(private client: GradleClient) {
@@ -32,7 +31,7 @@ export class CreateProjectCommand extends Command {
             canSelectFolders: true,
             canSelectMany: false,
         });
-        const isAdvanced = params[0] as boolean;
+        const isAdvanced = false;
         if (targetFolderUri) {
             const metadata: IProjectCreationMetadata = {
                 isAdvanced: isAdvanced,
@@ -43,7 +42,7 @@ export class CreateProjectCommand extends Command {
                 projectName: path.basename(targetFolderUri[0].fsPath),
                 sourcePackageName: await this.client.getNormalizedPackageName(path.basename(targetFolderUri[0].fsPath)),
                 steps: [],
-                nextStep: isAdvanced ? selectProjectTypeStep : selectScriptDSLStep,
+                nextStep: selectScriptDSLStep,
                 client: this.client,
             };
             const success = await this.runSteps(metadata);
@@ -104,6 +103,10 @@ export class CreateProjectCommand extends Command {
                     }
                     step = metadata.steps.pop();
                     break;
+                case StepResult.RESTART:
+                    metadata.steps = [];
+                    step = selectProjectTypeStep;
+                    break;
                 case StepResult.STOP:
                     return false; // user cancellation
                 default:
@@ -113,7 +116,6 @@ export class CreateProjectCommand extends Command {
         return true;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private async createProject(metadata: IProjectCreationMetadata): Promise<void> {
         const cancellationKey = getRunTaskCommandCancellationKey(metadata.targetFolder, "init");
         const args: string[] = ["init"];
