@@ -105,6 +105,18 @@ export function getAllowParallelRun(): boolean {
     return vscode.workspace.getConfiguration("gradle").get<boolean>("allowParallelRun", false);
 }
 
+export enum ProjectOpenBehaviourValue {
+    INTERACTIVE = "Interactive",
+    OPEN = "Open",
+    ADDTOWORKSPACE = "Add to Workspace",
+}
+
+export function getProjectOpenBehaviour(): string {
+    return vscode.workspace
+        .getConfiguration("gradle")
+        .get<string>("projectOpenBehaviour", ProjectOpenBehaviourValue.INTERACTIVE);
+}
+
 export function getGradleConfig(): GradleConfig {
     const gradleConfig = new GradleConfig();
     const gradleHome = getConfigJavaImportGradleHome();

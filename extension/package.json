@@ -807,6 +807,17 @@
           "default": false,
           "scope": "window",
           "markdownDescription": "Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task."
+        },
+        "gradle.projectOpenBehaviour": {
+          "default": "Interactive",
+          "type": "string",
+          "scope": "window",
+          "description": "Default method of opening newly created project.",
+          "enum": [
+            "Interactive",
+            "Open",
+            "Add to Workspace"
+          ]
         }
       }
     },

@@ -8,6 +8,7 @@ import { getRunTaskCommandCancellationKey } from "../client/CancellationKeys";
 import { selectProjectTypeStep } from "../createProject/SelectProjectTypeStep";
 import { selectScriptDSLStep } from "../createProject/SelectScriptDSLStep";
 import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "../createProject/types";
+import { getProjectOpenBehaviour, ProjectOpenBehaviourValue } from "../util/config";
 import { Command } from "./Command";
 
 export const COMMAND_CREATE_PROJECT = "gradle.createProject";
@@ -48,12 +49,42 @@ export class CreateProjectCommand extends Command {
             const success = await this.runSteps(metadata);
             if (success) {
                 await this.createProject(metadata);
-                const openInNewWindow = folders !== undefined;
-                vscode.commands.executeCommand(
-                    "vscode.openFolder",
-                    vscode.Uri.file(metadata.targetFolder),
-                    openInNewWindow
-                );
+                const hasOpenFolder = folders !== undefined;
+                const insideWorkspace: boolean =
+                    folders?.find((workspaceFolder) =>
+                        metadata.targetFolder.startsWith(workspaceFolder.uri?.fsPath)
+                    ) !== undefined;
+                let openProjectBehaviour = getProjectOpenBehaviour();
+                if (openProjectBehaviour === ProjectOpenBehaviourValue.INTERACTIVE) {
+                    const candidates: string[] = [
+                        ProjectOpenBehaviourValue.OPEN,
+                        hasOpenFolder && insideWorkspace === false
+                            ? ProjectOpenBehaviourValue.ADDTOWORKSPACE
+                            : undefined,
+                    ].filter(Boolean) as string[];
+                    const choice = await vscode.window.showInformationMessage(
+                        `Gradle project [${metadata.projectName}] is created under: ${metadata.targetFolder}`,
+                        ...candidates
+                    );
+                    if (choice) {
+                        openProjectBehaviour = choice;
+                    }
+                }
+                if (openProjectBehaviour === ProjectOpenBehaviourValue.OPEN) {
+                    vscode.commands.executeCommand(
+                        "vscode.openFolder",
+                        vscode.Uri.file(metadata.targetFolder),
+                        hasOpenFolder
+                    );
+                } else if (openProjectBehaviour === ProjectOpenBehaviourValue.ADDTOWORKSPACE) {
+                    // check here in case of setting to "Add to Workspace" manually
+                    // if generated folder is inside any current workspace (insideWorkspace === true), extension will do nothing
+                    if (!insideWorkspace) {
+                        vscode.workspace.updateWorkspaceFolders(folders ? folders.length : 0, null, {
+                            uri: vscode.Uri.file(metadata.targetFolder),
+                        });
+                    }
+                }
             }
         }
         return;
