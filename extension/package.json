@@ -331,7 +331,7 @@
       {
         "command": "gradle.createProjectAdvanced",
         "category": "Gradle",
-        "title": "Create a Gradle Java Project... (Advanced)"
+        "title": "Create a Gradle Project... (Advanced)"
       },
       {
         "command": "gradle.runTasks",

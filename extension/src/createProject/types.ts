@@ -6,6 +6,7 @@ import { GradleClient } from "../client";
 export interface IProjectCreationMetadata {
     isAdvanced: boolean;
     totalSteps: number;
+    projectLanguage?: ProjectLanguage;
     projectType?: ProjectType;
     scriptDSL?: string;
     testFramework?: TestFramework;
@@ -28,9 +29,17 @@ export enum StepResult {
 }
 
 export enum ProjectType {
-    JAVA_APPLICATION = "java-application",
-    JAVA_LIBRARY = "java-library",
-    JAVA_GRADLE_PLUGIN = "java-gradle-plugin",
+    APPLICATION = "application",
+    LIBRARY = "library",
+    GRADLE_PLUGIN = "gradle-plugin",
+}
+
+export enum ProjectLanguage {
+    JAVA = "java",
+    KOTLIN = "kotlin",
+    GROOVY = "groovy",
+    SCALA = "scala",
+    CPP = "cpp",
 }
 
 export enum TestFramework {

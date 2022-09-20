@@ -5,9 +5,15 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { GradleClient } from "../client";
 import { getRunTaskCommandCancellationKey } from "../client/CancellationKeys";
-import { selectProjectTypeStep } from "../createProject/SelectProjectTypeStep";
+import { selectProjectLanguageStep } from "../createProject/SelectProjectLanguageStep";
 import { selectScriptDSLStep } from "../createProject/SelectScriptDSLStep";
-import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "../createProject/types";
+import {
+    IProjectCreationMetadata,
+    IProjectCreationStep,
+    ProjectLanguage,
+    ProjectType,
+    StepResult,
+} from "../createProject/types";
 import { Command } from "./Command";
 
 export const COMMAND_CREATE_PROJECT = "gradle.createProject";
@@ -36,13 +42,14 @@ export class CreateProjectCommand extends Command {
             const metadata: IProjectCreationMetadata = {
                 isAdvanced: isAdvanced,
                 totalSteps: isAdvanced ? 5 : 2,
-                testFramework: undefined, // junit4
-                projectType: ProjectType.JAVA_APPLICATION,
+                testFramework: undefined, // junit4 or kotlin-test for kotlin projects
+                projectLanguage: ProjectLanguage.JAVA,
+                projectType: ProjectType.APPLICATION,
                 targetFolder: targetFolderUri[0].fsPath,
                 projectName: path.basename(targetFolderUri[0].fsPath),
                 sourcePackageName: await this.client.getNormalizedPackageName(path.basename(targetFolderUri[0].fsPath)),
                 steps: [],
-                nextStep: isAdvanced ? selectProjectTypeStep : selectScriptDSLStep,
+                nextStep: isAdvanced ? selectProjectLanguageStep : selectScriptDSLStep,
                 client: this.client,
             };
             const success = await this.runSteps(metadata);
@@ -92,14 +99,14 @@ export class CreateProjectCommand extends Command {
         args.push("--dsl");
         args.push(metadata.scriptDSL);
         args.push("--type");
-        args.push(metadata.projectType);
+        args.push(`${metadata.projectLanguage || "java"}-${metadata.projectType}`);
         if (metadata.testFramework) {
             args.push("--test-framework");
             args.push(metadata.testFramework);
         }
         args.push("--project-name");
         args.push(metadata.projectName);
-        if (metadata.sourcePackageName) {
+        if (metadata.sourcePackageName && metadata.projectLanguage !== ProjectLanguage.CPP) {
             args.push("--package");
             args.push(metadata.sourcePackageName);
         }

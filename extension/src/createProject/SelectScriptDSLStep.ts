@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import { selectTestFrameworkStep } from "./SelectTestFrameworkStep";
 import { specifyProjectNameStep } from "./SpecifyProjectNameStep";
-import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "./types";
+import { IProjectCreationMetadata, IProjectCreationStep, ProjectLanguage, ProjectType, StepResult } from "./types";
 
 export class SelectScriptDSLStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -44,7 +44,11 @@ export class SelectScriptDSLStep implements IProjectCreationStep {
                                 resolve(StepResult.STOP);
                         }
                         metadata.steps.push(selectScriptDSLStep);
-                        if (!metadata.isAdvanced || metadata.projectType === ProjectType.JAVA_GRADLE_PLUGIN) {
+                        if (
+                            !metadata.isAdvanced ||
+                            metadata.projectType === ProjectType.GRADLE_PLUGIN ||
+                            metadata.projectLanguage != ProjectLanguage.JAVA
+                        ) {
                             metadata.nextStep = specifyProjectNameStep;
                         } else {
                             metadata.nextStep = selectTestFrameworkStep;

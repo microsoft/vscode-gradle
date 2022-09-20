@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { specifySourcePackageNameStep } from "./SpecifySourcePackageNameStep";
-import { IProjectCreationMetadata, IProjectCreationStep, StepResult } from "./types";
+import { IProjectCreationMetadata, IProjectCreationStep, ProjectLanguage, StepResult } from "./types";
 
 export class SpecifyProjectNameStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -40,7 +40,10 @@ export class SpecifyProjectNameStep implements IProjectCreationStep {
                 inputBox.onDidAccept(async () => {
                     metadata.projectName = inputBox.value;
                     metadata.steps.push(specifyProjectNameStep);
-                    metadata.nextStep = !metadata.isAdvanced ? undefined : specifySourcePackageNameStep;
+                    metadata.nextStep =
+                        !metadata.isAdvanced || metadata.projectLanguage == ProjectLanguage.CPP
+                            ? undefined
+                            : specifySourcePackageNameStep;
                     resolve(StepResult.NEXT);
                 }),
                 inputBox.onDidHide(() => {

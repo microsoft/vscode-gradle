@@ -3,7 +3,7 @@
 
 import * as vscode from "vscode";
 import { selectScriptDSLStep } from "./SelectScriptDSLStep";
-import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "./types";
+import { IProjectCreationMetadata, IProjectCreationStep, ProjectLanguage, ProjectType, StepResult } from "./types";
 
 export class SelectProjectTypeStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -17,23 +17,21 @@ export class SelectProjectTypeStep implements IProjectCreationStep {
             pickBox.placeholder = "Select project type ...";
             pickBox.matchOnDescription = true;
             pickBox.ignoreFocusOut = true;
-            pickBox.items = this.getProjectTypePickItems();
+            pickBox.items = this.getProjectTypePickItems(metadata.projectLanguage);
             disposables.push(
                 pickBox.onDidAccept(async () => {
                     const selectedType = pickBox.selectedItems[0];
                     if (selectedType) {
-                        switch (selectedType.label) {
+                        switch (selectedType.label.split(" ").pop()) {
                             case "application":
-                                metadata.projectType = ProjectType.JAVA_APPLICATION;
-                                metadata.totalSteps = 5;
+                                metadata.projectType = ProjectType.APPLICATION;
                                 break;
                             case "library":
-                                metadata.projectType = ProjectType.JAVA_LIBRARY;
-                                metadata.totalSteps = 5;
+                                metadata.projectType = ProjectType.LIBRARY;
                                 break;
-                            case "Gradle plugin":
-                                metadata.projectType = ProjectType.JAVA_GRADLE_PLUGIN;
-                                metadata.totalSteps = 4; // when creating gradle plugin, we shouldn't specify test framework
+                            case "plugin":
+                                metadata.projectType = ProjectType.GRADLE_PLUGIN;
+                                metadata.totalSteps = metadata.projectLanguage === ProjectLanguage.JAVA ? 5 : 4;
                                 break;
                             default:
                                 resolve(StepResult.STOP);
@@ -58,20 +56,31 @@ export class SelectProjectTypeStep implements IProjectCreationStep {
         }
     }
 
-    private getProjectTypePickItems(): vscode.QuickPickItem[] {
+    private getProjectTypePickItems(language?: ProjectLanguage): vscode.QuickPickItem[] {
         const result: vscode.QuickPickItem[] = [];
+        const lang =
+            language == ProjectLanguage.CPP
+                ? "C++"
+                : language
+                ? language.charAt(0).toUpperCase() + language.substring(1)
+                : "Java";
+
         result.push({
-            label: "application",
-            description: "A command-line application implemented in Java",
+            label: `${lang} application`,
+            description: `A command-line application implemented in ${lang}`,
         });
         result.push({
-            label: "library",
-            description: "A Java library",
+            label: `${lang} library`,
+            description: `A ${lang} library`,
         });
-        result.push({
-            label: "Gradle plugin",
-            description: "A Gradle plugin implemented in Java",
-        });
+
+        if (language === ProjectLanguage.JAVA || language === ProjectLanguage.KOTLIN) {
+            result.push({
+                label: `${lang} Gradle plugin`,
+                description: `A Gradle plugin implemented in ${lang}`,
+            });
+        }
+
         return result;
     }
 }
