@@ -4,6 +4,11 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.12.5](https://github.com/microsoft/vscode-gradle/compare/3.12.4...3.12.5) (2022-09-28)
+
+### Added
+- New configuration `gradle.projectOpenBehaviour` to specify the default method of opening newly created project. [PR#1282](https://github.com/microsoft/vscode-gradle/pull/1282)
+
 ## [3.12.4](https://github.com/microsoft/vscode-gradle/compare/3.12.3...3.12.4) (2022-08-31)
 
 ### Added
