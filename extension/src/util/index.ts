@@ -19,12 +19,14 @@ function tcpExists(host: string, port: number): Promise<boolean> {
                 resolve(false);
             })
             .on("timeout", () => {
-                connection.end();
-                resolve(false);
+                connection.end(() => {
+                    resolve(false);
+                });
             })
             .on("connect", () => {
-                connection.end();
-                resolve(true);
+                connection.end(() => {
+                    resolve(true);
+                });
             });
         connection.setTimeout(tcpTimeout);
     });
