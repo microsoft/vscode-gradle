@@ -6,7 +6,7 @@
   "private": true,
   "publisher": "vscjava",
   "aiKey": "b4aae7d0-c65b-4819-92bf-1d2f537ae7ce",
-  "icon": "icon.png",
+  "icon": "resources/icon.png",
   "readme": "README.md",
   "bugs": {
     "url": "https://github.com/microsoft/vscode-gradle/issues"
@@ -109,7 +109,7 @@
         {
           "id": "gradleContainerView",
           "title": "Gradle",
-          "icon": "icon.png"
+          "icon": "resources/icon-transparency.png"
         }
       ]
     },
