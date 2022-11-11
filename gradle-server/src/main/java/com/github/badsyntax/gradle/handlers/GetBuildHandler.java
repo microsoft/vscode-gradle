@@ -33,7 +33,6 @@ import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
 import io.grpc.stub.StreamObserver;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -101,13 +100,15 @@ public class GetBuildHandler {
 				responseObserver.onCompleted();
 				return;
 			}
-			File initScript = PluginUtils.createInitScript();
 			List<String> arguments = new ArrayList<>();
 			String debugPlugin = System.getenv("VSCODE_DEBUG_PLUGIN");
 			if ("true".equals(debugPlugin)) {
 				arguments.add("-Dorg.gradle.debug=true");
 			}
-			arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
+			File initScript = PluginUtils.createInitScript();
+			if (initScript != null) {
+				arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
+			}
 			String jvmArguments = req.getGradleConfig().getJvmArguments();
 			if (!Strings.isNullOrEmpty(jvmArguments)) {
 				arguments.addAll(Arrays.stream(jvmArguments.split(" ")).filter(e -> e != null && !e.isEmpty())
@@ -125,7 +126,7 @@ public class GetBuildHandler {
 			replyWithProject(project);
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
-		} catch (ServiceCreationException | IOException | IllegalStateException | GradleConnectionException e) {
+		} catch (ServiceCreationException | IllegalStateException | GradleConnectionException e) {
 			String javaExtensionVersion = req.getGradleConfig().getJavaExtensionVersion();
 			boolean shouldCheckCompatibility = !(javaExtensionVersion != null
 					&& new Version(javaExtensionVersion).isAtLeast("1.3.0"));

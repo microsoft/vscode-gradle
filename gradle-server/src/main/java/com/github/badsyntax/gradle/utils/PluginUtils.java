@@ -7,32 +7,68 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class PluginUtils {
-	public static File createInitScript() throws IOException {
-		File initScript = File.createTempFile("init-build", ".gradle");
-		initScript.deleteOnExit();
-		File pluginFile = File.createTempFile("custom-plugin", ".jar");
-		pluginFile.deleteOnExit();
-		createPluginJar("/gradle-plugin.jar", pluginFile);
-		createTemplateScript(pluginFile, initScript);
-		return initScript;
+
+	private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
+	private static final String PLUGIN_JAR_PATH = "/gradle-plugin.jar";
+
+	public static File createInitScript() {
+		try {
+			// handle plugin jar
+			InputStream input = PluginUtils.class.getResourceAsStream(PLUGIN_JAR_PATH);
+			byte[] pluginJarBytes = input.readAllBytes();
+			byte[] pluginJarDigest = getContentDigest(pluginJarBytes);
+			String pluginJarName = bytesToHex(pluginJarDigest) + ".jar";
+			File pluginJarFile = new File(System.getProperty("java.io.tmpdir"), pluginJarName);
+			if (needReplaceContent(pluginJarFile, pluginJarDigest)) {
+				Files.write(pluginJarFile.toPath(), pluginJarBytes);
+			}
+			// handle init script
+			String pluginJarUnixPath = pluginJarFile.getAbsolutePath().replace("\\", "/");
+			String initScriptContent = "initscript {\n" + "	dependencies {\n" + "		classpath files('"
+					+ pluginJarUnixPath + "')\n" + "	}\n" + "}\n" + "\n" + "allprojects {\n"
+					+ "	apply plugin: com.microsoft.gradle.GradlePlugin\n" + "}\n";
+			byte[] initScriptBytes = initScriptContent.getBytes();
+			byte[] initScriptDigest = getContentDigest(initScriptBytes);
+			String initScriptName = bytesToHex(initScriptDigest) + ".gradle";
+			File initScriptFile = new File(System.getProperty("java.io.tmpdir"), initScriptName);
+			if (needReplaceContent(initScriptFile, initScriptDigest)) {
+				Files.write(initScriptFile.toPath(), initScriptBytes);
+			}
+			return initScriptFile;
+		} catch (IOException | NoSuchAlgorithmException e) {
+			return null;
+		}
 	}
 
-	private static void createPluginJar(String resource, File outputFile) throws IOException {
-		InputStream input = PluginUtils.class.getResourceAsStream(resource);
-		Files.copy(input, outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-		input.close();
+	private static boolean needReplaceContent(File initScript, byte[] checksum)
+			throws IOException, NoSuchAlgorithmException {
+		if (!initScript.exists() || initScript.length() == 0) {
+			return true;
+		}
+
+		byte[] digest = getContentDigest(Files.readAllBytes(initScript.toPath()));
+		if (Arrays.equals(digest, checksum)) {
+			return false;
+		}
+		return true;
 	}
 
-	private static void createTemplateScript(File pluginFile, File outputFile) throws IOException {
-		String pluginFilePath = pluginFile.getAbsolutePath().replace("\\", "/");
-		// @formatter:off
-		String template = "initscript {\n" + "    dependencies {\n" + "        classpath files('" + pluginFilePath
-				+ "')\n" + "    }\n" + "}\n" + "\n" + "allprojects {\n"
-				+ "    apply plugin: com.microsoft.gradle.GradlePlugin\n" + "}\n";
-		// @formatter:on
-		Files.write(outputFile.toPath(), template.getBytes());
+	private static byte[] getContentDigest(byte[] contentBytes) throws NoSuchAlgorithmException {
+		MessageDigest md = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM);
+		md.update(contentBytes);
+		return md.digest();
+	}
+
+	private static String bytesToHex(byte[] in) {
+		final StringBuilder builder = new StringBuilder();
+		for (byte b : in) {
+			builder.append(String.format("%02x", b));
+		}
+		return builder.toString();
 	}
 }
