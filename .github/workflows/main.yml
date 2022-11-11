@@ -18,10 +18,10 @@ jobs:
         with:
           java-version: "11"
           architecture: x64
-      - name: Use Node 14.15.4
+      - name: Use Node 16.14.2
         uses: actions/setup-node@v1
         with:
-          node-version: 14.15.4
+          node-version: 16.14.2
       - name: Cache npm cache directory
         uses: actions/cache@v2
         with:
