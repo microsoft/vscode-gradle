@@ -3,6 +3,7 @@
 
 package com.github.badsyntax.gradle.utils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,11 +17,11 @@ public class PluginUtils {
 	private static final String MESSAGE_DIGEST_ALGORITHM = "SHA-256";
 	private static final String PLUGIN_JAR_PATH = "/gradle-plugin.jar";
 
-	public static File createInitScript() {
+	public static File getInitScript() {
 		try {
 			// handle plugin jar
 			InputStream input = PluginUtils.class.getResourceAsStream(PLUGIN_JAR_PATH);
-			byte[] pluginJarBytes = input.readAllBytes();
+			byte[] pluginJarBytes = readFully(input);
 			byte[] pluginJarDigest = getContentDigest(pluginJarBytes);
 			String pluginJarName = bytesToHex(pluginJarDigest) + ".jar";
 			File pluginJarFile = new File(System.getProperty("java.io.tmpdir"), pluginJarName);
@@ -43,6 +44,18 @@ public class PluginUtils {
 		} catch (IOException | NoSuchAlgorithmException e) {
 			return null;
 		}
+	}
+
+	// InputStream.readAllBytes is not available in Java 8, so we have this method
+	// to convert InputStream to byte array
+	public static byte[] readFully(InputStream input) throws IOException {
+		byte[] buffer = new byte[8192];
+		int bytesRead;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		while ((bytesRead = input.read(buffer)) != -1) {
+			output.write(buffer, 0, bytesRead);
+		}
+		return output.toByteArray();
 	}
 
 	private static boolean needReplaceContent(File initScript, byte[] checksum)

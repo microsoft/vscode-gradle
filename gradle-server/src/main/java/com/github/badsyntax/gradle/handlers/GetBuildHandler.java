@@ -105,7 +105,7 @@ public class GetBuildHandler {
 			if ("true".equals(debugPlugin)) {
 				arguments.add("-Dorg.gradle.debug=true");
 			}
-			File initScript = PluginUtils.createInitScript();
+			File initScript = PluginUtils.getInitScript();
 			if (initScript != null) {
 				arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
 			}
