@@ -20,14 +20,14 @@ subprojects {
   apply plugin: 'com.diffplug.spotless'
 
   repositories {
+    mavenCentral()
+    mavenLocal()
     maven {
       url 'https://maven-central.storage-download.googleapis.com/repos/central/data/'
     }
     maven {
       url 'https://repo.gradle.org/gradle/libs-releases'
     }
-    mavenCentral()
-    mavenLocal()
   }
 
   protobuf {
