@@ -170,7 +170,6 @@ export function resolveTaskFromDefinition(
     client: GradleClient
 ): vscode.Task | undefined {
     const taskName = buildTaskName(definition);
-    const args = [definition.script].concat(parseArgsStringToArgv(definition.args.trim())).filter(Boolean);
     const task = new vscode.Task(
         definition,
         workspaceFolder,
@@ -190,8 +189,10 @@ export function resolveTaskFromDefinition(
                     rootProject.getProjectUri().fsPath,
                     definition.script
                 );
-
-                const executeTerminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, client);
+                const resolvedArgs = [resolvedTaskDefinition.script]
+                    .concat(parseArgsStringToArgv(resolvedTaskDefinition.args.trim()))
+                    .filter(Boolean);
+                const executeTerminal = new GradleRunnerTerminal(rootProject, resolvedArgs, cancellationKey, client);
                 executeTerminal.setTask(task);
                 return executeTerminal;
             }
