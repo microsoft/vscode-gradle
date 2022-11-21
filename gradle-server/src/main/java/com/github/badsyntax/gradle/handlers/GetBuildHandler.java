@@ -122,6 +122,9 @@ public class GetBuildHandler {
 					.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
 					.setColorOutput(req.getShowOutputColors());
 			GradleProjectModel gradleModel = action.run();
+			if (gradleModel == null) {
+				throw new Exception("Error occurs in querying custom model.");
+			}
 			GradleProject project = getProjectData(gradleModel);
 			replyWithProject(project);
 		} catch (BuildCancelledException e) {
