@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { getRuntime } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
@@ -29,8 +30,16 @@ export function getConfigGradleJavaHome(): string | null {
     return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
 }
 
-export function getJavaHome(): string | undefined {
-    return getConfigGradleJavaHome() || process.env.JAVA_HOME;
+export async function getSupportedJavaHome(): Promise<string | undefined> {
+    const javaHome = getConfigGradleJavaHome() || process.env.JAVA_HOME;
+    if (javaHome) {
+        const runtime = await getRuntime(javaHome, { withVersion: true });
+        if (runtime?.version) {
+            // check the JDK version of given java home is supported, otherwise return undefined
+            return runtime.version.major >= 8 && runtime.version.major <= 17 ? javaHome : undefined;
+        }
+    }
+    return undefined;
 }
 
 export function checkEnvJavaExecutable(): boolean {
