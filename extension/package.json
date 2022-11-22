@@ -934,6 +934,7 @@
   },
   "dependencies": {
     "await-lock": "^2.2.2",
+    "jdk-utils": "^0.4.4",
     "fs-extra": "^10.1.0",
     "get-port": "^5.1.1",
     "lodash": "^4.17.21",
