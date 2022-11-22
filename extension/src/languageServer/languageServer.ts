@@ -15,7 +15,7 @@ import {
     getConfigJavaImportGradleUserHome,
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
-    getJavaHome,
+    getSupportedJavaHome,
 } from "../util/config";
 import { prepareLanguageServerParams } from "./utils";
 const CHANNEL_NAME = "Gradle for Java (Language Server)";
@@ -54,7 +54,7 @@ export async function startLanguageServer(
                 serverOptions = awaitServerConnection.bind(null, port);
             } else {
                 // keep consistent with gRPC server
-                const javaHome = getJavaHome();
+                const javaHome = await getSupportedJavaHome();
                 let javaCommand;
                 if (javaHome) {
                     javaCommand = path.join(javaHome, "bin", "java");
