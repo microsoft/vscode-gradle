@@ -40,7 +40,7 @@ export class GradleServer {
             this.port = await getPort();
             const cwd = this.context.asAbsolutePath("lib");
             const cmd = path.join(cwd, getGradleServerCommand());
-            const env = getGradleServerEnv();
+            const env = await getGradleServerEnv();
             if (!env) {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
