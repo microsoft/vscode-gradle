@@ -8,7 +8,8 @@ export const isTest = (): boolean => process.env.VSCODE_TEST?.toLowerCase() === 
 
 export const isDebuggingServer = (): boolean => process.env.VSCODE_DEBUG_SERVER?.toLowerCase() === "true";
 
-const maximumTimeout = 10000; // ms
+// some run application tasks require a lot of time to start. So we should set a loose timeout.
+const maximumTimeout = 60000; // ms
 const tcpTimeout = 300; // ms
 
 function tcpExists(host: string, port: number): Promise<boolean> {
@@ -32,10 +33,19 @@ function tcpExists(host: string, port: number): Promise<boolean> {
     });
 }
 
+function sleep(time: number) {
+    return new Promise((resolve) => setTimeout(resolve, time));
+}
+
 async function tryConnect(host: string, port: number, startTime: number): Promise<void> {
     const connected = await tcpExists(host, port);
     if (connected) {
-        return;
+        // workaround: experimental re-checking after waiting for 1s
+        await sleep(1000);
+        const connectedRetry = await tcpExists(host, port);
+        if (connectedRetry) {
+            return;
+        }
     }
     if (Date.now() - startTime >= maximumTimeout) {
         throw new Error("Unable to wait on tcp due to maxmium timeout reached");
