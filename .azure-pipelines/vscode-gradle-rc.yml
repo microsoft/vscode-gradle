@@ -36,13 +36,13 @@ steps:
     cd $(Build.SourcesDirectory)/extension/lib
     chmod +x gradle-server
   displayName: Set permission
-- task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+- task: EsrpCodeSigning@2
   displayName: 'ESRP CodeSigning'
   inputs:
     ConnectedServiceName: 'vscjavaci_codesign'
-    FolderPath: extension/lib
+    FolderPath: 'extension/lib'
     Pattern: 'gradle-server.jar'
-    signConfigType: inlineSignParams
+    signConfigType: 'inlineSignParams'
     inlineOperation: |
      [
              {
