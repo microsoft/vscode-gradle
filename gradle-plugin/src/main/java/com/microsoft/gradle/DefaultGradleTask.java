@@ -59,4 +59,8 @@ public class DefaultGradleTask implements Serializable, GradleTask {
 	public boolean getDebuggable() {
 		return debuggable;
 	}
+
+	public void setDebuggable(boolean debuggable) {
+		this.debuggable = debuggable;
+	}
 }
