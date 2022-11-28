@@ -38,6 +38,7 @@ function sleep(time: number) {
 async function tryConnect(host: string, port: number, startTime: number): Promise<void> {
     const connected = await tcpExists(host, port);
     if (connected) {
+        // workaround: experimental re-checking after waiting for 1s
         await sleep(1000);
         const connectedRetry = await tcpExists(host, port);
         if (connectedRetry) {
