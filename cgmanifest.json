@@ -51,7 +51,7 @@
         "Maven": {
           "GroupId": "org.apache.bcel",
           "ArtifactId": "bcel",
-          "Version": "6.5.0"
+          "Version": "6.6.1"
         }
       },
       "DevelopmentDependency": false

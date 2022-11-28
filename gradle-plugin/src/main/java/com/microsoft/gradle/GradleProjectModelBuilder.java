@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.ResolvableDependencies;
@@ -41,7 +42,9 @@ import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.internal.classpath.ClassPath;
+import org.gradle.plugins.ide.internal.tooling.model.DefaultGradleProject;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
+import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry;
 import org.gradle.util.GradleVersion;
 
 public class GradleProjectModelBuilder implements ToolingModelBuilder {
@@ -49,6 +52,11 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	private static String MINIMAL_SUPPORTED_PLUGIN_CLOSURE_VERSION = "5.0";
 
 	private Set<GradleTask> cachedTasks = new HashSet<>();
+	private ToolingModelBuilderRegistry registry;
+
+	public GradleProjectModelBuilder(ToolingModelBuilderRegistry registry) {
+		this.registry = registry;
+	}
 
 	public boolean canBuild(String modelName) {
 		return modelName.equals(GradleProjectModel.class.getName());
@@ -56,7 +64,12 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 
 	public Object buildAll(String modelName, Project project) {
 		cachedTasks.clear();
-		GradleProjectModel rootModel = buildModel(project, project);
+		DefaultGradleProject gradleProject = (DefaultGradleProject) this.registry
+				.getBuilder("org.gradle.tooling.model.GradleProject").buildAll(modelName, project);
+		if (gradleProject == null) {
+			return null;
+		}
+		GradleProjectModel rootModel = buildModel(project, project.getName(), gradleProject);
 		// add task selectors for root project
 		Set<String> taskNames = new HashSet<>();
 		for (GradleTask existingTask : rootModel.getTasks()) {
@@ -80,8 +93,8 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		return rootModel;
 	}
 
-	private GradleProjectModel buildModel(Project rootProject, Project project) {
-		if (rootProject == null || project == null) {
+	private GradleProjectModel buildModel(Project project, String rootProjectName, DefaultGradleProject gradleProject) {
+		if (project == null) {
 			return null;
 		}
 		ScriptHandler buildScript = project.getBuildscript();
@@ -94,14 +107,19 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
 		List<GradleProjectModel> subModels = new ArrayList<>();
-		Map<String, Project> childProjects = project.getChildProjects();
-		for (Project childProject : childProjects.values()) {
-			GradleProjectModel subModel = buildModel(rootProject, childProject);
-			if (subModel != null) {
-				subModels.add(subModel);
+		for (DefaultGradleProject subDefaultGradleProject : gradleProject.getChildren()) {
+			// Query sub projects when both gradleProject and project contain them
+			Map<String, Project> childProjects = project.getChildProjects();
+			String projectName = subDefaultGradleProject.getName();
+			if (childProjects.keySet().contains(projectName)) {
+				GradleProjectModel subModel = buildModel(childProjects.get(projectName), rootProjectName,
+						subDefaultGradleProject);
+				if (subModel != null) {
+					subModels.add(subModel);
+				}
 			}
 		}
-		List<GradleTask> tasks = getGradleTasks(rootProject, project);
+		List<GradleTask> tasks = getGradleTasks(project, rootProjectName, gradleProject);
 		return new DefaultGradleProjectModel(project.getParent() == null, project.getProjectDir().getAbsolutePath(),
 				subModels, tasks, node, plugins, closures, scriptClasspaths);
 	}
@@ -202,30 +220,53 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		return closures;
 	}
 
-	private List<GradleTask> getGradleTasks(Project rootProject, Project project) {
+	/**
+	 * get Task information from the given models. DefaultGradleProject is used to
+	 * get task list and Project is used to get debug information.
+	 *
+	 * @param project
+	 *            the given org.gradle.api.Project model
+	 * @param rootProjectName
+	 *            the root project name
+	 * @param gradleProject
+	 *            the given
+	 *            org.gradle.plugins.ide.internal.tooling.model.DefaultGradleProject
+	 *            model
+	 * @return the task list of the corresponding project
+	 */
+	private List<GradleTask> getGradleTasks(Project project, String rootProjectName,
+			DefaultGradleProject gradleProject) {
 		List<GradleTask> tasks = new ArrayList<>();
-		TaskContainer taskContainer = project.getTasks();
-		if (taskContainer instanceof TaskContainerInternal) {
-			TaskContainerInternal taskContainerInternal = (TaskContainerInternal) taskContainer;
-			taskContainerInternal.discoverTasks();
-			taskContainerInternal.realize();
-			taskContainerInternal.forEach(task -> {
-				String name = task.getName();
-				String group = task.getGroup() == null ? null : task.getGroup();
-				String path = task.getPath();
-				String projectName = task.getProject().getName();
-				String buildFile = task.getProject().getBuildscript().getSourceFile().getAbsolutePath();
-				String rootProjectName = rootProject.getName();
-				String description = task.getDescription() == null ? null : task.getDescription();
-				boolean debuggable = (task instanceof JavaExec) || (task instanceof Test);
-				GradleTask newTask = new DefaultGradleTask(name, group, path, projectName, buildFile, rootProjectName,
-						description, debuggable);
-				tasks.add(newTask);
-				cachedTasks.add(newTask);
-			});
-			return tasks;
+		gradleProject.getTasks().forEach((task) -> {
+			String group = task.getGroup() == null ? null : task.getGroup();
+			String description = task.getDescription() == null ? null : task.getDescription();
+			GradleTask newTask = new DefaultGradleTask(task.getName(), group, task.getPath(), gradleProject.getName(),
+					gradleProject.getBuildScript().getSourceFile().getAbsolutePath(), rootProjectName, description,
+					false);
+			tasks.add(newTask);
+			cachedTasks.add(newTask);
+		});
+		for (GradleTask gradleTask : tasks) {
+			// try to fetch debug information
+			TaskContainer taskContainer = project.getTasks();
+			if (taskContainer instanceof TaskContainerInternal) {
+				TaskContainerInternal taskContainerInternal = (TaskContainerInternal) taskContainer;
+				taskContainerInternal.discoverTasks();
+				taskContainerInternal.realize();
+				try {
+					Task task = taskContainerInternal.getByName(gradleTask.getName());
+					if ((task instanceof JavaExec || task instanceof Test)
+							&& (gradleTask instanceof DefaultGradleTask)) {
+						((DefaultGradleTask) gradleTask).setDebuggable(true);
+					}
+				} catch (Exception e) {
+					// for lazy tasks, `getByName()` will return an exception in some cases, we
+					// ignore them here
+					continue;
+				}
+			}
 		}
-		return Collections.emptyList();
+		return tasks;
 	}
 
 	private boolean isDeprecated(AccessibleObject object) {

@@ -19,6 +19,6 @@ public class GradlePlugin implements Plugin<Project> {
 
 	@Override
 	public void apply(Project project) {
-		registry.register(new GradleProjectModelBuilder());
+		registry.register(new GradleProjectModelBuilder(registry));
 	}
 }

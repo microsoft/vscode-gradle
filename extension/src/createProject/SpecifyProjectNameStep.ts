@@ -18,9 +18,7 @@ export class SpecifyProjectNameStep implements IProjectCreationStep {
             inputBox.placeholder = "e.g. " + metadata.projectName;
             inputBox.value = metadata.projectName;
             inputBox.ignoreFocusOut = true;
-            const validationMessage: string | undefined = this.isValidProjectName(metadata.projectName);
-            inputBox.enabled = validationMessage === undefined;
-            inputBox.validationMessage = validationMessage;
+            inputBox.validationMessage = this.isValidProjectName(metadata.projectName);
             if (metadata.steps.length) {
                 inputBox.buttons = [vscode.QuickInputButtons.Back];
                 disposables.push(
@@ -33,11 +31,12 @@ export class SpecifyProjectNameStep implements IProjectCreationStep {
             }
             disposables.push(
                 inputBox.onDidChangeValue(() => {
-                    const validationMessage: string | undefined = this.isValidProjectName(inputBox.value);
-                    inputBox.enabled = validationMessage === undefined;
-                    inputBox.validationMessage = validationMessage;
+                    inputBox.validationMessage = this.isValidProjectName(inputBox.value);
                 }),
                 inputBox.onDidAccept(async () => {
+                    if (inputBox.validationMessage) {
+                        return;
+                    }
                     metadata.projectName = inputBox.value;
                     metadata.steps.push(specifyProjectNameStep);
                     metadata.nextStep = !metadata.isAdvanced ? undefined : specifySourcePackageNameStep;

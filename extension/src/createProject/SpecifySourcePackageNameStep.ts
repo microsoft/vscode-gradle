@@ -33,7 +33,6 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             inputBox.placeholder = "e.g. " + normalizedName;
             inputBox.value = normalizedName as string;
             inputBox.ignoreFocusOut = true;
-            inputBox.enabled = true;
             if (metadata.steps.length) {
                 inputBox.buttons = [vscode.QuickInputButtons.Back];
                 disposables.push(
@@ -50,9 +49,9 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                     if (!normalizedName) {
                         return;
                     } else if (normalizedName !== inputBox.value) {
-                        this.setInputInvalid(inputBox, normalizedName as string);
+                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
                     } else {
-                        this.setInputValid(inputBox);
+                        inputBox.validationMessage = undefined;
                     }
                 }),
                 inputBox.onDidAccept(async () => {
@@ -60,7 +59,7 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
                     if (!normalizedName) {
                         return;
                     } else if (normalizedName !== inputBox.value) {
-                        this.setInputInvalid(inputBox, normalizedName as string);
+                        inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
                     } else {
                         metadata.sourcePackageName = inputBox.value;
                         metadata.nextStep = undefined;
@@ -79,20 +78,6 @@ export class SpecifySourcePackageNameStep implements IProjectCreationStep {
             return await specifySourcePackageNamePromise;
         } finally {
             disposables.forEach((d) => d.dispose());
-        }
-    }
-
-    private setInputInvalid(inputBox: vscode.InputBox, normalizedName: string) {
-        if (inputBox) {
-            inputBox.enabled = false;
-            inputBox.validationMessage = `Invalid source package name, suggest name: ${normalizedName}`;
-        }
-    }
-
-    private setInputValid(inputBox: vscode.InputBox) {
-        if (inputBox) {
-            inputBox.enabled = true;
-            inputBox.validationMessage = undefined;
         }
     }
 }
