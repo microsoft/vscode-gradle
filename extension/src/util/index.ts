@@ -33,7 +33,7 @@ function tcpExists(host: string, port: number): Promise<boolean> {
     });
 }
 
-function sleep(time: number) {
+export function sleep(time: number) {
     return new Promise((resolve) => setTimeout(resolve, time));
 }
 

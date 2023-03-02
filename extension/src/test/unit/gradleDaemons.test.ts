@@ -30,6 +30,7 @@ import { IconPath } from "../../icons";
 import { ICON_DAEMON_STOPPED, ICON_DAEMON_BUSY, ICON_DAEMON_IDLE } from "../../views/constants";
 import { RootProjectsStore } from "../../stores";
 import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
+import { sleep } from "../../util";
 
 const mockContext = buildMockContext();
 const mockClient = buildMockClient();
@@ -261,10 +262,9 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         mockClient.getDaemonsStatus.withArgs(mockWorkspaceFolder1.uri.fsPath).returns(longReply);
 
-        await new Promise((resolve, reject) => {
+        await new Promise(async (resolve, reject) => {
             // This call will return the previous results (quickReply) as we've cancelled
             // the request with the subsequent call to refresh()
-            gradleDaemonsTreeDataProvider.refresh();
             gradleDaemonsTreeDataProvider
                 .getChildren()
                 .then((_children: vscode.TreeItem[]) => {
@@ -273,6 +273,7 @@ describe(getSuiteName("Gradle daemons"), () => {
                 .catch(reject);
             // This call will return the correct results (longReply)
             gradleDaemonsTreeDataProvider.refresh();
+            await sleep(1000);
             gradleDaemonsTreeDataProvider
                 .getChildren()
                 .then((_children: vscode.TreeItem[]) => {
