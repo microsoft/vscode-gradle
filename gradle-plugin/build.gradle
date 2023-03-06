@@ -42,4 +42,5 @@ spotless {
 }
 
 tasks.build.dependsOn tasks.copyJar
+tasks.copyJar.dependsOn tasks.jar
 compileJava.dependsOn 'spotlessCheck'
