@@ -62,7 +62,7 @@
         "Maven": {
           "GroupId": "org.gradle",
           "ArtifactId": "gradle-tooling-api",
-          "Version": "7.3"
+          "Version": "8.0.2"
         }
       },
       "DevelopmentDependency": false
