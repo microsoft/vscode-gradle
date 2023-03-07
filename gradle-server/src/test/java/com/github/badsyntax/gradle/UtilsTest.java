@@ -13,6 +13,15 @@ import org.junit.Test;
 public class UtilsTest {
 
 	@Test
+	public void testJava19Compatibility() {
+		Version javaVersion = new Version("19.0.1");
+		Version gradleVersion = new Version("7.6.0");
+		assertFalse(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+		gradleVersion = new Version("7.5.0");
+		assertTrue(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+	}
+
+	@Test
 	public void testJava17Compatibility() {
 		Version javaVersion = new Version("17.0.1");
 		Version gradleVersion = new Version("7.3.0-rc2");
