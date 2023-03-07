@@ -78,7 +78,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 }
             },
             (err) => {
-                const errorMessage = "Unable to start Java debugging:" + err.message;
+                const errorMessage = "Unable to start Java debugging: " + err.message;
                 logger.error(errorMessage);
                 vscode.window.showErrorMessage(errorMessage);
                 this.close();
