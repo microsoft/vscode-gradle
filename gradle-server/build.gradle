@@ -107,6 +107,7 @@ spotless {
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn jar
   dependsOn 'copyRuntimeLibs'
+  dependsOn(':gradle-language-server:copyJar')
   outputDir = file(libsDir)
   mainClass = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
@@ -126,6 +127,7 @@ task copyRuntimeLibs(type: Copy) {
 }
 
 project.tasks.named("processResources") {
+  dependsOn(':gradle-plugin:copyJar')
   duplicatesStrategy = 'include'
 }
 

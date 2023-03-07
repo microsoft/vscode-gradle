@@ -14,6 +14,8 @@ clean {
 jar.enabled = false;
 
 task copyProtoLib(type: Copy) {
+  dependsOn ':extension:copyProtoTs'
+  dependsOn ':extension:copyProtoJs'
   dependsOn ':extension:generateProto'
   group 'copy'
   description 'Copies genereated proto files'
