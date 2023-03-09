@@ -18,8 +18,11 @@ public class Utils {
 
 	private static Version getLowestGradleVersion(Version javaVersion) {
 		// Ref: https://docs.gradle.org/current/userguide/compatibility.html
-		if (javaVersion.isAtLeast("17")) {
-			// See: https://docs.gradle.org/7.3-rc-3/release-notes.html#java17
+		if (javaVersion.isAtLeast("19")) {
+			return new Version("7.6");
+		} else if (javaVersion.isAtLeast("18")) {
+			return new Version("7.5");
+		} else if (javaVersion.isAtLeast("17")) {
 			return new Version("7.3");
 		} else if (javaVersion.isAtLeast("16")) {
 			return new Version("7.0");
