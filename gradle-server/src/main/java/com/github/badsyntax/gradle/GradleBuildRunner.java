@@ -119,11 +119,21 @@ public class GradleBuildRunner {
 		if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
 			return args;
 		}
-		if (args.size() > 1) {
-			throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
+		int taskIndex = -1;
+		for (int i = 0; i < args.size(); i++) {
+			if (isTask(args.get(i))) {
+				if (taskIndex == -1) {
+					taskIndex = i;
+				} else {
+					// there is already a task found
+					throw new GradleBuildRunnerException("Unexpected multiple tasks when debugging");
+				}
+			}
 		}
-
-		List<String> parts = new LinkedList<>(Arrays.asList(args.get(0).split(":")));
+		if (taskIndex == -1) {
+			throw new GradleBuildRunnerException("No task found when debugging");
+		}
+		List<String> parts = new LinkedList<>(Arrays.asList(args.get(taskIndex).split(":")));
 		String taskName = parts.get(parts.size() - 1);
 		parts.remove(parts.size() - 1);
 
@@ -133,11 +143,15 @@ public class GradleBuildRunner {
 		String cleanTaskName = String.join(":", parts);
 
 		List<String> newArgs = new ArrayList<>(args);
-		newArgs.add(0, cleanTaskName);
+		newArgs.add(taskIndex, cleanTaskName);
 
 		logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
 
 		return newArgs;
+	}
+
+	private static boolean isTask(String argument) {
+		return !argument.startsWith("-");
 	}
 
 	private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
