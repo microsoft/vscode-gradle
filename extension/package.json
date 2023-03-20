@@ -17,7 +17,7 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
-    "vscode": "^1.66.0",
+    "vscode": "^1.76.0",
     "node": "^14.15.4",
     "npm": "^6.14.10"
   },
@@ -38,9 +38,7 @@
     "workspaceContains:build.gradle",
     "workspaceContains:settings.gradle",
     "workspaceContains:build.gradle.kts",
-    "workspaceContains:settings.gradle.kts",
-    "onCommand:gradle.createProject",
-    "onCommand:gradle.createProjectAdvanced"
+    "workspaceContains:settings.gradle.kts"
   ],
   "main": "./dist/index.js",
   "contributes": {
@@ -913,7 +911,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^16.11.7",
     "@types/sinon": "^10.0.13",
-    "@types/vscode": "1.66.0",
+    "@types/vscode": "^1.76.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vscode/test-electron": "^2.3.0",
