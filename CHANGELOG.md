@@ -4,6 +4,18 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.12.7](https://github.com/microsoft/vscode-gradle/compare/3.12.6...3.12.7) (2023-03-29)
+
+### Added
+- Support Java 19. [PR#1319](https://github.com/microsoft/vscode-gradle/pull/1319)
+
+### Changed
+- Upgrade vscode requirement to `1.76.0`. [PR#1263](https://github.com/microsoft/vscode-gradle/pull/1263)
+- Upgrade repository wrapper to `8.0.2`. [PR#1317](https://github.com/microsoft/vscode-gradle/pull/1317)
+
+### Fixed
+- [Bugs fixed](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+label%3Abug+milestone%3A%22March+2023%22+is%3Aclosed)
+
 ## [3.12.6](https://github.com/microsoft/vscode-gradle/compare/3.12.5...3.12.6) (2022-11-29)
 
 ### Fixed
