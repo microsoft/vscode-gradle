@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.bcel.classfile.Attribute;
 import org.apache.bcel.classfile.FieldOrMethod;
 import org.apache.bcel.classfile.JavaClass;
@@ -35,12 +36,12 @@ public class CompletionHandler {
 	private static String SETTING_GRADLE = "settings.gradle";
 	private static String DEPENDENCYHANDLER_CLASS = "org.gradle.api.artifacts.dsl.DependencyHandler";
 
-	public List<CompletionItem> getCompletionItems(MethodCallExpression containingCall, String fileName,
+	public List<CompletionItem> getCompletionItems(List<MethodCallExpression> containingCallPath, String fileName,
 			GradleLibraryResolver resolver, boolean javaPluginsIncluded, String projectPath) {
 		List<CompletionItem> results = new ArrayList<>();
 		Set<String> resultSet = new HashSet<>();
 		List<String> delegateClassNames = new ArrayList<>();
-		if (containingCall == null) {
+		if (containingCallPath.isEmpty()) {
 			if (fileName.equals(BUILD_GRADLE)) {
 				delegateClassNames.add(GradleDelegate.getDefault());
 			} else if (fileName.equals(SETTING_GRADLE)) {
@@ -48,7 +49,8 @@ public class CompletionHandler {
 			}
 			results.addAll(getCompletionItemsFromExtClosures(resolver, projectPath, resultSet));
 		} else {
-			String methodName = containingCall.getMethodAsString();
+			String methodName = containingCallPath.stream().map(MethodCallExpression::getMethodAsString)
+					.collect(Collectors.joining("."));
 			List<CompletionItem> re = getCompletionItemsFromExtClosures(resolver, projectPath, methodName, resultSet);
 			results.addAll(re);
 			List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);
