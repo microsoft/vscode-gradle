@@ -21,8 +21,19 @@ Running the build for the first time can take a bit of time, but subsequent buil
 
 The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get a lot of information from your project's Gradle build. If you want to debug the Gradle plugin, you can follow these steps:
 
-1. Run vscode launch configuration `Debug Extension & Gradle Plugin`
-2. Run vscode launch configuration `Attach to Gradle Plugin`
+1. Run vscode launch configuration `Debug Extension & Gradle Plugin`.
+2. Run vscode launch configuration `Attach to Gradle Plugin`.
+
+> Note: There is a known issue that when the Gradle project stores in a sub-folder of the root folder, the `Attach to Gradle Plugin` will fail to attach. See [#1237](https://github.com/microsoft/vscode-gradle/issues/1237).
+
+## Debugging Gradle Language Server (editing feature related)
+
+1. Run vscode launch configuration `Debug Language Server: Launch Extension`.
+2. Run vscode launch configuration `Debug Language Server: Launch Language Server`.
+
+## Debugging Gradle Server (work with Gradle daemon)
+
+Run vscode launch configuration `Debug Server & Extension`.
 
 ## Development Workflow
 
