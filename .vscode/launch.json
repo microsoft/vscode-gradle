@@ -27,7 +27,8 @@
       "cwd": "${workspaceFolder}/gradle-server",
       "presentation": {
         "group": "debug",
-        "order": 2
+        "order": 2,
+        "hidden": true
       }
     },
     {
