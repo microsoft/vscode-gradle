@@ -103,12 +103,12 @@ public class GradleLibraryResolver {
 		return resolveGradleAPI(null);
 	}
 
-	public boolean resolveGradleAPI(URI relativeToGradleFile) {
+	public boolean resolveGradleAPI(URI gradleFilePath) {
 		this.needToLoadClasses = true;
 		// step 1: find "lib" folder
 		File libFolder = null;
 		if (this.gradleWrapperEnabled) {
-			DistInfo info = getWrapperPropertiesInfo(relativeToGradleFile);
+			DistInfo info = getWrapperPropertiesInfo(gradleFilePath);
 			if (info == null) {
 				return false;
 			}
@@ -158,14 +158,14 @@ public class GradleLibraryResolver {
 		}
 	}
 
-	private DistInfo getWrapperPropertiesInfo(URI relativeToGradleFile) {
-		if (this.workspacePath == null && relativeToGradleFile == null) {
+	private DistInfo getWrapperPropertiesInfo(URI gradleFilePath) {
+		if (this.workspacePath == null && gradleFilePath == null) {
 			return null;
 		}
 		Path propertiesRelativePath = Paths.get("gradle", "wrapper", "gradle-wrapper.properties");
 		Path propertiesPath = null;
-		if (relativeToGradleFile != null) {
-			propertiesPath = Paths.get(relativeToGradleFile).getParent().resolve(propertiesRelativePath);
+		if (gradleFilePath != null) {
+			propertiesPath = Paths.get(gradleFilePath).getParent().resolve(propertiesRelativePath);
 		} else {
 			propertiesPath = this.workspacePath.resolve(propertiesRelativePath);
 		}
