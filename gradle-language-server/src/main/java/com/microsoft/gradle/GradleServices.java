@@ -309,7 +309,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 				containingCall = call;
 			}
 		}
-		this.libraryResolver.loadGradleClasses();
+		this.libraryResolver.loadGradleClasses(uri);
 		boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(uri,
 				this.completionVisitor.getPlugins(uri));
 		CompletionHandler handler = new CompletionHandler();
