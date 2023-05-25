@@ -100,11 +100,15 @@ public class GradleLibraryResolver {
 	}
 
 	public boolean resolveGradleAPI() {
+		return resolveGradleAPI(null);
+	}
+
+	public boolean resolveGradleAPI(URI gradleFilePath) {
 		this.needToLoadClasses = true;
 		// step 1: find "lib" folder
 		File libFolder = null;
 		if (this.gradleWrapperEnabled) {
-			DistInfo info = getWrapperPropertiesInfo();
+			DistInfo info = getWrapperPropertiesInfo(gradleFilePath);
 			if (info == null) {
 				return false;
 			}
@@ -119,20 +123,27 @@ public class GradleLibraryResolver {
 		if (!Utils.isValidFolder(libFolder)) {
 			return false;
 		}
-		this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
-		// step 2: find core API jar file
-		this.coreAPI = findCoreAPI(libFolder);
-		if (!Utils.isValidFile(this.coreAPI)) {
+		File newAPI = findCoreAPI(libFolder);
+		if (!Utils.isValidFile(newAPI)) {
 			return false;
 		}
+		if (this.coreAPI != null && this.coreAPI.equals(newAPI)) {
+			// same gradle dist so reuse.
+			this.needToLoadClasses = false;
+			return false;
+		}
+
+		this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
+		// step 2: find core API jar file
+		this.coreAPI = newAPI;
 		// step 3: find plugin API jar file
 		this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Paths.get("plugins")).toFile());
 		return Utils.isValidFile(this.pluginAPI);
 	}
 
-	public void loadGradleClasses() {
+	public void loadGradleClasses(URI uri) {
 		boolean isAPIValid = Utils.isValidFile(this.coreAPI) && Utils.isValidFile(this.pluginAPI);
-		if (!this.needToLoadClasses || (!isAPIValid && !this.resolveGradleAPI())) {
+		if (!this.needToLoadClasses || (!isAPIValid && !this.resolveGradleAPI(uri))) {
 			return;
 		}
 		try {
@@ -147,12 +158,18 @@ public class GradleLibraryResolver {
 		}
 	}
 
-	private DistInfo getWrapperPropertiesInfo() {
-		if (this.workspacePath == null) {
+	private DistInfo getWrapperPropertiesInfo(URI gradleFilePath) {
+		if (this.workspacePath == null && gradleFilePath == null) {
 			return null;
 		}
 		Path propertiesRelativePath = Paths.get("gradle", "wrapper", "gradle-wrapper.properties");
-		Path propertiesPath = this.workspacePath.resolve(propertiesRelativePath);
+		Path propertiesPath = null;
+		if (gradleFilePath != null) {
+			propertiesPath = Paths.get(gradleFilePath).getParent().resolve(propertiesRelativePath);
+		} else {
+			propertiesPath = this.workspacePath.resolve(propertiesRelativePath);
+		}
+
 		File propertiesFile = propertiesPath.toFile();
 		if (!propertiesFile.exists()) {
 			return null;
