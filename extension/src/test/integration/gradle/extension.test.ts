@@ -9,6 +9,7 @@ import { GradleTaskTreeItem } from "../../../views";
 import { RunTaskOpts, Api as ExtensionApi, Api } from "../../../api";
 import { COMMAND_REFRESH, COMMAND_RUN_TASK_WITH_ARGS } from "../../../commands";
 import { getSuiteName, EXTENSION_NAME } from "../../testUtil";
+import { sleep } from "../../../util";
 
 const fixtureName = process.env.FIXTURE_NAME || "(unknown fixture)";
 const fixturePath = vscode.Uri.file(path.resolve(__dirname, "../../../../test-fixtures", fixtureName));
@@ -40,11 +41,10 @@ describe(getSuiteName("Extension"), () => {
         assert.ok(extension);
     });
 
-    it("should be activated", () => {
+    it("should be activated", async () => {
         assert.ok(extension);
-        if (extension) {
-            assert.strictEqual(extension.isActive, true);
-        }
+        await extension.activate();
+        assert.strictEqual(extension.isActive, true);
     });
 
     describe("Task provider", () => {
@@ -53,7 +53,14 @@ describe(getSuiteName("Extension"), () => {
         });
 
         it("should load gradle tasks", async () => {
-            const tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+            let tasks: vscode.Task[] = [];
+            for (let i = 0; i < 5; i++) {
+                tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                if (tasks.length > 0) {
+                    break;
+                }
+                await sleep(5 * 1000);
+            }
             assert.ok(tasks);
             assert.strictEqual(tasks.length > 0, true);
             const helloTask = tasks.find(({ name }) => name === "hello");
