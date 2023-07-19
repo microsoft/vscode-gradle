@@ -4,6 +4,7 @@ import * as sinon from "sinon";
 import { COMMAND_REFRESH } from "../../../commands";
 import { Api } from "../../../api";
 import { EXTENSION_NAME } from "../../testUtil";
+import { sleep } from "../../../util";
 
 const fixtureName = process.env.FIXTURE_NAME || "(unknown fixture)";
 const suiteName = process.env.SUITE_NAME || "(unknown suite)";
@@ -21,8 +22,9 @@ describe(`${suiteName} - ${fixtureName}`, () => {
             assert.ok(extension);
         });
 
-        it("should be activated", () => {
+        it("should be activated", async () => {
             assert.ok(extension);
+            await extension.activate();
             assert.strictEqual(extension.isActive, true);
         });
 
@@ -30,7 +32,13 @@ describe(`${suiteName} - ${fixtureName}`, () => {
             let tasks: vscode.Task[] | undefined;
 
             beforeEach(async () => {
-                tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                for (let i = 0; i < 5; i++) {
+                    tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                    if (tasks.length > 0) {
+                        break;
+                    }
+                    await sleep(5 * 1000);
+                }
             });
 
             it("should load groovy default build file tasks", () => {
