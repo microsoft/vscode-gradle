@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { Api } from "../../../api";
 
 import { getSuiteName, EXTENSION_NAME } from "../../testUtil";
+import { sleep } from "../../../util";
 
 describe(getSuiteName("Extension"), () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,11 +25,10 @@ describe(getSuiteName("Extension"), () => {
         assert.ok(extension);
     });
 
-    it("should be activated", () => {
+    it("should be activated", async () => {
         assert.ok(extension);
-        if (extension) {
-            assert.strictEqual(extension.isActive, true);
-        }
+        await extension.activate();
+        assert.strictEqual(extension.isActive, true);
     });
 
     describe("Task provider", () => {
@@ -47,7 +47,13 @@ describe(getSuiteName("Extension"), () => {
             });
 
             beforeEach(async () => {
-                tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                for (let i = 0; i < 5; i++) {
+                    tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                    if (tasks.length > 0) {
+                        break;
+                    }
+                    await sleep(5 * 1000);
+                }
             });
 
             it("should load groovy default build file tasks", () => {
