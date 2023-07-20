@@ -84,7 +84,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-protobuf",
-          "Version": "1.45.0"
+          "Version": "1.53.0"
         }
       },
       "DevelopmentDependency": false
@@ -95,7 +95,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-stub",
-          "Version": "1.45.0"
+          "Version": "1.53.0"
         }
       },
       "DevelopmentDependency": false
@@ -117,7 +117,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-netty",
-          "Version": "1.45.0"
+          "Version": "1.53.0"
         }
       },
       "DevelopmentDependency": false
@@ -139,7 +139,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-testing",
-          "Version": "1.45.0"
+          "Version": "1.53.0"
         }
       },
       "DevelopmentDependency": true
