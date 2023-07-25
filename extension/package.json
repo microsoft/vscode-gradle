@@ -42,6 +42,9 @@
   ],
   "main": "./dist/index.js",
   "contributes": {
+    "javaExtensions": [
+      "./server/com.microsoft.gradle.bs.importer-0.1.0.jar"
+    ],
     "languages": [
       {
         "id": "gradle",

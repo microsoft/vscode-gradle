@@ -157,7 +157,7 @@ task buildProd(type: CrossPlatformExec) {
 }
 
 task bundle() {
-  dependsOn ':gradle-server:build', buildProd, ':npm-package:build', ':gradle-language-server:build'
+  dependsOn ':gradle-server:build', ':extension:buildJars', buildProd, ':npm-package:build', ':gradle-language-server:build'
   group 'build'
   description 'Bundles the extension files for release'
 }
@@ -196,6 +196,39 @@ task prepareForRelease() {
 
 task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
+}
+
+task buildJdtlsPlugin(type: CrossPlatformExec) {
+  workingDir file('./jdtls.ext')
+  commandLine 'mvnw', 'clean', 'package'
+}
+
+task copyJdtlsPluginJar(type: Copy) {
+  dependsOn ':extension:buildJdtlsPlugin'
+  from('./jdtls.ext/com.microsoft.gradle.bs.importer/target/') {
+    include 'com.microsoft.gradle.bs.importer-*.jar'
+  }
+  into 'server'
+  mustRunAfter copyDocs
+}
+
+task buildBuildServer(type: CrossPlatformExec) {
+  workingDir file('./build-server-for-gradle')
+  commandLine 'gradlew', 'build', '-x', 'test'
+}
+
+task copyBuildServerJars(type: Copy) {
+  dependsOn ':extension:buildBuildServer'
+  from('./build-server-for-gradle/server/build/libs/') {
+    include '**/*.jar'
+    include '**/init.gradle'
+  }
+  into 'server'
+  mustRunAfter copyDocs
+}
+
+task buildJars() {
+  dependsOn copyJdtlsPluginJar, copyBuildServerJars
 }
 
 build.finalizedBy buildProd, buildTest
