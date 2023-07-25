@@ -9,3 +9,5 @@ node_modules
 /src/proto/
 /*.md
 /images
+server
+jdtls.ext/com.microsoft.gradle.bs.importer/lib/*.jar

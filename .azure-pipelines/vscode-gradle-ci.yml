@@ -80,6 +80,19 @@ jobs:
       inputs:
         artifact: 'NOTICE.txt'
         path: $(Build.SourcesDirectory)/extension
+    - task: CmdLine@2
+      displayName: Clone Build Server repo
+      env:
+        GITHUB_PAT: $(P_ACCESS_TOKEN)
+      inputs:
+        script: git clone https://$GITHUB_PAT@github.com/microsoft/build-server-for-gradle.git
+        workingDirectory: $(Build.SourcesDirectory)/extension
+    - task: Gradle@2
+      displayName: PrepareForRelease
+      inputs:
+        gradleWrapperFile: 'gradlew'
+        gradleOptions: '-Xmx3072m'
+        tasks: 'prepareForRelease'
     - bash: |
         cd $(Build.SourcesDirectory)/extension
         npx vsce@latest package
