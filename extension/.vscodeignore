@@ -28,3 +28,5 @@ lib/*.md
 scripts
 # for nightly build
 package.insiders.json
+jdtls.ext
+build-server-for-gradle

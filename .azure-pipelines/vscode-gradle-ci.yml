@@ -80,6 +80,20 @@ jobs:
       inputs:
         artifact: 'NOTICE.txt'
         path: $(Build.SourcesDirectory)/extension
+    - task: DownloadBuildArtifacts@1
+      displayName: 'Download Build Server Artifacts'
+      inputs:
+        buildType: specific
+        project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
+        pipeline: 14788
+        downloadType: specific
+        extractTars: false
+    - task: CopyFiles@2
+      displayName: 'Copy Build Server Artifacts'
+      inputs:
+        SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
+        Contents: '**'
+        TargetFolder: $(Build.SourcesDirectory)/extension/server
     - bash: |
         cd $(Build.SourcesDirectory)/extension
         npx vsce@latest package

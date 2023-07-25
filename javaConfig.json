@@ -1,0 +1,6 @@
+{
+    "projects": [
+        "./extension/jdtls.ext/com.microsoft.gradle.bs.importer"
+    ],
+   "targetPlatform": "./extension/jdtls.ext/com.microsoft.gradle.bs.importer.target/com.microsoft.gradle.bs.importer.tp.target"
+}
