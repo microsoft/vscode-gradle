@@ -819,6 +819,11 @@
             "Open",
             "Add to Workspace"
           ]
+        },
+        "java.gradle.buildServer.enabled": {
+          "type": "boolean",
+          "description": "[Experimental] Use build server to synchronize Gradle project when enabled.",
+          "default": false
         }
       }
     },

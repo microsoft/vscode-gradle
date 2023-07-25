@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
+    <extension id="importers" point="org.eclipse.jdt.ls.core.importers">
+        <importer
+            id = "gradleBuildServerProjectImporter"
+            order ="200"
+            class = "com.microsoft.gradle.bs.importer.GradleBuildServerProjectImporter"/>
+    </extension>
+    <extension
+        id="com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature"
+        name="Gradle Build Server Project"
+        point="org.eclipse.core.resources.natures">
+        <runtime>
+            <run
+                class="com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature">
+            </run>
+        </runtime>
+    </extension>
 </plugin>
