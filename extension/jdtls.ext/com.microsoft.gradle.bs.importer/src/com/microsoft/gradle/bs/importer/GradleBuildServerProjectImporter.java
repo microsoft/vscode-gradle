@@ -123,7 +123,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
      * @throws CoreException
      */
     private List<IProject> importProjects(List<BuildTarget> buildTargets, IProgressMonitor monitor) throws CoreException {
-        Map<URI, List<BuildTarget>> buildTargetMap = Utils.mapBuildTargetsByUri(buildTargets);
+        Map<URI, List<BuildTarget>> buildTargetMap = Utils.mapBuildTargetsByProjectPath(buildTargets);
         List<IProject> projects = new LinkedList<>();
         for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
             URI uri = entrySet.getKey();
@@ -137,7 +137,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
             project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
             projects.add(project);
-            ImporterPlugin.getBuildTargetManager().setBuildTargets(project, entrySet.getValue());
         }
         return projects;
     }

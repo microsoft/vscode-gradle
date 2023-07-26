@@ -18,7 +18,12 @@ public class Utils {
         return ProjectUtils.hasNature(project, GradleBuildServerProjectNature.NATURE_ID);
     }
 
-    public static Map<URI, List<BuildTarget>> mapBuildTargetsByUri(List<BuildTarget> buildTargets) {
+    /**
+     * Map the build targets by their paths, the paths are get from the uri.
+     * @param buildTargets
+     * @return
+     */
+    public static Map<URI, List<BuildTarget>> mapBuildTargetsByProjectPath(List<BuildTarget> buildTargets) {
         return buildTargets.stream().collect(Collectors.groupingBy(target -> {
             return getUriWithoutQuery(target.getId().getUri());
         }));

@@ -28,8 +28,6 @@ public class ImporterPlugin extends Plugin {
 
     private Map<IPath, Pair<BuildServer, BuildClient>> buildServers = new ConcurrentHashMap<>();
 
-    private BuildTargetManager buildTargetManager = new BuildTargetManager();
-
     private static ImporterPlugin instance;
 
     private static String bundleDirectory;
@@ -102,10 +100,6 @@ public class ImporterPlugin extends Plugin {
             throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
                     "Failed to start build server.", e));
         }
-    }
-
-    public static BuildTargetManager getBuildTargetManager() {
-        return instance.buildTargetManager;
     }
 
     /**
