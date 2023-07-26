@@ -16,7 +16,18 @@
       "presentation": {
         "group": "debug",
         "order": 1
-      }
+      },
+      "env": {
+        "DEBUG_VSCODE_JAVA":"true"
+      },
+    },
+    {
+      "type": "java",
+      "name": "Attach to JDT.LS Plugin",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": "1044",
+      "projectName": "com.microsoft.gradle.bs.importer"
     },
     {
       "type": "java",
