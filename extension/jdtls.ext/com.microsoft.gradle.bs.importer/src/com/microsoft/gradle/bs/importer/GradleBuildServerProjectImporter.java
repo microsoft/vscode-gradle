@@ -2,15 +2,11 @@ package com.microsoft.gradle.bs.importer;
 
 import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 
-import java.nio.file.Path;
-
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.jdt.ls.core.internal.AbstractProjectImporter;
-import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
@@ -60,19 +56,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             directories = gradleDetector.scan(monitor);
         }
 
-        for (Path directory : directories) {
-            IProject project = ProjectUtils.getProjectFromUri(directory.toUri().toString());
-            // only import when the project is not imported by other importer before.
-            if (project == null) {
-                return true;
-            }
-
-            if (Utils.isGradleBuildServerProject(project)) {
-                return true;
-            }
-        }
-
-        return false;
+        return !directories.isEmpty();
     }
 
     @Override
