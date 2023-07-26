@@ -2,19 +2,36 @@ package com.microsoft.gradle.bs.importer;
 
 import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 
+import java.io.File;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectDescription;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.ls.core.internal.AbstractProjectImporter;
+import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
 import ch.epfl.scala.bsp4j.BuildServer;
+import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.InitializeBuildParams;
 import ch.epfl.scala.bsp4j.InitializeBuildResult;
+import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
@@ -76,7 +93,19 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
         buildServer.onBuildInitialized();
         // TODO: save the capabilities of this server
-        // TODO: get build targets and import to Eclipse projects
+
+        if (monitor.isCanceled()) {
+            return;
+        }
+        WorkspaceBuildTargetsResult workspaceBuildTargetsResult = buildServer.workspaceBuildTargets().join();
+        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
+
+        List<IProject> projects = importProjects(buildTargets, monitor);
+        if (projects.isEmpty()) {
+            return;
+        }
+
+        // TODO: update project classpath
     }
 
     @Override
@@ -84,4 +113,51 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // do nothing
     }
 
+    /**
+     * Import the projects according to the available build targets. If a build target
+     * maps to a project that is already imported by other importer
+     *
+     * @param buildTargets
+     * @param monitor
+     * @return
+     * @throws CoreException
+     */
+    private List<IProject> importProjects(List<BuildTarget> buildTargets, IProgressMonitor monitor) throws CoreException {
+        Map<URI, List<BuildTarget>> buildTargetMap = Utils.mapBuildTargetsByUri(buildTargets);
+        List<IProject> projects = new LinkedList<>();
+        for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
+            URI uri = entrySet.getKey();
+            IProject project = ProjectUtils.getProjectFromUri(uri.toString());
+            if (project == null) {
+                project = createProject(new File(uri), monitor);
+            } else if (!project.isAccessible() || !Utils.isGradleBuildServerProject(project)) {
+                // skip project already imported by other importers.
+                continue;
+            }
+
+            project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
+            projects.add(project);
+            ImporterPlugin.getBuildTargetManager().setBuildTargets(project, entrySet.getValue());
+        }
+        return projects;
+    }
+
+    private IProject createProject(File directory, IProgressMonitor monitor) throws CoreException {
+        String projectName = findFreeProjectName(directory.getName());
+        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
+        projectDescription.setLocation(Path.fromOSString(directory.getPath()));
+        projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
+        IProject project = workspace.getRoot().getProject(projectName);
+        project.create(projectDescription, monitor);
+
+        project.open(IResource.NONE, monitor);
+        return project;
+    }
+
+    private String findFreeProjectName(String baseName) {
+        IProject project = Arrays.stream(ProjectUtils.getAllProjects())
+                .filter(p -> p.getName().equals(baseName)).findFirst().orElse(null);
+        return project != null ? findFreeProjectName(baseName + "_") : baseName;
+    }
 }
