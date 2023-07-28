@@ -74,15 +74,15 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             OutputPathsResult outputResult = buildServer.buildTargetOutputPaths(
                     new OutputPathsParams(Arrays.asList(buildTarget.getId()))).join();
             String sourceOutputUri = getOutputUriByKind(outputResult.getItems(), OUTPUT_KIND_SOURCE);
-            IPath outputFullPath = getOutputFullPath(sourceOutputUri, project);
-            if (outputFullPath == null) {
+            IPath sourceOutputFullPath = getOutputFullPath(sourceOutputUri, project);
+            if (sourceOutputFullPath == null) {
                 JavaLanguageServerPlugin.logError("Cannot find source output path for build target: " + buildTarget.getId());
-                continue;
+            } else {
+                SourcesResult sourcesResult = buildServer.buildTargetSources(
+                        new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
+                List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, sourceOutputFullPath, isTest, monitor);
+                classpath.addAll(sourceEntries);
             }
-            SourcesResult sourcesResult = buildServer.buildTargetSources(
-                    new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
-            List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, outputFullPath, isTest, monitor);
-            classpath.addAll(sourceEntries);
 
             String resourceOutputUri = getOutputUriByKind(outputResult.getItems(), "resource");
             IPath resourceOutputFullPath = getOutputFullPath(resourceOutputUri, project);
@@ -90,7 +90,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             if (resourceOutputFullPath != null) {
                 ResourcesResult resourcesResult = buildServer.buildTargetResources(
                     new ResourcesParams(Arrays.asList(buildTarget.getId()))).join();
-                List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, outputFullPath, isTest);
+                List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, resourceOutputFullPath, isTest);
                 classpath.addAll(resourceEntries);
             }
 
