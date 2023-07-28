@@ -31,6 +31,9 @@ import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
 import ch.epfl.scala.bsp4j.OutputPathsParams;
 import ch.epfl.scala.bsp4j.OutputPathsResult;
+import ch.epfl.scala.bsp4j.ResourcesItem;
+import ch.epfl.scala.bsp4j.ResourcesParams;
+import ch.epfl.scala.bsp4j.ResourcesResult;
 import ch.epfl.scala.bsp4j.SourceItem;
 import ch.epfl.scala.bsp4j.SourcesItem;
 import ch.epfl.scala.bsp4j.SourcesParams;
@@ -80,6 +83,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
             List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, outputFullPath, isTest, monitor);
             classpath.addAll(sourceEntries);
+
+            String resourceOutputUri = getOutputUriByKind(outputResult.getItems(), "resource");
+            IPath resourceOutputFullPath = getOutputFullPath(resourceOutputUri, project);
+            // resource output is nullable according to Gradle API definition.
+            if (resourceOutputFullPath != null) {
+                ResourcesResult resourcesResult = buildServer.buildTargetResources(
+                    new ResourcesParams(Arrays.asList(buildTarget.getId()))).join();
+                List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, outputFullPath, isTest);
+                classpath.addAll(resourceEntries);
+            }
 
             // TODO: resolve other classpath entries.
         }
@@ -165,6 +178,31 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
         return sourceEntries;
+    }
+
+    private List<IClasspathEntry> getResourceEntries(IProject project, ResourcesResult resourcesResult, IPath outputFullPath, boolean isTest) {
+        List<IClasspathEntry> resourceEntries = new LinkedList<>();
+        for (ResourcesItem resources : resourcesResult.getItems()) {
+            for (String resourceUri : resources.getResources()) {
+                IPath resourcePath = ResourceUtils.filePathFromURI(resourceUri);
+                IPath relativeResourcePath = resourcePath.makeRelativeTo(project.getLocation());
+                IPath resourceFullPath = project.getFolder(relativeResourcePath).getFullPath();
+                List<IClasspathAttribute> classpathAttributes = new LinkedList<>();
+                if (isTest) {
+                    classpathAttributes.add(testAttribute);
+                }
+                // resource folder may not exist.
+                classpathAttributes.add(optionalAttribute);
+                resourceEntries.add(JavaCore.newSourceEntry(
+                    resourceFullPath,
+                    null,
+                    null,
+                    outputFullPath,
+                    classpathAttributes.toArray(new IClasspathAttribute[0])
+                ));
+            }
+        }
+        return resourceEntries;
     }
 
     private void moveTestTargetsToEnd(List<BuildTarget> buildTargets) {
