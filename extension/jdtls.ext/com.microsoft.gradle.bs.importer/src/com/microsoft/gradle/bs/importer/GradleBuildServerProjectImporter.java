@@ -105,7 +105,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return;
         }
 
-        // TODO: update project classpath
+        GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
+        for (IProject project : projects) {
+            buildSupport.updateClasspath(project, monitor);
+        }
     }
 
     @Override

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
 import ch.epfl.scala.bsp4j.BuildTarget;
@@ -37,5 +38,40 @@ public class Utils {
             throw new IllegalArgumentException("Invalid uri: " + uriString, e);
         }
     }
+
+    public static List<BuildTarget> getBuildTargetsByProjectUri(List<BuildTarget> buildTargets, URI projectUri) {
+        if (projectUri == null) {
+            throw new IllegalArgumentException("projectPath cannot be null.");
+        }
+
+        return buildTargets.stream().filter(target ->
+                URIUtil.sameURI(projectUri, getUriWithoutQuery(target.getId().getUri()))
+        ).collect(Collectors.toList());
+    }
+
+    /**
+   * Returns the query value by key from the URI.
+   */
+  public static String getQueryValueByKey(String uriString, String key) {
+    try {
+      URI uri = new URI(uriString);
+      if (uri.getQuery() == null) {
+        return "";
+      }
+
+      String query = uri.getQuery();
+      String[] pairs = query.split("&");
+      for (String pair : pairs) {
+        int idx = pair.indexOf("=");
+        if (idx > 0 && key.equals(pair.substring(0, idx))) {
+          return pair.substring(idx + 1);
+        }
+      }
+
+      return "";
+    } catch (URISyntaxException e) {
+      throw new IllegalArgumentException("Invalid uri: " + uriString, e);
+    }
+  }
 
 }
