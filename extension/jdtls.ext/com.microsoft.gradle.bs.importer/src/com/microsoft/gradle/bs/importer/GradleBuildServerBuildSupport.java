@@ -72,6 +72,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     new OutputPathsParams(Arrays.asList(buildTarget.getId()))).join();
             String sourceOutputUri = getOutputUriByKind(outputResult.getItems(), OUTPUT_KIND_SOURCE);
             IPath outputFullPath = getOutputFullPath(sourceOutputUri, project);
+            if (outputFullPath == null) {
+                JavaLanguageServerPlugin.logError("Cannot find source output path for build target: " + buildTarget.getId());
+                continue;
+            }
             SourcesResult sourcesResult = buildServer.buildTargetSources(
                     new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
             List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, outputFullPath, isTest, monitor);
@@ -175,7 +179,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      */
     private IPath getOutputFullPath(String outputUri, IProject project) {
         if (StringUtils.isBlank(outputUri)) {
-            // if output uri is empty, return null to use the default output path.
             return null;
         }
 
