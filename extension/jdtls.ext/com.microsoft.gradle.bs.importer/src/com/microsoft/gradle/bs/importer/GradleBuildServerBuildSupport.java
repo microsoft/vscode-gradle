@@ -135,7 +135,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                         JavaLanguageServerPlugin.logError("The source path is not relative to the workspace root: " + relativeSourcePath);
                         continue;
                     }
-                    IFolder linkFolder = project.getFolder(relativeSourcePath.toString().replace(IPath.SEPARATOR, '_'));
+                    IFolder linkFolder = project.getFolder(String.join("_", relativeSourcePath.segments()));
                     if (!linkFolder.exists()) {
                         linkFolder.createLink(sourcePath, IResource.REPLACE, monitor);
                     }
