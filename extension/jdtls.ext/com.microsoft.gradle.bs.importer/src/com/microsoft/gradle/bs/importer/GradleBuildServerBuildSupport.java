@@ -291,23 +291,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "JVM target is unavailable."));
         }
 
-        jvmTargets.sort((j1, j2) -> {
-            String[] components1 = j1.getJavaVersion().split("\\.");
-            String[] components2 = j2.getJavaVersion().split("\\.");
-
-            int length = Math.max(components1.length, components2.length);
-            for (int i = 0; i < length; i++) {
-                int version1 = i < components1.length ? Integer.parseInt(components1[i]) : 0;
-                int version2 = i < components2.length ? Integer.parseInt(components2[i]) : 0;
-
-                if (version1 != version2) {
-                    return Integer.compare(version1, version2);
-                }
-            }
-
-            return 0; // versions are equal
-        });
-
+        jvmTargets.sort((j1, j2) -> JavaCore.compareJavaVersions(j1.getJavaVersion(), j2.getJavaVersion()));
         return jvmTargets.get(jvmTargets.size() - 1);
     }
 
