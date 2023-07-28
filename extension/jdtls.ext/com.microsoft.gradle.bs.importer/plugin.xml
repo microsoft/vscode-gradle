@@ -7,6 +7,12 @@
             order ="200"
             class = "com.microsoft.gradle.bs.importer.GradleBuildServerProjectImporter"/>
     </extension>
+    <extension id="buildSupport" point="org.eclipse.jdt.ls.core.buildSupport">
+        <buildSupport
+            id="gradleBuildServerBuildSupport"
+            order="290"
+            class="com.microsoft.gradle.bs.importer.GradleBuildServerBuildSupport" />
+    </extension>
     <extension
         id="com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature"
         name="Gradle Build Server Project"
