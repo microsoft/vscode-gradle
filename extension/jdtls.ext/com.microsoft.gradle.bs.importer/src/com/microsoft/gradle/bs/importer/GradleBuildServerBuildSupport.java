@@ -110,8 +110,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         // Source set can have its own Java version setting, we need to find the highest version.
         // Since in JDT, each project can only has one JDK.
         JvmBuildTarget jvmBuildTarget = getJvmTargetWithHighestVersion(buildTargets);
-        String javaVersion = getEclipseCompatibleVersion(jvmBuildTarget.getJavaVersion());
-        IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(javaVersion, new File(jvmBuildTarget.getJavaHome()));
+        IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
+                new File(jvmBuildTarget.getJavaHome()));
         classpath.add(JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm)));
 
         if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
@@ -274,15 +274,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         for (BuildTarget buildTarget : buildTargets) {
             // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
             if ("jvm".equals(buildTarget.getDataKind())) {
-                String javaVersion = getString((Map) buildTarget.getData(), JAVA_VERSION);
-                if (StringUtils.isBlank(javaVersion)) {
-                    continue;
-                }
-
                 String javaHome = getString((Map) buildTarget.getData(), JAVA_HOME);
                 if (StringUtils.isBlank(javaHome)) {
                     continue;
                 }
+
+                String javaVersion = getString((Map) buildTarget.getData(), JAVA_VERSION);
+                if (StringUtils.isBlank(javaVersion)) {
+                    continue;
+                }
+                javaVersion = getEclipseCompatibleVersion(javaVersion);
                 jvmTargets.add(new JvmBuildTarget(javaHome, javaVersion));
             }
         }
