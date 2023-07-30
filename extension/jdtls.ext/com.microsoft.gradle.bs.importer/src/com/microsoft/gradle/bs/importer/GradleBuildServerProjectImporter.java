@@ -26,6 +26,8 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
+import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
+
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
@@ -88,8 +90,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                 rootFolder.toPath().toUri().toString(),
                 new BuildClientCapabilities(java.util.Collections.singletonList("java"))
         );
-
-        // TODO: create and set preference
+        BuildServerPreferences data = getBuildServerPreferences();
+        params.setData(data);
         InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
         buildServer.onBuildInitialized();
         // TODO: save the capabilities of this server
@@ -161,5 +163,17 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IProject project = Arrays.stream(ProjectUtils.getAllProjects())
                 .filter(p -> p.getName().equals(baseName)).findFirst().orElse(null);
         return project != null ? findFreeProjectName(baseName + "_") : baseName;
+    }
+
+    private BuildServerPreferences getBuildServerPreferences() {
+        BuildServerPreferences pref = new BuildServerPreferences();
+        Preferences jdtlsPreferences = getPreferences();
+        pref.setGradleArguments(jdtlsPreferences.getGradleArguments());
+        pref.setGradleHome(jdtlsPreferences.getGradleHome());
+        pref.setGradleJavaHome(jdtlsPreferences.getGradleJavaHome());
+        pref.setGradleJvmArguments(jdtlsPreferences.getGradleJvmArguments());
+        pref.setGradleUserHome(jdtlsPreferences.getGradleUserHome());
+        pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
+        return pref;
     }
 }
