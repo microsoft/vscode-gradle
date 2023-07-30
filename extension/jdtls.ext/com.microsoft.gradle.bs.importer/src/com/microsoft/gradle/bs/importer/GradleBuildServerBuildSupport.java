@@ -1,9 +1,12 @@
 package com.microsoft.gradle.bs.importer;
 
+import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -15,10 +18,14 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.launching.IVMInstall;
+import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
@@ -27,6 +34,7 @@ import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetTag;
+import ch.epfl.scala.bsp4j.JvmBuildTarget;
 import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
 import ch.epfl.scala.bsp4j.OutputPathsParams;
@@ -42,6 +50,8 @@ import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class GradleBuildServerBuildSupport implements IBuildSupport {
 
+    private static final String JAVA_VERSION = "javaVersion";
+    private static final String JAVA_HOME = "javaHome";
     private static final Pattern GRADLE_FILE_EXT = Pattern.compile("^.*\\.gradle(\\.kts)?$");
     private static final String GRADLE_PROPERTIES = "gradle.properties";
 
@@ -97,6 +107,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             // TODO: resolve other classpath entries.
         }
 
+        // Source set can have its own Java version setting, we need to find the highest version.
+        // Since in JDT, each project can only has one JDK.
+        JvmBuildTarget jvmBuildTarget = getJvmTargetWithHighestVersion(buildTargets);
+        IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
+                new File(jvmBuildTarget.getJavaHome()));
+        classpath.add(JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm)));
+
         if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
             // if there is any source entry, we treat it as a Java project.
             addJavaNature(project, monitor);
@@ -106,8 +123,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
         }
     }
-
-
 
     @Override
     public boolean isBuildFile(IResource resource) {
@@ -249,6 +264,50 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
     private boolean isInBuildDir(IPath sourceFullPath) {
         return Arrays.stream(sourceFullPath.segments()).anyMatch(segment -> segment.equals("build"));
+    }
+
+    /**
+     * Get the JVM build target which has the highest version.
+     */
+    private JvmBuildTarget getJvmTargetWithHighestVersion(List<BuildTarget> buildTargets) throws CoreException {
+        List<JvmBuildTarget> jvmTargets = new LinkedList<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
+            if ("jvm".equals(buildTarget.getDataKind())) {
+                String javaHome = getString((Map) buildTarget.getData(), JAVA_HOME);
+                if (StringUtils.isBlank(javaHome)) {
+                    continue;
+                }
+
+                String javaVersion = getString((Map) buildTarget.getData(), JAVA_VERSION);
+                if (StringUtils.isBlank(javaVersion)) {
+                    continue;
+                }
+                javaVersion = getEclipseCompatibleVersion(javaVersion);
+                jvmTargets.add(new JvmBuildTarget(javaHome, javaVersion));
+            }
+        }
+
+        if (jvmTargets.isEmpty()) {
+            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "JVM target is unavailable."));
+        }
+
+        jvmTargets.sort((j1, j2) -> JavaCore.compareJavaVersions(j1.getJavaVersion(), j2.getJavaVersion()));
+        return jvmTargets.get(jvmTargets.size() - 1);
+    }
+
+    /**
+     * Some legacy Gradle (e.g. v6) uses "1.9" and "1.10" to represent Java 9 and 10.
+     * We do a conversion here to make it compatible with Eclipse.
+     */
+    private String getEclipseCompatibleVersion(String javaVersion) {
+        if ("1.9".equals(javaVersion)) {
+            return "9";
+        } else if ("1.10".equals(javaVersion)) {
+            return "10";
+        }
+
+        return javaVersion;
     }
 
     /**
