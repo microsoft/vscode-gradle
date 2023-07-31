@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
@@ -28,6 +29,7 @@ import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
+import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
@@ -186,6 +188,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
         projectDescription.setLocation(Path.fromOSString(directory.getPath()));
         projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
+        ICommand buildSpec = projectDescription.newCommand();
+        buildSpec.setBuilderName(BuildServerBuilder.BUILDER_ID);
+        projectDescription.setBuildSpec(new ICommand[]{buildSpec});
         IProject project = workspace.getRoot().getProject(projectName);
         project.create(projectDescription, monitor);
 
