@@ -1,9 +1,13 @@
 package com.microsoft.gradle.bs.importer;
 
 import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
+import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +23,13 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.internal.core.ClasspathEntry;
 import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
@@ -34,6 +40,10 @@ import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetTag;
+import ch.epfl.scala.bsp4j.DependencyModule;
+import ch.epfl.scala.bsp4j.DependencyModulesItem;
+import ch.epfl.scala.bsp4j.DependencyModulesParams;
+import ch.epfl.scala.bsp4j.DependencyModulesResult;
 import ch.epfl.scala.bsp4j.JvmBuildTarget;
 import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
@@ -103,8 +113,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, resourceOutputFullPath, isTest);
                 classpath.addAll(resourceEntries);
             }
-
-            // TODO: resolve other classpath entries.
         }
 
         // Source set can have its own Java version setting, we need to find the highest version.
@@ -113,6 +121,17 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
                 new File(jvmBuildTarget.getJavaHome()));
         classpath.add(JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm)));
+
+
+        // Use a map to deduplicate dependencies which point to the same jar.
+        Map<String, IClasspathEntry> dependencyMap = new LinkedHashMap<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
+            DependencyModulesResult dependencyModuleResult = buildServer.buildTargetDependencyModules(
+                    new DependencyModulesParams(Arrays.asList(buildTarget.getId()))).join();
+            addDependencyJars(dependencyMap, dependencyModuleResult, isTest);
+        }
+        classpath.addAll(dependencyMap.values());
 
         if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
             // if there is any source entry, we treat it as a Java project.
@@ -308,6 +327,63 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         return javaVersion;
+    }
+
+    private void addDependencyJars(Map<String, IClasspathEntry> dependencyMap,
+            DependencyModulesResult dependencyModuleResult, boolean isTest) {
+        for (DependencyModulesItem item : dependencyModuleResult.getItems()) {
+            for (DependencyModule module : item.getModules()) {
+                if (!"maven".equals(module.getDataKind())) {
+                    continue;
+                }
+                List<Map> artifacts = (List<Map>) getValue((Map) module.getData(), "artifacts");
+                if (artifacts == null) {
+                    continue;
+                }
+
+                File artifact = null;
+                File sourceArtifact = null;
+                for (Map artifactData : artifacts) {
+                    String uri = (String) getValue(artifactData, "uri");
+                    if (uri == null) {
+                        continue;
+                    }
+                    String classifier = (String) getValue(artifactData, "classifier");
+                    try {
+                        File jarFile = new File(new URI(uri));
+                        if (classifier == null) {
+                            artifact = jarFile;
+                        } else if ("sources".equals(classifier)) {
+                            sourceArtifact = jarFile;
+                        }
+                    } catch (URISyntaxException e) {
+                        JavaLanguageServerPlugin.logException(e);
+                        continue;
+                    }
+                }
+
+                if (artifact == null) {
+                    continue;
+                }
+
+                List<IClasspathAttribute> attributes = new LinkedList<>();
+                if (isTest) {
+                    attributes.add(testAttribute);
+                }
+                if (!artifact.exists()) {
+                    attributes.add(optionalAttribute);
+                }
+
+                dependencyMap.putIfAbsent(artifact.getAbsolutePath(), JavaCore.newLibraryEntry(
+                        new Path(artifact.getAbsolutePath()),
+                        sourceArtifact == null ? null : new Path(sourceArtifact.getAbsolutePath()),
+                        null,
+                        ClasspathEntry.NO_ACCESS_RULES,
+                        attributes.size() == 0 ? ClasspathEntry.NO_EXTRA_ATTRIBUTES : attributes.toArray(new IClasspathAttribute[attributes.size()]),
+                        false
+                ));
+            }
+        }
     }
 
     /**
