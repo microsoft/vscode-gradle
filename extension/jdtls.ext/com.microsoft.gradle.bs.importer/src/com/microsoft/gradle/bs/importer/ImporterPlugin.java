@@ -16,6 +16,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
@@ -30,11 +31,17 @@ public class ImporterPlugin extends Plugin {
 
     private static ImporterPlugin instance;
 
+    /**
+     * Digest store for the gradle configuration files.
+     */
+    private DigestStore digestStore;
+
     private static String bundleDirectory;
 
     @Override
     public void start(BundleContext context) throws Exception {
         ImporterPlugin.instance = this;
+        digestStore = new DigestStore(getStateLocation().toFile());
         Optional<File> bundleFile = FileLocator.getBundleFileLocation(context.getBundle());
         if (!bundleFile.isPresent()) {
            throw new IllegalStateException("Failed to get bundle location.");
@@ -53,6 +60,10 @@ public class ImporterPlugin extends Plugin {
     public static ImporterPlugin getInstance() {
         return ImporterPlugin.instance;
     }
+
+    public static DigestStore getDigestStore() {
+        return instance.digestStore;
+	}
 
     public static BuildServer getBuildServerConnection(IPath rootPath) throws CoreException {
         Pair<BuildServer, BuildClient> pair = instance.buildServers.get(rootPath);
