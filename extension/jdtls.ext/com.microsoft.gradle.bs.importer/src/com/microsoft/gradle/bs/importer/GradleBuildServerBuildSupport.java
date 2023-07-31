@@ -39,6 +39,7 @@ import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
+import org.eclipse.jdt.ls.core.internal.managers.ProjectsManager.CHANGE_TYPE;
 
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
@@ -76,6 +77,36 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     @Override
     public boolean applies(IProject project) {
         return Utils.isGradleBuildServerProject(project);
+    }
+
+    @Override
+    public void update(IProject project, boolean force, IProgressMonitor monitor) throws CoreException {
+        if (!applies(project)) {
+            return;
+        }
+
+        boolean shouldUpdate = GradleBuildServerProjectImporter.updateConfigurationDigest(project) || force;
+        if (shouldUpdate) {
+            IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
+            if (rootPath == null) {
+                JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
+                return;
+            }
+            BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+            buildServer.workspaceReload().join();
+
+            Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+            for (URI uri : buildTargetMap.keySet()) {
+                IProject projectFromUri = ProjectUtils.getProjectFromUri(uri.toString());
+                if (projectFromUri == null || !Utils.isGradleBuildServerProject(projectFromUri)) {
+                    continue;
+                }
+                updateClasspath(projectFromUri, monitor);
+                updateProjectDependencies(projectFromUri, monitor);
+                // TODO: in case that the projects/build targets are created or removed,
+                // we can use the server->client notification: 'buildTarget/didChange' to support this case.
+            }
+        }
     }
 
     /**
@@ -153,7 +184,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      * Update the project dependencies of the project.
      * @throws CoreException
      */
-    public void addProjectDependencies(IProject project, IProgressMonitor monitor) throws CoreException {
+    public void updateProjectDependencies(IProject project, IProgressMonitor monitor) throws CoreException {
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
@@ -181,6 +212,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
         return entries;
+    }
+
+    @Override
+    public boolean fileChanged(IResource resource, CHANGE_TYPE changeType, IProgressMonitor monitor) throws CoreException {
+        if (resource == null || !applies(resource.getProject())) {
+            return false;
+        }
+        return isBuildFile(resource) || IBuildSupport.super.fileChanged(resource, changeType, monitor);
     }
 
     @Override

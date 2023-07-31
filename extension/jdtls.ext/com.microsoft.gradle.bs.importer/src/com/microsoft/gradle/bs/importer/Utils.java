@@ -22,14 +22,12 @@ public class Utils {
     }
 
     /**
-     * Map the build targets by their paths, the paths are get from the uri.
-     * @param buildTargets
-     * @return
+     * Get build targets mapped by their paths, the paths are get from the uri.
      */
-    public static Map<URI, List<BuildTarget>> mapBuildTargetsByProjectPath(List<BuildTarget> buildTargets) {
-        return buildTargets.stream().collect(Collectors.groupingBy(target -> {
-            return getUriWithoutQuery(target.getId().getUri());
-        }));
+    public static Map<URI, List<BuildTarget>> getBuildTargetsMappedByProjectPath(BuildServer serverConnection) {
+        WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
+        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
+        return buildTargets.stream().collect(Collectors.groupingBy(target -> getUriWithoutQuery(target.getId().getUri())));
     }
 
     public static URI getUriWithoutQuery(String uriString) {
