@@ -85,7 +85,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             return;
         }
 
-        boolean shouldUpdate = force || GradleBuildServerProjectImporter.updateConfigurationDigest(project);
+        boolean shouldUpdate = GradleBuildServerProjectImporter.updateConfigurationDigest(project) || force;
         if (shouldUpdate) {
             IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
             if (rootPath == null) {
