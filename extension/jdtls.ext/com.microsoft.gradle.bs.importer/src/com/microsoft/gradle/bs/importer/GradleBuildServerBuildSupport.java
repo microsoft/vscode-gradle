@@ -7,11 +7,13 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
@@ -28,6 +30,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.internal.core.ClasspathEntry;
 import org.eclipse.jdt.launching.IVMInstall;
@@ -39,6 +42,7 @@ import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
 
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
+import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
 import ch.epfl.scala.bsp4j.BuildTargetTag;
 import ch.epfl.scala.bsp4j.DependencyModule;
 import ch.epfl.scala.bsp4j.DependencyModulesItem;
@@ -56,7 +60,6 @@ import ch.epfl.scala.bsp4j.SourceItem;
 import ch.epfl.scala.bsp4j.SourcesItem;
 import ch.epfl.scala.bsp4j.SourcesParams;
 import ch.epfl.scala.bsp4j.SourcesResult;
-import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class GradleBuildServerBuildSupport implements IBuildSupport {
 
@@ -75,6 +78,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return Utils.isGradleBuildServerProject(project);
     }
 
+    /**
+     * Update the classpath of the project (except for the project dependencies), and
+     * add Java nature if necessary.
+     * @throws CoreException
+     */
     public void updateClasspath(IProject project, IProgressMonitor monitor) throws CoreException {
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
@@ -83,9 +91,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
         BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         List<IClasspathEntry> classpath = new LinkedList<>();
-        WorkspaceBuildTargetsResult workspaceBuildTargetsResult = buildServer.workspaceBuildTargets().join();
-        List<BuildTarget> allBuildTargets = workspaceBuildTargetsResult.getTargets();
-        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(allBuildTargets, project.getLocationURI());
+        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
         // put test targets to the end of the list
         moveTestTargetsToEnd(buildTargets);
 
@@ -141,6 +147,40 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             // TODO: check if we only only refresh the output folder.
             project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
         }
+    }
+
+    /**
+     * Update the project dependencies of the project.
+     * @throws CoreException
+     */
+    public void addProjectDependencies(IProject project, IProgressMonitor monitor) throws CoreException {
+        IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
+        if (rootPath == null) {
+            JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
+            return;
+        }
+        BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
+        Set<BuildTargetIdentifier> projectDependencies = new HashSet<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            projectDependencies.addAll(buildTarget.getDependencies());
+        }
+        IJavaProject javaProject = JavaCore.create(project);
+        List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(javaProject.getRawClasspath()));
+        classpath.addAll(getProjectDependencyEntries(projectDependencies));
+        javaProject.setRawClasspath(classpath.toArray(IClasspathEntry[]::new), javaProject.getOutputLocation(), monitor);
+    }
+
+    private List<IClasspathEntry> getProjectDependencyEntries(Set<BuildTargetIdentifier> projectDependencies) {
+        List<IClasspathEntry> entries = new LinkedList<>();
+        for (BuildTargetIdentifier dependency : projectDependencies) {
+            URI uri = Utils.getUriWithoutQuery(dependency.getUri());
+            IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
+            if (dependencyProject != null) {
+                entries.add(JavaCore.newProjectEntry(dependencyProject.getFullPath()));
+            }
+        }
+        return entries;
     }
 
     @Override

@@ -10,7 +10,9 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
+import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
+import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class Utils {
     private Utils() {}
@@ -39,10 +41,13 @@ public class Utils {
         }
     }
 
-    public static List<BuildTarget> getBuildTargetsByProjectUri(List<BuildTarget> buildTargets, URI projectUri) {
+    public static List<BuildTarget> getBuildTargetsByProjectUri(BuildServer serverConnection, URI projectUri) {
         if (projectUri == null) {
             throw new IllegalArgumentException("projectPath cannot be null.");
         }
+
+        WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
+        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
 
         return buildTargets.stream().filter(target ->
                 URIUtil.sameURI(projectUri, getUriWithoutQuery(target.getId().getUri()))

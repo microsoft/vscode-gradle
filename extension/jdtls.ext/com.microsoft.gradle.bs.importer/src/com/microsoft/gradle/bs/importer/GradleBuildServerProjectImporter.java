@@ -111,6 +111,13 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         for (IProject project : projects) {
             buildSupport.updateClasspath(project, monitor);
         }
+
+        // We need to add the project dependencies after the Java nature is set to all
+        // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
+        // otherwise JDT will thrown exception when adding projects as dependencies.
+        for (IProject project : projects) {
+            buildSupport.addProjectDependencies(project, monitor);
+        }
     }
 
     @Override
