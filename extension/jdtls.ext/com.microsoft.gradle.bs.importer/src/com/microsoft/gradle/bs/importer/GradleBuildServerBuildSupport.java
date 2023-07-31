@@ -7,7 +7,7 @@ import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +124,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
 
         // Use a map to deduplicate dependencies which point to the same jar.
-        Map<String, IClasspathEntry> dependencyMap = new HashMap<>();
+        Map<String, IClasspathEntry> dependencyMap = new LinkedHashMap<>();
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
             DependencyModulesResult dependencyModuleResult = buildServer.buildTargetDependencyModules(
