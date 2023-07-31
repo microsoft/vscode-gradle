@@ -21,9 +21,11 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.ls.core.internal.AbstractProjectImporter;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
+import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
@@ -33,7 +35,6 @@ import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.InitializeBuildParams;
 import ch.epfl.scala.bsp4j.InitializeBuildResult;
-import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
@@ -99,10 +100,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         if (monitor.isCanceled()) {
             return;
         }
-        WorkspaceBuildTargetsResult workspaceBuildTargetsResult = buildServer.workspaceBuildTargets().join();
-        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
 
-        List<IProject> projects = importProjects(buildTargets, monitor);
+        List<IProject> projects = importProjects(buildServer, monitor);
         if (projects.isEmpty()) {
             return;
         }
@@ -116,7 +115,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
         // otherwise JDT will thrown exception when adding projects as dependencies.
         for (IProject project : projects) {
-            buildSupport.addProjectDependencies(project, monitor);
+            buildSupport.updateProjectDependencies(project, monitor);
+        }
+
+        for (IProject project : projects) {
+            updateConfigurationDigest(project);
         }
     }
 
@@ -126,16 +129,40 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     }
 
     /**
+     * Update the digest of the gradle configuration file. Return <code>true</code> if
+     * the digest is updated, <code>false</code> otherwise.
+     * @throws CoreException
+     */
+    public static boolean updateConfigurationDigest(IProject project) {
+        DigestStore digestStore = ImporterPlugin.getDigestStore();
+        boolean result = false;
+        try {
+            File buildFile = project.getFile(BUILD_GRADLE_DESCRIPTOR).getLocation().toFile();
+            result = (buildFile.exists() && digestStore.updateDigest(buildFile.toPath())) || result;
+
+            File settingsFile = project.getFile(SETTINGS_GRADLE_DESCRIPTOR).getLocation().toFile();
+            result = (settingsFile.exists() && digestStore.updateDigest(settingsFile.toPath())) || result;
+
+            File buildKtsFile = project.getFile(BUILD_GRADLE_KTS_DESCRIPTOR).getLocation().toFile();
+            result = (buildKtsFile.exists() && digestStore.updateDigest(buildKtsFile.toPath())) || result;
+
+            File settingsKtsFile = project.getFile(SETTINGS_GRADLE_KTS_DESCRIPTOR).getLocation().toFile();
+            result = (settingsKtsFile.exists() && digestStore.updateDigest(settingsKtsFile.toPath())) || result;
+        } catch (CoreException e) {
+            JavaLanguageServerPlugin.logException("Failed to update digest for Gradle configuration file", e);
+        }
+
+        return result;
+    }
+
+    /**
      * Import the projects according to the available build targets. If a build target
      * maps to a project that is already imported by other importer
      *
-     * @param buildTargets
-     * @param monitor
-     * @return
      * @throws CoreException
      */
-    private List<IProject> importProjects(List<BuildTarget> buildTargets, IProgressMonitor monitor) throws CoreException {
-        Map<URI, List<BuildTarget>> buildTargetMap = Utils.mapBuildTargetsByProjectPath(buildTargets);
+    private List<IProject> importProjects(BuildServer buildServer, IProgressMonitor monitor) throws CoreException {
+        Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
         List<IProject> projects = new LinkedList<>();
         for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
             URI uri = entrySet.getKey();
