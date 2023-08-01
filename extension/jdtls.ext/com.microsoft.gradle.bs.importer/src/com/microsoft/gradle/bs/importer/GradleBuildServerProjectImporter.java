@@ -1,6 +1,6 @@
 package com.microsoft.gradle.bs.importer;
 
-import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
+import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
 
 import java.io.File;
 import java.net.URI;
@@ -64,8 +64,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        Object bspImporterEnabled = getValue(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
-        if (bspImporterEnabled == null || !((boolean) bspImporterEnabled)) {
+        if (!isBuildServerEnabled()) {
             return false;
         }
 
@@ -220,5 +219,26 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         pref.setGradleUserHome(jdtlsPreferences.getGradleUserHome());
         pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
         return pref;
+    }
+
+    private boolean isBuildServerEnabled() {
+        Preferences preferences = getPreferences();
+        String bspImporterEnabled = getString(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
+        if (bspImporterEnabled == null) {
+            return false;
+        }
+
+        if ("true".equalsIgnoreCase(bspImporterEnabled)) {
+            return true;
+        } else if ("false".equalsIgnoreCase(bspImporterEnabled)) {
+            return false;
+        } else if ("auto".equalsIgnoreCase(bspImporterEnabled)){
+            // Rely on the workspace storage path to determine if the client is VSCode Insiders.
+            // This may not always true if user changes the storage path manually, but should
+            // work in most cases.
+            return ResourcesPlugin.getPlugin().getStateLocation().toString().contains("Code - Insiders");
+        }
+
+        return false;
     }
 }

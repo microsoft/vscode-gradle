@@ -821,9 +821,14 @@
           ]
         },
         "java.gradle.buildServer.enabled": {
-          "type": "boolean",
-          "description": "[Experimental] Use build server to synchronize Gradle project when enabled.",
-          "default": false
+          "type": "string",
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "markdownDescription": "[Experimental] Use build server to synchronize Gradle project when enabled. When set to `auto`, the build server will be enabled in Visual Studio Code - Insiders.",
+          "default": "auto"
         }
       }
     },
