@@ -11,6 +11,7 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
@@ -45,8 +46,8 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
                 // TODO: support clean build?
                 CompileResult result = buildServer.buildTargetCompile(new CompileParams(ids)).join();
                 if (Objects.equals(result.getStatusCode(), StatusCode.ERROR)) {
-                    throw new CoreException(new Status(IResourceStatus.BUILD_FAILED , ImporterPlugin.PLUGIN_ID,
-                            "Build Failed."));
+                    throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                            IResourceStatus.BUILD_FAILED, "Build Failed.", null));
                 }
             }
         }
