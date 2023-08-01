@@ -55,6 +55,9 @@
           "Gradle"
         ],
         "configuration": "./gradle-language-configuration.json"
+      },
+      {
+        "id": "gradle-build"
       }
     ],
     "grammars": [
@@ -62,6 +65,11 @@
         "language": "gradle",
         "scopeName": "source.groovy",
         "path": "./syntaxes/groovy.tmLanguage.json"
+      },
+      {
+        "language": "gradle-build",
+        "scopeName": "source.gradle-build",
+        "path": "./syntaxes/GradleBuild.tmLanguage.json"
       }
     ],
     "problemMatchers": [
