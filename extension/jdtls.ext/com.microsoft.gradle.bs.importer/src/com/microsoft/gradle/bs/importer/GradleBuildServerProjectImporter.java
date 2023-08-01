@@ -174,6 +174,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             } else if (!project.isAccessible() || !Utils.isGradleBuildServerProject(project)) {
                 // skip project already imported by other importers.
                 continue;
+            } else {
+                updateProjectDescription(project, monitor);
             }
 
             project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
@@ -196,6 +198,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         project.open(IResource.NONE, monitor);
         return project;
+    }
+
+    private void updateProjectDescription(IProject project, IProgressMonitor monitor) throws CoreException {
+        Utils.addBuildSpec(project, BuildServerBuilder.BUILDER_ID, monitor);
     }
 
     private String findFreeProjectName(String baseName) {
