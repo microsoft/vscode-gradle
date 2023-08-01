@@ -2,11 +2,20 @@ package com.microsoft.gradle.bs.importer;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectDescription;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
@@ -77,4 +86,51 @@ public class Utils {
     }
   }
 
+  /**
+   * Add nature to the project if the input nature does not exist in project description.
+   * @throws CoreException
+   */
+  public static void addNature(IProject project, String natureId, IProgressMonitor monitor) throws CoreException {
+    SubMonitor progress = SubMonitor.convert(monitor, 1);
+    // get the description
+    IProjectDescription description = project.getDescription();
+
+    // abort if the project already has the nature applied or the nature is not defined
+    List<String> currentNatureIds = Arrays.asList(description.getNatureIds());
+    if (currentNatureIds.contains(natureId)) {
+        return;
+    }
+
+    // add the nature to the project
+    List<String> newIds = new LinkedList<>();
+    newIds.addAll(currentNatureIds);
+    newIds.add(0, natureId);
+    description.setNatureIds(newIds.toArray(new String[newIds.size()]));
+
+    // save the updated description
+    project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+  }
+
+  /**
+   * Add the builder to the project if the input builder does not exist in project description.
+   * @throws CoreException
+   */
+  public static void addBuildSpec(IProject project, String buildName, IProgressMonitor monitor) throws CoreException {
+    SubMonitor progress = SubMonitor.convert(monitor, 1);
+    // get the description
+    IProjectDescription description = project.getDescription();
+    List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
+    if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildName))) {
+        return;
+    }
+
+    List<ICommand> newSpecs = new LinkedList<>();
+    newSpecs.addAll(currentBuildSpecs);
+    ICommand buildSpec = description.newCommand();
+    buildSpec.setBuilderName(buildName);
+    newSpecs.add(0, buildSpec);
+    description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
+
+    project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+  }
 }

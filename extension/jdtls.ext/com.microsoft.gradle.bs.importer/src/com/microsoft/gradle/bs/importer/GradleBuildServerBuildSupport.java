@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -27,7 +26,6 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
@@ -172,7 +170,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
             // if there is any source entry, we treat it as a Java project.
-            addJavaNature(project, monitor);
+            Utils.addNature(project, JavaCore.NATURE_ID, monitor);
             JavaCore.create(project).setRawClasspath(classpath.toArray(new IClasspathEntry[0]), monitor);
             // refresh to let JDT be aware of the output folders.
             // TODO: check if we only only refresh the output folder.
@@ -464,30 +462,4 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
     }
-
-    /**
-     * Add Java nature to project description if it doesn't have one.
-     */
-    private void addJavaNature(IProject project, IProgressMonitor monitor) throws CoreException {
-        SubMonitor progress = SubMonitor.convert(monitor, 1);
-        // get the description
-        IProjectDescription description = project.getDescription();
-
-        // abort if the project already has the nature applied or the nature is not defined
-        List<String> currentNatureIds = Arrays.asList(description.getNatureIds());
-        if (currentNatureIds.contains(JavaCore.NATURE_ID)) {
-            return;
-        }
-
-        // add the nature to the project
-        List<String> newIds = new LinkedList<>();
-        newIds.addAll(currentNatureIds);
-        newIds.add(0, JavaCore.NATURE_ID);
-        description.setNatureIds(newIds.toArray(new String[newIds.size()]));
-
-        // save the updated description
-        // TODO: add JavaBuilder
-        project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
-    }
-
 }
