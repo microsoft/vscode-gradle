@@ -228,10 +228,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        if ("true".equalsIgnoreCase(bspImporterEnabled)) {
+        if ("on".equalsIgnoreCase(bspImporterEnabled)) {
             return true;
-        } else if ("false".equalsIgnoreCase(bspImporterEnabled)) {
-            return false;
         } else if ("auto".equalsIgnoreCase(bspImporterEnabled)){
             // Rely on the workspace storage path to determine if the client is VSCode Insiders.
             // This may not always true if user changes the storage path manually, but should
