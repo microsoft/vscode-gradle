@@ -4,8 +4,12 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
+import org.eclipse.jdt.ls.core.internal.ProgressReport;
+import org.eclipse.lsp4j.ExecuteCommandParams;
+import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 
 import ch.epfl.scala.bsp4j.BuildClient;
 import ch.epfl.scala.bsp4j.DidChangeBuildTarget;
@@ -20,6 +24,13 @@ import ch.epfl.scala.bsp4j.TaskStartParams;
 public class GradleBuildClient implements BuildClient {
 
     private static final String CLIENT_APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
+    private ConcurrentHashMap<String, ProgressReport> taskMap = new ConcurrentHashMap<>();
+
+    private final JavaLanguageClient lsClient;
+
+    public GradleBuildClient() {
+        this.lsClient = JavaLanguageServerPlugin.getProjectsManager().getConnection();
+    }
 
     @Override
     public void onBuildLogMessage(LogMessageParams arg0) {
@@ -52,16 +63,30 @@ public class GradleBuildClient implements BuildClient {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             Date now = new Date();
             String msg = "> Build starts at " + dateFormat.format(now) + "\n" + params.getMessage();
-            JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg));
+            lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
+        } else {
+            ProgressReport progressReport = new ProgressReport(params.getTaskId().getId());
+            progressReport.setTask("Build Server Task");
+            progressReport.setStatus(params.getMessage());
+            progressReport.setComplete(false);
+            lsClient.sendProgressReport(progressReport);
+
+            taskMap.put(params.getTaskId().getId(), progressReport);
         }
     }
 
     @Override
     public void onBuildTaskProgress(TaskProgressParams params) {
         if (Objects.equals(params.getDataKind(), TaskDataKind.COMPILE_TASK)) {
-            JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(params.getMessage()));
+            lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD,
+                    Arrays.asList(params.getMessage())));
+        } else {
+            ProgressReport progressReport = taskMap.get(params.getTaskId().getId());
+            if (progressReport == null) {
+                return;
+            }
+            progressReport.setStatus(params.getMessage());
+            lsClient.sendProgressReport(progressReport);
         }
     }
 
@@ -69,8 +94,17 @@ public class GradleBuildClient implements BuildClient {
     public void onBuildTaskFinish(TaskFinishParams params) {
         if (Objects.equals(params.getDataKind(), TaskDataKind.COMPILE_REPORT)) {
             String msg = params.getMessage() + "\n------\n";
-            JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg));
+            lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
+        } else {
+            ProgressReport progressReport = taskMap.get(params.getTaskId().getId());
+            if (progressReport == null) {
+                return;
+            }
+            progressReport.setComplete(true);
+            progressReport.setStatus(params.getMessage());
+            lsClient.sendProgressReport(progressReport);
+
+            taskMap.remove(params.getTaskId().getId());
         }
     }
 }
