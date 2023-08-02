@@ -34,6 +34,7 @@ import {
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
+import { BuildServerController } from "./bs/BuildServerController";
 
 export class Extension {
     private readonly client: GradleClient;
@@ -64,6 +65,7 @@ export class Extension {
         new vscode.EventEmitter<vscode.Terminal>();
     private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this._onDidTerminalOpen.event;
     private recentTerminal: vscode.Terminal | undefined;
+    private readonly buildServerController: BuildServerController;
 
     public constructor(private readonly context: vscode.ExtensionContext) {
         const loggingChannel = vscode.window.createOutputChannel("Gradle for Java");
@@ -161,6 +163,8 @@ export class Extension {
             this.gradleTasksTreeView
         );
 
+        this.buildServerController = new BuildServerController(context);
+
         this.storeSubscriptions();
         this.registerCommands();
         this.handleTaskEvents();
@@ -217,7 +221,8 @@ export class Extension {
             this.gradleDaemonsTreeView,
             this.gradleTasksTreeView,
             this.recentTasksTreeView,
-            this.defaultProjectsTreeView
+            this.defaultProjectsTreeView,
+            this.buildServerController
         );
     }
 
