@@ -1,6 +1,7 @@
 import { Disposable, ExtensionContext, OutputChannel, commands, languages, window } from "vscode";
 import { GradleBuildLinkProvider } from "./GradleBuildLinkProvider";
 
+const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
@@ -10,11 +11,10 @@ export class BuildServerController implements Disposable {
         this.disposable = Disposable.from(
             this.buildOutputChannel,
             languages.registerDocumentLinkProvider({ language: "gradle-build", scheme: 'output' }, new GradleBuildLinkProvider()),
-            commands.registerCommand("_java.gradle.buildServer.appendBuildLog", (msg: string) => {
+            commands.registerCommand(APPEND_BUILD_LOG_CMD, (msg: string) => {
                 if (msg) {
                     this.buildOutputChannel.appendLine(msg);
-                    if (/^BUILD (SUCCESSFUL|FAILED)/.test(msg)) {
-                        this.buildOutputChannel.appendLine('------\n');
+                    if (/^BUILD (SUCCESSFUL|FAILED)/m.test(msg)) {
                         this.buildOutputChannel.show(true);
                     }
                 }

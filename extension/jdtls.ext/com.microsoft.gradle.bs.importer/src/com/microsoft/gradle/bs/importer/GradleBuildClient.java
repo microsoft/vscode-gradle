@@ -19,6 +19,8 @@ import ch.epfl.scala.bsp4j.TaskStartParams;
 
 public class GradleBuildClient implements BuildClient {
 
+    private static final String CLIENT_APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
+
     @Override
     public void onBuildLogMessage(LogMessageParams arg0) {
         // TODO Auto-generated method stub
@@ -51,7 +53,7 @@ public class GradleBuildClient implements BuildClient {
             Date now = new Date();
             String msg = "> Build starts at " + dateFormat.format(now) + "\n" + params.getMessage();
             JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    "_java.gradle.buildServer.appendBuildLog", Arrays.asList(msg));
+                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg));
         }
     }
 
@@ -59,15 +61,16 @@ public class GradleBuildClient implements BuildClient {
     public void onBuildTaskProgress(TaskProgressParams params) {
         if (Objects.equals(params.getDataKind(), TaskDataKind.COMPILE_TASK)) {
             JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    "_java.gradle.buildServer.appendBuildLog", Arrays.asList(params.getMessage()));
+                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(params.getMessage()));
         }
     }
 
     @Override
     public void onBuildTaskFinish(TaskFinishParams params) {
         if (Objects.equals(params.getDataKind(), TaskDataKind.COMPILE_REPORT)) {
+            String msg = params.getMessage() + "\n------\n";
             JavaLanguageServerPlugin.getInstance().getClientConnection().sendNotification(
-                    "_java.gradle.buildServer.appendBuildLog", Arrays.asList(params.getMessage()));
+                    CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg));
         }
     }
 }
