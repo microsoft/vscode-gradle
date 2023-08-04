@@ -189,8 +189,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
         projectDescription.setLocation(Path.fromOSString(directory.getPath()));
         projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
-        ICommand buildSpec = projectDescription.newCommand();
-        buildSpec.setBuilderName(BuildServerBuilder.BUILDER_ID);
+        ICommand buildSpec = Utils.getBuildServerBuildSpec(projectDescription);
         projectDescription.setBuildSpec(new ICommand[]{buildSpec});
         IProject project = workspace.getRoot().getProject(projectName);
         project.create(projectDescription, monitor);
@@ -200,7 +199,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     }
 
     private void updateProjectDescription(IProject project, IProgressMonitor monitor) throws CoreException {
-        Utils.addBuildSpec(project, BuildServerBuilder.BUILDER_ID, monitor);
+        IProjectDescription projectDescription = project.getDescription();
+        Utils.addBuildSpec(project, Utils.getBuildServerBuildSpec(projectDescription), monitor);
     }
 
     private String findFreeProjectName(String baseName) {
