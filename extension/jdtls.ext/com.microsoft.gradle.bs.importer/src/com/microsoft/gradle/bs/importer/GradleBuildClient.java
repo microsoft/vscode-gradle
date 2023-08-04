@@ -14,6 +14,7 @@ import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 import ch.epfl.scala.bsp4j.BuildClient;
 import ch.epfl.scala.bsp4j.DidChangeBuildTarget;
 import ch.epfl.scala.bsp4j.LogMessageParams;
+import ch.epfl.scala.bsp4j.MessageType;
 import ch.epfl.scala.bsp4j.PublishDiagnosticsParams;
 import ch.epfl.scala.bsp4j.ShowMessageParams;
 import ch.epfl.scala.bsp4j.TaskDataKind;
@@ -23,7 +24,21 @@ import ch.epfl.scala.bsp4j.TaskStartParams;
 
 public class GradleBuildClient implements BuildClient {
 
+    /**
+     * Client command to append build logs to the output channel.
+     */
     private static final String CLIENT_APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
+
+    /**
+     * Client command to append event logs to the output channel.
+     */
+    private static final String CLIENT_BUILD_LOG_CMD = "_java.gradle.buildServer.log";
+
+    /**
+     * Client command to send telemetry data to the LS client.
+     */
+    private static final String CLIENT_BUILD_SEND_TELEMETRY = "_java.gradle.buildServer.sendTelemetry";
+
     private ConcurrentHashMap<String, ProgressReport> taskMap = new ConcurrentHashMap<>();
 
     private final JavaLanguageClient lsClient;
@@ -33,9 +48,10 @@ public class GradleBuildClient implements BuildClient {
     }
 
     @Override
-    public void onBuildLogMessage(LogMessageParams arg0) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'onBuildLogMessage'");
+    public void onBuildLogMessage(LogMessageParams params) {
+        MessageType type = params.getType();
+        String cmd = type == MessageType.LOG ? CLIENT_BUILD_SEND_TELEMETRY : CLIENT_BUILD_LOG_CMD;
+        this.lsClient.sendNotification(new ExecuteCommandParams(cmd, Arrays.asList(params.getMessage())));
     }
 
     @Override
