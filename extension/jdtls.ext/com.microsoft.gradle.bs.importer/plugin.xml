@@ -27,7 +27,7 @@
         point="org.eclipse.core.resources.builders"
         id="com.microsoft.gradle.bs.importer.builder.BuildServerBuilder"
         name="Build Server Builder">
-        <builder>
+        <builder callOnEmptyDelta="true" isConfigurable="true">
             <run class="com.microsoft.gradle.bs.importer.builder.BuildServerBuilder">
             </run>
         </builder>
