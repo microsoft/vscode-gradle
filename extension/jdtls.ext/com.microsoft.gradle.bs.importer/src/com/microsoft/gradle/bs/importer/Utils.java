@@ -13,11 +13,14 @@ import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
+
+import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
 
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
@@ -113,6 +116,11 @@ public class Utils {
 
   /**
    * Add the builder to the project if the input builder does not exist in project description.
+   * All the configuration of the builder will be set to default.
+   *
+   * @param project the project to add the builder to.
+   * @param buildName the name of the builder.
+   * @param monitor the progress monitor.
    * @throws CoreException
    */
   public static void addBuildSpec(IProject project, String buildName, IProgressMonitor monitor) throws CoreException {
@@ -132,5 +140,42 @@ public class Utils {
     description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
 
     project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+  }
+
+  /**
+   * Add the builder to the project if the input builder does not exist in project description.
+   *
+   * @param project the project to add the builder to.
+   * @param buildSpec the builder to add.
+   * @param monitor the progress monitor.
+   * @throws CoreException
+   */
+  public static void addBuildSpec(IProject project, ICommand buildSpec, IProgressMonitor monitor) throws CoreException {
+    SubMonitor progress = SubMonitor.convert(monitor, 1);
+    // get the description
+    IProjectDescription description = project.getDescription();
+    List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
+    if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildSpec.getBuilderName()))) {
+        return;
+    }
+
+    List<ICommand> newSpecs = new LinkedList<>();
+    newSpecs.addAll(currentBuildSpecs);
+    newSpecs.add(0, buildSpec);
+    description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
+
+    project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+  }
+
+  /**
+   * Get the build spec for the build server builder with {@link AUTO_BUILD} and
+   * {@link CLEAN_BUILD} disabled.
+   */
+  public static ICommand getBuildServerBuildSpec(IProjectDescription description) {
+    ICommand buildSpec = description.newCommand();
+    buildSpec.setBuilderName(BuildServerBuilder.BUILDER_ID);
+    buildSpec.setBuilding(IncrementalProjectBuilder.AUTO_BUILD, false);
+    buildSpec.setBuilding(IncrementalProjectBuilder.CLEAN_BUILD, false);
+    return buildSpec;
   }
 }

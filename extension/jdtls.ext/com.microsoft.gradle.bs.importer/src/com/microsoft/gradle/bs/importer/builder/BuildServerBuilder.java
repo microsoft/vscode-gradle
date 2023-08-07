@@ -42,8 +42,8 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
         if (buildServer != null) {
             List<BuildTarget> targets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
             List<BuildTargetIdentifier> ids = targets.stream().map(BuildTarget::getId).collect(Collectors.toList());
-            if (ids != null && requiresBuild(kind)) {
-                // TODO: support clean build?
+            if (ids != null) {
+                // TODO: support clean build
                 CompileResult result = buildServer.buildTargetCompile(new CompileParams(ids)).join();
                 if (Objects.equals(result.getStatusCode(), StatusCode.ERROR)) {
                     throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
@@ -52,9 +52,5 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
             }
         }
         return null;
-    }
-
-    private boolean requiresBuild(int kind) {
-        return kind == FULL_BUILD || kind == INCREMENTAL_BUILD;
     }
 }
