@@ -24,6 +24,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IClasspathAttribute;
@@ -172,9 +173,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             // if there is any source entry, we treat it as a Java project.
             Utils.addNature(project, JavaCore.NATURE_ID, monitor);
             JavaCore.create(project).setRawClasspath(classpath.toArray(new IClasspathEntry[0]), monitor);
-            // refresh to let JDT be aware of the output folders.
-            // TODO: check if we only only refresh the output folder.
-            project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
         }
     }
 
@@ -325,8 +323,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
     /**
      * Get the output full path which is used in the classpath entry.
+     * @throws CoreException
      */
-    private IPath getOutputFullPath(String outputUri, IProject project) {
+    private IPath getOutputFullPath(String outputUri, IProject project) throws CoreException {
         if (StringUtils.isBlank(outputUri)) {
             return null;
         }
@@ -337,7 +336,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             outputDirectory.mkdirs();
         }
         IPath relativeSourceOutputPath = sourceOutputPath.makeRelativeTo(project.getLocation());
-        return project.getFolder(relativeSourceOutputPath).getFullPath();
+        IFolder outputFolder = project.getFolder(relativeSourceOutputPath);
+        outputFolder.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
+        return outputFolder.getFullPath();
     }
 
     /**
