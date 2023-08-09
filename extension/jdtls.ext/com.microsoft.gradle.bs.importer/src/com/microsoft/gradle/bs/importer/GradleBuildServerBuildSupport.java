@@ -16,7 +16,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -40,6 +42,8 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
 import org.eclipse.jdt.ls.core.internal.managers.ProjectsManager.CHANGE_TYPE;
 
+import com.microsoft.gradle.bs.importer.model.GradleVersion;
+
 import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
@@ -48,7 +52,6 @@ import ch.epfl.scala.bsp4j.DependencyModule;
 import ch.epfl.scala.bsp4j.DependencyModulesItem;
 import ch.epfl.scala.bsp4j.DependencyModulesParams;
 import ch.epfl.scala.bsp4j.DependencyModulesResult;
-import ch.epfl.scala.bsp4j.JvmBuildTarget;
 import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
 import ch.epfl.scala.bsp4j.OutputPathsParams;
@@ -60,11 +63,13 @@ import ch.epfl.scala.bsp4j.SourceItem;
 import ch.epfl.scala.bsp4j.SourcesItem;
 import ch.epfl.scala.bsp4j.SourcesParams;
 import ch.epfl.scala.bsp4j.SourcesResult;
+import ch.epfl.scala.bsp4j.extended.JvmBuildTargetEx;
 
 public class GradleBuildServerBuildSupport implements IBuildSupport {
 
     private static final String JAVA_VERSION = "javaVersion";
     private static final String JAVA_HOME = "javaHome";
+    private static final String GRADLE_VERSION = "gradleVersion";
     private static final Pattern GRADLE_FILE_EXT = Pattern.compile("^.*\\.gradle(\\.kts)?$");
     private static final String GRADLE_PROPERTIES = "gradle.properties";
 
@@ -153,9 +158,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         // Source set can have its own Java version setting, we need to find the highest version.
         // Since in JDT, each project can only has one JDK.
-        JvmBuildTarget jvmBuildTarget = getJvmTargetWithHighestVersion(buildTargets);
+        JvmBuildTargetEx jvmBuildTarget = getJvmTargetWithHighestSourceCompatibility(buildTargets);
+        String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
         IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
-                new File(jvmBuildTarget.getJavaHome()));
+                highestJavaVersion, new File(jvmBuildTarget.getJavaHome()));
         classpath.add(JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm)));
 
 
@@ -172,7 +178,12 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
             // if there is any source entry, we treat it as a Java project.
             Utils.addNature(project, JavaCore.NATURE_ID, monitor);
-            JavaCore.create(project).setRawClasspath(classpath.toArray(new IClasspathEntry[0]), monitor);
+            IJavaProject javaProject = JavaCore.create(project);
+            javaProject.setRawClasspath(classpath.toArray(new IClasspathEntry[0]), monitor);
+
+            Map<String, String> options = javaProject.getOptions(false);
+            options.put(JavaCore.COMPILER_SOURCE, jvmBuildTarget.getJavaVersion());
+            javaProject.setOptions(options);
         }
     }
 
@@ -364,10 +375,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     }
 
     /**
-     * Get the JVM build target which has the highest version.
+     * Get the JVM build target which has the highest source compatibility.
+     * <p>
+     * Note: Gradle supports different source compatibilities for different source sets, while in JDT, one project
+     * can only have one source compatibility. We have to find the highest source compatibility and set it to
+     * the project.
      */
-    private JvmBuildTarget getJvmTargetWithHighestVersion(List<BuildTarget> buildTargets) throws CoreException {
-        List<JvmBuildTarget> jvmTargets = new LinkedList<>();
+    private JvmBuildTargetEx getJvmTargetWithHighestSourceCompatibility(List<BuildTarget> buildTargets) throws CoreException {
+        List<JvmBuildTargetEx> jvmTargets = new LinkedList<>();
         for (BuildTarget buildTarget : buildTargets) {
             // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
             if ("jvm".equals(buildTarget.getDataKind())) {
@@ -381,7 +396,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     continue;
                 }
                 javaVersion = getEclipseCompatibleVersion(javaVersion);
-                jvmTargets.add(new JvmBuildTarget(javaHome, javaVersion));
+
+                String gradleVersion = getString((Map) buildTarget.getData(), GRADLE_VERSION);
+                if (StringUtils.isBlank(gradleVersion)) {
+                    continue;
+                }
+
+                jvmTargets.add(new JvmBuildTargetEx(javaHome, javaVersion, gradleVersion));
             }
         }
 
@@ -462,5 +483,43 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 ));
             }
         }
+    }
+
+    /**
+     * Get the highest compatible Java version for the current Gradle version, according
+     * to https://docs.gradle.org/current/userguide/compatibility.html
+     *
+     * <p>If none of the compatible Java versions is found, then return the Java version
+     * that is used to launch Gradle.
+     */
+    private String getHighestCompatibleJavaVersion(String gradleVersion) {
+      GradleVersion version = GradleVersion.version(gradleVersion);
+      if (version.compareTo(GradleVersion.version("7.6")) >= 0) {
+        return JavaCore.VERSION_19;
+      } else if (version.compareTo(GradleVersion.version("7.5")) >= 0) {
+        return JavaCore.VERSION_18;
+      } else if (version.compareTo(GradleVersion.version("7.3")) >= 0) {
+        return JavaCore.VERSION_17;
+      } else if (version.compareTo(GradleVersion.version("7.0")) >= 0) {
+        return JavaCore.VERSION_16;
+      } else if (version.compareTo(GradleVersion.version("6.7")) >= 0) {
+        return JavaCore.VERSION_15;
+      } else if (version.compareTo(GradleVersion.version("6.3")) >= 0) {
+        return JavaCore.VERSION_14;
+      } else if (version.compareTo(GradleVersion.version("6.0")) >= 0) {
+        return JavaCore.VERSION_13;
+      } else if (version.compareTo(GradleVersion.version("5.4")) >= 0) {
+        return JavaCore.VERSION_12;
+      } else if (version.compareTo(GradleVersion.version("5.0")) >= 0) {
+        return JavaCore.VERSION_11;
+      } else if (version.compareTo(GradleVersion.version("4.7")) >= 0) {
+        return JavaCore.VERSION_10;
+      } else if (version.compareTo(GradleVersion.version("4.3")) >= 0) {
+        return JavaCore.VERSION_9;
+      } else if (version.compareTo(GradleVersion.version("2.0")) >= 0) {
+        return JavaCore.VERSION_1_8;
+      }
+
+      return JavaCore.VERSION_1_8;
     }
 }
