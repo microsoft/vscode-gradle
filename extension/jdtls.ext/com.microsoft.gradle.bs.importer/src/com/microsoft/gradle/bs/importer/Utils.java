@@ -115,55 +115,67 @@ public class Utils {
   }
 
   /**
-   * Add the builder to the project if the input builder does not exist in project description.
+   * Add the builders to the project if the input builders do not exist in project description.
    * All the configuration of the builder will be set to default.
    *
    * @param project the project to add the builder to.
-   * @param buildName the name of the builder.
+   * @param buildNames the names of the builder.
    * @param monitor the progress monitor.
    * @throws CoreException
    */
-  public static void addBuildSpec(IProject project, String buildName, IProgressMonitor monitor) throws CoreException {
+  public static void addBuildSpec(IProject project, String[] buildNames, IProgressMonitor monitor) throws CoreException {
     SubMonitor progress = SubMonitor.convert(monitor, 1);
     // get the description
     IProjectDescription description = project.getDescription();
     List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
-    if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildName))) {
+    List<ICommand> newSpecs = new LinkedList<>();
+    newSpecs.addAll(currentBuildSpecs);
+    for (String buildName : buildNames) {
+      if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildName))) {
+          continue;
+      }
+
+      ICommand buildSpec = description.newCommand();
+      buildSpec.setBuilderName(buildName);
+      newSpecs.add(0, buildSpec);
+    }
+
+    if (newSpecs.size() == currentBuildSpecs.size()) {
         return;
     }
 
-    List<ICommand> newSpecs = new LinkedList<>();
-    newSpecs.addAll(currentBuildSpecs);
-    ICommand buildSpec = description.newCommand();
-    buildSpec.setBuilderName(buildName);
-    newSpecs.add(0, buildSpec);
     description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
-
     project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
   }
 
   /**
-   * Add the builder to the project if the input builder does not exist in project description.
+   * Add the builders to the project if the input builders do not exist in project description.
    *
    * @param project the project to add the builder to.
-   * @param buildSpec the builder to add.
+   * @param buildSpecs the builders to add.
    * @param monitor the progress monitor.
    * @throws CoreException
    */
-  public static void addBuildSpec(IProject project, ICommand buildSpec, IProgressMonitor monitor) throws CoreException {
+  public static void addBuildSpec(IProject project, ICommand[] buildSpecs, IProgressMonitor monitor) throws CoreException {
     SubMonitor progress = SubMonitor.convert(monitor, 1);
     // get the description
     IProjectDescription description = project.getDescription();
     List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
-    if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildSpec.getBuilderName()))) {
+    List<ICommand> newSpecs = new LinkedList<>();
+    newSpecs.addAll(currentBuildSpecs);
+    for (ICommand buildSpec : buildSpecs) {
+      if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildSpec.getBuilderName()))) {
+          continue;
+      }
+
+      newSpecs.add(0, buildSpec);
+    }
+
+    if (newSpecs.size() == currentBuildSpecs.size()) {
         return;
     }
 
-    List<ICommand> newSpecs = new LinkedList<>();
-    newSpecs.addAll(currentBuildSpecs);
-    newSpecs.add(0, buildSpec);
     description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
-
     project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
   }
 

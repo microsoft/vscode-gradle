@@ -32,4 +32,14 @@
             </run>
         </builder>
     </extension>
+    <extension
+        point="org.eclipse.core.resources.builders"
+        id="JavaProblemChecker"
+        name="JavaProblemChecker">
+        <builder>
+            <run class="com.microsoft.gradle.bs.importer.builder.autobuilder.JavaProblemChecker">
+            </run>
+            <dynamicReference class="org.eclipse.jdt.internal.core.DynamicProjectReferences"/>
+        </builder>
+    </extension>
 </plugin>

@@ -20,6 +20,8 @@ import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
+import com.microsoft.gradle.bs.importer.builder.autobuilder.BuildStateManager;
+
 import ch.epfl.scala.bsp4j.BuildClient;
 import ch.epfl.scala.bsp4j.BuildServer;
 
@@ -40,6 +42,7 @@ public class ImporterPlugin extends Plugin {
 
     @Override
     public void start(BundleContext context) throws Exception {
+        BuildStateManager.getBuildStateManager().startup();
         ImporterPlugin.instance = this;
         digestStore = new DigestStore(getStateLocation().toFile());
         Optional<File> bundleFile = FileLocator.getBundleFileLocation(context.getBundle());
