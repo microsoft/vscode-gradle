@@ -6,6 +6,7 @@ import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -16,9 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -125,7 +124,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             return;
         }
         BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
-        List<IClasspathEntry> classpath = new LinkedList<>();
+        // use map to dedupe the classpath entries having the same path field.
+        Map<IPath, IClasspathEntry> classpathMap = new LinkedHashMap<>();
         List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
         // put test targets to the end of the list
         moveTestTargetsToEnd(buildTargets);
@@ -142,7 +142,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 SourcesResult sourcesResult = buildServer.buildTargetSources(
                         new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
                 List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, sourceOutputFullPath, isTest, monitor);
-                classpath.addAll(sourceEntries);
+                for (IClasspathEntry entry : sourceEntries) {
+                    classpathMap.putIfAbsent(entry.getPath(), entry);
+                }
             }
 
             String resourceOutputUri = getOutputUriByKind(outputResult.getItems(), "resource");
@@ -152,7 +154,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 ResourcesResult resourcesResult = buildServer.buildTargetResources(
                     new ResourcesParams(Arrays.asList(buildTarget.getId()))).join();
                 List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, resourceOutputFullPath, isTest);
-                classpath.addAll(resourceEntries);
+                for (IClasspathEntry entry : resourceEntries) {
+                    classpathMap.putIfAbsent(entry.getPath(), entry);
+                }
             }
         }
 
@@ -160,26 +164,33 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         // Since in JDT, each project can only has one JDK.
         JvmBuildTargetEx jvmBuildTarget = getJvmTargetWithHighestSourceCompatibility(buildTargets);
         String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
-        IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
-                highestJavaVersion, new File(jvmBuildTarget.getJavaHome()));
-        classpath.add(JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm)));
+        try {
+            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
+                    highestJavaVersion, new File(new URI(jvmBuildTarget.getJavaHome())));
+            IClasspathEntry jdkEntry = JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm));
+            classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
+        } catch (URISyntaxException e) {
+            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                    "Invalid Java home: " + jvmBuildTarget.getJavaHome(), e));
+        }
 
 
-        // Use a map to deduplicate dependencies which point to the same jar.
-        Map<String, IClasspathEntry> dependencyMap = new LinkedHashMap<>();
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
             DependencyModulesResult dependencyModuleResult = buildServer.buildTargetDependencyModules(
                     new DependencyModulesParams(Arrays.asList(buildTarget.getId()))).join();
-            addDependencyJars(dependencyMap, dependencyModuleResult, isTest);
+            List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest);
+            for (IClasspathEntry entry : dependencyEntries) {
+                classpathMap.putIfAbsent(entry.getPath(), entry);
+            }
         }
-        classpath.addAll(dependencyMap.values());
 
-        if (classpath.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
+        List<IClasspathEntry> classpaths = new ArrayList<>(classpathMap.values());
+        if (classpaths.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
             // if there is any source entry, we treat it as a Java project.
             Utils.addNature(project, JavaCore.NATURE_ID, monitor);
             IJavaProject javaProject = JavaCore.create(project);
-            javaProject.setRawClasspath(classpath.toArray(new IClasspathEntry[0]), monitor);
+            javaProject.setRawClasspath(classpaths.toArray(new IClasspathEntry[0]), monitor);
 
             Map<String, String> options = javaProject.getOptions(false);
             options.put(JavaCore.COMPILER_SOURCE, jvmBuildTarget.getJavaVersion());
@@ -428,8 +439,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return javaVersion;
     }
 
-    private void addDependencyJars(Map<String, IClasspathEntry> dependencyMap,
-            DependencyModulesResult dependencyModuleResult, boolean isTest) {
+    private List<IClasspathEntry> getDependencyJars(DependencyModulesResult dependencyModuleResult, boolean isTest) {
+        List<IClasspathEntry> dependencyEntries = new LinkedList<>();
         for (DependencyModulesItem item : dependencyModuleResult.getItems()) {
             for (DependencyModule module : item.getModules()) {
                 if (!"maven".equals(module.getDataKind())) {
@@ -473,7 +484,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     attributes.add(optionalAttribute);
                 }
 
-                dependencyMap.putIfAbsent(artifact.getAbsolutePath(), JavaCore.newLibraryEntry(
+                dependencyEntries.add(JavaCore.newLibraryEntry(
                         new Path(artifact.getAbsolutePath()),
                         sourceArtifact == null ? null : new Path(sourceArtifact.getAbsolutePath()),
                         null,
@@ -483,6 +494,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 ));
             }
         }
+
+        return dependencyEntries;
     }
 
     /**
