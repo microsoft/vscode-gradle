@@ -28,17 +28,16 @@ import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.VMStandin;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironment;
 
-/**
- *
- */
 public class EclipseVmUtil {
 
     private static final String VM_ID_PREFIX = "com.microsoft.gradle.bs.vm.";
 
     /**
-     * Finds a Java VM in the Eclipse VM registry. The version of the vm is among
-     * [{@code lowestVersion}, {@code highestVersion}]. Or registers a new one if none was available with
-     * the selected version.
+     * Finds a Java VM in the Eclipse VM registry. The version of the vm is the highest among
+     * [{@code lowestVersion}, {@code highestVersion}] if is available.
+     *
+     * If no valid JDK can be found, registers a new one specified by {@code location}, which is
+     * the one used to launch the Gradle Daemon.
      *
      * @param lowestVersion  the lowest supported Java version
      * @param highestVersion the highest supported Java version
@@ -73,8 +72,9 @@ public class EclipseVmUtil {
 
             if (compatibleVm instanceof IVMInstall2 vm2) {
                 String javaVersion = vm2.getJavaVersion();
-                if (javaVersion == null || JavaCore.compareJavaVersions(lowestVersion, javaVersion) > 0
-                        || JavaCore.compareJavaVersions(highestVersion, javaVersion) < 0) {
+                if (javaVersion == null
+                        || (lowestVersion != null && JavaCore.compareJavaVersions(lowestVersion, javaVersion) > 0)
+                        || (highestVersion != null && JavaCore.compareJavaVersions(highestVersion, javaVersion) < 0)) {
                     continue;
                 }
                 if (vm == null || JavaCore.compareJavaVersions(

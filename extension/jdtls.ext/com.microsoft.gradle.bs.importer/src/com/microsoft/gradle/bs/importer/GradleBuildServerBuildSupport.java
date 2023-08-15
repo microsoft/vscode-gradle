@@ -66,9 +66,10 @@ import ch.epfl.scala.bsp4j.extended.JvmBuildTargetEx;
 
 public class GradleBuildServerBuildSupport implements IBuildSupport {
 
-    private static final String JAVA_VERSION = "javaVersion";
     private static final String JAVA_HOME = "javaHome";
     private static final String GRADLE_VERSION = "gradleVersion";
+    private static final String SOURCE_COMPATIBILITY = "sourceCompatibility";
+    private static final String TARGET_COMPATIBILITY = "targetCompatibility";
     private static final Pattern GRADLE_FILE_EXT = Pattern.compile("^.*\\.gradle(\\.kts)?$");
     private static final String GRADLE_PROPERTIES = "gradle.properties";
 
@@ -160,12 +161,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
 
-        // Source set can have its own Java version setting, we need to find the highest version.
-        // Since in JDT, each project can only has one JDK.
-        JvmBuildTargetEx jvmBuildTarget = getJvmTargetWithHighestSourceCompatibility(buildTargets);
+        // skip if no source roots are found from this project.
+        if (classpathMap.isEmpty()) {
+            return;
+        }
+
+        IJavaProject javaProject = JavaCore.create(project);
+        JvmBuildTargetEx jvmBuildTarget = getJvmTarget(buildTargets);
         String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
         try {
-            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getJavaVersion(),
+            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getSourceCompatibility(),
                     highestJavaVersion, new File(new URI(jvmBuildTarget.getJavaHome())));
             IClasspathEntry jdkEntry = JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm));
             classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
@@ -186,15 +191,17 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         List<IClasspathEntry> classpaths = new ArrayList<>(classpathMap.values());
-        if (classpaths.stream().anyMatch(cp -> cp.getEntryKind() == IClasspathEntry.CPE_SOURCE)) {
-            // if there is any source entry, we treat it as a Java project.
-            Utils.addNature(project, JavaCore.NATURE_ID, monitor);
-            IJavaProject javaProject = JavaCore.create(project);
-            javaProject.setRawClasspath(classpaths.toArray(new IClasspathEntry[0]), monitor);
+        Utils.addNature(project, JavaCore.NATURE_ID, monitor);
+        javaProject.setRawClasspath(classpaths.toArray(new IClasspathEntry[0]), monitor);
 
-            Map<String, String> options = javaProject.getOptions(false);
-            options.put(JavaCore.COMPILER_SOURCE, jvmBuildTarget.getJavaVersion());
-            javaProject.setOptions(options);
+        String sourceCompatibility = jvmBuildTarget.getSourceCompatibility();
+        if (StringUtils.isNotBlank(sourceCompatibility)) {
+            javaProject.setOption(JavaCore.COMPILER_SOURCE, sourceCompatibility);
+        }
+
+        String targetCompatibility = jvmBuildTarget.getTargetCompatibility();
+        if (StringUtils.isNotBlank(targetCompatibility)) {
+            javaProject.setOption(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
         }
     }
 
@@ -386,43 +393,48 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     }
 
     /**
-     * Get the JVM build target which has the highest source compatibility.
+     * Get the extended JVM build target.
      * <p>
-     * Note: Gradle supports different source compatibilities for different source sets, while in JDT, one project
-     * can only have one source compatibility. We have to find the highest source compatibility and set it to
-     * the project.
+     * Note: Gradle supports different source/target compatibilities for different source sets, while in JDT, one project
+     * can only have one set of settings. Here we have to pick one (default to 'main') from all the build targets.
+     * In the future, we can consider to one project per each build target.
      */
-    private JvmBuildTargetEx getJvmTargetWithHighestSourceCompatibility(List<BuildTarget> buildTargets) throws CoreException {
-        List<JvmBuildTargetEx> jvmTargets = new LinkedList<>();
-        for (BuildTarget buildTarget : buildTargets) {
-            // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
-            if ("jvm".equals(buildTarget.getDataKind())) {
-                String javaHome = getString((Map) buildTarget.getData(), JAVA_HOME);
-                if (StringUtils.isBlank(javaHome)) {
-                    continue;
-                }
+    private JvmBuildTargetEx getJvmTarget(List<BuildTarget> buildTargets) throws CoreException {
+        BuildTarget mainBuildTarget = buildTargets.stream().filter(bt -> {
+            String sourceSetName = Utils.getQueryValueByKey(bt.getId().getUri(), "sourceset");
+            return "main".equals(sourceSetName);
+        }).findFirst().orElse(null);
 
-                String javaVersion = getString((Map) buildTarget.getData(), JAVA_VERSION);
-                if (StringUtils.isBlank(javaVersion)) {
-                    continue;
-                }
-                javaVersion = getEclipseCompatibleVersion(javaVersion);
-
-                String gradleVersion = getString((Map) buildTarget.getData(), GRADLE_VERSION);
-                if (StringUtils.isBlank(gradleVersion)) {
-                    continue;
-                }
-
-                jvmTargets.add(new JvmBuildTargetEx(javaHome, javaVersion, gradleVersion));
-            }
+        if (mainBuildTarget == null) {
+            mainBuildTarget = buildTargets.get(0);
         }
 
-        if (jvmTargets.isEmpty()) {
+        JvmBuildTargetEx jvmTarget = null;
+        // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
+        if ("jvm".equals(mainBuildTarget.getDataKind())) {
+            String javaHome = getString((Map) mainBuildTarget.getData(), JAVA_HOME);
+            if (StringUtils.isBlank(javaHome)) {
+                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "javaHome is unavailable."));
+            }
+            jvmTarget = new JvmBuildTargetEx(javaHome, null);
+
+            String gradleVersion = getString((Map) mainBuildTarget.getData(), GRADLE_VERSION);
+            if (StringUtils.isBlank(gradleVersion)) {
+                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "gradleVersion is unavailable."));
+            }
+            jvmTarget.setGradleVersion(gradleVersion);
+
+            String sourceCompatibility = getString((Map) mainBuildTarget.getData(), SOURCE_COMPATIBILITY);
+            jvmTarget.setSourceCompatibility(getEclipseCompatibleVersion(sourceCompatibility));
+            String targetCompatibility = getString((Map) mainBuildTarget.getData(), TARGET_COMPATIBILITY);
+            jvmTarget.setTargetCompatibility(getEclipseCompatibleVersion(targetCompatibility));
+        }
+
+        if (jvmTarget == null) {
             throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "JVM target is unavailable."));
         }
 
-        jvmTargets.sort((j1, j2) -> JavaCore.compareJavaVersions(j1.getJavaVersion(), j2.getJavaVersion()));
-        return jvmTargets.get(jvmTargets.size() - 1);
+        return jvmTarget;
     }
 
     /**
