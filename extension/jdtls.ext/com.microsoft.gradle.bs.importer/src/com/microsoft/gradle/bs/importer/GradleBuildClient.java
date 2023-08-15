@@ -4,11 +4,15 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
-import org.eclipse.jdt.ls.core.internal.ProgressReport;
 import org.eclipse.lsp4j.ExecuteCommandParams;
+import org.eclipse.lsp4j.ProgressParams;
+import org.eclipse.lsp4j.WorkDoneProgressBegin;
+import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
+import org.eclipse.lsp4j.WorkDoneProgressEnd;
+import org.eclipse.lsp4j.WorkDoneProgressReport;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 
 import ch.epfl.scala.bsp4j.BuildClient;
@@ -25,6 +29,11 @@ import ch.epfl.scala.bsp4j.TaskStartParams;
 public class GradleBuildClient implements BuildClient {
 
     /**
+     * The task name for the build server.
+     */
+    private static final String BUILD_SERVER_TASK = "Build Server Task";
+
+    /**
      * Client command to append build logs to the output channel.
      */
     private static final String CLIENT_APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
@@ -38,8 +47,6 @@ public class GradleBuildClient implements BuildClient {
      * Client command to send telemetry data to the LS client.
      */
     private static final String CLIENT_BUILD_SEND_TELEMETRY = "_java.gradle.buildServer.sendTelemetry";
-
-    private ConcurrentHashMap<String, ProgressReport> taskMap = new ConcurrentHashMap<>();
 
     private final JavaLanguageClient lsClient;
 
@@ -81,13 +88,12 @@ public class GradleBuildClient implements BuildClient {
             String msg = "> Build starts at " + dateFormat.format(now) + "\n" + params.getMessage();
             lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
         } else {
-            ProgressReport progressReport = new ProgressReport(params.getTaskId().getId());
-            progressReport.setTask("Build Server Task");
-            progressReport.setStatus(params.getMessage());
-            progressReport.setComplete(false);
-            lsClient.sendProgressReport(progressReport);
-
-            taskMap.put(params.getTaskId().getId(), progressReport);
+            Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
+            lsClient.createProgress(new WorkDoneProgressCreateParams(id));
+            WorkDoneProgressBegin workDoneProgressBegin = new WorkDoneProgressBegin();
+            workDoneProgressBegin.setTitle(BUILD_SERVER_TASK);
+            workDoneProgressBegin.setMessage(params.getMessage());
+            lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressBegin)));
         }
     }
 
@@ -97,12 +103,10 @@ public class GradleBuildClient implements BuildClient {
             lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD,
                     Arrays.asList(params.getMessage())));
         } else {
-            ProgressReport progressReport = taskMap.get(params.getTaskId().getId());
-            if (progressReport == null) {
-                return;
-            }
-            progressReport.setStatus(params.getMessage());
-            lsClient.sendProgressReport(progressReport);
+            Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
+            WorkDoneProgressReport workDoneProgressReport = new WorkDoneProgressReport();
+            workDoneProgressReport.setMessage(BUILD_SERVER_TASK + " - " + params.getMessage());
+            lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressReport)));
         }
     }
 
@@ -112,15 +116,10 @@ public class GradleBuildClient implements BuildClient {
             String msg = params.getMessage() + "\n------\n";
             lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
         } else {
-            ProgressReport progressReport = taskMap.get(params.getTaskId().getId());
-            if (progressReport == null) {
-                return;
-            }
-            progressReport.setComplete(true);
-            progressReport.setStatus(params.getMessage());
-            lsClient.sendProgressReport(progressReport);
-
-            taskMap.remove(params.getTaskId().getId());
+            Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
+            WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
+            workDoneProgressEnd.setMessage(params.getMessage());
+            lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressEnd)));
         }
     }
 }
