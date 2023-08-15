@@ -8,6 +8,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *
+ * Copied from https://github.com/eclipse-jdt/eclipse.jdt.core/blob/master/org.eclipse.jdt.core/model/org/eclipse/jdt/internal/core/builder/CompressedReader.java
+ *
  * Contributors:
  *     jkubitz - initial API and implementation
  *******************************************************************************/

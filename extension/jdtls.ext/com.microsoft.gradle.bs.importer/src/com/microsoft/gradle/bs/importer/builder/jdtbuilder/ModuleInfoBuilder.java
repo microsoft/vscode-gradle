@@ -8,6 +8,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *
+ * Copied from https://github.com/eclipse-jdt/eclipse.jdt.core/blob/master/org.eclipse.jdt.core/model/org/eclipse/jdt/internal/core/builder/ModuleInfoBuilder.java
+ *
  * Contributors:
  *     Stephan Herrmann - initial API and implementation
  *******************************************************************************/

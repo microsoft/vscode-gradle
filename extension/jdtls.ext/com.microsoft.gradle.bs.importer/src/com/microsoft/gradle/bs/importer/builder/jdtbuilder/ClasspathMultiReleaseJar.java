@@ -1,3 +1,4 @@
+// Copied from https://github.com/eclipse-jdt/eclipse.jdt.core/blob/master/org.eclipse.jdt.core/model/org/eclipse/jdt/internal/core/builder/ClasspathMultiReleaseJar.java
 package com.microsoft.gradle.bs.importer.builder.jdtbuilder;
 
 import java.io.IOException;
