@@ -288,7 +288,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     }
                     IFolder linkFolder = project.getFolder(String.join("_", relativeSourcePath.segments()));
                     if (!linkFolder.exists()) {
-                        linkFolder.createLink(sourcePath, IResource.REPLACE, monitor);
+                        linkFolder.createLink(sourcePath, IResource.REPLACE | IResource.ALLOW_MISSING_LOCAL, monitor);
                     }
                     sourceFullPath = linkFolder.getFullPath();
                 }
