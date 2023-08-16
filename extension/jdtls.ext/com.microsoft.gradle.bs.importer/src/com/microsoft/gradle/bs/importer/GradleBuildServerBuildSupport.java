@@ -6,7 +6,6 @@ import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -77,6 +76,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
     private static final IClasspathAttribute testAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.TEST, "true");
     private static final IClasspathAttribute optionalAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.OPTIONAL, "true");
+    private static final IClasspathAttribute modularAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.MODULE, "true");
 
     @Override
     public boolean applies(IProject project) {
@@ -166,43 +166,26 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             return;
         }
 
+        Utils.addNature(project, JavaCore.NATURE_ID, monitor);
         IJavaProject javaProject = JavaCore.create(project);
-        JvmBuildTargetEx jvmBuildTarget = getJvmTarget(buildTargets);
-        String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
-        try {
-            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(jvmBuildTarget.getSourceCompatibility(),
-                    highestJavaVersion, new File(new URI(jvmBuildTarget.getJavaHome())));
-            IClasspathEntry jdkEntry = JavaCore.newContainerEntry(JavaRuntime.newJREContainerPath(vm));
-            classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
-        } catch (URISyntaxException e) {
-            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
-                    "Invalid Java home: " + jvmBuildTarget.getJavaHome(), e));
-        }
+        // set all the source roots to the project first, then the information of whether
+        // the project is modular will be available.
+        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
+        boolean isModular = javaProject.getOwnModuleDescription() != null;
 
+        setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
 
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
             DependencyModulesResult dependencyModuleResult = buildServer.buildTargetDependencyModules(
                     new DependencyModulesParams(Arrays.asList(buildTarget.getId()))).join();
-            List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest);
+            List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest, isModular);
             for (IClasspathEntry entry : dependencyEntries) {
                 classpathMap.putIfAbsent(entry.getPath(), entry);
             }
         }
 
-        List<IClasspathEntry> classpaths = new ArrayList<>(classpathMap.values());
-        Utils.addNature(project, JavaCore.NATURE_ID, monitor);
-        javaProject.setRawClasspath(classpaths.toArray(new IClasspathEntry[0]), monitor);
-
-        String sourceCompatibility = jvmBuildTarget.getSourceCompatibility();
-        if (StringUtils.isNotBlank(sourceCompatibility)) {
-            javaProject.setOption(JavaCore.COMPILER_SOURCE, sourceCompatibility);
-        }
-
-        String targetCompatibility = jvmBuildTarget.getTargetCompatibility();
-        if (StringUtils.isNotBlank(targetCompatibility)) {
-            javaProject.setOption(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
-        }
+        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
     }
 
     /**
@@ -392,6 +375,36 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return Arrays.stream(sourceFullPath.segments()).anyMatch(segment -> segment.equals("build"));
     }
 
+    private void setProjectJdk(Map<IPath, IClasspathEntry> classpathMap, List<BuildTarget> buildTargets,
+            IJavaProject javaProject, boolean isModular) throws CoreException {
+        JvmBuildTargetEx jvmBuildTarget = getJvmTarget(buildTargets);
+        String sourceCompatibility = jvmBuildTarget.getSourceCompatibility();
+        if (StringUtils.isNotBlank(sourceCompatibility)) {
+            javaProject.setOption(JavaCore.COMPILER_SOURCE, sourceCompatibility);
+        }
+
+        String targetCompatibility = jvmBuildTarget.getTargetCompatibility();
+        if (StringUtils.isNotBlank(targetCompatibility)) {
+            javaProject.setOption(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
+        }
+
+        String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
+        try {
+            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(sourceCompatibility,
+                    highestJavaVersion, new File(new URI(jvmBuildTarget.getJavaHome())));
+            IClasspathEntry jdkEntry = JavaCore.newContainerEntry(
+                JavaRuntime.newJREContainerPath(vm),
+                ClasspathEntry.NO_ACCESS_RULES,
+                isModular ? new IClasspathAttribute[] { modularAttribute } : ClasspathEntry.NO_EXTRA_ATTRIBUTES,
+                false /*isExported*/
+            );
+            classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
+        } catch (URISyntaxException e) {
+            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                    "Invalid Java home: " + jvmBuildTarget.getJavaHome(), e));
+        }
+    }
+
     /**
      * Get the extended JVM build target.
      * <p>
@@ -451,7 +464,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return javaVersion;
     }
 
-    private List<IClasspathEntry> getDependencyJars(DependencyModulesResult dependencyModuleResult, boolean isTest) {
+    private List<IClasspathEntry> getDependencyJars(DependencyModulesResult dependencyModuleResult, boolean isTest,
+            boolean isModular) {
         List<IClasspathEntry> dependencyEntries = new LinkedList<>();
         for (DependencyModulesItem item : dependencyModuleResult.getItems()) {
             for (DependencyModule module : item.getModules()) {
@@ -494,6 +508,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
                 if (!artifact.exists()) {
                     attributes.add(optionalAttribute);
+                }
+                if (isModular) {
+                    attributes.add(modularAttribute);
                 }
 
                 dependencyEntries.add(JavaCore.newLibraryEntry(
