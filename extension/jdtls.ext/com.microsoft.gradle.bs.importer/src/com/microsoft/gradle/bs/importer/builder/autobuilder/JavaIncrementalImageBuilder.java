@@ -1,80 +1,63 @@
 package com.microsoft.gradle.bs.importer.builder.autobuilder;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Map;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceProxy;
+import org.eclipse.core.resources.IResourceProxyVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.IClasspathEntry;
-import org.eclipse.jdt.core.IMember;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.core.compiler.CategorizedProblem;
 import org.eclipse.jdt.internal.compiler.ClassFile;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
 import org.eclipse.jdt.internal.compiler.Compiler;
-import org.eclipse.jdt.internal.compiler.env.ICompilationUnit;
+import org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies;
+import org.eclipse.jdt.internal.compiler.ast.CompilationUnitDeclaration;
+import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
+import org.eclipse.jdt.internal.compiler.env.AccessRestriction;
+import org.eclipse.jdt.internal.compiler.env.ISourceType;
+import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
+import org.eclipse.jdt.internal.compiler.lookup.LookupEnvironment;
+import org.eclipse.jdt.internal.compiler.lookup.PackageBinding;
+import org.eclipse.jdt.internal.compiler.parser.SourceTypeConverter;
+import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
 import org.eclipse.jdt.internal.core.ClasspathEntry;
 import org.eclipse.jdt.internal.core.CompilationGroup;
 import org.eclipse.jdt.internal.core.ExternalFoldersManager;
 import org.eclipse.jdt.internal.core.JavaModelManager;
 import org.eclipse.jdt.internal.core.JavaProject;
+import org.eclipse.jdt.internal.core.SourceTypeElementInfo;
+import org.eclipse.jdt.internal.core.util.Util;
 
-import com.microsoft.gradle.bs.importer.builder.jdtbuilder.CompilationParticipantResult;
+import com.microsoft.gradle.bs.importer.builder.jdtbuilder.ClasspathMultiDirectory;
 import com.microsoft.gradle.bs.importer.builder.jdtbuilder.IncrementalImageBuilder;
 import com.microsoft.gradle.bs.importer.builder.jdtbuilder.JavaBuilder;
+import com.microsoft.gradle.bs.importer.builder.jdtbuilder.ProblemFactory;
 import com.microsoft.gradle.bs.importer.builder.jdtbuilder.SourceFile;
 import com.microsoft.gradle.bs.importer.builder.jdtbuilder.State;
 import com.microsoft.gradle.bs.importer.builder.jdtbuilder.StringSet;
 
 public class JavaIncrementalImageBuilder extends IncrementalImageBuilder {
-	JavaBaseImageBuilder delegateImageBuilder;
 
 	public JavaIncrementalImageBuilder(JavaBatchImageBuilder batchBuilder, CompilationGroup compilationGroup) {
 		super(batchBuilder, compilationGroup);
-		this.delegateImageBuilder = new JavaBaseImageBuilder(batchBuilder.getJavaBuilder(), true, batchBuilder.getNewState(), compilationGroup) {
-			@Override
-			public void writeClassFileContents(ClassFile classfile, IFile file, String qualifiedFileName,
-					boolean isTopLevelType, SourceFile compilationUnit) throws CoreException {
-				JavaIncrementalImageBuilder.this.writeClassFileContents(classfile, file, qualifiedFileName, isTopLevelType, compilationUnit);
-			}
-
-			@Override
-			public void updateProblemsFor(SourceFile sourceFile, CompilationResult result) throws CoreException {
-				JavaIncrementalImageBuilder.this.updateProblemsFor(sourceFile, result);
-			}
-		};
-		this.compiler = this.delegateImageBuilder.getCompiler();
-		this.newState = this.delegateImageBuilder.getNewState();
-		this.nameEnvironment = this.delegateImageBuilder.getNameEnvironment();
 	}
 
 	public JavaIncrementalImageBuilder(JavaBuilder javaBuilder, State buildState, CompilationGroup compilationGroup) {
 		super(javaBuilder, buildState, compilationGroup);
-		this.delegateImageBuilder = new JavaBaseImageBuilder(javaBuilder, true, buildState, compilationGroup) {
-			@Override
-			public void writeClassFileContents(ClassFile classfile, IFile file, String qualifiedFileName,
-					boolean isTopLevelType, SourceFile compilationUnit) throws CoreException {
-				JavaIncrementalImageBuilder.this.writeClassFileContents(classfile, file, qualifiedFileName, isTopLevelType, compilationUnit);
-			}
-
-			@Override
-			public void updateProblemsFor(SourceFile sourceFile, CompilationResult result) throws CoreException {
-				JavaIncrementalImageBuilder.this.updateProblemsFor(sourceFile, result);
-			}
-		};
-		this.compiler = this.delegateImageBuilder.getCompiler();
-		this.newState = this.delegateImageBuilder.getNewState();
-		this.nameEnvironment = this.delegateImageBuilder.getNameEnvironment();
 	}
 
 	public JavaIncrementalImageBuilder(JavaBuilder javaBuilder) {
-		this(javaBuilder, null, CompilationGroup.MAIN);
-		this.newState.copyFrom(javaBuilder.lastState);
+		super(javaBuilder);
 	}
 
 	@Override
@@ -100,134 +83,176 @@ public class JavaIncrementalImageBuilder extends IncrementalImageBuilder {
 
 	@Override
 	protected void addAllSourceFiles(LinkedHashSet<SourceFile> sourceFiles) throws CoreException {
-		this.delegateImageBuilder.addAllSourceFiles(sourceFiles);
+		for (int i = 0, l = this.sourceLocations.length; i < l; i++) {
+			final ClasspathMultiDirectory sourceLocation = this.sourceLocations[i];
+			final char[][] exclusionPatterns = sourceLocation.exclusionPatterns;
+			final char[][] inclusionPatterns = sourceLocation.inclusionPatterns;
+			final IContainer sourceFolder = sourceLocation.sourceFolder;
+			final boolean isAlsoProject = sourceFolder.equals(((JavaProblemChecker) this.javaBuilder).currentProject);
+			sourceFolder.accept(
+				new IResourceProxyVisitor() {
+					@Override
+					public boolean visit(IResourceProxy proxy) throws CoreException {
+						switch(proxy.getType()) {
+							case IResource.FILE :
+								if (org.eclipse.jdt.internal.core.util.Util.isJavaLikeFileName(proxy.getName())) {
+									IResource resource = proxy.requestResource();
+									if (exclusionPatterns != null || inclusionPatterns != null)
+										if (Util.isExcluded(resource.getFullPath(), inclusionPatterns, exclusionPatterns, false))
+											return false;
+									SourceFile unit = new SourceFile((IFile) resource, sourceLocation);
+									sourceFiles.add(unit);
+								}
+								return false;
+							case IResource.FOLDER :
+								IPath folderPath = null;
+								if (isAlsoProject)
+									if (isExcludedFromProject(folderPath = proxy.requestFullPath()))
+										return false;
+								if (exclusionPatterns != null) {
+									if (folderPath == null)
+										folderPath = proxy.requestFullPath();
+									if (Util.isExcluded(folderPath, inclusionPatterns, exclusionPatterns, true)) {
+										// must walk children if inclusionPatterns != null, can skip them if == null
+										// but folder is excluded so do not create it in the output folder
+										return inclusionPatterns != null;
+									}
+								}
+						}
+						return true;
+					}
+				},
+				IResource.NONE
+			);
+			this.notifier.checkCancel();
+		}
 	}
 
 	@Override
 	protected Compiler newCompiler() {
-		if (this.delegateImageBuilder == null) {
-			return null;
+		// disable entire javadoc support if not interested in diagnostics
+		Map<String, String> projectOptions = ((JavaProblemChecker) this.javaBuilder).javaProject.getOptions(true);
+		String option = projectOptions.get(JavaCore.COMPILER_PB_INVALID_JAVADOC);
+		if (option == null || option.equals(JavaCore.IGNORE)) { // TODO (frederic) see why option is null sometimes while running model tests!?
+			option = projectOptions.get(JavaCore.COMPILER_PB_MISSING_JAVADOC_TAGS);
+			if (option == null || option.equals(JavaCore.IGNORE)) {
+				option = projectOptions.get(JavaCore.COMPILER_PB_MISSING_JAVADOC_COMMENTS);
+				if (option == null || option.equals(JavaCore.IGNORE)) {
+					option = projectOptions.get(JavaCore.COMPILER_PB_UNUSED_IMPORT);
+					if (option == null || option.equals(JavaCore.IGNORE)) { // Unused import need also to look inside javadoc comment
+						projectOptions.put(JavaCore.COMPILER_DOC_COMMENT_SUPPORT, JavaCore.DISABLED);
+					}
+				}
+			}
 		}
-		return this.delegateImageBuilder.newCompiler();
+
+		// called once when the builder is initialized... can override if needed
+		CompilerOptions compilerOptions = new CompilerOptions(projectOptions);
+		compilerOptions.performMethodsFullRecovery = true;
+		compilerOptions.performStatementsRecovery = true;
+		Compiler newCompiler = createCompiler(compilerOptions);
+		CompilerOptions options = newCompiler.options;
+		// temporary code to allow the compiler to revert to a single thread
+		String setting = System.getProperty("jdt.compiler.useSingleThread"); //$NON-NLS-1$
+		newCompiler.useSingleThread = setting != null && setting.equals("true"); //$NON-NLS-1$
+
+		// enable the compiler reference info support
+		options.produceReferenceInfo = true;
+
+		if (options.complianceLevel >= ClassFileConstants.JDK1_6
+				&& options.processAnnotations) {
+			// support for Java 6 annotation processors
+			initializeAnnotationProcessorManager(newCompiler);
+		}
+
+		return newCompiler;
+	}
+
+	private Compiler createCompiler(CompilerOptions compilerOptions) {
+		return new Compiler(
+				this.nameEnvironment,
+				DefaultErrorHandlingPolicies.proceedWithAllProblems(),
+				compilerOptions,
+				this,
+				ProblemFactory.getProblemFactory(Locale.getDefault())) {
+					@Override
+					public void accept(ISourceType[] sourceTypes, PackageBinding packageBinding,
+							AccessRestriction accessRestriction) {
+						if (sourceTypes[0] instanceof SourceTypeElementInfo) {
+							// ensure to jump back to toplevel type for first one (could be a member)
+							while (sourceTypes[0].getEnclosingType() != null) {
+								sourceTypes[0] = sourceTypes[0].getEnclosingType();
+							}
+
+							CompilationResult result =
+								new CompilationResult(sourceTypes[0].getFileName(), 1, 1, this.options.maxProblemsPerUnit);
+
+							// https://bugs.eclipse.org/bugs/show_bug.cgi?id=305259, build the compilation unit in its own sand box.
+							final long savedComplianceLevel = this.options.complianceLevel;
+							final long savedSourceLevel = this.options.sourceLevel;
+
+							LookupEnvironment environment = packageBinding.environment;
+							if (environment == null)
+								environment = this.lookupEnvironment;
+
+							try {
+								IJavaProject project = ((SourceTypeElementInfo) sourceTypes[0]).getHandle().getJavaProject();
+								this.options.complianceLevel = CompilerOptions.versionToJdkLevel(project.getOption(JavaCore.COMPILER_COMPLIANCE, true));
+								this.options.sourceLevel = CompilerOptions.versionToJdkLevel(project.getOption(JavaCore.COMPILER_SOURCE, true));
+
+								// need to hold onto this
+								CompilationUnitDeclaration unit =
+									SourceTypeConverter.buildCompilationUnit(
+											sourceTypes,//sourceTypes[0] is always toplevel here
+											SourceTypeConverter.FIELD_AND_METHOD // need field and methods
+											| SourceTypeConverter.MEMBER_TYPE // need member types
+											| SourceTypeConverter.FIELD_INITIALIZATION, // need field initialization
+											environment.problemReporter,
+											result);
+								if (unit != null) {
+									environment.buildTypeBindings(unit, accessRestriction);
+									CompilationUnitDeclaration previousUnitBeingCompleted = this.lookupEnvironment.unitBeingCompleted;
+									environment.completeTypeBindings(unit);
+									this.lookupEnvironment.unitBeingCompleted = previousUnitBeingCompleted;
+								}
+							} finally {
+								this.options.complianceLevel = savedComplianceLevel;
+								this.options.sourceLevel = savedSourceLevel;
+							}
+						} else {
+							super.accept(sourceTypes, packageBinding, accessRestriction);
+						}
+					}
+			};
 	}
 
 	@Override
 	protected char[] writeClassFile(ClassFile classFile, SourceFile compilationUnit, boolean isTopLevelType)
 			throws CoreException {
-		return this.delegateImageBuilder.writeClassFile(classFile, compilationUnit, isTopLevelType);
-	}
-
-	@Override
-	protected void compile(SourceFile[] units) {
-		this.delegateImageBuilder.compile(units);
-		this.compiledAllAtOnce = this.delegateImageBuilder.isCompiledAllAtOnce();
-	}
-
-	@Override
-	protected void compile(SourceFile[] units, SourceFile[] additionalUnits, boolean compilingFirstGroup) {
-		if (compilingFirstGroup && additionalUnits != null) {
-			// add any source file from additionalUnits to units if it defines secondary types
-			// otherwise its possible during testing with MAX_AT_ONCE == 1 that a secondary type
-			// can cause an infinite loop as it alternates between not found and defined, see bug 146324
-			ArrayList extras = null;
-			for (int i = 0, l = additionalUnits.length; i < l; i++) {
-				SourceFile unit = additionalUnits[i];
-				if (unit != null && this.newState.getDefinedTypeNamesFor(unit.resource.getProjectRelativePath().toString()) != null) {
-					if (JavaBuilder.DEBUG)
-						System.out.println("About to compile file with secondary types "+ unit.resource.getProjectRelativePath().toString()); //$NON-NLS-1$
-					if (extras == null)
-						extras = new ArrayList(3);
-					extras.add(unit);
-				}
-			}
-			if (extras != null) {
-				int oldLength = units.length;
-				int toAdd = extras.size();
-				System.arraycopy(units, 0, units = new SourceFile[oldLength + toAdd], 0, oldLength);
-				for (int i = 0; i < toAdd; i++)
-					units[oldLength++] = (SourceFile) extras.get(i);
-			}
+		String fileName = new String(classFile.fileName()); // the qualified type name "p1/p2/A"
+		IPath filePath = new Path(fileName);
+		IContainer outputFolder = compilationUnit.sourceLocation.binaryFolder;
+		IContainer container = outputFolder;
+		if (filePath.segmentCount() > 1) {
+			container = outputFolder.getFolder(filePath.removeLastSegments(1));
+			filePath = new Path(filePath.lastSegment());
 		}
-		this.delegateImageBuilder.compile(units, additionalUnits, compilingFirstGroup);
+
+		IFile file = container.getFile(filePath.addFileExtension(SuffixConstants.EXTENSION_class));
+		writeClassFileContents(classFile, file, fileName, isTopLevelType, compilationUnit);
+		// answer the name of the class file as in Y or Y$M
+		return filePath.lastSegment().toCharArray();
 	}
 
 	@Override
-	public void acceptResult(CompilationResult result) {
-		this.delegateImageBuilder.acceptResult(result);
+	public void copyResource(IResource source, IResource destination) throws CoreException {
+		// do nothing
 	}
 
 	@Override
-	protected void acceptSecondaryType(ClassFile classFile) {
-		this.delegateImageBuilder.acceptSecondaryType(classFile);
-	}
-
-	@Override
-	protected void copyResource(IResource source, IResource destination) throws CoreException {
-		this.delegateImageBuilder.copyResource(source, destination);
-	}
-
-	@Override
-	protected void createProblemFor(IResource resource, IMember javaElement, String message, String problemSeverity) {
-		this.delegateImageBuilder.createProblemFor(resource, javaElement, message, problemSeverity);
-	}
-
-	@Override
-	protected SourceFile findSourceFile(IFile file, boolean mustExist) {
-		return this.delegateImageBuilder.findSourceFile(file, mustExist);
-	}
-
-	@Override
-	protected IContainer createFolder(IPath packagePath, IContainer outputFolder) throws CoreException {
-		return this.delegateImageBuilder.createFolder(packagePath, outputFolder);
-	}
-
-	@Override
-	public ICompilationUnit fromIFile(IFile file) {
-		return this.delegateImageBuilder.fromIFile(file);
-	}
-
-	@Override
-	protected void initializeAnnotationProcessorManager(Compiler newCompiler) {
-		this.delegateImageBuilder.initializeAnnotationProcessorManager(newCompiler);
-	}
-
-	@Override
-	protected RuntimeException internalException(CoreException t) {
-		return this.delegateImageBuilder.internalException(t);
-	}
-
-	@Override
-	protected boolean isExcludedFromProject(IPath childPath) throws JavaModelException {
-		return this.delegateImageBuilder.isExcludedFromProject(childPath);
-	}
-
-	@Override
-	protected CompilationParticipantResult[] notifyParticipants(SourceFile[] unitsAboutToCompile) {
-		return this.delegateImageBuilder.notifyParticipants(unitsAboutToCompile);
-	}
-
-	@Override
-	protected void processAnnotations(CompilationParticipantResult[] results) {
-		this.delegateImageBuilder.processAnnotations(results);
-	}
-
-	@Override
-	protected void recordParticipantResult(CompilationParticipantResult result) {
-		this.delegateImageBuilder.recordParticipantResult(result);
-	}
-
-	@Override
-	protected void storeProblemsFor(SourceFile sourceFile, CategorizedProblem[] problems) throws CoreException {
-		this.delegateImageBuilder.storeProblemsFor(sourceFile, problems);
-	}
-
-	@Override
-	protected void storeTasksFor(SourceFile sourceFile, CategorizedProblem[] tasks) throws CoreException {
-		this.delegateImageBuilder.storeTasksFor(sourceFile, tasks);
-	}
-
-	public State getNewState() {
-		return this.newState;
+	public IContainer createFolder(IPath packagePath, IContainer outputFolder) throws CoreException {
+		// do nothing
+		return null;
 	}
 
 	private IProject[] getRequiredProjects(boolean includeBinaryPrerequisites) {

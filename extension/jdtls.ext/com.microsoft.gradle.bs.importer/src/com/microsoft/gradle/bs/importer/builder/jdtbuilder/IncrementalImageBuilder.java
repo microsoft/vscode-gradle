@@ -846,7 +846,7 @@ protected void resetCollections() {
 		this.qualifiedStrings.clear();
 		this.simpleStrings.clear();
 		this.rootStrings.clear();
-		this.workQueue.clear();
+		// this.workQueue.clear();
 	}
 }
 
