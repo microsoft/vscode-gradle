@@ -157,7 +157,7 @@ task buildProd(type: CrossPlatformExec) {
 }
 
 task bundle() {
-  dependsOn ':gradle-server:build', ':extension:buildJars', buildProd, ':npm-package:build', ':gradle-language-server:build'
+  dependsOn ':gradle-server:build', buildProd, ':npm-package:build', ':gradle-language-server:build'
   group 'build'
   description 'Bundles the extension files for release'
 }
