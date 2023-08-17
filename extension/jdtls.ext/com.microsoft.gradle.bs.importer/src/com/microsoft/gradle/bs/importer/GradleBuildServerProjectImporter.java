@@ -29,7 +29,7 @@ import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
-import com.microsoft.gradle.bs.importer.builder.autobuilder.JavaProblemChecker;
+import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;

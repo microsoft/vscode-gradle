@@ -20,7 +20,7 @@ import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
-import com.microsoft.gradle.bs.importer.builder.autobuilder.BuildStateManager;
+import com.microsoft.java.builder.BuildStateManager;
 
 import ch.epfl.scala.bsp4j.BuildClient;
 import ch.epfl.scala.bsp4j.BuildServer;
