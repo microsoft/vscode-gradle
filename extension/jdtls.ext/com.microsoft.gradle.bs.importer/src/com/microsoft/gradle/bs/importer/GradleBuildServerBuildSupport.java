@@ -6,7 +6,9 @@ import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -14,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IFolder;
@@ -168,8 +172,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         Utils.addNature(project, JavaCore.NATURE_ID, monitor);
         IJavaProject javaProject = JavaCore.create(project);
-        // set all the source roots to the project first, then the information of whether
-        // the project is modular will be available.
+        // In Gradle, output of a source set may be overlapping with the source dir of another source set.
+        javaProject.setOption(JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore" );
+
+        // set all the source roots to the project first, then the information
+        // of whether the project is modular will be available.
+        classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
+            .stream()
+            .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
         javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
         boolean isModular = javaProject.getOwnModuleDescription() != null;
 
@@ -563,5 +573,37 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
       }
 
       return JavaCore.VERSION_1_8;
+    }
+
+    /**
+     * Get list of source classpath entries with exclusion patterns added.
+     */
+    private List<IClasspathEntry> getSourceCpeWithExclusions(List<IClasspathEntry> sourceEntries) {
+        // Sort the source paths to make the child folders come first. The order is important,
+        // otherwise, we will get xxx does not exist error.
+        Collections.sort(sourceEntries, (path1, path2) -> path1.getPath().toString().compareTo(path2.getPath().toString()) * -1);
+
+        List<IClasspathEntry> newSourceEntries = new LinkedList<>();
+        for (IClasspathEntry currentEntry : sourceEntries) {
+            List<IPath> exclusionPatterns = new ArrayList<>();
+            for (IClasspathEntry sourceEntry : newSourceEntries) {
+                if (Objects.equals(currentEntry.getPath(), sourceEntry.getPath())) {
+                    continue;
+                }
+
+                if (currentEntry.getPath().isPrefixOf(sourceEntry.getPath())) {
+                    exclusionPatterns.add(sourceEntry.getPath().makeRelativeTo(currentEntry.getPath()).addTrailingSeparator());
+                }
+            }
+            newSourceEntries.add(JavaCore.newSourceEntry(
+                currentEntry.getPath(),
+                currentEntry.getInclusionPatterns(),
+                exclusionPatterns.toArray(new IPath[0]),
+                currentEntry.getOutputLocation(),
+                currentEntry.getExtraAttributes()
+            ));
+        }
+
+        return newSourceEntries;
     }
 }
