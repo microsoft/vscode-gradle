@@ -515,12 +515,15 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 List<IClasspathAttribute> attributes = new LinkedList<>();
                 if (isTest) {
                     attributes.add(testAttribute);
+                } else if (isModular) {
+                    // Assume that a test-only dependency is not a module, which corresponds
+                    // to how Eclipse does test running for modules:
+                    // It patches the main module with the tests and expects test dependencies
+                    // to be part of the unnamed module (classpath).
+                    attributes.add(modularAttribute);
                 }
                 if (!artifact.exists()) {
                     attributes.add(optionalAttribute);
-                }
-                if (isModular) {
-                    attributes.add(modularAttribute);
                 }
 
                 dependencyEntries.add(JavaCore.newLibraryEntry(
