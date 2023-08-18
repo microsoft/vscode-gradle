@@ -396,6 +396,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         String targetCompatibility = jvmBuildTarget.getTargetCompatibility();
         if (StringUtils.isNotBlank(targetCompatibility)) {
             javaProject.setOption(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
+            // source compatibility will be equal to or lower than the target compatibility.
+            // See: https://discuss.gradle.org/t/why-cant-i-use-different-sourcecompatibility-targetcompatibility-with-hello-world/11958/2
+            javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
         }
 
         String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
