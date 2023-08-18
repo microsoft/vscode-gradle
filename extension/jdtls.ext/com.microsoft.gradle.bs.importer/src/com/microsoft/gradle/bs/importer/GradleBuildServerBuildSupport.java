@@ -403,8 +403,12 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
         try {
-            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(sourceCompatibility,
-                    highestJavaVersion, new File(new URI(jvmBuildTarget.getJavaHome())));
+            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(
+                targetCompatibility, // expectedVersion
+                sourceCompatibility, // lowestVersion
+                highestJavaVersion,
+                new File(new URI(jvmBuildTarget.getJavaHome())) // fallback jdk
+            );
             IClasspathEntry jdkEntry = JavaCore.newContainerEntry(
                 JavaRuntime.newJREContainerPath(vm),
                 ClasspathEntry.NO_ACCESS_RULES,
