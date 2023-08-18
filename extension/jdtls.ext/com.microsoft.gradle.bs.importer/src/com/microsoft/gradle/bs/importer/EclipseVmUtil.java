@@ -33,35 +33,40 @@ public class EclipseVmUtil {
     private static final String VM_ID_PREFIX = "com.microsoft.gradle.bs.vm.";
 
     /**
-     * Finds a Java VM in the Eclipse VM registry. The version of the vm is the highest among
-     * [{@code lowestVersion}, {@code highestVersion}] if is available.
+     * Finds a Java VM in the Eclipse VM registry. It will first find the expected version,
+     * If it is not available, Then it will search the highest version among
+     * [{@code lowestVersion}, {@code highestVersion}].
      *
      * If no valid JDK can be found, registers a new one specified by {@code location}, which is
      * the one used to launch the Gradle Daemon.
      *
+     * @param expectedVersion the expected Java version
      * @param lowestVersion  the lowest supported Java version
      * @param highestVersion the highest supported Java version
      * @param location the location of the VM
      * @return the reference of an existing or newly created VM
      */
-    public static IVMInstall findOrRegisterStandardVM(String lowestVersion, String highestVersion, File location) {
-        Optional<IVMInstall> vm = findRegisteredVM(lowestVersion, highestVersion);
+    public static IVMInstall findOrRegisterStandardVM(String expectedVersion, String lowestVersion,
+            String highestVersion, File location) {
+        Optional<IVMInstall> vm = findRegisteredVM(expectedVersion, lowestVersion, highestVersion);
         return vm.isPresent() ? vm.get() : registerNewVM("Java SE", location);
     }
 
-    private static Optional<IVMInstall> findRegisteredVM(String lowestVersion, String highestVersion) {
+    private static Optional<IVMInstall> findRegisteredVM(String expectedVersion, String lowestVersion,
+            String highestVersion) {
         Optional<IExecutionEnvironment> possibleExecutionEnvironment = findExecutionEnvironment(lowestVersion);
         if (!possibleExecutionEnvironment.isPresent()) {
             return Optional.empty();
         }
 
         IExecutionEnvironment executionEnvironment = possibleExecutionEnvironment.get();
-        IVMInstall vm = getCompatibleVMWithHighestVersion(lowestVersion, highestVersion, executionEnvironment);
+        IVMInstall vm = getCompatibleVMWithHighestVersion(expectedVersion, lowestVersion,
+                highestVersion, executionEnvironment);
         return Optional.ofNullable(vm);
     }
 
-    private static IVMInstall getCompatibleVMWithHighestVersion(String lowestVersion, String highestVersion,
-            IExecutionEnvironment executionEnvironment) {
+    private static IVMInstall getCompatibleVMWithHighestVersion(String expectedVersion, String lowestVersion,
+            String highestVersion, IExecutionEnvironment executionEnvironment) {
         IVMInstall vm = null;
         IVMInstall[] compatibleVMs = executionEnvironment.getCompatibleVMs();
         for (IVMInstall compatibleVm : compatibleVMs) {
@@ -72,11 +77,20 @@ public class EclipseVmUtil {
 
             if (compatibleVm instanceof IVMInstall2 vm2) {
                 String javaVersion = vm2.getJavaVersion();
-                if (javaVersion == null
-                        || (lowestVersion != null && JavaCore.compareJavaVersions(lowestVersion, javaVersion) > 0)
+
+                if (javaVersion == null) {
+                    continue;
+                }
+
+                if (JavaCore.compareJavaVersions(javaVersion, expectedVersion) == 0) {
+                    return compatibleVm;
+                }
+
+                if ((lowestVersion != null && JavaCore.compareJavaVersions(lowestVersion, javaVersion) > 0)
                         || (highestVersion != null && JavaCore.compareJavaVersions(highestVersion, javaVersion) < 0)) {
                     continue;
                 }
+
                 if (vm == null || JavaCore.compareJavaVersions(
                         ((IVMInstall2)vm).getJavaVersion(), javaVersion) < 0) {
                     vm = compatibleVm;
