@@ -73,6 +73,12 @@ public class JavaIncrementalImageBuilder extends IncrementalImageBuilder {
 	}
 
 	@Override
+	protected IncrementalImageBuilder createTestIncrementalImageBuilder(JavaBuilder javaBuilder) {
+		return new JavaIncrementalImageBuilder(javaBuilder, this.newState,
+				CompilationGroup.TEST);
+	}
+
+	@Override
 	protected void writeClassFileContents(ClassFile classfile, IFile file, String qualifiedFileName,
 			boolean isTopLevelType, SourceFile compilationUnit) throws CoreException {
 		if (isTopLevelType) {

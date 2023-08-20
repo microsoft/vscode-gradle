@@ -61,13 +61,18 @@ protected IncrementalImageBuilder(JavaBuilder javaBuilder, State buildState, Com
 	this.makeOutputFolderConsistent = JavaCore.ENABLED.equals(
 		javaBuilder.javaProject.getOption(JavaCore.CORE_JAVA_BUILD_RECREATE_MODIFIED_CLASS_FILES_IN_OUTPUT_FOLDER, true));
 	if (compilationGroup == CompilationGroup.MAIN) {
-		final IncrementalImageBuilder builder = new IncrementalImageBuilder(javaBuilder, this.newState,
-				CompilationGroup.TEST);
+		final IncrementalImageBuilder builder = createTestIncrementalImageBuilder(javaBuilder);
 		if (builder.sourceLocations.length > 0) {
 			this.testImageBuilder = builder;
 			this.testImageBuilder.resetCollections();
 		}
 	}
+}
+
+// New method added by Microsoft
+protected IncrementalImageBuilder createTestIncrementalImageBuilder(JavaBuilder javaBuilder) {
+	return new IncrementalImageBuilder(javaBuilder, this.newState,
+				CompilationGroup.TEST);
 }
 
 protected IncrementalImageBuilder(JavaBuilder javaBuilder) {

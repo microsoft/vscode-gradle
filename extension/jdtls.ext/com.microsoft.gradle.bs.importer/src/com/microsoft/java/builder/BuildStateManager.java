@@ -84,6 +84,7 @@ public class BuildStateManager implements ISaveParticipant {
 	}
 
 	public final static boolean hasBSPNature(IProject project) {
+		// TODO not only for gradle bs project, it can also be applied to other bsp projects in future.
 		try {
 			return project.hasNature(GradleBuildServerProjectNature.NATURE_ID);
 		} catch (CoreException e) {
