@@ -29,7 +29,7 @@ import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
-import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
+import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
@@ -190,7 +190,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         projectDescription.setLocation(Path.fromOSString(directory.getPath()));
         projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
         ICommand buildSpec = Utils.getBuildServerBuildSpec(projectDescription);
-        projectDescription.setBuildSpec(new ICommand[]{buildSpec});
+        ICommand problemReporter = projectDescription.newCommand();
+        problemReporter.setBuilderName(JavaProblemChecker.BUILDER_ID);
+        projectDescription.setBuildSpec(new ICommand[]{ problemReporter, buildSpec});
         IProject project = workspace.getRoot().getProject(projectName);
         project.create(projectDescription, monitor);
 
@@ -200,7 +202,12 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     private void updateProjectDescription(IProject project, IProgressMonitor monitor) throws CoreException {
         IProjectDescription projectDescription = project.getDescription();
-        Utils.addBuildSpec(project, Utils.getBuildServerBuildSpec(projectDescription), monitor);
+        ICommand problemReporter = projectDescription.newCommand();
+        problemReporter.setBuilderName(JavaProblemChecker.BUILDER_ID);
+        Utils.addBuildSpec(project, new ICommand[] {
+            Utils.getBuildServerBuildSpec(projectDescription),
+            problemReporter
+        }, monitor);
     }
 
     private String findFreeProjectName(String baseName) {
