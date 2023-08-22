@@ -18,8 +18,10 @@ package com.microsoft.gradle.bs.importer;
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.internal.launching.StandardVMType;
@@ -30,7 +32,6 @@ import org.eclipse.jdt.launching.IVMInstallType;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.VMStandin;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironment;
-import org.eclipse.jdt.launching.environments.IExecutionEnvironmentsManager;
 
 public class EclipseVmUtil {
 
@@ -136,22 +137,20 @@ public class EclipseVmUtil {
      * <p> Note: The embedded JRE is excluded.
      */
     public static Map<String, String> getAllVmInstalls() {
-        IExecutionEnvironmentsManager manager = JavaRuntime.getExecutionEnvironmentsManager();
-        IExecutionEnvironment[] environments = manager.getExecutionEnvironments();
+        List<IVMInstall> vmList = Stream.of(JavaRuntime.getVMInstallTypes())
+                        .map(IVMInstallType::getVMInstalls)
+                        .flatMap(Arrays::stream)
+                        .toList();
         Map<String, String> vmInstalls = new HashMap<>();
-        for (IExecutionEnvironment environment : environments) {
-            IVMInstall[] compatibleVMs = environment.getCompatibleVMs();
-            for (IVMInstall compatibleVM : compatibleVMs) {
-                if (compatibleVM instanceof AbstractVMInstall vmInstall) {
-
-                    String javaVersion = getMajorJavaVersion(vmInstall.getJavaVersion());
-                    if (javaVersion == null || vmInstall.getInstallLocation() == null
-                            || isEmbeddedJre(vmInstall.getInstallLocation().getAbsolutePath())) {
-                        continue;
-                    }
-
-                    vmInstalls.putIfAbsent(javaVersion, vmInstall.getInstallLocation().toURI().toString());
+        for (IVMInstall vmInstall : vmList) {
+            if (vmInstall instanceof AbstractVMInstall vm) {
+                String javaVersion = getMajorJavaVersion(vm.getJavaVersion());
+                if (javaVersion == null || vm.getInstallLocation() == null
+                        || isEmbeddedJre(vm.getInstallLocation().getAbsolutePath())) {
+                    continue;
                 }
+
+                vmInstalls.putIfAbsent(javaVersion, vm.getInstallLocation().toURI().toString());
             }
         }
         return vmInstalls;
