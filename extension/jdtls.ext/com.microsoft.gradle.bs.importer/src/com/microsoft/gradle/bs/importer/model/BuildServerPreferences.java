@@ -9,6 +9,7 @@ import java.util.Map;
  */
 public class BuildServerPreferences {
     private String gradleJavaHome;
+    private boolean isWrapperEnabled;
     private String gradleVersion;
     private String gradleHome;
     private String gradleUserHome;
@@ -17,6 +18,7 @@ public class BuildServerPreferences {
     private Map<String, String> jdks;
 
     public BuildServerPreferences() {
+        isWrapperEnabled = true;
         gradleArguments = Collections.emptyList();
         gradleJvmArguments = Collections.emptyList();
         jdks = Collections.emptyMap();
@@ -28,6 +30,14 @@ public class BuildServerPreferences {
 
     public void setGradleJavaHome(String gradleJavaHome) {
         this.gradleJavaHome = gradleJavaHome;
+    }
+
+    public boolean isWrapperEnabled() {
+        return isWrapperEnabled;
+    }
+
+    public void setWrapperEnabled(boolean isWrapperEnabled) {
+        this.isWrapperEnabled = isWrapperEnabled;
     }
 
     public String getGradleVersion() {

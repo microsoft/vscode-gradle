@@ -219,6 +219,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     private BuildServerPreferences getBuildServerPreferences() {
         BuildServerPreferences pref = new BuildServerPreferences();
         Preferences jdtlsPreferences = getPreferences();
+        pref.setWrapperEnabled(jdtlsPreferences.isGradleWrapperEnabled());
         pref.setGradleArguments(jdtlsPreferences.getGradleArguments());
         pref.setGradleHome(jdtlsPreferences.getGradleHome());
         pref.setGradleJavaHome(jdtlsPreferences.getGradleJavaHome());
