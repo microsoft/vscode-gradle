@@ -225,6 +225,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         pref.setGradleJvmArguments(jdtlsPreferences.getGradleJvmArguments());
         pref.setGradleUserHome(jdtlsPreferences.getGradleUserHome());
         pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
+        pref.setJdks(EclipseVmUtil.getAllVmInstalls());
         return pref;
     }
 

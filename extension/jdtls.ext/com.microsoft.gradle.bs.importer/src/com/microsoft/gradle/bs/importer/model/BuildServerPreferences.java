@@ -2,6 +2,7 @@ package com.microsoft.gradle.bs.importer.model;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The data used in 'build/initialize' request.
@@ -13,10 +14,12 @@ public class BuildServerPreferences {
     private String gradleUserHome;
     private List<String> gradleArguments;
     private List<String> gradleJvmArguments;
+    private Map<String, String> jdks;
 
     public BuildServerPreferences() {
         gradleArguments = Collections.emptyList();
         gradleJvmArguments = Collections.emptyList();
+        jdks = Collections.emptyMap();
     }
 
     public String getGradleJavaHome() {
@@ -65,5 +68,13 @@ public class BuildServerPreferences {
 
     public void setGradleJvmArguments(List<String> gradleJvmArguments) {
         this.gradleJvmArguments = gradleJvmArguments;
+    }
+
+    public Map<String, String> getJdks() {
+        return jdks;
+    }
+
+    public void setJdks(Map<String, String> jdks) {
+        this.jdks = jdks;
     }
 }

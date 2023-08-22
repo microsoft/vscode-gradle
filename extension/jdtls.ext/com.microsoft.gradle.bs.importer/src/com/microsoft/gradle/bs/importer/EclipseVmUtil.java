@@ -17,16 +17,20 @@ package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.internal.launching.StandardVMType;
+import org.eclipse.jdt.launching.AbstractVMInstall;
 import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.IVMInstall2;
 import org.eclipse.jdt.launching.IVMInstallType;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.VMStandin;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironment;
+import org.eclipse.jdt.launching.environments.IExecutionEnvironmentsManager;
 
 public class EclipseVmUtil {
 
@@ -121,6 +125,70 @@ public class EclipseVmUtil {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Get all the available JDK installations in the Eclipse VM registry. If multiple installations
+     * are found for the same major version, the first found one is return.
+     *
+     * The results are returned as map, where key is the major version and value is the uri string of
+     * the installation path.
+     * <p> Note: The embedded JRE is excluded.
+     */
+    public static Map<String, String> getAllVmInstalls() {
+        IExecutionEnvironmentsManager manager = JavaRuntime.getExecutionEnvironmentsManager();
+        IExecutionEnvironment[] environments = manager.getExecutionEnvironments();
+        Map<String, String> vmInstalls = new HashMap<>();
+        for (IExecutionEnvironment environment : environments) {
+            IVMInstall[] compatibleVMs = environment.getCompatibleVMs();
+            for (IVMInstall compatibleVM : compatibleVMs) {
+                if (compatibleVM instanceof AbstractVMInstall vmInstall) {
+
+                    String javaVersion = getMajorJavaVersion(vmInstall.getJavaVersion());
+                    if (javaVersion == null || vmInstall.getInstallLocation() == null
+                            || isEmbeddedJre(vmInstall.getInstallLocation().getAbsolutePath())) {
+                        continue;
+                    }
+
+                    vmInstalls.putIfAbsent(javaVersion, vmInstall.getInstallLocation().toURI().toString());
+                }
+            }
+        }
+        return vmInstalls;
+    }
+
+    private static String getMajorJavaVersion(String version) {
+        if (version == null) {
+            return null;
+        } else if (version.startsWith(JavaCore.VERSION_1_8)) {
+            return JavaCore.VERSION_1_8;
+        } else if (version.startsWith(JavaCore.VERSION_9)) {
+            return JavaCore.VERSION_9;
+        } else if (version.startsWith(JavaCore.VERSION_10)) {
+            return JavaCore.VERSION_10;
+        } else if (version.startsWith(JavaCore.VERSION_11)) {
+            return JavaCore.VERSION_11;
+        } else if (version.startsWith(JavaCore.VERSION_12)) {
+            return JavaCore.VERSION_12;
+        } else if (version.startsWith(JavaCore.VERSION_13)) {
+            return JavaCore.VERSION_13;
+        } else if (version.startsWith(JavaCore.VERSION_14)) {
+            return JavaCore.VERSION_14;
+        } else if (version.startsWith(JavaCore.VERSION_15)) {
+            return JavaCore.VERSION_15;
+        } else if (version.startsWith(JavaCore.VERSION_16)) {
+            return JavaCore.VERSION_16;
+        } else if (version.startsWith(JavaCore.VERSION_17)) {
+            return JavaCore.VERSION_17;
+        } else if (version.startsWith(JavaCore.VERSION_18)) {
+            return JavaCore.VERSION_18;
+        } else if (version.startsWith(JavaCore.VERSION_19)) {
+            return JavaCore.VERSION_19;
+        } else if (version.startsWith(JavaCore.VERSION_20)) {
+            return JavaCore.VERSION_20;
+        }
+
+        return null;
     }
 
     private static String getExecutionEnvironmentId(String version) {
