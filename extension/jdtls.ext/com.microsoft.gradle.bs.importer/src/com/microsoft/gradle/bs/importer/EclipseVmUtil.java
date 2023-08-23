@@ -21,8 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.internal.launching.StandardVMType;
 import org.eclipse.jdt.launching.AbstractVMInstall;
@@ -32,6 +34,9 @@ import org.eclipse.jdt.launching.IVMInstallType;
 import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jdt.launching.VMStandin;
 import org.eclipse.jdt.launching.environments.IExecutionEnvironment;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
+import org.eclipse.jdt.ls.core.internal.RuntimeEnvironment;
+import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
 public class EclipseVmUtil {
 
@@ -141,7 +146,7 @@ public class EclipseVmUtil {
                         .map(IVMInstallType::getVMInstalls)
                         .flatMap(Arrays::stream)
                         .toList();
-        Map<String, String> vmInstalls = new HashMap<>();
+        Map<String, File> vmInstalls = new HashMap<>();
         for (IVMInstall vmInstall : vmList) {
             if (vmInstall instanceof AbstractVMInstall vm) {
                 String javaVersion = getMajorJavaVersion(vm.getJavaVersion());
@@ -150,10 +155,35 @@ public class EclipseVmUtil {
                     continue;
                 }
 
-                vmInstalls.putIfAbsent(javaVersion, vm.getInstallLocation().toURI().toString());
+                vmInstalls.putIfAbsent(javaVersion, vm.getInstallLocation());
             }
         }
-        return vmInstalls;
+
+        Preferences preferences = JavaLanguageServerPlugin.getPreferencesManager().getPreferences();
+        Set<RuntimeEnvironment> runtimes = preferences.getRuntimes();
+        for (RuntimeEnvironment runtime : runtimes) {
+            if (StringUtils.isBlank(runtime.getPath())) {
+                continue;
+            }
+            File javaHome = new File(runtime.getPath());
+            if (vmInstalls.containsValue(javaHome)) {
+                continue;
+            }
+
+            String javaVersion = new StandardVMType().readReleaseVersion(javaHome);
+            // TODO: cannot get version is release file is not present.
+            if (StringUtils.isNotBlank(javaVersion)) {
+                // the user preference should have higher priority and replace
+                // the existing one if the major version is the same.
+                vmInstalls.put(getMajorJavaVersion(javaVersion), javaHome);
+            }
+        }
+
+        Map<String, String> vmInstallsUri = new HashMap<>();
+        for (Map.Entry<String, File> entry : vmInstalls.entrySet()) {
+            vmInstallsUri.put(entry.getKey(), entry.getValue().toURI().toString());
+        }
+        return vmInstallsUri;
     }
 
     private static String getMajorJavaVersion(String version) {
