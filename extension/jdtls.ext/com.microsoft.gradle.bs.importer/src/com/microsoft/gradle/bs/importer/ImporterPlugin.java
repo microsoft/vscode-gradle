@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
@@ -77,9 +76,6 @@ public class ImporterPlugin extends Plugin {
         String javaExecutablePath = getJavaExecutablePath();
         String[] classpaths = getBuildServerClasspath();
 
-        // TODO: if we decide to remove the file logger, the storage path can be removed.
-        String storagePath = ResourcesPlugin.getWorkspace().getRoot().getLocation()
-                    .removeLastSegments(2).append("build-server").toFile().getAbsolutePath();
         String pluginPath = getBuildServerPluginPath();
 
         ProcessBuilder build = new ProcessBuilder(
@@ -87,7 +83,6 @@ public class ImporterPlugin extends Plugin {
                 "--add-opens=java.base/java.lang=ALL-UNNAMED",
                 "--add-opens=java.base/java.io=ALL-UNNAMED",
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "-Dserver.storage=" + storagePath,
                 "-Dplugin.dir=" + pluginPath,
                 "-cp",
                 String.join(getClasspathSeparator(), classpaths),
