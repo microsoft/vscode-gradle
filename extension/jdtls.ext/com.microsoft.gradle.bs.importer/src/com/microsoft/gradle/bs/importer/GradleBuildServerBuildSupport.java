@@ -9,8 +9,8 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -210,7 +210,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
         BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
-        Set<BuildTargetIdentifier> projectDependencies = new HashSet<>();
+        Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
         for (BuildTarget buildTarget : buildTargets) {
             projectDependencies.addAll(buildTarget.getDependencies());
         }
@@ -426,42 +426,49 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      * Get the extended JVM build target.
      * <p>
      * Note: Gradle supports different source/target compatibilities for different source sets, while in JDT, one project
-     * can only have one set of settings. Here we have to pick one (default to 'main') from all the build targets.
+     * can only have one set of settings. Here we need to aggregate them to one set of settings - the highest one.
      * In the future, we can consider to one project per each build target.
      */
     private JvmBuildTargetEx getJvmTarget(List<BuildTarget> buildTargets) throws CoreException {
-        BuildTarget mainBuildTarget = buildTargets.stream().filter(bt -> {
-            String sourceSetName = Utils.getQueryValueByKey(bt.getId().getUri(), "sourceset");
-            return "main".equals(sourceSetName);
-        }).findFirst().orElse(null);
+        JvmBuildTargetEx jvmTarget = new JvmBuildTargetEx("", "");
+        for (BuildTarget buildTarget : buildTargets) {
+            // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
+            if (!"jvm".equals(buildTarget.getDataKind())) {
+                continue;
+            }
 
-        if (mainBuildTarget == null) {
-            mainBuildTarget = buildTargets.get(0);
+            String javaHome = getString((Map) buildTarget.getData(), JAVA_HOME);
+            if (StringUtils.isNotBlank(javaHome) && StringUtils.isBlank(jvmTarget.getJavaHome())) {
+                jvmTarget.setJavaHome(javaHome);
+            }
+
+            String gradleVersion = getString((Map) buildTarget.getData(), GRADLE_VERSION);
+            if (StringUtils.isNotBlank(gradleVersion) && StringUtils.isBlank(jvmTarget.getGradleVersion())) {
+                jvmTarget.setGradleVersion(gradleVersion);
+            }
+
+            String sourceCompatibility = getString((Map) buildTarget.getData(), SOURCE_COMPATIBILITY);
+            if (StringUtils.isNotBlank(sourceCompatibility)) {
+                sourceCompatibility = getEclipseCompatibleVersion(sourceCompatibility);
+                if (StringUtils.isBlank(jvmTarget.getSourceCompatibility())
+                        || JavaCore.compareJavaVersions(sourceCompatibility, jvmTarget.getSourceCompatibility()) > 0) {
+                    jvmTarget.setSourceCompatibility(sourceCompatibility);
+                }
+            }
+
+            String targetCompatibility = getString((Map) buildTarget.getData(), TARGET_COMPATIBILITY);
+            if (StringUtils.isNotBlank(targetCompatibility)) {
+                targetCompatibility = getEclipseCompatibleVersion(targetCompatibility);
+                if (StringUtils.isBlank(jvmTarget.getTargetCompatibility())
+                        || JavaCore.compareJavaVersions(targetCompatibility, jvmTarget.getTargetCompatibility()) > 0) {
+                    jvmTarget.setTargetCompatibility(targetCompatibility);
+                }
+            }
         }
 
-        JvmBuildTargetEx jvmTarget = null;
-        // https://build-server-protocol.github.io/docs/extensions/jvm#jvmbuildtarget
-        if ("jvm".equals(mainBuildTarget.getDataKind())) {
-            String javaHome = getString((Map) mainBuildTarget.getData(), JAVA_HOME);
-            if (StringUtils.isBlank(javaHome)) {
-                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "javaHome is unavailable."));
-            }
-            jvmTarget = new JvmBuildTargetEx(javaHome, null);
-
-            String gradleVersion = getString((Map) mainBuildTarget.getData(), GRADLE_VERSION);
-            if (StringUtils.isBlank(gradleVersion)) {
-                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "gradleVersion is unavailable."));
-            }
-            jvmTarget.setGradleVersion(gradleVersion);
-
-            String sourceCompatibility = getString((Map) mainBuildTarget.getData(), SOURCE_COMPATIBILITY);
-            jvmTarget.setSourceCompatibility(getEclipseCompatibleVersion(sourceCompatibility));
-            String targetCompatibility = getString((Map) mainBuildTarget.getData(), TARGET_COMPATIBILITY);
-            jvmTarget.setTargetCompatibility(getEclipseCompatibleVersion(targetCompatibility));
-        }
-
-        if (jvmTarget == null) {
-            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID, "JVM target is unavailable."));
+        if (StringUtils.isBlank(jvmTarget.getJavaHome()) || StringUtils.isBlank(jvmTarget.getGradleVersion())) {
+            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                    "Invalid JVM build target: " + jvmTarget.toString()));
         }
 
         return jvmTarget;
