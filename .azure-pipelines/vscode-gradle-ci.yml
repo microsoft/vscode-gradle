@@ -85,7 +85,7 @@ jobs:
       inputs:
         buildType: specific
         project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
-        pipeline: 14788
+        pipeline: 15023
         downloadType: specific
         extractTars: false
     - task: CopyFiles@2
@@ -94,6 +94,18 @@ jobs:
         SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
         Contents: '**'
         TargetFolder: $(Build.SourcesDirectory)/extension/server
+    - task: JavaToolInstaller@0
+      displayName: Install Java 17
+      inputs:
+        versionSpec: '17'
+        jdkArchitectureOption: 'x64'
+        jdkSourceOption: 'PreInstalled'
+    - task: Gradle@2
+      displayName: Build
+      inputs:
+        gradleWrapperFile: 'gradlew'
+        gradleOptions: '-Xmx3072m'
+        tasks: ':extension:copyJdtlsPluginJar'
     - bash: |
         cd $(Build.SourcesDirectory)/extension
         npx vsce@latest package

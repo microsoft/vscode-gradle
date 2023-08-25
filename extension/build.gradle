@@ -200,7 +200,7 @@ task prepareForBetaRelease() {
 
 task buildJdtlsPlugin(type: CrossPlatformExec) {
   workingDir file('./jdtls.ext')
-  commandLine 'mvnw', 'clean', 'package'
+  commandLine './mvnw', 'clean', 'package'
 }
 
 task copyJdtlsPluginJar(type: Copy) {
@@ -214,7 +214,7 @@ task copyJdtlsPluginJar(type: Copy) {
 
 task buildBuildServer(type: CrossPlatformExec) {
   workingDir file('./build-server-for-gradle')
-  commandLine 'gradlew', 'build', '-x', 'test'
+  commandLine './gradlew', 'build', '-x', 'test'
 }
 
 task copyBuildServerJars(type: Copy) {
