@@ -114,6 +114,18 @@ export function getAllowParallelRun(): boolean {
     return vscode.workspace.getConfiguration("gradle").get<boolean>("allowParallelRun", false);
 }
 
+export function getOpenBuildOutput(): OpenBuildOutputValue {
+    return vscode.workspace
+        .getConfiguration("java.gradle.buildServer")
+        .get<OpenBuildOutputValue>("openBuildOutput", OpenBuildOutputValue.ON_BUILD_FAILURE);
+}
+
+export enum OpenBuildOutputValue {
+    NEVER = "neverOpen",
+    ON_BUILD_START = "openOnBuildStart",
+    ON_BUILD_FAILURE = "openOnBuildFailure",
+}
+
 export enum ProjectOpenBehaviourValue {
     INTERACTIVE = "Interactive",
     OPEN = "Open",

@@ -1,6 +1,7 @@
 import { Disposable, ExtensionContext, OutputChannel, commands, languages, window } from "vscode";
 import { GradleBuildLinkProvider } from "./GradleBuildLinkProvider";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
+import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -23,7 +24,16 @@ export class BuildServerController implements Disposable {
             commands.registerCommand(APPEND_BUILD_LOG_CMD, (msg: string) => {
                 if (msg) {
                     this.buildOutputChannel.appendLine(msg);
-                    if (/^BUILD (SUCCESSFUL|FAILED)/m.test(msg)) {
+                    const openBehavior: OpenBuildOutputValue = getOpenBuildOutput();
+                    if (openBehavior === OpenBuildOutputValue.NEVER) {
+                        return;
+                    }
+
+                    const pattern =
+                        openBehavior === OpenBuildOutputValue.ON_BUILD_START
+                            ? /^> Build starts at /m
+                            : /^BUILD FAILED/m;
+                    if (pattern.test(msg)) {
                         this.buildOutputChannel.show(true);
                     }
                 }

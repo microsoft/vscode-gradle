@@ -837,6 +837,21 @@
           ],
           "markdownDescription": "[Experimental] Use build server to synchronize Gradle project when enabled. When set to `auto`, the build server will be enabled in Visual Studio Code - Insiders.",
           "default": "auto"
+        },
+        "java.gradle.buildServer.openBuildOutput": {
+          "type": "string",
+          "enum": [
+            "neverOpen",
+            "openOnBuildStart",
+            "openOnBuildFailure"
+          ],
+          "enumDescriptions": [
+            "Never automatically open build output.",
+            "Open the build output when the build starts.",
+            "Open the build output when the build fails."
+          ],
+          "default": "openOnBuildFailure",
+          "description": "Controls when the build output should open."
         }
       }
     },
