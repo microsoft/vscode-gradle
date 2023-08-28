@@ -30,3 +30,5 @@ scripts
 package.insiders.json
 jdtls.ext
 build-server-for-gradle
+#codesign
+**/CodeSignSummary-*.md
