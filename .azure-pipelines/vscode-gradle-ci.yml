@@ -108,7 +108,7 @@ jobs:
         tasks: ':extension:copyJdtlsPluginJar'
     - bash: |
         cd $(Build.SourcesDirectory)/extension
-        npx vsce@latest package
+        npx @vscode/vsce@latest package
       displayName: Package VSIX
     - task: CopyFiles@2
       displayName: Copy VSIX

@@ -148,7 +148,7 @@ steps:
      ]
 - bash: |
     cd $(Build.SourcesDirectory)/extension
-    npx vsce@latest package --pre-release
+    npx @vscode/vsce@latest package --pre-release
   displayName: Package VSIX
 - task: CopyFiles@2
   displayName: Copy VSIX
