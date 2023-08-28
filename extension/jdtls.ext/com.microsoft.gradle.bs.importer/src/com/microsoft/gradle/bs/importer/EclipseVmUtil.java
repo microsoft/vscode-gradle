@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.launching.StandardVMType;
 import org.eclipse.jdt.launching.AbstractVMInstall;
 import org.eclipse.jdt.launching.IVMInstall;
@@ -59,7 +60,7 @@ public class EclipseVmUtil {
     public static IVMInstall findOrRegisterStandardVM(String expectedVersion, String lowestVersion,
             String highestVersion, File location) {
         Optional<IVMInstall> vm = findRegisteredVM(expectedVersion, lowestVersion, highestVersion);
-        return vm.isPresent() ? vm.get() : registerNewVM("Java SE", location);
+        return vm.isPresent() ? vm.get() : registerNewVM(location);
     }
 
     private static Optional<IVMInstall> findRegisteredVM(String expectedVersion, String lowestVersion,
@@ -150,7 +151,7 @@ public class EclipseVmUtil {
         for (IVMInstall vmInstall : vmList) {
             if (vmInstall instanceof AbstractVMInstall vm) {
                 String javaVersion = getMajorJavaVersion(vm.getJavaVersion());
-                if (javaVersion == null || vm.getInstallLocation() == null
+                if (StringUtils.isBlank(javaVersion) || vm.getInstallLocation() == null
                         || isEmbeddedJre(vm.getInstallLocation().getAbsolutePath())) {
                     continue;
                 }
@@ -189,35 +190,9 @@ public class EclipseVmUtil {
     private static String getMajorJavaVersion(String version) {
         if (version == null) {
             return null;
-        } else if (version.startsWith(JavaCore.VERSION_1_8)) {
-            return JavaCore.VERSION_1_8;
-        } else if (version.startsWith(JavaCore.VERSION_9)) {
-            return JavaCore.VERSION_9;
-        } else if (version.startsWith(JavaCore.VERSION_10)) {
-            return JavaCore.VERSION_10;
-        } else if (version.startsWith(JavaCore.VERSION_11)) {
-            return JavaCore.VERSION_11;
-        } else if (version.startsWith(JavaCore.VERSION_12)) {
-            return JavaCore.VERSION_12;
-        } else if (version.startsWith(JavaCore.VERSION_13)) {
-            return JavaCore.VERSION_13;
-        } else if (version.startsWith(JavaCore.VERSION_14)) {
-            return JavaCore.VERSION_14;
-        } else if (version.startsWith(JavaCore.VERSION_15)) {
-            return JavaCore.VERSION_15;
-        } else if (version.startsWith(JavaCore.VERSION_16)) {
-            return JavaCore.VERSION_16;
-        } else if (version.startsWith(JavaCore.VERSION_17)) {
-            return JavaCore.VERSION_17;
-        } else if (version.startsWith(JavaCore.VERSION_18)) {
-            return JavaCore.VERSION_18;
-        } else if (version.startsWith(JavaCore.VERSION_19)) {
-            return JavaCore.VERSION_19;
-        } else if (version.startsWith(JavaCore.VERSION_20)) {
-            return JavaCore.VERSION_20;
         }
 
-        return null;
+        return CompilerOptions.versionFromJdkLevel(CompilerOptions.versionToJdkLevel(version));
     }
 
     private static String getExecutionEnvironmentId(String version) {
@@ -232,7 +207,7 @@ public class EclipseVmUtil {
         }
     }
 
-    private static IVMInstall registerNewVM(String name, File location) {
+    private static IVMInstall registerNewVM(File location) {
         // use the 'Standard VM' type to register a new VM
         IVMInstallType installType = JavaRuntime.getVMInstallType(StandardVMType.ID_STANDARD_VM_TYPE);
 
@@ -241,6 +216,10 @@ public class EclipseVmUtil {
 
         // create the VM without firing events on individual method calls
         VMStandin vm = new VMStandin(installType, vmId);
+
+        String javaVersion = new StandardVMType().readReleaseVersion(location);
+        String name = StringUtils.isBlank(javaVersion) ? "Java SE"
+                : "JavaSE-" + getMajorJavaVersion(javaVersion);
         vm.setName(name);
         vm.setInstallLocation(location);
         return vm.convertToRealVM();
