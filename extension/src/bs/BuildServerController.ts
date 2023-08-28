@@ -16,7 +16,10 @@ export class BuildServerController implements Disposable {
         this.logOutputChannel = window.createOutputChannel("Build Server for Gradle (Log)");
         this.disposable = Disposable.from(
             this.buildOutputChannel,
-            languages.registerDocumentLinkProvider({ language: "gradle-build", scheme: 'output' }, new GradleBuildLinkProvider()),
+            languages.registerDocumentLinkProvider(
+                { language: "gradle-build", scheme: "output" },
+                new GradleBuildLinkProvider()
+            ),
             commands.registerCommand(APPEND_BUILD_LOG_CMD, (msg: string) => {
                 if (msg) {
                     this.buildOutputChannel.appendLine(msg);
@@ -35,7 +38,7 @@ export class BuildServerController implements Disposable {
             commands.registerCommand(SEND_TELEMETRY_CMD, (jsonString: string) => {
                 const log = JSON.parse(jsonString);
                 sendInfo("", log);
-            }),
+            })
         );
     }
 
