@@ -1,4 +1,4 @@
-import {DocumentLink, DocumentLinkProvider, ProviderResult, Range, TextDocument, Uri } from "vscode";
+import { DocumentLink, DocumentLinkProvider, ProviderResult, Range, TextDocument, Uri } from "vscode";
 
 export class GradleBuildLinkProvider implements DocumentLinkProvider {
     provideDocumentLinks(document: TextDocument): ProviderResult<DocumentLink[]> {
