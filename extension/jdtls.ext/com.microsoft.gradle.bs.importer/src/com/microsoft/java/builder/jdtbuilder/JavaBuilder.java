@@ -47,7 +47,7 @@ char[][] extraResourceFileFilters;
 String[] extraResourceFolderFilters;
 public static final String SOURCE_ID = "JDT"; //$NON-NLS-1$
 
-public static boolean DEBUG = true;
+public static boolean DEBUG = Boolean.getBoolean("jdt.ls.debug");
 public static boolean SHOW_STATS = false;
 
 /**
