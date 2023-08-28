@@ -46,6 +46,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     private static final String BSP_VERSION = "2.1.0-M4";
 
+    private static final String SCHEMA_VERSION = "0.1.0";
+
     public static final String BUILD_GRADLE_DESCRIPTOR = "build.gradle";
     public static final String BUILD_GRADLE_KTS_DESCRIPTOR = "build.gradle.kts";
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
@@ -179,6 +181,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
             project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
             projects.add(project);
+            ImporterPlugin.getSchemaStore().updateSchemaInformation(project.getLocation().toPath(), SCHEMA_VERSION);
         }
         return projects;
     }
