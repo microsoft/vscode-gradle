@@ -124,28 +124,13 @@ public class Utils {
    * @throws CoreException
    */
   public static void addBuildSpec(IProject project, String[] buildNames, IProgressMonitor monitor) throws CoreException {
-    SubMonitor progress = SubMonitor.convert(monitor, 1);
-    // get the description
     IProjectDescription description = project.getDescription();
-    List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
-    List<ICommand> newSpecs = new LinkedList<>();
-    newSpecs.addAll(currentBuildSpecs);
-    for (String buildName : buildNames) {
-      if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildName))) {
-          continue;
-      }
-
+    ICommand[] commands = Arrays.stream(buildNames).map(buildName -> {
       ICommand buildSpec = description.newCommand();
       buildSpec.setBuilderName(buildName);
-      newSpecs.add(0, buildSpec);
-    }
-
-    if (newSpecs.size() == currentBuildSpecs.size()) {
-        return;
-    }
-
-    description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
-    project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+      return buildSpec;
+    }).toArray(ICommand[]::new);
+    addBuildSpec(project, commands, monitor);
   }
 
   /**

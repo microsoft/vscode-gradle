@@ -65,7 +65,7 @@ public class ImporterPlugin extends Plugin {
 
     public static DigestStore getDigestStore() {
         return instance.digestStore;
-	}
+    }
 
     public static BuildServer getBuildServerConnection(IPath rootPath) throws CoreException {
         Pair<BuildServer, BuildClient> pair = instance.buildServers.get(rootPath);
