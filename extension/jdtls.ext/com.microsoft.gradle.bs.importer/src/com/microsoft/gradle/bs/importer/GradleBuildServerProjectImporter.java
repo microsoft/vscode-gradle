@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.core.internal.resources.Project;
+import org.eclipse.core.internal.resources.ProjectDescription;
+import org.eclipse.core.internal.resources.VariableDescription;
 import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
@@ -45,6 +48,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     private static final String CLIENT_VERSION = "0.1.0";
 
     private static final String BSP_VERSION = "2.1.0-M4";
+
+    private static final String SCHEMA_VERSION_KEY = "bspSchemaVersion";
+    private static final String SCHEMA_VERSION = "0.1.0";
 
     public static final String BUILD_GRADLE_DESCRIPTOR = "build.gradle";
     public static final String BUILD_GRADLE_KTS_DESCRIPTOR = "build.gradle.kts";
@@ -187,6 +193,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         String projectName = findFreeProjectName(directory.getName());
         IWorkspace workspace = ResourcesPlugin.getWorkspace();
         IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
+        if (projectDescription instanceof ProjectDescription description) {
+            VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+            description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
+        }
         projectDescription.setLocation(Path.fromOSString(directory.getPath()));
         projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
         ICommand buildSpec = Utils.getBuildServerBuildSpec(projectDescription);
@@ -208,6 +218,17 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             Utils.getBuildServerBuildSpec(projectDescription),
             problemReporter
         }, monitor);
+
+        // Here we don't use the public API: {@code project.setDescription()} to update the project,
+        // because that API will ignore the variable descriptions.
+        if (project instanceof Project internalProject) {
+            ProjectDescription description = internalProject.internalGetDescription();
+            VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+            boolean changed = description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
+            if (changed) {
+                internalProject.writeDescription(IResource.NONE);
+            }
+        }
     }
 
     private String findFreeProjectName(String baseName) {
