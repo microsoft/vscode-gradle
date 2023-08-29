@@ -19,7 +19,6 @@ import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
-import com.microsoft.gradle.bs.importer.manager.SchemaStore;
 import com.microsoft.java.builder.BuildStateManager;
 
 import ch.epfl.scala.bsp4j.BuildClient;
@@ -38,11 +37,6 @@ public class ImporterPlugin extends Plugin {
      */
     private DigestStore digestStore;
 
-    /**
-     * Cache file to store the schema version of BSP project.
-     */
-    private SchemaStore schemaStore;
-
     private static String bundleDirectory;
 
     @Override
@@ -50,7 +44,6 @@ public class ImporterPlugin extends Plugin {
         BuildStateManager.getBuildStateManager().startup();
         ImporterPlugin.instance = this;
         digestStore = new DigestStore(getStateLocation().toFile());
-        schemaStore = new SchemaStore(getStateLocation().toFile());
         Optional<File> bundleFile = FileLocator.getBundleFileLocation(context.getBundle());
         if (!bundleFile.isPresent()) {
            throw new IllegalStateException("Failed to get bundle location.");
@@ -72,11 +65,7 @@ public class ImporterPlugin extends Plugin {
 
     public static DigestStore getDigestStore() {
         return instance.digestStore;
-	}
-
-    public static SchemaStore getSchemaStore() {
-        return instance.schemaStore;
-	}
+    }
 
     public static BuildServer getBuildServerConnection(IPath rootPath) throws CoreException {
         Pair<BuildServer, BuildClient> pair = instance.buildServers.get(rootPath);
