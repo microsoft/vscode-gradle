@@ -73,13 +73,38 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     private static final String GRADLE_VERSION = "gradleVersion";
     private static final String SOURCE_COMPATIBILITY = "sourceCompatibility";
     private static final String TARGET_COMPATIBILITY = "targetCompatibility";
+
     private static final Pattern GRADLE_FILE_EXT = Pattern.compile("^.*\\.gradle(\\.kts)?$");
     private static final String GRADLE_PROPERTIES = "gradle.properties";
 
+    /**
+     * The kind of the output uri for source output.
+     */
     private static final String OUTPUT_KIND_SOURCE = "source";
 
+    /**
+     * The kind of the output uri for resource output.
+     */
+    private static final String OUTPUT_KIND_RESOURCE = "resource";
+
+    /**
+     * The name of this build tool support.
+     */
+    private static final String BUILD_TOOL_NAME = "GradleBuildServer";
+
+    /**
+     * Attribute for test classpath entry.
+     */
     private static final IClasspathAttribute testAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.TEST, "true");
+
+    /**
+     * Attribute for optional (generated or not exists on disk) classpath entry.
+     */
     private static final IClasspathAttribute optionalAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.OPTIONAL, "true");
+
+    /**
+     * Attribute for JPMS modular classpath entry.
+     */
     private static final IClasspathAttribute modularAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.MODULE, "true");
 
     @Override
@@ -117,6 +142,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
     }
 
+    @Override
+    public String buildToolName() {
+        return BUILD_TOOL_NAME;
+    }
+
     /**
      * Update the classpath of the project (except for the project dependencies), and
      * add Java nature if necessary.
@@ -152,7 +182,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
             }
 
-            String resourceOutputUri = getOutputUriByKind(outputResult.getItems(), "resource");
+            String resourceOutputUri = getOutputUriByKind(outputResult.getItems(), OUTPUT_KIND_RESOURCE);
             IPath resourceOutputFullPath = getOutputFullPath(resourceOutputUri, project);
             // resource output is nullable according to Gradle API definition.
             if (resourceOutputFullPath != null) {
