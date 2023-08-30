@@ -107,6 +107,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      */
     private static final IClasspathAttribute modularAttribute = JavaCore.newClasspathAttribute(IClasspathAttribute.MODULE, "true");
 
+    /**
+     * Attribute to mark the entry is contributed by build server implementation.
+     */
+    private static final IClasspathAttribute buildServerAttribute = JavaCore.newClasspathAttribute("gradle.buildServer", "true");
+
+    /**
+     * Attribute to mark whether the source root is a resource folder.
+     */
+    private static final IClasspathAttribute resourceAttribute = JavaCore.newClasspathAttribute("resource", "true");
+
     @Override
     public boolean applies(IProject project) {
         return Utils.isGradleBuildServerProject(project);
@@ -256,7 +266,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
             if (dependencyProject != null) {
-                entries.add(JavaCore.newProjectEntry(dependencyProject.getFullPath()));
+                entries.add(JavaCore.newProjectEntry(
+                    dependencyProject.getFullPath(),
+                    ClasspathEntry.NO_ACCESS_RULES,
+                    true,
+                    new IClasspathAttribute[] { buildServerAttribute },
+                    false
+                ));
             }
         }
         return entries;
@@ -329,6 +345,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 if (!sourcePath.toFile().exists() || source.getGenerated() || isInBuildDir(sourceFullPath)) {
                     classpathAttributes.add(optionalAttribute);
                 }
+                classpathAttributes.add(buildServerAttribute);
                 sourceEntries.add(JavaCore.newSourceEntry(
                     sourceFullPath,
                     null,
@@ -354,6 +371,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
                 // resource folder may not exist.
                 classpathAttributes.add(optionalAttribute);
+
+                classpathAttributes.add(buildServerAttribute);
+                classpathAttributes.add(resourceAttribute);
                 resourceEntries.add(JavaCore.newSourceEntry(
                     resourceFullPath,
                     null,
@@ -439,10 +459,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 highestJavaVersion,
                 new File(new URI(jvmBuildTarget.getJavaHome())) // fallback jdk
             );
+
+            List<IClasspathAttribute> classpathAttributes = new LinkedList<>();
+            if (isModular) {
+                classpathAttributes.add(modularAttribute);
+            }
+            classpathAttributes.add(buildServerAttribute);
             IClasspathEntry jdkEntry = JavaCore.newContainerEntry(
                 JavaRuntime.newJREContainerPath(vm),
                 ClasspathEntry.NO_ACCESS_RULES,
-                isModular ? new IClasspathAttribute[] { modularAttribute } : ClasspathEntry.NO_EXTRA_ATTRIBUTES,
+                classpathAttributes.toArray(new IClasspathAttribute[0]),
                 false /*isExported*/
             );
             classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
@@ -569,13 +595,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 if (!artifact.exists()) {
                     attributes.add(optionalAttribute);
                 }
+                attributes.add(buildServerAttribute);
 
                 dependencyEntries.add(JavaCore.newLibraryEntry(
                         new Path(artifact.getAbsolutePath()),
                         sourceArtifact == null ? null : new Path(sourceArtifact.getAbsolutePath()),
                         null,
                         ClasspathEntry.NO_ACCESS_RULES,
-                        attributes.size() == 0 ? ClasspathEntry.NO_EXTRA_ATTRIBUTES : attributes.toArray(new IClasspathAttribute[attributes.size()]),
+                        attributes.toArray(new IClasspathAttribute[0]),
                         false
                 ));
             }
