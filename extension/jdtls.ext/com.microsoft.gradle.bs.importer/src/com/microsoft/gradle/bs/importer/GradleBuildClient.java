@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.ProgressParams;
@@ -105,7 +106,8 @@ public class GradleBuildClient implements BuildClient {
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressReport workDoneProgressReport = new WorkDoneProgressReport();
-            workDoneProgressReport.setMessage(BUILD_SERVER_TASK + " - " + params.getMessage());
+            workDoneProgressReport.setMessage(StringUtils.isBlank(params.getMessage()) ? BUILD_SERVER_TASK :
+                    BUILD_SERVER_TASK + " - " + params.getMessage());
             lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressReport)));
         }
     }
@@ -118,7 +120,8 @@ public class GradleBuildClient implements BuildClient {
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
-            workDoneProgressEnd.setMessage(params.getMessage());
+            workDoneProgressEnd.setMessage(StringUtils.isBlank(params.getMessage()) ? BUILD_SERVER_TASK :
+                    BUILD_SERVER_TASK + " - " + params.getMessage());
             lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressEnd)));
         }
     }
