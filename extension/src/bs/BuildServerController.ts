@@ -1,7 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-import { ConfigurationChangeEvent, Disposable, ExtensionContext, OutputChannel, commands, languages, window, workspace } from "vscode";
+import {
+    ConfigurationChangeEvent,
+    Disposable,
+    ExtensionContext,
+    OutputChannel,
+    commands,
+    languages,
+    window,
+    workspace,
+} from "vscode";
 import { GradleBuildLinkProvider } from "./GradleBuildLinkProvider";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
@@ -55,14 +64,15 @@ export class BuildServerController implements Disposable {
                 sendInfo("", log);
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
-                if ((e.affectsConfiguration("java.gradle.buildServer.enabled"))) {
+                if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;
                     if (!storagePath) {
                         return;
                     }
 
-                    const msg = "Please reload to make the change of 'java.gradle.buildServer.enabled' take effect. Reload now?";
-                    const action = 'Reload';
+                    const msg =
+                        "Please reload to make the change of 'java.gradle.buildServer.enabled' take effect. Reload now?";
+                    const action = "Reload";
                     window.showWarningMessage(msg, action).then(async (selection) => {
                         if (action === selection) {
                             // generate a flag file to make it a clean reload.
