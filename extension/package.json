@@ -831,12 +831,11 @@
         "java.gradle.buildServer.enabled": {
           "type": "string",
           "enum": [
-            "auto",
             "on",
             "off"
           ],
-          "markdownDescription": "[Experimental] Use build server to synchronize Gradle project when enabled. When set to `auto`, the build server will be enabled in Visual Studio Code - Insiders.",
-          "default": "auto"
+          "markdownDescription": "Whether to use build server to synchronize Gradle project. It will replace the original Buildship to import the Gradle when enabled.",
+          "default": "on"
         },
         "java.gradle.buildServer.openBuildOutput": {
           "type": "string",

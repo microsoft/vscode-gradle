@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 import { DocumentLink, DocumentLinkProvider, ProviderResult, Range, TextDocument, Uri } from "vscode";
 
 export class GradleBuildLinkProvider implements DocumentLinkProvider {
