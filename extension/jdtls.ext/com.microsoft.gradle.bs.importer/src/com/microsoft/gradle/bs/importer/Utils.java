@@ -18,6 +18,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
 import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
@@ -115,36 +116,28 @@ public class Utils {
   }
 
   /**
-   * Add the builders to the project if the input builders do not exist in project description.
+   * Add the builders to the project description if the input builders do not exist in description.
    * All the configuration of the builder will be set to default.
    *
-   * @param project the project to add the builder to.
+   * @param project the project description.
    * @param buildNames the names of the builder.
-   * @param monitor the progress monitor.
-   * @throws CoreException
    */
-  public static void addBuildSpec(IProject project, String[] buildNames, IProgressMonitor monitor) throws CoreException {
-    IProjectDescription description = project.getDescription();
+  public static void addBuildSpec(IProjectDescription description, String[] buildNames) {
     ICommand[] commands = Arrays.stream(buildNames).map(buildName -> {
       ICommand buildSpec = description.newCommand();
       buildSpec.setBuilderName(buildName);
       return buildSpec;
     }).toArray(ICommand[]::new);
-    addBuildSpec(project, commands, monitor);
+    addBuildSpec(description, commands);
   }
 
   /**
-   * Add the builders to the project if the input builders do not exist in project description.
+   * Add the builders to the project description if the input builders do not exist in description.
    *
-   * @param project the project to add the builder to.
+   * @param project the project description.
    * @param buildSpecs the builders to add.
-   * @param monitor the progress monitor.
-   * @throws CoreException
    */
-  public static void addBuildSpec(IProject project, ICommand[] buildSpecs, IProgressMonitor monitor) throws CoreException {
-    SubMonitor progress = SubMonitor.convert(monitor, 1);
-    // get the description
-    IProjectDescription description = project.getDescription();
+  public static void addBuildSpec(IProjectDescription description, ICommand[] buildSpecs) {
     List<ICommand> currentBuildSpecs = Arrays.asList(description.getBuildSpec());
     List<ICommand> newSpecs = new LinkedList<>();
     newSpecs.addAll(currentBuildSpecs);
@@ -152,16 +145,38 @@ public class Utils {
       if (currentBuildSpecs.stream().anyMatch(spec -> Objects.equals(spec.getBuilderName(), buildSpec.getBuilderName()))) {
           continue;
       }
-
       newSpecs.add(0, buildSpec);
     }
 
-    if (newSpecs.size() == currentBuildSpecs.size()) {
-        return;
-    }
-
     description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
-    project.setDescription(description, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+  }
+
+  /**
+   * Remove the builders and natures that are introduced by Buildship.
+   */
+  public static void removeBuildshipConfigurations(IProjectDescription description) {
+    ICommand[] commands = description.getBuildSpec();
+    List<ICommand> newSpecs = new LinkedList<>();
+    for (ICommand command : commands) {
+      if (!isExcludedBuilder(command.getBuilderName())) {
+        newSpecs.add(command);
+      }
+    }
+    description.setBuildSpec(newSpecs.toArray(new ICommand[newSpecs.size()]));
+
+    String[] natureIds = description.getNatureIds();
+    List<String> newNatureIds = new LinkedList<>();
+    for (String natureId : natureIds) {
+      if (!Objects.equals(natureId, "org.eclipse.buildship.core.gradleprojectnature")) {
+        newNatureIds.add(natureId);
+      }
+    }
+    description.setNatureIds(newNatureIds.toArray(new String[newNatureIds.size()]));
+  }
+
+  private static boolean isExcludedBuilder(String builderName) {
+    return Objects.equals(builderName, JavaCore.BUILDER_ID)
+        || Objects.equals(builderName, "org.eclipse.buildship.core.gradleprojectbuilder");
   }
 
   /**

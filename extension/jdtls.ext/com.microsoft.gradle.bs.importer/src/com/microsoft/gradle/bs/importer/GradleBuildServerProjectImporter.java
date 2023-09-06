@@ -24,6 +24,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.ls.core.internal.AbstractProjectImporter;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
@@ -211,13 +212,17 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     }
 
     private void updateProjectDescription(IProject project, IProgressMonitor monitor) throws CoreException {
+        SubMonitor progress = SubMonitor.convert(monitor, 1);
         IProjectDescription projectDescription = project.getDescription();
+        Utils.removeBuildshipConfigurations(projectDescription);
+
         ICommand problemReporter = projectDescription.newCommand();
         problemReporter.setBuilderName(JavaProblemChecker.BUILDER_ID);
-        Utils.addBuildSpec(project, new ICommand[] {
+        Utils.addBuildSpec(projectDescription, new ICommand[] {
             Utils.getBuildServerBuildSpec(projectDescription),
             problemReporter
-        }, monitor);
+        });
+        project.setDescription(projectDescription, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
 
         // Here we don't use the public API: {@code project.setDescription()} to update the project,
         // because that API will ignore the variable descriptions.
@@ -254,19 +259,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     private boolean isBuildServerEnabled() {
         Preferences preferences = getPreferences();
         String bspImporterEnabled = getString(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
-        if (bspImporterEnabled == null) {
-            return false;
-        }
-
-        if ("on".equalsIgnoreCase(bspImporterEnabled)) {
-            return true;
-        } else if ("auto".equalsIgnoreCase(bspImporterEnabled)){
-            // Rely on the workspace storage path to determine if the client is VSCode Insiders.
-            // This may not always true if user changes the storage path manually, but should
-            // work in most cases.
-            return ResourcesPlugin.getPlugin().getStateLocation().toString().contains("Code - Insiders");
-        }
-
-        return false;
+        return "on".equalsIgnoreCase(bspImporterEnabled);
     }
 }
