@@ -84,6 +84,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             directories = gradleDetector.scan(monitor);
         }
 
+        for (java.nio.file.Path directory : directories) {
+            IProject project = ProjectUtils.getProjectFromUri(directory.toUri().toString());
+            // skip this importer if any of the project in workspace is already
+            // imported by other importers.
+            if (project != null && !Utils.isGradleBuildServerProject(project)) {
+                return false;
+            }
+        }
+
         return !directories.isEmpty();
     }
 
