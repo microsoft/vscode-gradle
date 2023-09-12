@@ -44,9 +44,10 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.IBuildSupport;
 import org.eclipse.jdt.ls.core.internal.managers.ProjectsManager.CHANGE_TYPE;
 
+import com.microsoft.gradle.bs.importer.jpms.JpmsArguments;
+import com.microsoft.gradle.bs.importer.jpms.JpmsUtils;
 import com.microsoft.gradle.bs.importer.model.GradleVersion;
 
-import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
 import ch.epfl.scala.bsp4j.BuildTargetTag;
@@ -54,6 +55,9 @@ import ch.epfl.scala.bsp4j.DependencyModule;
 import ch.epfl.scala.bsp4j.DependencyModulesItem;
 import ch.epfl.scala.bsp4j.DependencyModulesParams;
 import ch.epfl.scala.bsp4j.DependencyModulesResult;
+import ch.epfl.scala.bsp4j.JavacOptionsItem;
+import ch.epfl.scala.bsp4j.JavacOptionsParams;
+import ch.epfl.scala.bsp4j.JavacOptionsResult;
 import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
 import ch.epfl.scala.bsp4j.OutputPathsParams;
@@ -135,7 +139,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
                 return;
             }
-            BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+            BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
             buildServer.workspaceReload().join();
 
             Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
@@ -168,7 +172,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return;
         }
-        BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         // use map to dedupe the classpath entries having the same path field.
         Map<IPath, IClasspathEntry> classpathMap = new LinkedHashMap<>();
         List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
@@ -220,6 +224,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
             .stream()
             .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
+        // TODO: find a way to get if the project is modular without setting the classpath.
         javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
         boolean isModular = javaProject.getOwnModuleDescription() != null;
 
@@ -236,6 +241,21 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
+
+        // process jpms arguments.
+        JavacOptionsResult javacOptions = buildServer.buildTargetJavacOptions(new JavacOptionsParams(
+                buildTargets.stream().map(BuildTarget::getId).collect(Collectors.toList()))).join();
+        List<String> compilerArgs = new LinkedList<>();
+        for (JavacOptionsItem item : javacOptions.getItems()) {
+            compilerArgs.addAll(item.getOptions());
+        }
+
+        JpmsArguments jpmsArgs = JpmsUtils.categorizeJpmsArguments(compilerArgs);
+        if (jpmsArgs.isEmpty()) {
+            return;
+        }
+        JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
+        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
     }
 
     /**
@@ -248,7 +268,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return;
         }
-        BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
         Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
         for (BuildTarget buildTarget : buildTargets) {

@@ -37,7 +37,6 @@ import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
-import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.InitializeBuildParams;
 import ch.epfl.scala.bsp4j.InitializeBuildResult;
@@ -90,7 +89,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     @Override
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
-        BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
 
         InitializeBuildParams params = new InitializeBuildParams(
                 CLIENT_NAME,
@@ -169,7 +168,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
      *
      * @throws CoreException
      */
-    private List<IProject> importProjects(BuildServer buildServer, IProgressMonitor monitor) throws CoreException {
+    private List<IProject> importProjects(BuildServerConnection buildServer, IProgressMonitor monitor) throws CoreException {
         Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
         List<IProject> projects = new LinkedList<>();
         for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {

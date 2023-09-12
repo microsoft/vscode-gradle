@@ -16,10 +16,10 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
+import com.microsoft.gradle.bs.importer.BuildServerConnection;
 import com.microsoft.gradle.bs.importer.ImporterPlugin;
 import com.microsoft.gradle.bs.importer.Utils;
 
-import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
 import ch.epfl.scala.bsp4j.CompileParams;
@@ -38,7 +38,7 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return null;
         }
-        BuildServer buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         if (buildServer != null) {
             List<BuildTarget> targets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
             List<BuildTargetIdentifier> ids = targets.stream().map(BuildTarget::getId).collect(Collectors.toList());
