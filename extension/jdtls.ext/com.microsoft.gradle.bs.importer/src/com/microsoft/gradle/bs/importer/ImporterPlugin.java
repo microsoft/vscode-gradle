@@ -22,13 +22,12 @@ import org.osgi.framework.BundleContext;
 import com.microsoft.java.builder.BuildStateManager;
 
 import ch.epfl.scala.bsp4j.BuildClient;
-import ch.epfl.scala.bsp4j.BuildServer;
 
 public class ImporterPlugin extends Plugin {
 
     public static final String PLUGIN_ID = "com.microsoft.gradle.buildServer.importer";
 
-    private Map<IPath, Pair<BuildServer, BuildClient>> buildServers = new ConcurrentHashMap<>();
+    private Map<IPath, Pair<BuildServerConnection, BuildClient>> buildServers = new ConcurrentHashMap<>();
 
     private static ImporterPlugin instance;
 
@@ -53,7 +52,7 @@ public class ImporterPlugin extends Plugin {
 
     @Override
     public void stop(BundleContext context) throws Exception {
-        for (Pair<BuildServer, BuildClient> pair : buildServers.values()) {
+        for (Pair<BuildServerConnection, BuildClient> pair : buildServers.values()) {
             pair.getLeft().buildShutdown();
             pair.getLeft().onBuildExit();
         }
@@ -67,8 +66,8 @@ public class ImporterPlugin extends Plugin {
         return instance.digestStore;
     }
 
-    public static BuildServer getBuildServerConnection(IPath rootPath) throws CoreException {
-        Pair<BuildServer, BuildClient> pair = instance.buildServers.get(rootPath);
+    public static BuildServerConnection getBuildServerConnection(IPath rootPath) throws CoreException {
+        Pair<BuildServerConnection, BuildClient> pair = instance.buildServers.get(rootPath);
         if (pair != null) {
             return pair.getLeft();
         }
@@ -92,16 +91,16 @@ public class ImporterPlugin extends Plugin {
         try {
             Process process = build.start();
             BuildClient client = new GradleBuildClient();
-            Launcher<BuildServer> launcher = new Launcher.Builder<BuildServer>()
+            Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
                     .setOutput(process.getOutputStream())
                     .setInput(process.getInputStream())
                     .setLocalService(client)
                     .setExecutorService(Executors.newCachedThreadPool())
-                    .setRemoteInterface(BuildServer.class)
+                    .setRemoteInterface(BuildServerConnection.class)
                     .create();
 
             launcher.startListening();
-            BuildServer server = launcher.getRemoteProxy();
+            BuildServerConnection server = launcher.getRemoteProxy();
             client.onConnectWithServer(server);
             instance.buildServers.put(rootPath, Pair.of(server, client));
             return server;

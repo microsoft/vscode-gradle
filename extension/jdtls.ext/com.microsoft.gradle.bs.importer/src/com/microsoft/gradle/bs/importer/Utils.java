@@ -23,7 +23,6 @@ import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 
 import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
 
-import ch.epfl.scala.bsp4j.BuildServer;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
@@ -37,7 +36,7 @@ public class Utils {
     /**
      * Get build targets mapped by their paths, the paths are get from the uri.
      */
-    public static Map<URI, List<BuildTarget>> getBuildTargetsMappedByProjectPath(BuildServer serverConnection) {
+    public static Map<URI, List<BuildTarget>> getBuildTargetsMappedByProjectPath(BuildServerConnection serverConnection) {
         WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
         List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
         return buildTargets.stream().collect(Collectors.groupingBy(target -> getUriWithoutQuery(target.getId().getUri())));
@@ -52,7 +51,7 @@ public class Utils {
         }
     }
 
-    public static List<BuildTarget> getBuildTargetsByProjectUri(BuildServer serverConnection, URI projectUri) {
+    public static List<BuildTarget> getBuildTargetsByProjectUri(BuildServerConnection serverConnection, URI projectUri) {
         if (projectUri == null) {
             throw new IllegalArgumentException("projectPath cannot be null.");
         }
