@@ -1,12 +1,20 @@
 package com.microsoft.gradle.bs.importer;
 
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
+import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.WorkDoneProgressBegin;
@@ -17,6 +25,8 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 
 import ch.epfl.scala.bsp4j.BuildClient;
+import ch.epfl.scala.bsp4j.BuildTargetEvent;
+import ch.epfl.scala.bsp4j.BuildTargetIdentifier;
 import ch.epfl.scala.bsp4j.DidChangeBuildTarget;
 import ch.epfl.scala.bsp4j.LogMessageParams;
 import ch.epfl.scala.bsp4j.MessageType;
@@ -75,9 +85,33 @@ public class GradleBuildClient implements BuildClient {
     }
 
     @Override
-    public void onBuildTargetDidChange(DidChangeBuildTarget arg0) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'onBuildTargetDidChange'");
+    public void onBuildTargetDidChange(DidChangeBuildTarget params) {
+        Set<IProject> projects = new HashSet<>();
+        for (BuildTargetEvent event : params.getChanges()) {
+            BuildTargetIdentifier id = event.getTarget();
+            URI uri = Utils.getUriWithoutQuery(id.getUri());
+            IProject project = ProjectUtils.getProjectFromUri(uri.toString());
+            if (project != null) {
+                projects.add(project);
+            }
+        }
+
+        if (projects.isEmpty()) {
+            return;
+        }
+
+        // Update projects in a new thread to avoid blocking the IO queue,
+        // since some BSP requests will be sent during project updates.
+        CompletableFuture.runAsync(() -> {
+            GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
+            for (IProject project : projects) {
+                try {
+                    buildSupport.update(project, true, new NullProgressMonitor());
+                } catch (CoreException e) {
+                    JavaLanguageServerPlugin.log(e);
+                }
+            }
+        });
     }
 
 
