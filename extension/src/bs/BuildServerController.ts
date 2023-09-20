@@ -61,7 +61,7 @@ export class BuildServerController implements Disposable {
             }),
             commands.registerCommand(SEND_TELEMETRY_CMD, (jsonString: string) => {
                 const log = JSON.parse(jsonString);
-                sendInfo("", log);
+                sendInfo("", this.flattenAdditionalProperties(log));
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
@@ -91,5 +91,20 @@ export class BuildServerController implements Disposable {
 
     public dispose() {
         this.disposable.dispose();
+    }
+
+    private flattenAdditionalProperties(obj: any) {
+        const flattened: { [key: string]: any } = {};
+
+        Object.keys(obj).forEach((key) => {
+            const value = obj[key];
+            if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+                Object.assign(flattened, this.flattenAdditionalProperties(value));
+            } else {
+                flattened[key] = value;
+            }
+        });
+
+        return flattened;
     }
 }
