@@ -61,12 +61,11 @@ export class BuildServerController implements Disposable {
             }),
             commands.registerCommand(SEND_TELEMETRY_CMD, (jsonString: string) => {
                 const log = JSON.parse(jsonString);
-                const obj = {
+                sendInfo("", {
                     kind: log.kind,
                     data: jsonString,
-                    ...log.schemaVersion && {schemaVersion: log.schemaVersion},
-                };
-                sendInfo("", obj);
+                    ...(log.schemaVersion && { schemaVersion: log.schemaVersion }),
+                });
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
