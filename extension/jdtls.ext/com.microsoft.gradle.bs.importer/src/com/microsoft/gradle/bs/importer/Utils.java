@@ -1,5 +1,7 @@
 package com.microsoft.gradle.bs.importer;
 
+import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -20,6 +22,7 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
+import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
 import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
 
@@ -28,6 +31,8 @@ import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class Utils {
     private Utils() {}
+
+    private static final String JAVA_BUILD_SERVER_GRADLE_ENABLED = "java.gradle.buildServer.enabled";
 
     public static boolean isGradleBuildServerProject(IProject project) {
         return ProjectUtils.hasNature(project, GradleBuildServerProjectNature.NATURE_ID);
@@ -188,5 +193,18 @@ public class Utils {
     buildSpec.setBuilding(IncrementalProjectBuilder.AUTO_BUILD, false);
     buildSpec.setBuilding(IncrementalProjectBuilder.CLEAN_BUILD, false);
     return buildSpec;
+  }
+
+  public static boolean isBuildServerEnabled(Preferences preferences) {
+    if (preferences == null) {
+      return false;
+    }
+
+    if (!preferences.isImportGradleEnabled()) {
+      return false;
+    }
+
+    String bspImporterEnabled = getString(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
+    return "on".equalsIgnoreCase(bspImporterEnabled);
   }
 }

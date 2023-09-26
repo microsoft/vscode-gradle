@@ -1,7 +1,5 @@
 package com.microsoft.gradle.bs.importer;
 
-import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
-
 import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
@@ -57,20 +55,14 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
 
-    private static final String JAVA_BUILD_SERVER_GRADLE_ENABLED = "java.gradle.buildServer.enabled";
-
     @Override
     public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         if (rootFolder == null) {
             return false;
         }
 
-        Preferences preferences = getPreferences();
-        if (!preferences.isImportGradleEnabled()) {
-            return false;
-        }
 
-        if (!isBuildServerEnabled()) {
+        if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
         }
 
@@ -263,11 +255,5 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
         pref.setJdks(EclipseVmUtil.getAllVmInstalls());
         return pref;
-    }
-
-    private boolean isBuildServerEnabled() {
-        Preferences preferences = getPreferences();
-        String bspImporterEnabled = getString(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
-        return "on".equalsIgnoreCase(bspImporterEnabled);
     }
 }

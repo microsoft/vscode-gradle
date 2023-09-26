@@ -25,7 +25,9 @@ import org.eclipse.jdt.internal.compiler.util.SimpleLookupTable;
 import org.eclipse.jdt.internal.core.*;
 import org.eclipse.jdt.internal.core.util.Messages;
 import org.eclipse.jdt.internal.core.util.Util;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 
+import com.microsoft.gradle.bs.importer.Utils;
 import com.microsoft.java.builder.BuildStateManager;
 
 import java.io.*;
@@ -171,6 +173,10 @@ public static void writeState(Object state, DataOutputStream out) throws IOExcep
 
 @Override
 protected IProject[] build(int kind, Map ignored, IProgressMonitor monitor) throws CoreException {
+	org.eclipse.jdt.ls.core.internal.preferences.Preferences preferences = JavaLanguageServerPlugin.getPreferencesManager().getPreferences();
+	if (!Utils.isBuildServerEnabled(preferences)) {
+		return null;
+	}
 	this.currentProject = getProject();
 	if (this.currentProject == null || !this.currentProject.isAccessible()) return new IProject[0];
 
