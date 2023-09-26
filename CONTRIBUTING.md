@@ -6,8 +6,9 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ## Running the Project
 
+### Build Gradle Server and Gradle Language Server.
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 8](https://adoptopenjdk.net/)
+2. Install [Java version >= 8](https://adoptium.net/)
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
 5. If using an Apple M1:
@@ -16,6 +17,12 @@ Start by opening an issue using one of the issue templates, or propose a change 
 6. Build project files: `./gradlew build`
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
+
+### Build Gradle Project Importer
+1. Install [Java version >= 17](https://adoptium.net/)
+2. `cd extension`
+3. `git clone https://github.com/microsoft/build-server-for-gradle.git `
+4. Build the Importer and Build Server jars: `../gradlew buildJars`
 
 ## Debugging Gradle plugin
 
