@@ -224,6 +224,8 @@ This extension contributes the following settings:
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
 - `gradle.allowParallelRun`: Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task.
 - `gradle.projectOpenBehaviour`: Specify the default method of opening newly created project ("Interactive", "Open" or "Add to Workspace")
+- `java.gradle.buildServer.enabled`: Whether to use build server to synchronize Gradle project ("on" or "off")
+- `java.gradle.buildServer.openBuildOutput`: Controls when the build output should open ("neverOpen", "openOnBuildStart" or "openOnBuildFailure")
 
 ## Gradle & Java Settings
 

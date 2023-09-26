@@ -1,5 +1,12 @@
 # Architecture Overview
 
+This extension contains three major components:
+- [A Gradle server](./gradle-server) that runs in the background and provides project & task information, and runs Gradle tasks.
+- [A Gradle language server](./gradle-language-server) that provides language features such as code completion and diagnostics for gradle script files.
+- [A Gradle project importer](./extension/jdtls.ext/com.microsoft.gradle.bs.importer) that imports Gradle projects detected by the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle) into the workspace. This importer works with the Language Support for Java extension.
+
+# Gradle Server and Gradle Language Server
+
 <img src="images/gradle-tasks-architecture.svg" />
 
 The extension uses client/server architecture using [gRPC](https://grpc.io/) as the interface between the client and server. It uses TypeScript (Node.js) on the client and Java on the server. A long running server provides very good performance.
@@ -33,3 +40,7 @@ Tasks are run via the `runBuild` gRPC method. Similar to getting project data, G
 Gradle is used as the build system for the extension, for both the client and the server. Gradle compiles the Java & Protobuf files and runs the relevant tasks to download & build all the dependencies of the project. The builds should work on Linux/MacOS & Windows.
 
 Getting started on this extension is as simple as `./gradlew build`.
+
+## Gradle Project Importer
+
+The Gradle project importer works as a client of the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle). The importer communicates with the Gradle build server via Build Server Protocol, and convert the build targets into Java Projects of JDT Language Server.
