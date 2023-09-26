@@ -15,6 +15,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
+import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 
 import com.microsoft.gradle.bs.importer.BuildServerConnection;
 import com.microsoft.gradle.bs.importer.ImporterPlugin;
@@ -32,6 +33,11 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
 
     @Override
     protected IProject[] build(int kind, Map<String, String> args, IProgressMonitor monitor) throws CoreException {
+        Preferences preferences = JavaLanguageServerPlugin.getPreferencesManager().getPreferences();
+        if (!Utils.isBuildServerEnabled(preferences)) {
+            return null;
+        }
+
         IProject project = this.getProject();
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
