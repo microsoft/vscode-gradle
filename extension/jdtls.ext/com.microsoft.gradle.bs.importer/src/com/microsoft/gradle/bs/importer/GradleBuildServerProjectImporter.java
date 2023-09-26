@@ -87,7 +87,8 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             IProject project = ProjectUtils.getProjectFromUri(directory.toUri().toString());
             // skip this importer if any of the project in workspace is already
             // imported by other importers.
-            if (project != null && !Utils.isGradleBuildServerProject(project)) {
+            if (project != null && (!Utils.isGradleBuildServerProject(project)
+                    && ProjectUtils.isJavaProject(project))) {
                 return false;
             }
         }
