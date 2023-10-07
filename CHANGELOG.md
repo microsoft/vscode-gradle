@@ -4,6 +4,14 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.0
+### Added
+- Add support for subfolder gradle projects. [PR#1336](https://github.com/microsoft/vscode-gradle/pull/1336), contributed by [@gayanper](https://github.com/gayanper)
+- Add a new Gradle project importer that leverage the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle) to import Gradle projects. You can turn it off via setting `java.gradle.buildServer.enabled`, if you don't want to use it.
+
+### Fixed
+- Replace link to AdoptOpenJDK with Adoptium in README. [PR#1412](https://github.com/microsoft/vscode-gradle/pull/1412), contributed by [@ElectricalBoy](https://github.com/ElectricalBoy)
+
 ## [3.12.7](https://github.com/microsoft/vscode-gradle/compare/3.12.6...3.12.7) (2023-03-29)
 
 ### Added
