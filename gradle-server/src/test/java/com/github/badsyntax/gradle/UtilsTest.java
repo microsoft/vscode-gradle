@@ -15,7 +15,7 @@ public class UtilsTest {
 	@Test
 	public void testJava21Compatibility() {
 		Version javaVersion = new Version("21");
-		Version gradleVersion = new Version("8.4-rc-1");
+		Version gradleVersion = new Version("8.4");
 		assertFalse(Utils.hasCompatibilityError(gradleVersion, javaVersion));
 		gradleVersion = new Version("8.1");
 		assertTrue(Utils.hasCompatibilityError(gradleVersion, javaVersion));
