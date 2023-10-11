@@ -12,9 +12,16 @@ Start by opening an issue using one of the issue templates, or propose a change 
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
 5. If using an Apple M1:
-   - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
-   - Add `protoc_platform=osx-x86_64` to $HOME/.gradle/gradle.properties
-6. Build project files: `./gradlew build`
+    - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
+    - Add `protoc_platform=osx-x86_64` to $HOME/.gradle/gradle.properties
+6. If using Windows:
+    - The extension uses `grpc-tools@1.12.x` dependency which does not work out-of-the-box in Windows (check [this issues](https://github.com/grpc/grpc-node/issues/2338) for details), so you'll need to install some aditional DLLs.
+    - Download and start [Build Tools for Visual Studio 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022).
+    - Go to the **Individual Components** tab and select the following:
+      - `MSVC v143 - VS 2022 C++ x64/x86 build tools (latest)` (replacing `x64/x86` with your arch)
+      - `Windows Universal CRT SDK`
+    - Click `Install` to add the components.
+7. Build project files: `./gradlew build`
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 
