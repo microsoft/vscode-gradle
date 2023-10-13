@@ -91,9 +91,38 @@ export class BuildServerController implements Disposable {
                 }
             })
         );
+        this.checkGradleExecutable();
+        this.checkProxy();
     }
 
     public dispose() {
         this.disposable.dispose();
+    }
+
+    private checkGradleExecutable(): void {
+        if (process.env.PATH) {
+            const pathDirectories = process.env.PATH.split(path.delimiter);
+            for (const dir of pathDirectories) {
+                const executablePath = path.join(dir, "gradle");
+                if (fse.existsSync(executablePath) && fse.statSync(executablePath).isFile()) {
+                    sendInfo("", {
+                        kind: "hasGradleExecutableInPath",
+                        data: "true",
+                    });
+                    return;
+                }
+            }
+        }
+    }
+
+    private checkProxy(): void {
+        const proxy =
+            process.env.HTTP_PROXY ?? process.env.HTTPS_PROXY ?? workspace.getConfiguration("http").get("proxy");
+        if (proxy) {
+            sendInfo("", {
+                kind: "hasProxy",
+                data: "true",
+            });
+        }
     }
 }
