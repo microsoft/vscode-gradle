@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 
 export enum LogVerbosity {
     DEBUG = 0,
@@ -51,7 +52,12 @@ export class Logger {
     }
 
     public error(...messages: string[]): void {
-        this.log(messages.join(" "), LogVerbosity.ERROR);
+        const error = messages.join(" ");
+        this.log(error, LogVerbosity.ERROR);
+        sendInfo("", {
+            kind: "gradleTaskServerError",
+            data: error,
+        });
     }
 
     public debug(...messages: string[]): void {
