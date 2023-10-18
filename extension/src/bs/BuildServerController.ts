@@ -99,7 +99,7 @@ export class BuildServerController implements Disposable {
     }
 
     private checkMachineStatus() {
-        const machineStatus: { [key: string]: string; } = {};
+        const machineStatus: { [key: string]: string } = {};
         if (this.isGradleExecutableOnPath()) {
             machineStatus.gradleExecutableFound = "true";
         }
@@ -128,8 +128,6 @@ export class BuildServerController implements Disposable {
     }
 
     private hasProxy(): boolean {
-        return !!(process.env.HTTP_PROXY ||
-                process.env.HTTPS_PROXY ||
-                workspace.getConfiguration("http").get("proxy"));
+        return !!(process.env.HTTP_PROXY || process.env.HTTPS_PROXY || workspace.getConfiguration("http").get("proxy"));
     }
 }
