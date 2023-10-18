@@ -93,11 +93,18 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
         BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
 
+        // for all the path in this.directories, find the out most directory which belongs
+        // to rootFolder and use that directory as the root folder for the build server.
+        java.nio.file.Path inferredRoot = this.directories.stream()
+                .filter(directory -> directory.startsWith(rootFolder.toPath()))
+                .sorted((p1, p2) -> p1.getNameCount() - p2.getNameCount())
+                .findFirst()
+                .orElse(rootFolder.toPath());
         InitializeBuildParams params = new InitializeBuildParams(
                 CLIENT_NAME,
                 CLIENT_VERSION,
                 BSP_VERSION,
-                rootFolder.toPath().toUri().toString(),
+                inferredRoot.toUri().toString(),
                 new BuildClientCapabilities(java.util.Collections.singletonList("java"))
         );
         BuildServerPreferences data = getBuildServerPreferences();
@@ -130,6 +137,20 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         for (IProject project : projects) {
             updateConfigurationDigest(project);
         }
+    }
+
+    @Override
+    public boolean isResolved(File folder) throws OperationCanceledException, CoreException {
+        // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
+        // the gradle project has already imported by other importers, we can modify this logic
+        // so that Maven importer can be involved for other projects.
+        for (IProject project : ProjectUtils.getAllProjects()) {
+            if (Utils.isGradleBuildServerProject(project) &&
+                    project.getLocation().toPath().startsWith(folder.toPath())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
