@@ -150,7 +150,11 @@ export class BuildServerController implements Disposable {
     }
 
     private async hasProjectAtWorkspaceRoot(): Promise<boolean> {
-        const file = await workspace.findFiles("{settings.gradle,build.gradle,settings.gradle.kts,build.gradle.kts}", undefined, 1);
+        const file = await workspace.findFiles(
+            "{settings.gradle,build.gradle,settings.gradle.kts,build.gradle.kts}",
+            undefined,
+            1
+        );
         return file.length > 0;
     }
 }
