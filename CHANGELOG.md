@@ -4,6 +4,14 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.1
+### Fixed
+- Improve the project root inference logic. [PR#1433](https://github.com/microsoft/vscode-gradle/pull/1433)
+- Add windows requirements into CONTRIBUTING.md. [PR#1429](https://github.com/microsoft/vscode-gradle/pull/1429), contributed by [@JoseLion](https://github.com/JoseLion)
+- Reuse Gradle connector for the same project root. [GBS#94](https://github.com/microsoft/build-server-for-gradle/pull/94)
+- Improve the Gradle home path search logic. [GBS#95](https://github.com/microsoft/build-server-for-gradle/pull/95)
+- Use Gradle 7.4.2 as a fallback version when no suitable build approach is found. [GBS#96](https://github.com/microsoft/build-server-for-gradle/pull/96)
+
 ## 3.13.0
 ### Added
 - Add support for subfolder gradle projects. [PR#1336](https://github.com/microsoft/vscode-gradle/pull/1336), contributed by [@gayanper](https://github.com/gayanper)
