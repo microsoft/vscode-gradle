@@ -98,7 +98,7 @@ export class BuildServerController implements Disposable {
         this.disposable.dispose();
     }
 
-    private checkMachineStatus() {
+    private async checkMachineStatus() {
         const machineStatus: { [key: string]: string } = {};
         if (this.isGradleExecutableOnPath()) {
             machineStatus.gradleExecutableFound = "true";
@@ -106,12 +106,15 @@ export class BuildServerController implements Disposable {
         if (this.hasProxy()) {
             machineStatus.hasProxy = "true";
         }
-        if (Object.keys(machineStatus).length > 0) {
-            sendInfo("", {
-                kind: "machineStatus",
-                data: JSON.stringify(machineStatus),
-            });
+        const gradleVersionInWrapper = await this.gradleVersionInWrapper();
+        if (gradleVersionInWrapper) {
+            machineStatus.gradleVersionInWrapper = gradleVersionInWrapper;
         }
+        machineStatus.hasProjectAtWorkspaceRoot = (await this.hasProjectAtWorkspaceRoot()).toString();
+        sendInfo("", {
+            kind: "machineStatus",
+            data: JSON.stringify(machineStatus),
+        });
     }
 
     private isGradleExecutableOnPath(): boolean {
@@ -129,5 +132,29 @@ export class BuildServerController implements Disposable {
 
     private hasProxy(): boolean {
         return !!(process.env.HTTP_PROXY || process.env.HTTPS_PROXY || workspace.getConfiguration("http").get("proxy"));
+    }
+
+    private async gradleVersionInWrapper(): Promise<string> {
+        const propertiesFile = await workspace.findFiles("**/gradle/wrapper/gradle-wrapper.properties", undefined, 1);
+        if (propertiesFile.length === 0) {
+            return "";
+        }
+
+        const properties = await workspace.fs.readFile(propertiesFile[0]);
+        const propertiesContent = properties.toString();
+        const versionMatch = /^distributionUrl=.*\/gradle-([0-9.]+)-.*$/m.exec(propertiesContent);
+        if (versionMatch) {
+            return versionMatch[1];
+        }
+        return "";
+    }
+
+    private async hasProjectAtWorkspaceRoot(): Promise<boolean> {
+        const file = await workspace.findFiles(
+            "{settings.gradle,build.gradle,settings.gradle.kts,build.gradle.kts}",
+            undefined,
+            1
+        );
+        return file.length > 0;
     }
 }
