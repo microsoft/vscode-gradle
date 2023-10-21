@@ -39,11 +39,15 @@ jobs:
           arguments: build -x test
         env:
           JAVA_HOME: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Upload lib
         uses: actions/upload-artifact@v2
         with:
           name: lib
-          path: extension/lib
+          path: |
+            extension/lib
+            extension/dist
+            extension/out
 
   # Although the gradle build can run in all environments, we use the Java
   # lib generated in the previous step for a better real-world test.
@@ -76,17 +80,14 @@ jobs:
           key: ${{ runner.os }}-vscode-${{ hashFiles('**/vscode-version.ts') }}
           restore-keys: |
             ${{ runner.os }}-vscode-
-      - name: Build Extension
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: extension:build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Download lib
         uses: actions/download-artifact@v2
         with:
           name: lib
-          path: extension/lib
+          path: |
+            extension/lib
+            extension/dist
+            extension/out
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
