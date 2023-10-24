@@ -21,8 +21,10 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
+import org.eclipse.lsp4j.ExecuteCommandParams;
 
 import com.microsoft.gradle.bs.importer.builder.BuildServerBuilder;
 
@@ -206,5 +208,10 @@ public class Utils {
 
     String bspImporterEnabled = getString(preferences.asMap(), JAVA_BUILD_SERVER_GRADLE_ENABLED);
     return "on".equalsIgnoreCase(bspImporterEnabled);
+  }
+
+  public static void sendTelemetry(JavaLanguageClient client, Object message) {
+    client.sendNotification(new ExecuteCommandParams("_java.gradle.buildServer.sendTelemetry",
+        Arrays.asList(message)));
   }
 }

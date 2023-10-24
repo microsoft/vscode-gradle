@@ -57,7 +57,6 @@ public class GradleBuildClient implements BuildClient {
     /**
      * Client command to send telemetry data to the LS client.
      */
-    private static final String CLIENT_BUILD_SEND_TELEMETRY = "_java.gradle.buildServer.sendTelemetry";
 
     private final JavaLanguageClient lsClient;
 
@@ -68,8 +67,12 @@ public class GradleBuildClient implements BuildClient {
     @Override
     public void onBuildLogMessage(LogMessageParams params) {
         MessageType type = params.getType();
-        String cmd = type == MessageType.LOG ? CLIENT_BUILD_SEND_TELEMETRY : CLIENT_BUILD_LOG_CMD;
-        this.lsClient.sendNotification(new ExecuteCommandParams(cmd, Arrays.asList(params.getMessage())));
+        if (type == MessageType.LOG) {
+            Utils.sendTelemetry(this.lsClient, params.getMessage());
+        } else {
+            this.lsClient.sendNotification(new ExecuteCommandParams(CLIENT_BUILD_LOG_CMD,
+                    Arrays.asList(params.getMessage())));
+        }
     }
 
     @Override
