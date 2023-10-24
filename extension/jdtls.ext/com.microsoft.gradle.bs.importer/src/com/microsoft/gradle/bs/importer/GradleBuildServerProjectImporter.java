@@ -31,9 +31,9 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
-
 import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
+import com.microsoft.gradle.bs.importer.model.Telemetry;
 
 import ch.epfl.scala.bsp4j.BuildClientCapabilities;
 import ch.epfl.scala.bsp4j.BuildTarget;
@@ -85,6 +85,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                 .addExclusions("**/bin");
             Collection<java.nio.file.Path> androidDirectories = androidDetector.scan(monitor);
             if (!androidDirectories.isEmpty()) {
+                Telemetry telemetry = new Telemetry("hasAndroidManifest", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
                 return false;
             }
 

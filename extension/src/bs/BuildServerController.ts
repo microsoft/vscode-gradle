@@ -59,12 +59,20 @@ export class BuildServerController implements Disposable {
                     this.logOutputChannel.appendLine(msg);
                 }
             }),
-            commands.registerCommand(SEND_TELEMETRY_CMD, (jsonString: string) => {
-                const log = JSON.parse(jsonString);
+            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object) => {
+                let jsonString: string;
+                let jsonObj: { [key: string]: any };
+                if (typeof data === "string") {
+                    jsonObj = JSON.parse(data);
+                    jsonString = data;
+                } else {
+                    jsonObj = data;
+                    jsonString = JSON.stringify(data);
+                }
                 sendInfo("", {
-                    kind: log.kind,
+                    kind: jsonObj.kind,
                     data: jsonString,
-                    ...(log.schemaVersion && { schemaVersion: log.schemaVersion }),
+                    ...(jsonObj.schemaVersion && { schemaVersion: jsonObj.schemaVersion }),
                 });
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
