@@ -61,7 +61,7 @@ export class BuildServerController implements Disposable {
             }),
             commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object) => {
                 let jsonString: string;
-                let jsonObj: { [key: string]: any};
+                let jsonObj: { [key: string]: any };
                 if (typeof data === "string") {
                     jsonObj = JSON.parse(data);
                     jsonString = data;
