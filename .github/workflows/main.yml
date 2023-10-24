@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 16.14.2
+          cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Cache npm cache directory
         uses: actions/cache@v2
@@ -68,6 +69,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Use Java ${{ matrix.java-version }}
         uses: actions/setup-java@v1
