@@ -3,6 +3,7 @@ package com.microsoft.gradle.bs.importer;
 import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String BUILD_GRADLE_KTS_DESCRIPTOR = "build.gradle.kts";
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
+    public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
 
     @Override
     public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
@@ -76,6 +78,16 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         }
 
         for (java.nio.file.Path directory : directories) {
+            // we don't support android
+            BasicFileDetector androidDetector = new BasicFileDetector(directory, ANDROID_MANIFEST)
+                .includeNested(false)
+                .addExclusions("**/build") //default gradle build dir
+                .addExclusions("**/bin");
+            Collection<java.nio.file.Path> androidDirectories = androidDetector.scan(monitor);
+            if (!androidDirectories.isEmpty()) {
+                return false;
+            }
+
             IProject project = ProjectUtils.getProjectFromUri(directory.toUri().toString());
             // skip this importer if any of the project in workspace is already
             // imported by other importers.
