@@ -29,7 +29,6 @@ import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.env.*;
 import org.eclipse.jdt.internal.compiler.env.IUpdatableModule.UpdateKind;
-import org.eclipse.jdt.internal.compiler.env.NameEnvironmentAnswer;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.problem.AbortCompilation;
 import org.eclipse.jdt.internal.compiler.util.SimpleLookupTable;
@@ -179,13 +178,15 @@ private void computeClasspathLocations(
 					}
 					bLocation.patchModuleName = patchedModuleName;
 				} else {
+					boolean isOptional = "true".equals(ClasspathEntry.getExtraAttribute(entry, "optional"));
 					ClasspathLocation sourceLocation = ClasspathLocation.forSourceFolder(
 								(IContainer) target,
 								outputFolder,
 								entry.fullInclusionPatternChars(),
 								entry.fullExclusionPatternChars(),
 								entry.ignoreOptionalProblems(),
-								externalAnnotationPath);
+								externalAnnotationPath,
+								isOptional);
 					if (patchedModule != null) {
 						ModuleEntryProcessor.combinePatchIntoModuleEntry(sourceLocation, patchedModule, moduleEntries);
 					}
