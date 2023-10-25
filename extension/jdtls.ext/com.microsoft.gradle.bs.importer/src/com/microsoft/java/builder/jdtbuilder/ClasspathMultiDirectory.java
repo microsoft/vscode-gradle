@@ -34,6 +34,7 @@ public char[][] inclusionPatterns; // used by builders when walking source folde
 public char[][] exclusionPatterns; // used by builders when walking source folders
 boolean hasIndependentOutputFolder; // if output folder is not equal to any of the source folders
 public boolean ignoreOptionalProblems;
+public boolean isOptional = false;
 
 ClasspathMultiDirectory(IContainer sourceFolder, IContainer binaryFolder, char[][] inclusionPatterns, char[][] exclusionPatterns,
 		boolean ignoreOptionalProblems, IPath externalAnnotationPath) {
@@ -50,6 +51,12 @@ ClasspathMultiDirectory(IContainer sourceFolder, IContainer binaryFolder, char[]
 		this.inclusionPatterns = null;
 	if (this.exclusionPatterns != null && this.exclusionPatterns.length == 0)
 		this.exclusionPatterns = null;
+}
+
+ClasspathMultiDirectory(IContainer sourceFolder, IContainer binaryFolder, char[][] inclusionPatterns, char[][] exclusionPatterns,
+		boolean ignoreOptionalProblems, IPath externalAnnotationPath, boolean isOptional) {
+	this(sourceFolder, binaryFolder, inclusionPatterns, exclusionPatterns, ignoreOptionalProblems, externalAnnotationPath);
+	this.isOptional = isOptional;
 }
 
 @Override
