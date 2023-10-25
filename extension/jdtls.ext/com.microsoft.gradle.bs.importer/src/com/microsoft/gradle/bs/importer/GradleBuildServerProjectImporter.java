@@ -68,6 +68,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
+        // if the current root already contains Gradle Java project
+        // imported by Buildship, skip the build server importer.
+        for (IProject project : ProjectUtils.getGradleProjects()) {
+            if (ProjectUtils.isJavaProject(project)
+                    && project.getLocation().toFile().toPath().startsWith(rootFolder.toPath())) {
+                return false;
+            }
+        }
+
         if (directories == null) {
             BasicFileDetector gradleDetector = new BasicFileDetector(rootFolder.toPath(), BUILD_GRADLE_DESCRIPTOR,
                     SETTINGS_GRADLE_DESCRIPTOR, BUILD_GRADLE_KTS_DESCRIPTOR, SETTINGS_GRADLE_KTS_DESCRIPTOR)
@@ -75,6 +84,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                     .addExclusions("**/build") //default gradle build dir
                     .addExclusions("**/bin");
             directories = gradleDetector.scan(monitor);
+        }
+
+        if (directories.isEmpty()) {
+            return false;
         }
 
         for (java.nio.file.Path directory : directories) {
@@ -90,17 +103,35 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                         telemetry);
                 return false;
             }
-
-            IProject project = ProjectUtils.getProjectFromUri(directory.toUri().toString());
-            // skip this importer if any of the project in workspace is already
-            // imported by other importers.
-            if (project != null && (!Utils.isGradleBuildServerProject(project)
-                    && ProjectUtils.isJavaProject(project))) {
-                return false;
-            }
         }
 
-        return !directories.isEmpty();
+        return true;
+    }
+
+    @Override
+    public boolean applies(Collection<IPath> projectConfigurations, IProgressMonitor monitor)
+            throws OperationCanceledException, CoreException {
+        if (rootFolder == null) {
+            return false;
+        }
+
+
+        if (!Utils.isBuildServerEnabled(getPreferences())) {
+            return false;
+        }
+
+        Collection<java.nio.file.Path> directories = findProjectPathByConfigurationName(
+            projectConfigurations,
+            Arrays.asList(
+                BUILD_GRADLE_DESCRIPTOR,
+                SETTINGS_GRADLE_DESCRIPTOR,
+                BUILD_GRADLE_KTS_DESCRIPTOR,
+                SETTINGS_GRADLE_KTS_DESCRIPTOR
+            ),
+            false /*includeNested*/
+        );
+
+        return !directories.isEmpty() && !importedByOtherImporters(directories);
     }
 
     @Override
@@ -198,6 +229,18 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         }
 
         return result;
+    }
+
+    /**
+     * Return false if any of the input folder has already been imported as a
+     * Java project by other importer.
+     */
+    private boolean importedByOtherImporters(Collection<java.nio.file.Path> directories) {
+        return directories.stream()
+            .map(directory -> ProjectUtils.getProjectFromUri(directory.toUri().toString()))
+            .anyMatch(project -> !Utils.isGradleBuildServerProject(project) &&
+                    ProjectUtils.isJavaProject(project)
+            );
     }
 
     /**
