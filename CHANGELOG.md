@@ -4,6 +4,12 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.2
+### Fixed
+- Skip Android projects when importing Gradle projects. [PR#1439](https://github.com/microsoft/vscode-gradle/pull/1439)
+- Improve the project scan logic. [PR#1432](https://github.com/microsoft/vscode-gradle/pull/1432)
+- Reuse built extension for tests in CI pipelines. [PR#1438](https://github.com/microsoft/vscode-gradle/pull/1438), contributed by [@JoseLion](https://github.com/JoseLion)
+
 ## 3.13.1
 ### Fixed
 - Improve the project root inference logic. [PR#1433](https://github.com/microsoft/vscode-gradle/pull/1433)
