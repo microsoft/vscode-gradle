@@ -39,6 +39,7 @@ import org.eclipse.jdt.internal.core.util.Util;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * The abstract superclass of Java builders.
@@ -86,13 +87,23 @@ public final static Integer P_HIGH = Integer.valueOf(IMarker.PRIORITY_HIGH);
 public final static Integer P_NORMAL = Integer.valueOf(IMarker.PRIORITY_NORMAL);
 public final static Integer P_LOW = Integer.valueOf(IMarker.PRIORITY_LOW);
 private CompilationGroup compilationGroup;
+/**
+ * A flag to control whether to ignore the optional sources during build.
+ */
+public static boolean IGNORE_OPTIONAL_SOURCES = true;
 
 protected AbstractImageBuilder(JavaBuilder javaBuilder, boolean buildStarting, State newState, CompilationGroup compilationGroup) {
 	// local copies
 	this.javaBuilder = javaBuilder;
 	this.compilationGroup = compilationGroup;
 	this.nameEnvironment = compilationGroup == CompilationGroup.TEST ? javaBuilder.testNameEnvironment : javaBuilder.nameEnvironment;
-	this.sourceLocations = this.nameEnvironment.sourceLocations;
+	if (IGNORE_OPTIONAL_SOURCES && this.nameEnvironment.sourceLocations != null) {
+		this.sourceLocations = Stream.of(this.nameEnvironment.sourceLocations)
+			.filter(sourceLocation -> !sourceLocation.isOptional)
+			.toArray(ClasspathMultiDirectory[]::new);
+	} else {
+		this.sourceLocations = this.nameEnvironment.sourceLocations;
+	}
 	this.notifier = javaBuilder.notifier;
 	this.keepStoringProblemMarkers = true; // may get disabled when missing classfiles are encountered
 
