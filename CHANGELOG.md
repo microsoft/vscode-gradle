@@ -4,6 +4,10 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.3
+### Fixed
+- Ignore the generated optional sources during problem checker. [PR#1443](https://github.com/microsoft/vscode-gradle/pull/1443)
+
 ## 3.13.2
 ### Fixed
 - Skip Android projects when importing Gradle projects. [PR#1439](https://github.com/microsoft/vscode-gradle/pull/1439)
