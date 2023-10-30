@@ -120,7 +120,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        Collection<java.nio.file.Path> directories = findProjectPathByConfigurationName(
+        this.directories = findProjectPathByConfigurationName(
             projectConfigurations,
             Arrays.asList(
                 BUILD_GRADLE_DESCRIPTOR,
@@ -141,6 +141,13 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
+        // TODO: consider the following folder structure
+        //   ROOT
+        //    |-- sub1
+        //    |-- sub2
+        //    |-- sub3
+        // if user partially selects sub1 and sub2, we should still use ROOT as the root folder
+        // and only import sub1 and sub2 as projects.
         java.nio.file.Path inferredRoot = this.directories.stream()
                 .filter(directory -> directory.startsWith(rootFolder.toPath()))
                 .sorted((p1, p2) -> p1.getNameCount() - p2.getNameCount())
