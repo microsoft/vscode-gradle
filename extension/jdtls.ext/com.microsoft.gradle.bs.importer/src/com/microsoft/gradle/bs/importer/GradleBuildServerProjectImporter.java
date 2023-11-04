@@ -73,6 +73,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         for (IProject project : ProjectUtils.getGradleProjects()) {
             if (ProjectUtils.isJavaProject(project)
                     && project.getLocation().toFile().toPath().startsWith(rootFolder.toPath())) {
+                Telemetry telemetry = new Telemetry("hasBuildshipJavaProject", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
                 return false;
             }
         }
@@ -105,6 +108,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             }
         }
 
+        Telemetry telemetry = new Telemetry("hasAndroidManifest", "false");
+        Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                telemetry);
         return true;
     }
 
