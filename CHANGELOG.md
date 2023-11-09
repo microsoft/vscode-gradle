@@ -4,6 +4,13 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.4
+### Fixed
+- Store the scan result of the project importer. [PR#1445](https://github.com/microsoft/vscode-gradle/pull/1445)
+- Plugin with id not found. [GBS#98](https://github.com/microsoft/build-server-for-gradle/pull/98)
+- No builders are available to build a model of type. [GBS#99](https://github.com/microsoft/build-server-for-gradle/pull/99)
+- No such method error: CompileOptions.getAnnotationProcessorGeneratedSourcesDirectory(). [GBS#100](https://github.com/microsoft/build-server-for-gradle/pull/100)
+
 ## 3.13.3
 ### Fixed
 - Ignore the generated optional sources during problem checker. [PR#1443](https://github.com/microsoft/vscode-gradle/pull/1443)
