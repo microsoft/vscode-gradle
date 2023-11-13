@@ -13,6 +13,24 @@ import org.junit.Test;
 public class UtilsTest {
 
 	@Test
+	public void testJava21Compatibility() {
+		Version javaVersion = new Version("21");
+		Version gradleVersion = new Version("8.4");
+		assertFalse(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+		gradleVersion = new Version("8.1");
+		assertTrue(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+	}
+
+	@Test
+	public void testJava20Compatibility() {
+		Version javaVersion = new Version("20.0.2");
+		Version gradleVersion = new Version("8.1");
+		assertFalse(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+		gradleVersion = new Version("8.0.1");
+		assertTrue(Utils.hasCompatibilityError(gradleVersion, javaVersion));
+	}
+
+	@Test
 	public void testJava19Compatibility() {
 		Version javaVersion = new Version("19.0.1");
 		Version gradleVersion = new Version("7.6.0");
