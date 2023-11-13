@@ -8,7 +8,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -126,6 +128,20 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return Utils.isGradleBuildServerProject(project);
     }
 
+    public void onWillUpdate(Collection<IProject> projects, IProgressMonitor monitor) throws CoreException {
+        Set<IPath> roots = new HashSet<>();
+        for (IProject project : projects) {
+            IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
+            if (rootPath != null) {
+                roots.add(rootPath);
+            }
+        }
+        for (IPath rootPath : roots) {
+            BuildServerConnection connection = ImporterPlugin.getBuildServerConnection(rootPath);
+            connection.workspaceReload().join();
+        }
+    }
+
     @Override
     public void update(IProject project, boolean force, IProgressMonitor monitor) throws CoreException {
         if (!applies(project)) {
@@ -139,10 +155,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
                 return;
             }
-            BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
-            buildServer.workspaceReload().join();
-
-            Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+            BuildServerConnection connection = ImporterPlugin.getBuildServerConnection(rootPath);
+            Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(connection);
             for (URI uri : buildTargetMap.keySet()) {
                 IProject projectFromUri = ProjectUtils.getProjectFromUri(uri.toString());
                 if (projectFromUri == null || !Utils.isGradleBuildServerProject(projectFromUri)) {
