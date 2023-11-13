@@ -18,7 +18,12 @@ public class Utils {
 
 	private static Version getLowestGradleVersion(Version javaVersion) {
 		// Ref: https://docs.gradle.org/current/userguide/compatibility.html
-		if (javaVersion.isAtLeast("19")) {
+		if (javaVersion.isAtLeast("21")) {
+			// TODO: Update when support for running Gradle on Java 21 is available
+			return new Version("8.4");
+		} else if (javaVersion.isAtLeast("20")) {
+			return new Version("8.1");
+		} else if (javaVersion.isAtLeast("19")) {
 			return new Version("7.6");
 		} else if (javaVersion.isAtLeast("18")) {
 			return new Version("7.5");

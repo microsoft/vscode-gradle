@@ -23,7 +23,7 @@ application {
 dependencies {
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.12.0"
-  implementation "org.codehaus.groovy:groovy-eclipse-batch:4.0.9-02"
+  implementation "org.codehaus.groovy:groovy-eclipse-batch:4.0.15-03"
   implementation "com.google.code.gson:gson:2.8.9"
   implementation "org.apache.bcel:bcel:6.6.1"
   testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"

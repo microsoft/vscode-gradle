@@ -36,7 +36,7 @@ export async function getSupportedJavaHome(): Promise<string | undefined> {
         const runtime = await getRuntime(javaHome, { withVersion: true });
         if (runtime?.version) {
             // check the JDK version of given java home is supported, otherwise return undefined
-            return runtime.version.major >= 8 && runtime.version.major <= 19 ? javaHome : undefined;
+            return runtime.version.major >= 8 && runtime.version.major <= 21 ? javaHome : undefined;
         }
     }
     return undefined;
