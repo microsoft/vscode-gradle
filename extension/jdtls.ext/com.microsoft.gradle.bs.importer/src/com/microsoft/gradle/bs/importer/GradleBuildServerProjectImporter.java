@@ -117,27 +117,29 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     @Override
     public boolean applies(Collection<IPath> projectConfigurations, IProgressMonitor monitor)
             throws OperationCanceledException, CoreException {
-        if (rootFolder == null) {
-            return false;
-        }
+        // TODO: enable this capability once the upstream experience is stable.
+        return false;
+        // if (rootFolder == null) {
+        //     return false;
+        // }
 
 
-        if (!Utils.isBuildServerEnabled(getPreferences())) {
-            return false;
-        }
+        // if (!Utils.isBuildServerEnabled(getPreferences())) {
+        //     return false;
+        // }
 
-        this.directories = findProjectPathByConfigurationName(
-            projectConfigurations,
-            Arrays.asList(
-                BUILD_GRADLE_DESCRIPTOR,
-                SETTINGS_GRADLE_DESCRIPTOR,
-                BUILD_GRADLE_KTS_DESCRIPTOR,
-                SETTINGS_GRADLE_KTS_DESCRIPTOR
-            ),
-            false /*includeNested*/
-        );
+        // this.directories = findProjectPathByConfigurationName(
+        //     projectConfigurations,
+        //     Arrays.asList(
+        //         BUILD_GRADLE_DESCRIPTOR,
+        //         SETTINGS_GRADLE_DESCRIPTOR,
+        //         BUILD_GRADLE_KTS_DESCRIPTOR,
+        //         SETTINGS_GRADLE_KTS_DESCRIPTOR
+        //     ),
+        //     false /*includeNested*/
+        // );
 
-        return !directories.isEmpty() && !importedByOtherImporters(directories);
+        // return !directories.isEmpty() && !importedByOtherImporters(directories);
     }
 
     @Override
