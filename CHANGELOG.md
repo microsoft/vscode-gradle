@@ -4,6 +4,17 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.13.5
+### Added
+- Implement onWillUpdate() in GradleBuildServerBuildSupport. [PR#1405](https://github.com/microsoft/vscode-gradle/pull/1405)
+
+### Fixed
+- Disable manually applying configuration files on import temporarily. [PR#1451](https://github.com/microsoft/vscode-gradle/pull/1451)
+
+### Changed
+- Bump Gradle wrapper to v8.4. [#1420](https://github.com/microsoft/vscode-gradle/issues/1420), contributed by [@JoseLion](https://github.com/JoseLion)
+
+
 ## 3.13.4
 ### Fixed
 - Store the scan result of the project importer. [PR#1445](https://github.com/microsoft/vscode-gradle/pull/1445)
