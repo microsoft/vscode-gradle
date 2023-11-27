@@ -4,8 +4,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.microsoft.gradle.jdtls.ext</groupId>
-		<artifactId>gradle-jdtls-ext-parent</artifactId>
-		<version>0.1.0</version>
+        <artifactId>gradle-jdtls-ext-parent</artifactId>
+        <version>0.2.0</version>
     </parent>
     <artifactId>com.microsoft.gradle.bs.importer</artifactId>
     <packaging>eclipse-plugin</packaging>

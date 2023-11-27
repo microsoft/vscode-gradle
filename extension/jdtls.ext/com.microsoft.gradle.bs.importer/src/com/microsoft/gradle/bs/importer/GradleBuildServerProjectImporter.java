@@ -44,8 +44,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     private static final String CLIENT_NAME = "jdtls";
 
-    private static final String CLIENT_VERSION = "0.1.0";
-
     private static final String BSP_VERSION = "2.1.0-M4";
 
     private static final String SCHEMA_VERSION_KEY = "bspSchemaVersion";
@@ -163,7 +161,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                 .orElse(rootFolder.toPath());
         InitializeBuildParams params = new InitializeBuildParams(
                 CLIENT_NAME,
-                CLIENT_VERSION,
+                ImporterPlugin.getBundleVersion(),
                 BSP_VERSION,
                 inferredRoot.toUri().toString(),
                 new BuildClientCapabilities(java.util.Collections.singletonList("java"))

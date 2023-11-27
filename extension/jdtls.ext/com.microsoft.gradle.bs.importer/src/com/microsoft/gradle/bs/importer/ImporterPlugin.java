@@ -38,10 +38,13 @@ public class ImporterPlugin extends Plugin {
 
     private static String bundleDirectory;
 
+    private static String bundleVersion = "";
+
     @Override
     public void start(BundleContext context) throws Exception {
         BuildStateManager.getBuildStateManager().startup();
         ImporterPlugin.instance = this;
+        bundleVersion = context.getBundle().getVersion().toString();
         digestStore = new DigestStore(getStateLocation().toFile());
         Optional<File> bundleFile = FileLocator.getBundleFileLocation(context.getBundle());
         if (!bundleFile.isPresent()) {
@@ -60,6 +63,10 @@ public class ImporterPlugin extends Plugin {
 
     public static ImporterPlugin getInstance() {
         return ImporterPlugin.instance;
+    }
+
+    public static String getBundleVersion() {
+        return bundleVersion;
     }
 
     public static DigestStore getDigestStore() {
