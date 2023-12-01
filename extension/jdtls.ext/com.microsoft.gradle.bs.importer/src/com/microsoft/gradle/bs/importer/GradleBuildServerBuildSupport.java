@@ -654,7 +654,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      */
     private String getHighestCompatibleJavaVersion(String gradleVersion) {
       GradleVersion version = GradleVersion.version(gradleVersion);
-      if (version.compareTo(GradleVersion.version("8.3")) >= 0) {
+      if (version.compareTo(GradleVersion.version("8.5")) >= 0) {
+        return "21"; // JavaCore.VERSION_21 not available yet
+      } else if (version.compareTo(GradleVersion.version("8.3")) >= 0) {
         return JavaCore.VERSION_20;
       } else if (version.compareTo(GradleVersion.version("7.6")) >= 0) {
         return JavaCore.VERSION_19;
