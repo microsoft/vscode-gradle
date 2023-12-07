@@ -38,7 +38,7 @@ jobs:
       - name: Build & Analyse Gradle Server
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: build -x test
+          arguments: build
         env:
           JAVA_HOME: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
