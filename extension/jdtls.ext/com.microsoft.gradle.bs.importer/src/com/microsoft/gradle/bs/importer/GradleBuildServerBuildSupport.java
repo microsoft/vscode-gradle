@@ -290,16 +290,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
         IJavaProject javaProject = JavaCore.create(project);
         List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(javaProject.getRawClasspath()));
-        classpath.addAll(getProjectDependencyEntries(projectDependencies));
+        classpath.addAll(getProjectDependencyEntries(project, projectDependencies));
         javaProject.setRawClasspath(classpath.toArray(IClasspathEntry[]::new), javaProject.getOutputLocation(), monitor);
     }
 
-    private List<IClasspathEntry> getProjectDependencyEntries(Set<BuildTargetIdentifier> projectDependencies) {
+    private List<IClasspathEntry> getProjectDependencyEntries(IProject project, Set<BuildTargetIdentifier> projectDependencies) {
         List<IClasspathEntry> entries = new LinkedList<>();
         for (BuildTargetIdentifier dependency : projectDependencies) {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
-            if (dependencyProject != null) {
+            if (dependencyProject != null && !Objects.equals(project, dependencyProject)) {
                 entries.add(JavaCore.newProjectEntry(
                     dependencyProject.getFullPath(),
                     ClasspathEntry.NO_ACCESS_RULES,
