@@ -75,25 +75,25 @@ extends:
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
                   inlineOperation: |
-                  [
-                    {
-                      "KeyCode" : "CP-447347-Java",
-                      "OperationCode" : "JavaSign",
-                      "Parameters" : {
-                          "SigAlg" : "SHA256withRSA",
-                          "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                    [
+                      {
+                        "KeyCode" : "CP-447347-Java",
+                        "OperationCode" : "JavaSign",
+                        "Parameters" : {
+                            "SigAlg" : "SHA256withRSA",
+                            "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                        },
+                        "ToolName" : "sign",
+                        "ToolVersion" : "1.0"
                       },
-                      "ToolName" : "sign",
-                      "ToolVersion" : "1.0"
-                    },
-                    {
-                      "KeyCode" : "CP-447347-Java",
-                      "OperationCode" : "JavaVerify",
-                      "Parameters" : {},
-                      "ToolName" : "sign",
-                      "ToolVersion" : "1.0"
-                    }
-                  ]
+                      {
+                        "KeyCode" : "CP-447347-Java",
+                        "OperationCode" : "JavaVerify",
+                        "Parameters" : {},
+                        "ToolName" : "sign",
+                        "ToolVersion" : "1.0"
+                      }
+                    ]
               - bash: |
                   cd $(Build.SourcesDirectory)/extension
                   npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
@@ -146,25 +146,25 @@ extends:
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
                   inlineOperation: |
-                  [
-                    {
-                      "KeyCode" : "CP-447347-Java",
-                      "OperationCode" : "JavaSign",
-                      "Parameters" : {
-                          "SigAlg" : "SHA256withRSA",
-                          "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                    [
+                      {
+                        "KeyCode" : "CP-447347-Java",
+                        "OperationCode" : "JavaSign",
+                        "Parameters" : {
+                            "SigAlg" : "SHA256withRSA",
+                            "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                        },
+                        "ToolName" : "sign",
+                        "ToolVersion" : "1.0"
                       },
-                      "ToolName" : "sign",
-                      "ToolVersion" : "1.0"
-                    },
-                    {
-                      "KeyCode" : "CP-447347-Java",
-                      "OperationCode" : "JavaVerify",
-                      "Parameters" : {},
-                      "ToolName" : "sign",
-                      "ToolVersion" : "1.0"
-                    }
-                  ]
+                      {
+                        "KeyCode" : "CP-447347-Java",
+                        "OperationCode" : "JavaVerify",
+                        "Parameters" : {},
+                        "ToolName" : "sign",
+                        "ToolVersion" : "1.0"
+                      }
+                    ]
               - bash: |
                   cd $(Build.SourcesDirectory)/extension
                   npx @vscode/vsce@latest package
