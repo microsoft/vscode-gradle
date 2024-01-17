@@ -1,161 +1,181 @@
-# Gradle
-# Build your Java project and run tests with Gradle using a Gradle wrapper script.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
-
+name: $(Date:yyyyMMdd).$(Rev:r)
+schedules:
+  - cron: 0 2 * * *
+    branches:
+      include:
+        - develop
+resources:
+  repositories:
+    - repository: self
+      type: git
+      ref: refs/heads/main
+    - repository: 1esPipelines
+      type: git
+      name: 1ESPipelineTemplates/1ESPipelineTemplates
+      ref: refs/tags/release
 trigger: none
 pr: none
-
-schedules:
-- cron: "0 0 * * *"
-  displayName: Daily midnight build
-  branches:
-    include:
-    - develop
-
-pool:
-  vmImage: 'ubuntu-20.04'
-
-steps:
-- task: JavaToolInstaller@0
-  displayName: Install Java 11
-  inputs:
-    versionSpec: '11'
-    jdkArchitectureOption: 'x64'
-    jdkSourceOption: 'PreInstalled'
-- task: NodeTool@0
-  displayName: Install Node 16.14.2
-  inputs:
-    versionSpec: '16.14.2'
-- task: Gradle@2
-  displayName: Build
-  inputs:
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    tasks: 'build'
-- task: Gradle@2
-  displayName: PrepareForRelease
-  inputs:
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    tasks: 'prepareForRelease'
-- bash: |
-    cd $(Build.SourcesDirectory)/extension/lib
-    chmod +x gradle-server
-  displayName: Set permission
-- task: EsrpCodeSigning@2
-  displayName: 'ESRP CodeSigning'
-  inputs:
-    ConnectedServiceName: 'vscjavaci_codesign'
-    FolderPath: 'extension/lib'
-    Pattern: 'gradle-server.jar'
-    signConfigType: 'inlineSignParams'
-    inlineOperation: |
-     [
-             {
-                 "KeyCode" : "CP-447347-Java",
-                 "OperationCode" : "JavaSign",
-                 "Parameters" : {
-                     "SigAlg" : "SHA256withRSA",
-                     "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
-                 },
-                 "ToolName" : "sign",
-                 "ToolVersion" : "1.0"
-             },
-             {
-                 "KeyCode" : "CP-447347-Java",
-                 "OperationCode" : "JavaVerify",
-                 "Parameters" : {},
-                 "ToolName" : "sign",
-                 "ToolVersion" : "1.0"
-             }
-     ]
-- bash: |
-    cd $(Build.SourcesDirectory)/extension
-    npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
-  displayName: Replace AI Key
-- bash: |
-    cd $(Build.SourcesDirectory)/extension
-    node ./scripts/prepare-nightly-build.js
-    mv ./package.insiders.json ./package.json
-  displayName: Generate new package.json
-- task: ComponentGovernanceComponentDetection@0
-  inputs:
-    scanType: 'Register'
-    verbosity: 'Verbose'
-    alertWarningLevel: 'High'
-- task: notice@0
-  displayName: 'NOTICE File Generator'
-  inputs:
-    outputformat: 'text'
-- task: DownloadPipelineArtifact@2
-  displayName: Download NOTICE file
-  inputs:
-    artifact: 'NOTICE.txt'
-    path: $(Build.SourcesDirectory)/extension
-- task: DownloadBuildArtifacts@1
-  displayName: 'Download Build Server Artifacts'
-  inputs:
-    buildType: specific
-    project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
-    pipeline: 15024
-    downloadType: specific
-    extractTars: false
-- task: CopyFiles@2
-  displayName: 'Copy Build Server Artifacts'
-  inputs:
-    SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
-    Contents: '**'
-    TargetFolder: $(Build.SourcesDirectory)/extension/server
-- task: JavaToolInstaller@0
-  displayName: Install Java 17
-  inputs:
-    versionSpec: '17'
-    jdkArchitectureOption: 'x64'
-    jdkSourceOption: 'PreInstalled'
-- task: Gradle@2
-  displayName: Build
-  inputs:
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    tasks: ':extension:copyJdtlsPluginJar'
-- task: EsrpCodeSigning@2
-  displayName: 'ESRP CodeSigning'
-  inputs:
-    ConnectedServiceName: 'vscjavaci_codesign'
-    FolderPath: 'extension/server'
-    Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
-    signConfigType: 'inlineSignParams'
-    inlineOperation: |
-     [
-             {
-                 "KeyCode" : "CP-447347-Java",
-                 "OperationCode" : "JavaSign",
-                 "Parameters" : {
-                     "SigAlg" : "SHA256withRSA",
-                     "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
-                 },
-                 "ToolName" : "sign",
-                 "ToolVersion" : "1.0"
-             },
-             {
-                 "KeyCode" : "CP-447347-Java",
-                 "OperationCode" : "JavaVerify",
-                 "Parameters" : {},
-                 "ToolName" : "sign",
-                 "ToolVersion" : "1.0"
-             }
-     ]
-- bash: |
-    cd $(Build.SourcesDirectory)/extension
-    npx @vscode/vsce@latest package --pre-release
-  displayName: Package VSIX
-- task: CopyFiles@2
-  displayName: Copy VSIX
-  inputs:
-    Contents: 'extension/*.vsix'
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'
-- task: PublishBuildArtifacts@1
-  displayName: Publish VSIX
-  inputs:
-    ArtifactName: extension
+extends:
+  template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
+  parameters:
+    pool:
+      name: 1ES_JavaTooling_Pool
+      image: 1ES_JavaTooling_Ubuntu-2004
+      os: linux
+    sdl:
+      sourceAnalysisPool:
+        name: 1ES_JavaTooling_Pool
+        image: 1ES_JavaTooling_Windows_2022
+        os: windows
+    stages:
+      - stage: Build
+        jobs:
+          - job: Job_1
+            displayName: VSCode-Gradle-Nightly
+            templateContext:
+              outputs:
+                - output: pipelineArtifact
+                  artifactName: extension
+                  targetPath: $(Build.ArtifactStagingDirectory)
+                  displayName: "Publish Artifact: extension"
+            steps:
+              - checkout: self
+                fetchTags: true
+              - task: JavaToolInstaller@0
+                displayName: Install Java 11
+                inputs:
+                  versionSpec: '11'
+                  jdkArchitectureOption: 'x64'
+                  jdkSourceOption: 'PreInstalled'
+              - task: NodeTool@0
+                displayName: Install Node 16.14.2
+                inputs:
+                  versionSpec: '16.14.2'
+              - task: Gradle@2
+                displayName: Build
+                inputs:
+                  gradleWrapperFile: 'gradlew'
+                  gradleOptions: '-Xmx3072m'
+                  tasks: 'build'
+              - task: Gradle@2
+                displayName: PrepareForRelease
+                inputs:
+                  gradleWrapperFile: 'gradlew'
+                  gradleOptions: '-Xmx3072m'
+                  tasks: 'prepareForRelease'
+              - bash: |
+                  cd $(Build.SourcesDirectory)/extension/lib
+                  chmod +x gradle-server
+                displayName: Set permission
+              - task: EsrpCodeSigning@2
+                displayName: 'ESRP CodeSigning'
+                inputs:
+                  ConnectedServiceName: 'vscjavaci_codesign'
+                  FolderPath: 'extension/lib'
+                  Pattern: 'gradle-server.jar'
+                  signConfigType: 'inlineSignParams'
+                  inlineOperation: |
+                  [
+                    {
+                      "KeyCode" : "CP-447347-Java",
+                      "OperationCode" : "JavaSign",
+                      "Parameters" : {
+                          "SigAlg" : "SHA256withRSA",
+                          "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                      },
+                      "ToolName" : "sign",
+                      "ToolVersion" : "1.0"
+                    },
+                    {
+                      "KeyCode" : "CP-447347-Java",
+                      "OperationCode" : "JavaVerify",
+                      "Parameters" : {},
+                      "ToolName" : "sign",
+                      "ToolVersion" : "1.0"
+                    }
+                  ]
+              - bash: |
+                  cd $(Build.SourcesDirectory)/extension
+                  npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
+                displayName: Replace AI Key
+              - bash: |
+                  cd $(Build.SourcesDirectory)/extension
+                  node ./scripts/prepare-nightly-build.js
+                  mv ./package.insiders.json ./package.json
+                displayName: Generate new package.json
+              - task: ComponentGovernanceComponentDetection@0
+                inputs:
+                  scanType: 'Register'
+                  verbosity: 'Verbose'
+                  alertWarningLevel: 'High'
+              - task: notice@0
+                displayName: 'NOTICE File Generator'
+                inputs:
+                  outputformat: 'text'
+              - task: DownloadPipelineArtifact@2
+                displayName: Download NOTICE file
+                inputs:
+                  artifact: 'NOTICE.txt'
+                  path: $(Build.SourcesDirectory)/extension
+              - task: DownloadBuildArtifacts@1
+                displayName: 'Download Build Server Artifacts'
+                inputs:
+                  buildType: specific
+                  project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
+                  pipeline: 16493
+                  downloadType: specific
+                  extractTars: false
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
+                  Contents: '**'
+                  TargetFolder: $(Build.SourcesDirectory)/extension/server
+              - task: JavaToolInstaller@0
+                displayName: Install Java 17
+                inputs:
+                  versionSpec: '17'
+                  jdkArchitectureOption: 'x64'
+                  jdkSourceOption: 'PreInstalled'
+              - task: Gradle@2
+                displayName: Build
+                inputs:
+                  gradleWrapperFile: 'gradlew'
+                  gradleOptions: '-Xmx3072m'
+                  tasks: ':extension:copyJdtlsPluginJar'
+              - task: EsrpCodeSigning@2
+                displayName: 'ESRP CodeSigning'
+                inputs:
+                  ConnectedServiceName: 'vscjavaci_codesign'
+                  FolderPath: 'extension/server'
+                  Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
+                  signConfigType: 'inlineSignParams'
+                  inlineOperation: |
+                  [
+                    {
+                      "KeyCode" : "CP-447347-Java",
+                      "OperationCode" : "JavaSign",
+                      "Parameters" : {
+                          "SigAlg" : "SHA256withRSA",
+                          "Timestamp" : "-tsa http://sha256timestamp.ws.digicert.com/sha256/timestamp"
+                      },
+                      "ToolName" : "sign",
+                      "ToolVersion" : "1.0"
+                    },
+                    {
+                      "KeyCode" : "CP-447347-Java",
+                      "OperationCode" : "JavaVerify",
+                      "Parameters" : {},
+                      "ToolName" : "sign",
+                      "ToolVersion" : "1.0"
+                    }
+                  ]
+              - bash: |
+                  cd $(Build.SourcesDirectory)/extension
+                  npx @vscode/vsce@latest package --pre-release
+                displayName: Package VSIX
+              - task: CopyFiles@2
+                displayName: Copy VSIX
+                inputs:
+                  Contents: 'extension/*.vsix'
+                  TargetFolder: '$(Build.ArtifactStagingDirectory)'
