@@ -298,15 +298,22 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 			}
 		}
 		Set<MethodCallExpression> methodCalls = this.completionVisitor.getMethodCalls(uri);
-		MethodCallExpression containingCall = null;
+		List<MethodCallExpression> containingCallPath = new ArrayList<>();
+		MethodCallExpression lastCall = null;
 		for (MethodCallExpression call : methodCalls) {
 			Expression expression = call.getArguments();
 			Range range = LSPUtils.toRange(expression);
-			if (Ranges.containsPosition(range, params.getPosition())
-					&& (containingCall == null || Ranges.containsRange(LSPUtils.toRange(containingCall.getArguments()),
-							LSPUtils.toRange(call.getArguments())))) {
-				// find inner containing call
-				containingCall = call;
+			if (Ranges.containsPosition(range, params.getPosition())) {
+				lastCall = call;
+				if (Ranges.containsRange(LSPUtils.toRange(lastCall.getArguments()),
+						LSPUtils.toRange(call.getArguments()))) {
+					// if current call contains inside last call, nested closure.
+					containingCallPath.add(call);
+				} else if (Ranges.containsRange(LSPUtils.toRange(call.getArguments()),
+						LSPUtils.toRange(lastCall.getArguments()))) {
+					// if current call is the parent of last call, nested closure.
+					containingCallPath.add(containingCallPath.size() - 1, call);
+				}
 			}
 		}
 		this.libraryResolver.loadGradleClasses(uri);
@@ -315,11 +322,11 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 		CompletionHandler handler = new CompletionHandler();
 		// check again
 		String projectPath = Utils.getFolderPath(uri);
-		if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
-			return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null,
+		if (containingCallPath.isEmpty() && isGradleRoot(uri, params.getPosition())) {
+			return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(Collections.emptyList(),
 					Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
 		}
-		return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCall,
+		return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCallPath,
 				Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
 	}
 
