@@ -354,6 +354,12 @@
         "icon": "$(sync)"
       }
     ],
+    "submenus": [
+      {
+        "id": "explorer/gradle",
+        "label": "Gradle"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {
@@ -675,9 +681,9 @@
       ],
       "explorer/context": [
         {
-          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
-          "command": "gradle.showTasks",
-          "group": "gradle@0"
+          "submenu": "explorer/gradle",
+          "when": "resourceFilename =~ /^.*\\.gradle(\\.kts)?$/",
+          "group": "1_javaactions@200"
         }
       ],
       "editor/context": [
@@ -695,6 +701,13 @@
         {
           "command": "gradle.openBuildFile",
           "group": "gradle@30"
+        }
+      ],
+      "explorer/gradle": [
+        {
+          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
+          "command": "gradle.showTasks",
+          "group": "gradle@10"
         }
       ]
     },
