@@ -20,13 +20,15 @@ extends:
   parameters:
     pool:
       name: 1ES_JavaTooling_Pool
-      image: 1ES_JavaTooling_Ubuntu-2004
-      os: linux
+      image: 1ES_JavaTooling_Windows_2022
+      os: windows
     sdl:
       sourceAnalysisPool:
         name: 1ES_JavaTooling_Pool
         image: 1ES_JavaTooling_Windows_2022
         os: windows
+      spotBugs:
+        enabled: false
     stages:
       - stage: Build
         jobs:
@@ -63,14 +65,13 @@ extends:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'prepareForRelease'
-              - bash: |
-                  cd $(Build.SourcesDirectory)/extension/lib
-                  chmod +x gradle-server
+              - bash: chmod +x gradle-server
+                workingDirectory: $(Build.SourcesDirectory)/extension/lib
                 displayName: Set permission
               - task: EsrpCodeSigning@2
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_codesign'
+                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
                   FolderPath: 'extension/lib'
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
@@ -94,9 +95,8 @@ extends:
                         "ToolVersion" : "1.0"
                       }
                     ]
-              - bash: |
-                  cd $(Build.SourcesDirectory)/extension
-                  npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
+              - bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
+                workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Replace AI Key
               - task: ComponentGovernanceComponentDetection@0
                 inputs:
@@ -141,7 +141,7 @@ extends:
               - task: EsrpCodeSigning@2
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_codesign'
+                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
                   FolderPath: 'extension/server'
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
@@ -165,10 +165,27 @@ extends:
                         "ToolVersion" : "1.0"
                       }
                     ]
-              - bash: |
-                  cd $(Build.SourcesDirectory)/extension
-                  npx @vscode/vsce@latest package
+              - bash: npx @vscode/vsce@latest package
+                workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
+              - task: CopyFiles@2
+                displayName: "Copy Files for APIScan"
+                inputs:
+                  Contents: "extension/*.vsix"
+                  TargetFolder: $(Agent.TempDirectory)/APIScanFiles
+                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
+              ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
+              - task: APIScan@2
+                displayName: Run APIScan
+                inputs:
+                  softwareFolder: $(Agent.TempDirectory)/APIScanFiles
+                  softwareName: "vscode-gradle"
+                  softwareVersionNum: "$(Build.BuildId)"
+                  isLargeApp: false
+                  toolVersion: "Latest"
+                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
+                env:
+                  AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:
