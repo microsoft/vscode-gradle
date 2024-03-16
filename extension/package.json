@@ -275,6 +275,11 @@
       {
         "command": "gradle.refresh",
         "category": "Gradle",
+        "title": "Refresh Gradle Projects View"
+      },
+      {
+        "command": "gradle.refresh.external",
+        "category": "Gradle",
         "title": "Refresh Gradle Projects View",
         "icon": {
           "light": "resources/light/refresh.svg",
@@ -483,8 +488,12 @@
           "when": "false"
         },
         {
-          "command": "gradle.refresh",
+          "command": "gradle.refresh.external",
           "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.refresh",
+          "when": "false"
         },
         {
           "command": "gradle.runBuild",
@@ -537,7 +546,7 @@
           "group": "navigation@2"
         },
         {
-          "command": "gradle.refresh",
+          "command": "gradle.refresh.external",
           "when": "view == gradleTasksView || view == gradleDefaultProjectsView",
           "group": "overflow@3"
         },
