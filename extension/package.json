@@ -338,11 +338,6 @@
         "title": "Create a Gradle Java Project..."
       },
       {
-        "command": "gradle.createProjectAdvanced",
-        "category": "Gradle",
-        "title": "Create a Gradle Java Project... (Advanced)"
-      },
-      {
         "command": "gradle.runTasks",
         "category": "Gradle",
         "title": "Run Gradle Tasks..."
