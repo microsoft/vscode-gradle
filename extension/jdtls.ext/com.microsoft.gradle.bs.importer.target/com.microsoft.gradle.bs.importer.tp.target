@@ -22,7 +22,7 @@
             <repository location="https://download.eclipse.org/jdtls/snapshots/repository/latest/"/>
         </location>
         <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
-           <repository location="https://download.eclipse.org/lsp4j/updates/releases/0.21.1/"/>
+           <repository location="https://download.eclipse.org/lsp4j/updates/releases/0.22.0/"/>
            <unit id="org.eclipse.lsp4j" version="0.0.0"/>
         </location>
     </locations>
