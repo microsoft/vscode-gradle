@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletionException;
 
 import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.internal.resources.ProjectDescription;
@@ -60,7 +61,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         if (rootFolder == null) {
             return false;
         }
-
 
         if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
@@ -143,7 +143,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     @Override
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
 
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
@@ -168,8 +168,33 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         );
         BuildServerPreferences data = getBuildServerPreferences();
         params.setData(data);
+
         InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
         buildServer.onBuildInitialized();
+
+		// InitializeBuildResult initializeResult = null;
+		// boolean success = false;
+		// int retries = 0;
+		// int MAX_RETRIES = 10;
+		// while (!success && retries < MAX_RETRIES) {
+		// 	try {
+		// 		initializeResult = buildServer.buildInitialize(params).join();
+		// 		success = true;
+		// 	} catch (CompletionException e) {
+		// 			System.out.println("Waiting for the TypeScript server to be ready...");
+		// 			try {
+		// 				Thread.sleep(1000);  // 等待一秒
+		// 			} catch (InterruptedException ie) {
+		// 				Thread.currentThread().interrupt();
+		// 				throw new RuntimeException("Thread interrupted while waiting to retry initialization", ie);
+		// 			}
+		// 	}
+		// 	retries++;
+		// }
+		// if (!success) {
+		// 	throw new RuntimeException("Failed to initialize after " + MAX_RETRIES + " attempts.");
+		// }
+
         // TODO: save the capabilities of this server
 
         if (monitor.isCanceled()) {
@@ -183,14 +208,14 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
         for (IProject project : projects) {
-            buildSupport.updateClasspath(project, monitor);
+            buildSupport.updateClasspath(buildServer, project, monitor);
         }
 
         // We need to add the project dependencies after the Java nature is set to all
         // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
         // otherwise JDT will thrown exception when adding projects as dependencies.
         for (IProject project : projects) {
-            buildSupport.updateProjectDependencies(project, monitor);
+            buildSupport.updateProjectDependencies(buildServer, project, monitor);
         }
 
         for (IProject project : projects) {
@@ -321,6 +346,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // because that API will ignore the variable descriptions.
         if (project instanceof Project internalProject) {
             ProjectDescription description = internalProject.internalGetDescription();
+            if (description == null) {
+                return;
+            }
             VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
             boolean changed = description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
             if (changed) {

@@ -1,4 +1,4 @@
-import { DaemonInfo } from "../proto/gradle_pb";
+import { DaemonStatus } from "./gradleDaemons/models/DaemonStatus";
 
 export const ICON_LOADING = "loading.svg";
 export const ICON_GRADLE_TASK = "script.svg";
@@ -24,9 +24,9 @@ export const TREE_ITEM_STATE_FOLDER = "folder";
 export const TASK_STATE_RUNNING_REGEX = new RegExp(`^${TREE_ITEM_STATE_TASK_RUNNING}`);
 
 export const DAEMON_ICON_MAP = {
-    [DaemonInfo.DaemonStatus.BUSY]: ICON_DAEMON_BUSY,
-    [DaemonInfo.DaemonStatus.IDLE]: ICON_DAEMON_IDLE,
-    [DaemonInfo.DaemonStatus.STOPPED]: ICON_DAEMON_STOPPED,
-    [DaemonInfo.DaemonStatus.STOPPING]: ICON_DAEMON_STOPPED,
-    [DaemonInfo.DaemonStatus.CANCELED]: ICON_DAEMON_STOPPED,
+    [DaemonStatus.BUSY]: ICON_DAEMON_BUSY,
+    [DaemonStatus.IDLE]: ICON_DAEMON_IDLE,
+    [DaemonStatus.STOPPED]: ICON_DAEMON_STOPPED,
+    [DaemonStatus.STOPPING]: ICON_DAEMON_STOPPED,
+    [DaemonStatus.CANCELED]: ICON_DAEMON_STOPPED,
 };

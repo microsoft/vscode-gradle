@@ -31,12 +31,16 @@ import {
     GRADLE_COMPLETION,
     GRADLE_PROPERTIES_FILE_CHANGE,
     VSCODE_TRIGGER_COMPLETION,
+    GET_EXTENSION_PATH
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
-
+import { BuildServerHandler } from "./bs/BuildServerHandler";
+import { ImporterHandler } from "./bs/ImporterHandler";
 export class Extension {
+    private readonly buildServerHandler: BuildServerHandler;
+    private readonly importerHandler: ImporterHandler;
     private readonly client: GradleClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
@@ -66,7 +70,6 @@ export class Extension {
     private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this._onDidTerminalOpen.event;
     private recentTerminal: vscode.Terminal | undefined;
     private readonly buildServerController: BuildServerController;
-
     public constructor(private readonly context: vscode.ExtensionContext) {
         const loggingChannel = vscode.window.createOutputChannel("Gradle for Java");
         logger.setLoggingChannel(loggingChannel);
@@ -82,13 +85,26 @@ export class Extension {
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger);
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand(GET_EXTENSION_PATH, () => {
+                return this.context.extensionPath;
+            })
+        );
+
+        //this.context.subscriptions.push(new vscode.Disposable(() => this.forwardingAgent.dispose()));
+        this.buildServerHandler = new BuildServerHandler(serverLogger);
+        this.context.subscriptions.push(new vscode.Disposable(() => this.buildServerHandler.dispose()));
+        this.importerHandler = new ImporterHandler(this.context, logger);
+        this.context.subscriptions.push(new vscode.Disposable(() => this.importerHandler.dispose()));
+
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.buildServerHandler);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
         this.taskTerminalsStore = new TaskTerminalsStore();
         this.rootProjectsStore = new RootProjectsStore();
         this.gradleBuildContentProvider = new GradleBuildContentProvider(this.client);
+
         this.gradleTaskProvider = new GradleTaskProvider(
             this.rootProjectsStore,
             this.client,
@@ -111,11 +127,7 @@ export class Extension {
             treeDataProvider: this.gradleTasksTreeDataProvider,
             showCollapseAll: true,
         });
-        this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
-            this.context,
-            this.rootProjectsStore,
-            this.client
-        );
+        this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(this.context, this.rootProjectsStore);
         this.gradleDaemonsTreeView = vscode.window.createTreeView(GRADLE_DAEMONS_VIEW, {
             treeDataProvider: this.gradleDaemonsTreeDataProvider,
             showCollapseAll: false,
@@ -147,7 +159,6 @@ export class Extension {
         this.buildFileWatcher = new FileWatcher("**/*.{gradle,gradle.kts}");
         this.gradleWrapperWatcher = new FileWatcher("**/gradle/wrapper/gradle-wrapper.properties");
         this.api = new Api(this.client, this.gradleTasksTreeDataProvider, this.gradleTaskProvider, this.icons);
-
         this.commands = new Commands(
             this.context,
             this.pinnedTasksStore,
@@ -160,7 +171,7 @@ export class Extension {
             this.rootProjectsStore,
             this.taskTerminalsStore,
             this.recentTasksStore,
-            this.gradleTasksTreeView
+            this.gradleTasksTreeView,
         );
 
         this.buildServerController = new BuildServerController(context);
@@ -199,7 +210,6 @@ export class Extension {
                 })
             )
         );
-
         this.client.onDidConnect(() => this.refresh());
         void this.activate();
         void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore);
@@ -232,9 +242,12 @@ export class Extension {
 
     private async activate(): Promise<void> {
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
+        await this.buildServerHandler.setupBuildServerHandler();
         if (!this.server.isReady()) {
             await this.server.start();
         }
+        await this.importerHandler.waitForImporterPipePath();
+        this.importerHandler.setupImporterHandler(this.buildServerHandler.buildServerConnection!);
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
     }
@@ -359,4 +372,5 @@ export class Extension {
     public getApi(): Api {
         return this.api;
     }
+
 }

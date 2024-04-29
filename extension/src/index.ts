@@ -7,7 +7,7 @@ import { Extension } from "./Extension";
 let extension: Extension;
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
-    await initializeFromJsonFile(context.asAbsolutePath("./package.json"), { firstParty: true });
+    await initializeFromJsonFile(context.asAbsolutePath("./package.json"));
     return instrumentOperation("activation", activateExtension)(context);
 }
 

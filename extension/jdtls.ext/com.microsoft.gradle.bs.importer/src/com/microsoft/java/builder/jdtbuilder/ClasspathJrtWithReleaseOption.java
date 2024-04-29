@@ -21,6 +21,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.Collections;
@@ -164,7 +165,7 @@ public class ClasspathJrtWithReleaseOption extends ClasspathJrt {
 			Map<String, IModule> newCache = new HashMap<>();
 			for (Path root : releaseRoots) {
 				try {
-					Files.walkFileTree(root, Collections.emptySet(), 2, new JRTUtil.AbstractFileVisitor<Path>() {
+					Files.walkFileTree(root, Collections.emptySet(), 2, new SimpleFileVisitor<Path>() {
 						@Override
 						public FileVisitResult visitFile(Path f, BasicFileAttributes attrs)	throws IOException {
 							if (attrs.isDirectory() || f.getNameCount() < 3) {

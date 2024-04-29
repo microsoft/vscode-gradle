@@ -56,7 +56,7 @@ export class Logger {
         this.log(error, LogVerbosity.ERROR);
         sendInfo("", {
             kind: "gradleTaskServerError",
-            data: error,
+            data2: error,
         });
     }
 

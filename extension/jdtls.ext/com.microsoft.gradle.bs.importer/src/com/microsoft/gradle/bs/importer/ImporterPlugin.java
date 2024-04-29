@@ -1,8 +1,7 @@
 package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,7 +19,6 @@ import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.java.builder.BuildStateManager;
-
 import ch.epfl.scala.bsp4j.BuildClient;
 
 public class ImporterPlugin extends Plugin {
@@ -30,16 +28,14 @@ public class ImporterPlugin extends Plugin {
     private Map<IPath, Pair<BuildServerConnection, BuildClient>> buildServers = new ConcurrentHashMap<>();
 
     private static ImporterPlugin instance;
-
     /**
      * Digest store for the gradle configuration files.
      */
     private DigestStore digestStore;
 
-    private static String bundleDirectory;
-
     private static String bundleVersion = "";
 
+	private static String bundleDirectory;
     @Override
     public void start(BundleContext context) throws Exception {
         BuildStateManager.getBuildStateManager().startup();
@@ -50,7 +46,7 @@ public class ImporterPlugin extends Plugin {
         if (!bundleFile.isPresent()) {
            throw new IllegalStateException("Failed to get bundle location.");
         }
-        bundleDirectory = bundleFile.get().getParent();
+		bundleDirectory = bundleFile.get().getParent();
     }
 
     @Override
@@ -73,10 +69,31 @@ public class ImporterPlugin extends Plugin {
         return instance.digestStore;
     }
 
+    /**
+     * Get the build server connection for the given root path. If the connection doesn't exist,
+     * returns <code>null</code>.
+     * @param rootPath
+     * @throws CoreException
+     */
     public static BuildServerConnection getBuildServerConnection(IPath rootPath) throws CoreException {
+        return getBuildServerConnection(rootPath, false);
+    }
+
+    /**
+     * Get the build server connection for the given root path.
+     * @param rootPath the root path of the workspace.
+     * @param createIfMissing whether to create a new build server connection if it doesn't exist.
+     * @return the build server connection.
+     * @throws CoreException
+     */
+    public static BuildServerConnection getBuildServerConnection(IPath rootPath, boolean createIfMissing) throws CoreException {
         Pair<BuildServerConnection, BuildClient> pair = instance.buildServers.get(rootPath);
         if (pair != null) {
             return pair.getLeft();
+        }
+
+        if (!createIfMissing) {
+            return null;
         }
 
         String javaExecutablePath = getJavaExecutablePath();
@@ -84,17 +101,20 @@ public class ImporterPlugin extends Plugin {
 
         String pluginPath = getBuildServerPluginPath();
 
-        ProcessBuilder build = new ProcessBuilder(
-                javaExecutablePath,
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-opens=java.base/java.io=ALL-UNNAMED",
-                "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "-Dplugin.dir=" + pluginPath,
-                "-cp",
-                String.join(getClasspathSeparator(), classpaths),
-                "com.microsoft.java.bs.core.Launcher"
-        );
+        List<String> command = new ArrayList<>();
+        command.add(javaExecutablePath);
+        if (Boolean.parseBoolean(System.getenv("DEBUG_GRADLE_BUILD_SERVER"))) {
+            command.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8989");
+        }
+        command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
+        command.add("--add-opens=java.base/java.io=ALL-UNNAMED");
+        command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
+        command.add("-Dplugin.dir=" + pluginPath);
+        command.add("-cp");
+        command.add(String.join(getClasspathSeparator(), classpaths));
+        command.add("com.microsoft.java.bs.core.Launcher");
 
+        ProcessBuilder build = new ProcessBuilder(command);
         try {
             Process process = build.start();
             BuildClient client = new GradleBuildClient();
@@ -106,47 +126,15 @@ public class ImporterPlugin extends Plugin {
                     .setRemoteInterface(BuildServerConnection.class)
                     .create();
 
-            launcher.startListening();
-            BuildServerConnection server = launcher.getRemoteProxy();
-            client.onConnectWithServer(server);
-            instance.buildServers.put(rootPath, Pair.of(server, client));
-            return server;
-        } catch (IOException e) {
-            throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
-                    "Failed to start build server.", e));
-        }
-    }
+			launcher.startListening();
+			BuildServerConnection server = launcher.getRemoteProxy();
+			client.onConnectWithServer(server);
 
-    /**
-     * Get the Java executable used by JDT.LS, which will be higher than JDK 17.
-     */
-    private static String getJavaExecutablePath() {
-        Optional<String> command = ProcessHandle.current().info().command();
-        if (command.isPresent()) {
-            return command.get();
-        }
-
-        throw new IllegalStateException("Failed to get Java executable path.");
-    }
-
-    private static String[] getBuildServerClasspath() {
-        return new String[]{
-            Paths.get(bundleDirectory, "server.jar").toString(),
-            Paths.get(bundleDirectory, "runtime").toString() + File.separatorChar + "*"
-        };
-    }
-
-    private static String getBuildServerPluginPath() {
-        return Paths.get(bundleDirectory, "plugins").toString();
-    }
-
-    private static String getClasspathSeparator() {
-        String os = System.getProperty("os.name").toLowerCase();
-
-        if (os.contains("win")) {
-            return ";";
-        }
-
-        return ":"; // Linux or Mac
-    }
+			instance.buildServers.put(rootPath, Pair.of(server, client));
+			return server;
+    	} catch (Exception e) {
+			e.printStackTrace();
+			throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID, "Failed to start build server.", e));
+		}
+	}
 }

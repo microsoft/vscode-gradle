@@ -40,6 +40,25 @@ The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get 
 
 > Note: There is a known issue that when the Gradle project stores in a sub-folder of the root folder, the `Attach to Gradle Plugin` will fail to attach. See [#1237](https://github.com/microsoft/vscode-gradle/issues/1237).
 
+## Debugging Gradle Build Server
+
+To debug the Extension with the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle), follow these steps:
+
+1. Open the `extension/build-server-for-gradle` directory, which you should have [imported previously](#build-gradle-project-importer) as a separate project.
+2. In the `.vscode/launch.json` of the build-server-for-gradle project, ensure you have the following configuration to attach the debugger:
+   ```json
+   {
+     "type": "java",
+     "name": "Attach to Gradle Build Server",
+     "request": "attach",
+     "hostName": "localhost",
+     "port": "8989",
+     "projectName": "server"
+   }
+   ```
+3. In your main project (vscode-gradle), start the `Debug Extension & Build Server` launch configuration.
+4. In the build-server-for-gradle project, start the `Attach to Gradle Build Server` launch configuration.
+
 ## Debugging Gradle Language Server (editing feature related)
 
 1. Run vscode launch configuration `Debug Language Server: Launch Extension`.

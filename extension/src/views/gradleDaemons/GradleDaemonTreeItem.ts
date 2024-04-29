@@ -1,18 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { DaemonInfo } from "../../proto/gradle_pb";
 import { DAEMON_ICON_MAP } from "../constants";
-
-interface StatusEnumMapByValue {
-    [key: number]: string;
-}
-
-const daemonStatusEnumMapByValue: StatusEnumMapByValue = Object.assign(
-    {},
-    ...Object.entries(DaemonInfo.DaemonStatus).map(([a, b]) => ({
-        [b]: a,
-    }))
-);
+import { DaemonInfo } from "./models/DaemonInfo";
+import { DaemonStatus } from "./models/DaemonStatus";
 
 export class GradleDaemonTreeItem extends vscode.TreeItem {
     private status: string;
@@ -27,7 +17,7 @@ export class GradleDaemonTreeItem extends vscode.TreeItem {
             light: this.context.asAbsolutePath(path.join("resources", "light", iconName)),
             dark: this.context.asAbsolutePath(path.join("resources", "dark", iconName)),
         };
-        this.status = daemonStatusEnumMapByValue[daemonInfo.getStatus()];
+        this.status = DaemonStatus[daemonInfo.getStatus()];
         this.description = this.status;
         this.contextValue = this.status.toLowerCase();
         this.tooltip = `${this.status} - ${daemonInfo.getInfo()}`;

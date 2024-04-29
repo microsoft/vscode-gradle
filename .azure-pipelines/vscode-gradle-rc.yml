@@ -20,8 +20,8 @@ extends:
   parameters:
     pool:
       name: 1ES_JavaTooling_Pool
-      image: 1ES_JavaTooling_Windows_2022
-      os: windows
+      image: 1ES_JavaTooling_Ubuntu-2004
+      os: linux
     sdl:
       sourceAnalysisPool:
         name: 1ES_JavaTooling_Pool
@@ -68,10 +68,15 @@ extends:
               - bash: chmod +x gradle-server
                 workingDirectory: $(Build.SourcesDirectory)/extension/lib
                 displayName: Set permission
-              - task: EsrpCodeSigning@2
+              - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
+                  ConnectedServiceName: 'ESRP-Release-Test'
+                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
+                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+                  AuthAKVName: 'vscjavaci'
+                  AuthCertName: 'vscjava-esrprelease-auth'
+                  AuthSignCertName: 'VSCJava-CodeSign'
                   FolderPath: 'extension/lib'
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
@@ -138,10 +143,15 @@ extends:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: ':extension:copyJdtlsPluginJar'
-              - task: EsrpCodeSigning@2
+              - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
+                  ConnectedServiceName: 'ESRP-Release-Test'
+                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
+                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+                  AuthAKVName: 'vscjavaci'
+                  AuthCertName: 'vscjava-esrprelease-auth'
+                  AuthSignCertName: 'VSCJava-CodeSign'
                   FolderPath: 'extension/server'
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
@@ -168,24 +178,6 @@ extends:
               - bash: npx @vscode/vsce@latest package
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
-              - task: CopyFiles@2
-                displayName: "Copy Files for APIScan"
-                inputs:
-                  Contents: "extension/*.vsix"
-                  TargetFolder: $(Agent.TempDirectory)/APIScanFiles
-                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
-              ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
-              - task: APIScan@2
-                displayName: Run APIScan
-                inputs:
-                  softwareFolder: $(Agent.TempDirectory)/APIScanFiles
-                  softwareName: "vscode-gradle"
-                  softwareVersionNum: "$(Build.BuildId)"
-                  isLargeApp: false
-                  toolVersion: "Latest"
-                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
-                env:
-                  AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:

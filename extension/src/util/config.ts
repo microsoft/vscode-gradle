@@ -3,6 +3,8 @@ import { getRuntime } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
+import * as fs from 'fs';
+import * as path from 'path';
 
 type AutoDetect = "on" | "off";
 
@@ -24,6 +26,34 @@ export function getJdtlsConfigJavaHome(): string | null {
 
 export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
+}
+
+export function getRedHatJavaExecutablePath(): string | null {
+    const javaExtension = vscode.extensions.getExtension("redhat.java");
+    if (!javaExtension) {
+        return null;
+    }
+
+    const extensionPath = javaExtension.extensionPath;
+    const jrePath = path.join(extensionPath, 'jre');
+    if (!fs.existsSync(jrePath) || !fs.lstatSync(jrePath).isDirectory()) {
+        return null;
+    }
+
+    // Read the entries in the jre directory and filter out hidden files
+    const entries = fs.readdirSync(jrePath).filter(entry => !entry.startsWith('.'));
+    if (entries.length === 0) {
+        return null;
+    }
+
+    const entry = entries[0];
+    const javaExec = process.platform === "win32" ? 'java.exe' : 'java';
+    const javaExecPath = path.join(jrePath, entry, "bin", javaExec);
+    if (fs.existsSync(javaExecPath)) {
+        return javaExecPath;
+    }
+
+    return null;
 }
 
 export function getConfigGradleJavaHome(): string | null {

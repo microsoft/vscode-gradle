@@ -6,7 +6,9 @@ import * as kill from "tree-kill";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE } from "../constant";
+import { NO_JAVA_EXECUTABLE, GET_EXTENSION_PATH } from "../constant";
+import { getRedHatJavaExecutablePath } from "../util/config";
+import { BuildServerHandler } from "../bs/BuildServerHandler";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -19,7 +21,7 @@ export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
-    private port: number | undefined;
+    private gradleServerPort: number | undefined;
     private restarting = false;
 
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
@@ -29,27 +31,33 @@ export class GradleServer {
     constructor(
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
-        private readonly logger: Logger
+        private readonly logger: Logger,
+        private buildServerHandler: BuildServerHandler
     ) {}
 
     public async start(): Promise<void> {
         if (isDebuggingServer()) {
-            this.port = 8887;
             this.fireOnStart();
         } else {
-            this.port = await getPort();
+            this.gradleServerPort = await getPort();
             const cwd = this.context.asAbsolutePath("lib");
             const cmd = path.join(cwd, getGradleServerCommand());
             const env = await getGradleServerEnv();
+            const bundleDirectory = await this.getBundleDirectory();
             if (!env) {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
             }
-            const args = [String(this.port)];
+            let javaExecPath = await getRedHatJavaExecutablePath();
 
-            this.logger.debug("Starting server");
+            //Get the Java executable used by JDT.LS, which will be higher than JDK 17.
+            if (!javaExecPath) {
+                await vscode.window.showErrorMessage("No Red Hat Java Extension Pack Found");
+                return;
+            }
+            const serverPipeName = this.buildServerHandler.getBuildServerPipeName();
+            const args = [String(this.gradleServerPort), serverPipeName, bundleDirectory, javaExecPath];
             this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
-
             this.process = cp.spawn(`"${cmd}"`, args, {
                 cwd,
                 env,
@@ -78,6 +86,11 @@ export class GradleServer {
 
     public isReady(): boolean {
         return this.ready;
+    }
+
+    public async getBundleDirectory(): Promise<string> {
+        const extensionPath = await vscode.commands.executeCommand<string>(GET_EXTENSION_PATH);
+        return path.join(extensionPath, 'server');
     }
 
     public async showRestartMessage(): Promise<void> {
@@ -141,7 +154,7 @@ export class GradleServer {
     }
 
     public getPort(): number | undefined {
-        return this.port;
+        return this.gradleServerPort;
     }
 
     public getOpts(): ServerOptions {
