@@ -3,6 +3,8 @@ package com.microsoft.gradle.bs.importer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,17 +86,20 @@ public class ImporterPlugin extends Plugin {
 
         String pluginPath = getBuildServerPluginPath();
 
-        ProcessBuilder build = new ProcessBuilder(
-                javaExecutablePath,
-                "--add-opens=java.base/java.lang=ALL-UNNAMED",
-                "--add-opens=java.base/java.io=ALL-UNNAMED",
-                "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "-Dplugin.dir=" + pluginPath,
-                "-cp",
-                String.join(getClasspathSeparator(), classpaths),
-                "com.microsoft.java.bs.core.Launcher"
-        );
+        List<String> command = new ArrayList<>();
+        command.add(javaExecutablePath);
+        if (Boolean.parseBoolean(System.getenv("DEBUG_GRADLE_BUILD_SERVER"))) {
+            command.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8989");
+        }
+        command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
+        command.add("--add-opens=java.base/java.io=ALL-UNNAMED");
+        command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
+        command.add("-Dplugin.dir=" + pluginPath);
+        command.add("-cp");
+        command.add(String.join(getClasspathSeparator(), classpaths));
+        command.add("com.microsoft.java.bs.core.Launcher");
 
+        ProcessBuilder build = new ProcessBuilder(command);
         try {
             Process process = build.start();
             BuildClient client = new GradleBuildClient();
