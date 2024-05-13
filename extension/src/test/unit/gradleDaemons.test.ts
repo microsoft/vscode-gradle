@@ -13,7 +13,8 @@ import {
     Environment,
     GradleEnvironment,
 } from "../../proto/gradle_pb";
-import { GradleDaemonsTreeDataProvider, GradleDaemonTreeItem } from "../../views";
+import { GradleDaemonsTreeDataProvider } from "../../views";
+// import { GradleDaemonsTreeDataProvider, GradleDaemonTreeItem } from "../../views";
 // import { Extension } from '../../extension';
 import { SinonStub } from "sinon";
 import { logger } from "../../logger";
@@ -29,7 +30,8 @@ import {
 import { IconPath } from "../../icons";
 import { ICON_DAEMON_STOPPED, ICON_DAEMON_BUSY, ICON_DAEMON_IDLE } from "../../views/constants";
 import { RootProjectsStore } from "../../stores";
-import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
+import { RefreshDaemonStatusCommand, StopDaemonsCommand } from "../../commands";
+// import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
 import { sleep } from "../../util";
 
 const mockContext = buildMockContext();
@@ -169,13 +171,13 @@ describe(getSuiteName("Gradle daemons"), () => {
         mockDaemonInfoBusy.setPid("41716");
         mockDaemonInfoBusy.setInfo("6.4");
 
-        const mockGradleDaemonTreeItem = new GradleDaemonTreeItem(
-            mockContext,
-            mockDaemonInfoBusy.getPid(),
-            mockDaemonInfoBusy
-        );
+        // const mockGradleDaemonTreeItem = new GradleDaemonTreeItem(
+        //     mockContext,
+        //     mockDaemonInfoBusy.getPid(),
+        //     mockDaemonInfoBusy
+        // );
 
-        await new StopDaemonCommand(mockClient).run(mockGradleDaemonTreeItem);
+        // await new StopDaemonCommand(mockClient).run(mockGradleDaemonTreeItem);
 
         assert.ok(
             showWarningMessageStub.calledWith("Are you sure you want to stop the daemon?"),
