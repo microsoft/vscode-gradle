@@ -1,12 +1,13 @@
 import * as vscode from "vscode";
 import { GradleDaemonTreeItem } from ".";
 import { GradleClient } from "../../client";
-import { DaemonInfo } from "../../proto/gradle_pb";
+// import { DaemonInfo } from "../../proto/gradle_pb";
 import { RootProjectsStore } from "../../stores";
 import { getShowStoppedDaemons, setShowStoppedDaemons } from "../../util/config";
 import { Deferred } from "../../util/Deferred";
 import { HintItem } from "../gradleTasks/HintItem";
-
+import { GradleStatus } from "./services/GradleStatus";
+import { DaemonStatus } from "./models/DaemonInfo";
 export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private cancelDeferred?: Deferred<vscode.TreeItem[]>;
     private treeItems: vscode.TreeItem[] = [];
@@ -24,6 +25,7 @@ export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vs
     public refresh(): void {
         this.cancelDeferred?.resolve(this.treeItems);
         this._onDidChangeTreeData.fire(null);
+        this.client.getDaemonsStatus
     }
 
     public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -40,22 +42,19 @@ export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vs
         this.cancelDeferred.promise.then(() => cancellationToken.cancel());
 
         const projectRootFolders = await this.getProjectRootFolders();
-        const promises: Promise<GradleDaemonTreeItem[]>[] = projectRootFolders.map((projectRootFolder) =>
-            this.client.getDaemonsStatus(projectRootFolder, cancellationToken.token).then((daemonsStatusReply) => {
-                if (!daemonsStatusReply) {
-                    return [];
-                }
-                let daemonInfoList = daemonsStatusReply.getDaemonInfoList();
-                if (!getShowStoppedDaemons()) {
-                    daemonInfoList = daemonInfoList.filter((daemonInfo) => {
-                        return daemonInfo.getStatus() !== DaemonInfo.DaemonStatus.STOPPED;
-                    });
-                }
-                return daemonInfoList.map(
-                    (daemonInfo) => new GradleDaemonTreeItem(this.context, daemonInfo.getPid(), daemonInfo)
-                );
-            })
-        );
+        const promises: Promise<GradleDaemonTreeItem[]>[] = projectRootFolders.map(async (projectRootFolder) => {
+            const daemonInfos = await GradleStatus.getDaemonsStatusList(projectRootFolder);
+
+            let filteredDaemonInfos = daemonInfos;
+            if (!getShowStoppedDaemons()) {
+                filteredDaemonInfos = daemonInfos.filter(daemonInfo => daemonInfo.getStatus() !== DaemonStatus.STOPPED);
+            }
+
+            return filteredDaemonInfos.map(daemonInfo =>
+                new GradleDaemonTreeItem(this.context, daemonInfo.getPid(), daemonInfo)
+            );
+        });
+
         this.treeItems = await Promise.race([
             Promise.all(promises).then((items) => items.flat()),
             this.cancelDeferred.promise,

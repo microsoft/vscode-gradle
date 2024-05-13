@@ -1,15 +1,15 @@
 import * as vscode from "vscode";
 import * as path from "path";
-import { DaemonInfo } from "../../proto/gradle_pb";
+//import { DaemonInfo } from "../../proto/gradle_pb";
 import { DAEMON_ICON_MAP } from "../constants";
-
+import { DaemonInfo, DaemonStatus } from "./models/DaemonInfo";
 interface StatusEnumMapByValue {
     [key: number]: string;
 }
 
 const daemonStatusEnumMapByValue: StatusEnumMapByValue = Object.assign(
     {},
-    ...Object.entries(DaemonInfo.DaemonStatus).map(([a, b]) => ({
+    ...Object.entries(DaemonStatus).map(([a, b]) => ({
         [b]: a,
     }))
 );

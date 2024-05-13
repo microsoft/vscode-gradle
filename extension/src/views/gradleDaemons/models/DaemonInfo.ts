@@ -9,21 +9,33 @@ export enum DaemonStatus {
 export class DaemonInfo {
 
     constructor(
-        private readonly pid: string,
-        private readonly status: DaemonStatus,
-        private readonly info: string) {}
+        private pid?: string,
+        private status?: DaemonStatus,
+        private info?: string) {}
 
 
     public getPid(): string {
-        return this.pid;
+        return this.pid!;
     }
 
     public getStatus(): DaemonStatus {
-        return this.status;
+        return this.status!;
     }
 
     public getInfo(): string {
-        return this.info;
+        return this.info!;
+    }
+
+    public setStatus(status: DaemonStatus): void {
+        this.status = status;
+    }
+
+    public setInfo(info: string): void {
+        this.info = info;
+    }
+
+    public setPid(pid: string): void {
+        this.pid = pid;
     }
 
 }
