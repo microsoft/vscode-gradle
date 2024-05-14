@@ -5,8 +5,8 @@ import { Command } from "./Command";
 import { exec } from "child_process";
 import { promisify } from "util";
 const execAsync = promisify(exec);
-import { COMMAND_REFRESH_DAEMON_STATUS } from "../../src/commands";
 import * as vscode from "vscode";
+import { COMMAND_REFRESH_DAEMON_STATUS } from "./RefreshDaemonStatusCommand";
 
 export const COMMAND_STOP_DAEMON = "gradle.stopDaemon";
 

@@ -8,7 +8,7 @@ import { GradleStatus } from "../views/gradleDaemons/services/GradleStatus";
 import { GradleConnectionType } from "../views/gradleDaemons/models/GradleConnectionType";
 import { GradleWrapper } from "../views/gradleDaemons/services/GradleWrapper";
 import { GradleLocalInstallation } from "../views/gradleDaemons/services/GradleLocalInstallation";
-import { COMMAND_REFRESH_DAEMON_STATUS } from "../../src/commands";
+import { COMMAND_REFRESH_DAEMON_STATUS } from "./RefreshDaemonStatusCommand";
 
 export const COMMAND_STOP_DAEMONS = "gradle.stopDaemons";
 
