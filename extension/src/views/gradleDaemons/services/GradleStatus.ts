@@ -3,7 +3,7 @@ import { getGradleConfig } from "../../../util/config";
 import { GradleConfig } from "../../../proto/gradle_pb";
 import { GradleWrapper } from './GradleWrapper';
 import { GradleLocalInstallation } from './GradleLocalInstallation';
-enum ConnectionType {
+export enum ConnectionType {
     WRAPPER,
     LOCALINSTALLATION,
     SPECIFICVERSION

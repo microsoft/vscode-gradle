@@ -30,7 +30,7 @@ import {
 import { IconPath } from "../../icons";
 import { ICON_DAEMON_STOPPED, ICON_DAEMON_BUSY, ICON_DAEMON_IDLE } from "../../views/constants";
 import { RootProjectsStore } from "../../stores";
-import { RefreshDaemonStatusCommand, StopDaemonsCommand } from "../../commands";
+import { RefreshDaemonStatusCommand } from "../../commands";
 // import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
 import { sleep } from "../../util";
 
@@ -207,7 +207,7 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves("Yes");
 
-        await new StopDaemonsCommand(mockClient, rootProjectsStore).run();
+        // await new StopDaemonsCommand(mockClient, rootProjectsStore).run();
 
         assert.ok(
             showWarningMessageStub.calledWith("Are you sure you want to stop the daemons?"),

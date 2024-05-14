@@ -148,7 +148,7 @@ export class Commands {
             COMMAND_REFRESH_DAEMON_STATUS,
             new RefreshDaemonStatusCommand(this.gradleDaemonsTreeDataProvider)
         );
-        this.registerCommand(COMMAND_STOP_DAEMONS, new StopDaemonsCommand(this.client, this.rootProjectsStore));
+        this.registerCommand(COMMAND_STOP_DAEMONS, new StopDaemonsCommand(this.rootProjectsStore));
         this.registerCommand(COMMAND_STOP_DAEMON, new StopDaemonCommand());
         this.registerCommand(COMMAND_EXPLORER_TREE, new ExplorerTreeCommand(this.gradleTasksTreeDataProvider));
         this.registerCommand(COMMAND_EXPLORER_FLAT, new ExplorerFlatCommand(this.gradleTasksTreeDataProvider));
