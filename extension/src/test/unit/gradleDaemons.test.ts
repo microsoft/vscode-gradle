@@ -1,21 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 import * as assert from "assert";
 import * as vscode from "vscode";
 import * as sinon from "sinon";
 import * as path from "path";
 
-import {
-    GetDaemonsStatusReply,
-    DaemonInfo,
-    StopDaemonReply,
-    StopDaemonsReply,
-    Environment,
-    GradleEnvironment,
-} from "../../proto/gradle_pb";
-import { GradleDaemonsTreeDataProvider } from "../../views";
-// import { GradleDaemonsTreeDataProvider, GradleDaemonTreeItem } from "../../views";
-// import { Extension } from '../../extension';
+import { Environment, GradleEnvironment } from "../../proto/gradle_pb";
+import { DaemonInfo } from "../../views/gradleDaemons/models/DaemonInfo";
+import { DaemonStatus } from "../../views/gradleDaemons/models/DaemonStatus";
+import { GradleDaemonsTreeDataProvider, GradleDaemonTreeItem } from "../../views";
+//import { Extension } from '../../extension';
 import { SinonStub } from "sinon";
 import { logger } from "../../logger";
 import {
@@ -30,8 +23,7 @@ import {
 import { IconPath } from "../../icons";
 import { ICON_DAEMON_STOPPED, ICON_DAEMON_BUSY, ICON_DAEMON_IDLE } from "../../views/constants";
 import { RootProjectsStore } from "../../stores";
-import { RefreshDaemonStatusCommand } from "../../commands";
-// import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
+import { RefreshDaemonStatusCommand, StopDaemonCommand, StopDaemonsCommand } from "../../commands";
 import { sleep } from "../../util";
 
 const mockContext = buildMockContext();
@@ -48,7 +40,7 @@ describe(getSuiteName("Gradle daemons"), () => {
     let rootProjectsStore: RootProjectsStore;
     beforeEach(async () => {
         rootProjectsStore = new RootProjectsStore();
-        gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(mockContext, rootProjectsStore, mockClient);
+        gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(mockContext, rootProjectsStore);
         stubWorkspaceFolders([mockWorkspaceFolder1, mockWorkspaceFolder2, mockWorkspaceFolder3]);
 
         await rootProjectsStore.populate();
@@ -91,29 +83,16 @@ describe(getSuiteName("Gradle daemons"), () => {
     it("should build the daemon treeitems", async () => {
         await vscode.workspace.getConfiguration("gradle").update("showStoppedDaemons", true, true);
 
-        const mockDaemonInfoBusy = new DaemonInfo();
-        mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
-        mockDaemonInfoBusy.setPid("41716");
-        mockDaemonInfoBusy.setInfo("6.3");
+        const mockDaemonInfoBusy = new DaemonInfo("41716", DaemonStatus.BUSY, "6.3");
+        const mockDaemonInfoIdle = new DaemonInfo("41717", DaemonStatus.IDLE, "6.4");
+        const mockDaemonInfoStopped = new DaemonInfo("41718", DaemonStatus.STOPPED, "(by user or operating system)");
 
-        const mockDaemonInfoIdle = new DaemonInfo();
-        mockDaemonInfoIdle.setStatus(DaemonInfo.DaemonStatus.IDLE);
-        mockDaemonInfoIdle.setPid("41717");
-        mockDaemonInfoIdle.setInfo("6.4");
-
-        const mockDaemonInfoStopped = new DaemonInfo();
-        mockDaemonInfoStopped.setStatus(DaemonInfo.DaemonStatus.STOPPED);
-        mockDaemonInfoStopped.setPid("41718");
-        mockDaemonInfoStopped.setInfo("(by user or operating system)");
-
-        const mockReply1 = new GetDaemonsStatusReply();
-        mockReply1.setDaemonInfoList([mockDaemonInfoBusy, mockDaemonInfoStopped]);
-
-        const mockReply2 = new GetDaemonsStatusReply();
-        mockReply2.setDaemonInfoList([mockDaemonInfoIdle, mockDaemonInfoStopped]);
-
-        mockClient.getDaemonsStatus.withArgs(mockWorkspaceFolder1.uri.fsPath).resolves(mockReply1);
-        mockClient.getDaemonsStatus.withArgs(mockWorkspaceFolder2.uri.fsPath).resolves(mockReply2);
+        mockClient.getDaemonsStatus
+            .withArgs(mockWorkspaceFolder1.uri.fsPath)
+            .resolves([mockDaemonInfoBusy, mockDaemonInfoStopped]);
+        mockClient.getDaemonsStatus
+            .withArgs(mockWorkspaceFolder2.uri.fsPath)
+            .resolves([mockDaemonInfoIdle, mockDaemonInfoStopped]);
         // NOTE: no reason to mock reply for mockWorkspaceFolder3 as it should be ignored due to
         // dupicate gradle version
 
@@ -160,24 +139,19 @@ describe(getSuiteName("Gradle daemons"), () => {
     });
 
     it("should stop a daemon", async () => {
-        const mockReply = new StopDaemonReply();
-        mockReply.setMessage("Stopped");
-        mockClient.stopDaemon.resolves(mockReply);
+        mockClient.stopDaemon.resolves([]);
 
         const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves("Yes");
 
-        const mockDaemonInfoBusy = new DaemonInfo();
-        mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
-        mockDaemonInfoBusy.setPid("41716");
-        mockDaemonInfoBusy.setInfo("6.4");
+        const mockDaemonInfoBusy = new DaemonInfo("41716", DaemonStatus.BUSY, "6.3");
 
-        // const mockGradleDaemonTreeItem = new GradleDaemonTreeItem(
-        //     mockContext,
-        //     mockDaemonInfoBusy.getPid(),
-        //     mockDaemonInfoBusy
-        // );
+        const mockGradleDaemonTreeItem = new GradleDaemonTreeItem(
+            mockContext,
+            mockDaemonInfoBusy.getPid(),
+            mockDaemonInfoBusy
+        );
 
-        // await new StopDaemonCommand(mockClient).run(mockGradleDaemonTreeItem);
+        await new StopDaemonCommand().run(mockGradleDaemonTreeItem);
 
         assert.ok(
             showWarningMessageStub.calledWith("Are you sure you want to stop the daemon?"),
@@ -197,17 +171,12 @@ describe(getSuiteName("Gradle daemons"), () => {
     });
 
     it("should stop all daemons", async () => {
-        const mockReply1 = new StopDaemonsReply();
-        mockReply1.setMessage("Stopped 1");
-        const mockReply2 = new StopDaemonsReply();
-        mockReply2.setMessage("Stopped 2");
-
-        mockClient.stopDaemons.withArgs(mockWorkspaceFolder1.uri.fsPath).resolves(mockReply1);
-        mockClient.stopDaemons.withArgs(mockWorkspaceFolder2.uri.fsPath).resolves(mockReply2);
+        mockClient.stopDaemons.withArgs(mockWorkspaceFolder1.uri.fsPath).resolves("Stopped 1");
+        mockClient.stopDaemons.withArgs(mockWorkspaceFolder2.uri.fsPath).resolves("Stopped 2");
 
         const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves("Yes");
 
-        // await new StopDaemonsCommand(mockClient, rootProjectsStore).run();
+        await new StopDaemonsCommand(rootProjectsStore).run();
 
         assert.ok(
             showWarningMessageStub.calledWith("Are you sure you want to stop the daemons?"),
@@ -228,23 +197,14 @@ describe(getSuiteName("Gradle daemons"), () => {
     });
 
     it("should prevent queing of daemon status requests", async () => {
-        const mockReply1 = new GetDaemonsStatusReply();
-        const mockDaemonInfoBusy = new DaemonInfo();
-        mockDaemonInfoBusy.setStatus(DaemonInfo.DaemonStatus.BUSY);
-        mockDaemonInfoBusy.setPid("41716");
-        mockDaemonInfoBusy.setInfo("6.4");
-        mockReply1.setDaemonInfoList([mockDaemonInfoBusy]);
-        const quickReply = Promise.resolve(mockReply1);
+        const mockDaemonInfoBusy = new DaemonInfo("41716", DaemonStatus.BUSY, "6.4");
+        const mockDaemonInfoIdle = new DaemonInfo("41716", DaemonStatus.IDLE, "6.4 f00");
 
-        const mockReply2 = new GetDaemonsStatusReply();
-        const mockDaemonInfoIdle = new DaemonInfo();
-        mockDaemonInfoIdle.setStatus(DaemonInfo.DaemonStatus.IDLE);
-        mockDaemonInfoIdle.setPid("41716");
-        mockDaemonInfoIdle.setInfo("6.4 f00");
-        mockReply2.setDaemonInfoList([mockDaemonInfoIdle]);
+        const quickReply = Promise.resolve([mockDaemonInfoBusy]);
+
         const longReply = new Promise((resolve) => {
             setTimeout(() => {
-                resolve(mockReply2);
+                resolve([mockDaemonInfoIdle]);
             }, 1000);
         });
 

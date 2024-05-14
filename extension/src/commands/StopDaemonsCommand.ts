@@ -47,7 +47,7 @@ export class StopDaemonsCommand extends Command {
             const gradleExecution = new GradleLocalInstallation(gradleConfig.getGradleHome());
             await gradleExecution.exec(["--stop"]);
         } else {
-            throw new Error("Not implemented yet");
+            logger.info("No daemons to stop");
         }
     }
 }

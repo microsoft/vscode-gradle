@@ -27,7 +27,7 @@ export class GradleStatus {
                     const wrapper = new GradleWrapper(projectRoot);
                     return wrapper.exec(["--status", "quiet"]);
                 } else {
-                    throw new Error("Invalid or missing Gradle wrapper files.");
+                    return "";
                 }
 
             case GradleConnectionType.LOCALINSTALLATION:

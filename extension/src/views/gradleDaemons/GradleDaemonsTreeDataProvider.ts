@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { GradleDaemonTreeItem } from ".";
-import { GradleClient } from "../../client";
 import { RootProjectsStore } from "../../stores";
 import { getShowStoppedDaemons, setShowStoppedDaemons } from "../../util/config";
 import { Deferred } from "../../util/Deferred";
@@ -17,14 +16,12 @@ export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vs
 
     constructor(
         private readonly context: vscode.ExtensionContext,
-        private readonly rootProjectsStore: RootProjectsStore,
-        private readonly client: GradleClient
+        private readonly rootProjectsStore: RootProjectsStore
     ) {}
 
     public refresh(): void {
         this.cancelDeferred?.resolve(this.treeItems);
         this._onDidChangeTreeData.fire(null);
-        this.client.getDaemonsStatus;
     }
 
     public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
