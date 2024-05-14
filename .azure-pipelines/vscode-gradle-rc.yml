@@ -68,10 +68,15 @@ extends:
               - bash: chmod +x gradle-server
                 workingDirectory: $(Build.SourcesDirectory)/extension/lib
                 displayName: Set permission
-              - task: EsrpCodeSigning@2
+              - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
+                  ConnectedServiceName: 'ESRP-Release-Test'
+                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
+                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+                  AuthAKVName: 'vscjavaci'
+                  AuthCertName: 'vscjava-esrprelease-auth'
+                  AuthSignCertName: 'VSCJava-CodeSign'
                   FolderPath: 'extension/lib'
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
@@ -138,10 +143,15 @@ extends:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: ':extension:copyJdtlsPluginJar'
-              - task: EsrpCodeSigning@2
+              - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'vscjavaci_esrp_codesign'
+                  ConnectedServiceName: 'ESRP-Release-Test'
+                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
+                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+                  AuthAKVName: 'vscjavaci'
+                  AuthCertName: 'vscjava-esrprelease-auth'
+                  AuthSignCertName: 'VSCJava-CodeSign'
                   FolderPath: 'extension/server'
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
