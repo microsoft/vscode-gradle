@@ -4,7 +4,8 @@ import { logger } from "../logger";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
 import { getGradleConfig } from "../util/config";
-import { GradleStatus, ConnectionType } from "../views/gradleDaemons/services/GradleStatus";
+import { GradleStatus } from "../views/gradleDaemons/services/GradleStatus";
+import { GradleConnectionType } from "../views/gradleDaemons/models/GradleConnectionType";
 import { GradleWrapper } from "../views/gradleDaemons/services/GradleWrapper";
 import { GradleLocalInstallation } from "../views/gradleDaemons/services/GradleLocalInstallation";
 import { COMMAND_REFRESH_DAEMON_STATUS } from "../../src/commands";
@@ -34,17 +35,15 @@ export class StopDaemonsCommand extends Command {
         } catch (error) {
             logger.error(`Failed to stop daemons: ${error.message}`);
         }
-
-
     }
 
     async stopDaemons(projectFolder: string): Promise<void> {
         const gradleConfig = getGradleConfig();
         const connectType = await GradleStatus.getConnectionType(gradleConfig);
-        if (connectType === ConnectionType.WRAPPER) {
+        if (connectType === GradleConnectionType.WRAPPER) {
             const gradleExecution = new GradleWrapper(projectFolder);
             await gradleExecution.exec(["--stop"]);
-        } else if (connectType === ConnectionType.LOCALINSTALLATION) {
+        } else if (connectType === GradleConnectionType.LOCALINSTALLATION) {
             const gradleExecution = new GradleLocalInstallation(gradleConfig.getGradleHome());
             await gradleExecution.exec(["--stop"]);
         } else {

@@ -1,32 +1,29 @@
-import { DaemonInfo, DaemonStatus } from '../models/DaemonInfo';
+import { DaemonInfo } from '../models/DaemonInfo';
+import { DaemonStatus } from '../models/DaemonStatus';
 import { getGradleConfig } from "../../../util/config";
 import { GradleConfig } from "../../../proto/gradle_pb";
 import { GradleWrapper } from './GradleWrapper';
 import { GradleLocalInstallation } from './GradleLocalInstallation';
-export enum ConnectionType {
-    WRAPPER,
-    LOCALINSTALLATION,
-    SPECIFICVERSION
-}
+import { GradleConnectionType } from '../models/GradleConnectionType';
 export class GradleStatus {
-    static async getConnectionType(gradleConfig: GradleConfig): Promise<ConnectionType> {
+    static async getConnectionType(gradleConfig: GradleConfig): Promise<GradleConnectionType> {
         if (gradleConfig.getWrapperEnabled()) {
-            return ConnectionType.WRAPPER;
+            return GradleConnectionType.WRAPPER;
         } else {
             if (gradleConfig.getVersion()) {
-                return ConnectionType.SPECIFICVERSION;
+                return GradleConnectionType.SPECIFICVERSION;
             }else if (gradleConfig.getGradleHome()) {
-                return ConnectionType.LOCALINSTALLATION;
+                return GradleConnectionType.LOCALINSTALLATION;
             }
             // Previously use tooling version as fallback in Java.
-            return ConnectionType.SPECIFICVERSION;
+            return GradleConnectionType.SPECIFICVERSION;
         }
     }
 
     static async getDaemonsStatusOutput(gradleConfig: GradleConfig, projectRoot: string): Promise<string> {
         const connectionType = await this.getConnectionType(gradleConfig);
         switch (connectionType) {
-            case ConnectionType.WRAPPER:
+            case GradleConnectionType.WRAPPER:
                 if (await GradleWrapper.hasValidWrapper(projectRoot)) {
                     const wrapper = new GradleWrapper(projectRoot);
                     return wrapper.exec(['--status', 'quiet']);
@@ -34,12 +31,13 @@ export class GradleStatus {
                     throw new Error("Invalid or missing Gradle wrapper files.");
                 }
 
-            case ConnectionType.LOCALINSTALLATION:
+            case GradleConnectionType.LOCALINSTALLATION:
                 const localInstallation = new GradleLocalInstallation(gradleConfig.getGradleHome());
                 return localInstallation.exec(['--status', 'quiet']);
 
-            case ConnectionType.SPECIFICVERSION:
-                return `not implemented yet`;
+            case GradleConnectionType.SPECIFICVERSION:
+                return '';
+
             default:
                 throw new Error('Unknown connection type');
         }
@@ -47,7 +45,6 @@ export class GradleStatus {
 
     static async getDaemonsStatusList(projectRoot: string): Promise<DaemonInfo[]> {
         const gradleConfig = getGradleConfig();
-
         const output = await this.getDaemonsStatusOutput(gradleConfig, projectRoot);
 
         return this.parseDaemonInfo(output);

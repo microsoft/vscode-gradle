@@ -1,29 +1,22 @@
-export enum DaemonStatus {
-    IDLE = 0,
-    BUSY = 1,
-    STOPPED = 2,
-    STOPPING = 3,
-    CANCELED = 4,
-}
+import { DaemonStatus } from './DaemonStatus';
 
 export class DaemonInfo {
 
     constructor(
-        private pid?: string,
-        private status?: DaemonStatus,
-        private info?: string) {}
-
+        private pid: string,
+        private status: DaemonStatus,
+        private info: string) {}
 
     public getPid(): string {
-        return this.pid!;
+        return this.pid;
     }
 
     public getStatus(): DaemonStatus {
-        return this.status!;
+        return this.status;
     }
 
     public getInfo(): string {
-        return this.info!;
+        return this.info;
     }
 
     public setStatus(status: DaemonStatus): void {
@@ -37,7 +30,6 @@ export class DaemonInfo {
     public setPid(pid: string): void {
         this.pid = pid;
     }
-
 }
 
 
