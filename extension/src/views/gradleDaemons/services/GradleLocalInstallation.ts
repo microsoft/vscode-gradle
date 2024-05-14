@@ -1,6 +1,6 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { GradleExecution } from './GradleExecution';
+import { exec } from "child_process";
+import { promisify } from "util";
+import { GradleExecution } from "./GradleExecution";
 const execAsync = promisify(exec);
 
 export class GradleLocalInstallation implements GradleExecution {
@@ -15,7 +15,7 @@ export class GradleLocalInstallation implements GradleExecution {
             throw new Error("No gradle args supplied");
         }
 
-        const command = `${this.gradleHomePath} ${args.join(' ')}`;
+        const command = `${this.gradleHomePath} ${args.join(" ")}`;
 
         try {
             const { stdout, stderr } = await execAsync(command);

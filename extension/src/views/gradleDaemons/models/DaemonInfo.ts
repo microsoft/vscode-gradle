@@ -1,11 +1,7 @@
-import { DaemonStatus } from './DaemonStatus';
+import { DaemonStatus } from "./DaemonStatus";
 
 export class DaemonInfo {
-
-    constructor(
-        private pid: string,
-        private status: DaemonStatus,
-        private info: string) {}
+    constructor(private pid: string, private status: DaemonStatus, private info: string) {}
 
     public getPid(): string {
         return this.pid;
@@ -31,5 +27,3 @@ export class DaemonInfo {
         this.pid = pid;
     }
 }
-
-

@@ -1,16 +1,16 @@
-import { promises as fs } from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { GradleExecution } from './GradleExecution';
-
-const path = require('path'); //import path from 'path' doesn't work
+import { promises as fs } from "fs";
+import { exec } from "child_process";
+import { promisify } from "util";
+import { GradleExecution } from "./GradleExecution";
+import path from "path";
+//const path = require("path"); //import path from 'path' doesn't work
 
 const execAsync = promisify(exec);
 
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
     constructor(private projectRoot: string) {
-        const wrapperName = process.platform === 'win32' ? 'gradlew.bat' : 'gradlew';
+        const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
         this.gradleWrapperPath = path.join(projectRoot, wrapperName);
     }
 
@@ -19,7 +19,7 @@ export class GradleWrapper implements GradleExecution {
             throw new Error("No wrapper args supplied");
         }
 
-        const command = `${this.gradleWrapperPath} ${args.join(' ')}`;
+        const command = `${this.gradleWrapperPath} ${args.join(" ")}`;
         try {
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot });
             if (stderr) {
@@ -33,8 +33,8 @@ export class GradleWrapper implements GradleExecution {
 
     static async hasValidWrapper(projectRoot: string): Promise<boolean> {
         try {
-            const propertiesPath = path.join(projectRoot, 'gradle', 'wrapper', 'gradle-wrapper.properties');
-            const wrapperName = process.platform === 'win32' ? 'gradlew.bat' : 'gradlew';
+            const propertiesPath = path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.properties");
+            const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
             const wrapperPath = path.join(projectRoot, wrapperName);
 
             await fs.access(propertiesPath);
@@ -45,4 +45,3 @@ export class GradleWrapper implements GradleExecution {
         }
     }
 }
-

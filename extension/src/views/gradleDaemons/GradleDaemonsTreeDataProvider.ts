@@ -24,7 +24,7 @@ export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vs
     public refresh(): void {
         this.cancelDeferred?.resolve(this.treeItems);
         this._onDidChangeTreeData.fire(null);
-        this.client.getDaemonsStatus
+        this.client.getDaemonsStatus;
     }
 
     public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -46,11 +46,13 @@ export class GradleDaemonsTreeDataProvider implements vscode.TreeDataProvider<vs
 
             let filteredDaemonInfos = daemonInfos;
             if (!getShowStoppedDaemons()) {
-                filteredDaemonInfos = daemonInfos.filter(daemonInfo => daemonInfo.getStatus() !== DaemonStatus.STOPPED);
+                filteredDaemonInfos = daemonInfos.filter(
+                    (daemonInfo) => daemonInfo.getStatus() !== DaemonStatus.STOPPED
+                );
             }
 
-            return filteredDaemonInfos.map(daemonInfo =>
-                new GradleDaemonTreeItem(this.context, daemonInfo.getPid(), daemonInfo)
+            return filteredDaemonInfos.map(
+                (daemonInfo) => new GradleDaemonTreeItem(this.context, daemonInfo.getPid(), daemonInfo)
             );
         });
 

@@ -1,10 +1,10 @@
-import { DaemonInfo } from '../models/DaemonInfo';
-import { DaemonStatus } from '../models/DaemonStatus';
+import { DaemonInfo } from "../models/DaemonInfo";
+import { DaemonStatus } from "../models/DaemonStatus";
 import { getGradleConfig } from "../../../util/config";
 import { GradleConfig } from "../../../proto/gradle_pb";
-import { GradleWrapper } from './GradleWrapper';
-import { GradleLocalInstallation } from './GradleLocalInstallation';
-import { GradleConnectionType } from '../models/GradleConnectionType';
+import { GradleWrapper } from "./GradleWrapper";
+import { GradleLocalInstallation } from "./GradleLocalInstallation";
+import { GradleConnectionType } from "../models/GradleConnectionType";
 export class GradleStatus {
     static async getConnectionType(gradleConfig: GradleConfig): Promise<GradleConnectionType> {
         if (gradleConfig.getWrapperEnabled()) {
@@ -12,7 +12,7 @@ export class GradleStatus {
         } else {
             if (gradleConfig.getVersion()) {
                 return GradleConnectionType.SPECIFICVERSION;
-            }else if (gradleConfig.getGradleHome()) {
+            } else if (gradleConfig.getGradleHome()) {
                 return GradleConnectionType.LOCALINSTALLATION;
             }
             // Previously use tooling version as fallback in Java.
@@ -26,20 +26,20 @@ export class GradleStatus {
             case GradleConnectionType.WRAPPER:
                 if (await GradleWrapper.hasValidWrapper(projectRoot)) {
                     const wrapper = new GradleWrapper(projectRoot);
-                    return wrapper.exec(['--status', 'quiet']);
+                    return wrapper.exec(["--status", "quiet"]);
                 } else {
                     throw new Error("Invalid or missing Gradle wrapper files.");
                 }
 
             case GradleConnectionType.LOCALINSTALLATION:
                 const localInstallation = new GradleLocalInstallation(gradleConfig.getGradleHome());
-                return localInstallation.exec(['--status', 'quiet']);
+                return localInstallation.exec(["--status", "quiet"]);
 
             case GradleConnectionType.SPECIFICVERSION:
-                return '';
+                return "";
 
             default:
-                throw new Error('Unknown connection type');
+                throw new Error("Unknown connection type");
         }
     }
 
@@ -53,19 +53,19 @@ export class GradleStatus {
     private static parseDaemonInfo(output: string): DaemonInfo[] {
         if (!output) return [];
 
-        const lines = output.split('\n');
+        const lines = output.split("\n");
         const daemonInfos: DaemonInfo[] = [];
 
         const statusRegex = /^\s*([0-9]+)\s+(\w+)\s+(.+)$/;
 
-        lines.forEach(line => {
+        lines.forEach((line) => {
             const match = line.match(statusRegex);
             if (match) {
                 const pid = match[1];
                 const statusString = match[2];
                 const info = match[3];
 
-                let status = DaemonStatus[statusString as keyof typeof DaemonStatus];
+                const status = DaemonStatus[statusString as keyof typeof DaemonStatus];
 
                 daemonInfos.push(new DaemonInfo(pid, status, info));
             }
@@ -74,4 +74,3 @@ export class GradleStatus {
         return daemonInfos;
     }
 }
-
