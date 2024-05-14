@@ -15,7 +15,6 @@ export class GradleStatus {
             } else if (gradleConfig.getGradleHome()) {
                 return GradleConnectionType.LOCALINSTALLATION;
             }
-            // Previously use tooling version as fallback in Java.
             return GradleConnectionType.SPECIFICVERSION;
         }
     }

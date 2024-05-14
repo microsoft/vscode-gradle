@@ -2,8 +2,7 @@ import { promises as fs } from "fs";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { GradleExecution } from "./GradleExecution";
-import path from "path";
-//const path = require("path"); //import path from 'path' doesn't work
+import * as path from "path";
 
 const execAsync = promisify(exec);
 
