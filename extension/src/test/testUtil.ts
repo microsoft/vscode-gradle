@@ -9,7 +9,6 @@ import * as fs from "fs";
 import { GradleTaskDefinition } from "../tasks";
 import { GradleTask } from "../proto/gradle_pb";
 import { TREE_ITEM_STATE_FOLDER } from "../views/constants";
-//import { get } from "lodash";
 
 export const EXTENSION_NAME = "vscjava.vscode-gradle";
 
