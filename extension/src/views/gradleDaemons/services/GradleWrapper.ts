@@ -3,7 +3,6 @@ import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
 
-
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
     constructor(private projectRoot: string) {
