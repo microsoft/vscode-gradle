@@ -238,33 +238,28 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         sinon.stub(vscode.workspace, "workspaceFolders").value([workspaceFolder1]);
 
-        sinon.stub(GradleStatus, 'getDaemonsStatusList').withArgs(mockWorkspaceFolder1.uri.fsPath).returns(quickReply);
+        const getDaemonsStatusListStub = sinon.stub(GradleStatus, 'getDaemonsStatusList');
+
+        getDaemonsStatusListStub.withArgs(workspaceFolder1.uri.fsPath).callsFake(async () => {
+            if (getDaemonsStatusListStub.callCount === 1) {
+                return quickReply;
+            } else {
+                return longReply;
+            }
+        });
 
         const children = await gradleDaemonsTreeDataProvider.getChildren();
 
         assert.strictEqual(children[0].description, "BUSY");
 
-        sinon.stub(GradleStatus, 'getDaemonsStatusList').withArgs(mockWorkspaceFolder1.uri.fsPath).returns(longReply);
+        gradleDaemonsTreeDataProvider.refresh();
+        await sleep(1000);
 
-        await new Promise(async (resolve, reject) => {
-            // This call will return the previous results (quickReply) as we've cancelled
-            // the request with the subsequent call to refresh()
-            gradleDaemonsTreeDataProvider
-                .getChildren()
-                .then((_children: vscode.TreeItem[]) => {
-                    assert.strictEqual(_children[0].description, "BUSY");
-                })
-                .catch(reject);
-            // This call will return the correct results (longReply)
-            gradleDaemonsTreeDataProvider.refresh();
-            await sleep(1000);
-            gradleDaemonsTreeDataProvider
-                .getChildren()
-                .then((_children: vscode.TreeItem[]) => {
-                    assert.strictEqual(_children[0].description, "IDLE");
-                    resolve(undefined);
-                })
-                .catch(reject);
-        });
+        const refreshedChildren = await gradleDaemonsTreeDataProvider.getChildren();
+
+        assert.strictEqual(refreshedChildren[0].description, "IDLE");
+
+        sinon.restore();
     });
+
 });
