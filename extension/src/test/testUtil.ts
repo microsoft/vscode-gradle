@@ -9,6 +9,7 @@ import * as fs from "fs";
 import { GradleTaskDefinition } from "../tasks";
 import { GradleTask } from "../proto/gradle_pb";
 import { TREE_ITEM_STATE_FOLDER } from "../views/constants";
+//import { get } from "lodash";
 
 export const EXTENSION_NAME = "vscjava.vscode-gradle";
 
@@ -123,6 +124,14 @@ export function buildMockClient(): any {
         stopDaemon: sinon.stub(),
         stopDaemons: sinon.stub(),
         cancelRunTask: sinon.stub(),
+    };
+}
+export function buildMockGradleStatus(): any {
+    return {
+        getConnectionType: sinon.stub(),
+        getDaemonsStatus: sinon.stub(),
+        getDaemonsStatusOutput: sinon.stub(),
+        getDaemonsStatusList: sinon.stub()
     };
 }
 

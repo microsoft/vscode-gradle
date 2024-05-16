@@ -19,6 +19,7 @@ import {
     buildMockClient,
     buildMockContext,
     stubWorkspaceFolders,
+    buildMockGradleStatus,
 } from "../testUtil";
 import { IconPath } from "../../icons";
 import { ICON_DAEMON_STOPPED, ICON_DAEMON_BUSY, ICON_DAEMON_IDLE } from "../../views/constants";
@@ -28,6 +29,7 @@ import { sleep } from "../../util";
 
 const mockContext = buildMockContext();
 const mockClient = buildMockClient();
+const mockGradleStatus = buildMockGradleStatus();
 
 const mockWorkspaceFolder1 = buildMockWorkspaceFolder(0, "folder1", "folder1");
 const mockWorkspaceFolder2 = buildMockWorkspaceFolder(1, "folder2", "folder2");
@@ -87,10 +89,13 @@ describe(getSuiteName("Gradle daemons"), () => {
         const mockDaemonInfoIdle = new DaemonInfo("41717", DaemonStatus.IDLE, "6.4");
         const mockDaemonInfoStopped = new DaemonInfo("41718", DaemonStatus.STOPPED, "(by user or operating system)");
 
-        mockClient.getDaemonsStatus
+        ;
+
+        mockGradleStatus.getDaemonsStatusList
             .withArgs(mockWorkspaceFolder1.uri.fsPath)
             .resolves([mockDaemonInfoBusy, mockDaemonInfoStopped]);
-        mockClient.getDaemonsStatus
+
+        mockGradleStatus.getDaemonsStatusList
             .withArgs(mockWorkspaceFolder2.uri.fsPath)
             .resolves([mockDaemonInfoIdle, mockDaemonInfoStopped]);
         // NOTE: no reason to mock reply for mockWorkspaceFolder3 as it should be ignored due to
@@ -216,13 +221,13 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         sinon.stub(vscode.workspace, "workspaceFolders").value([workspaceFolder1]);
 
-        mockClient.getDaemonsStatus.withArgs(mockWorkspaceFolder1.uri.fsPath).returns(quickReply);
+        mockGradleStatus.getDaemonsStatusList.withArgs(mockWorkspaceFolder1.uri.fsPath).returns(quickReply);
 
         const children = await gradleDaemonsTreeDataProvider.getChildren();
 
         assert.strictEqual(children[0].description, "BUSY");
 
-        mockClient.getDaemonsStatus.withArgs(mockWorkspaceFolder1.uri.fsPath).returns(longReply);
+        mockGradleStatus.getDaemonsStatusList.withArgs(mockWorkspaceFolder1.uri.fsPath).returns(longReply);
 
         await new Promise(async (resolve, reject) => {
             // This call will return the previous results (quickReply) as we've cancelled
