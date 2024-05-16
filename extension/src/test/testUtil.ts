@@ -126,14 +126,6 @@ export function buildMockClient(): any {
         cancelRunTask: sinon.stub(),
     };
 }
-export function buildMockGradleStatus(): any {
-    return {
-        getConnectionType: sinon.stub(),
-        getDaemonsStatus: sinon.stub(),
-        getDaemonsStatusOutput: sinon.stub(),
-        getDaemonsStatusList: sinon.stub()
-    };
-}
 
 export function buildMockWorkspaceFolder(index: number, pathName: string, name: string): vscode.WorkspaceFolder {
     return {

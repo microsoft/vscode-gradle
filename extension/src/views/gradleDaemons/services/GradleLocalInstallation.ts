@@ -1,8 +1,5 @@
-import { exec } from "child_process";
-import { promisify } from "util";
 import { GradleExecution } from "./GradleExecution";
-const execAsync = promisify(exec);
-
+import { execAsync } from "../../../util/execAsync";
 export class GradleLocalInstallation implements GradleExecution {
     private gradleHomePath: string;
 

@@ -2,9 +2,7 @@ import { GradleDaemonTreeItem } from "../views";
 import { confirmModal } from "../util/input";
 import { logger } from "../logger";
 import { Command } from "./Command";
-import { exec } from "child_process";
-import { promisify } from "util";
-const execAsync = promisify(exec);
+import { execAsync } from "../util/execAsync";
 import * as vscode from "vscode";
 import { COMMAND_REFRESH_DAEMON_STATUS } from "./RefreshDaemonStatusCommand";
 
@@ -23,7 +21,7 @@ export class StopDaemonCommand extends Command {
             await this.stopDaemon(pid);
             logger.info(`Successfully stopped daemon with PID ${pid}.`);
         } catch (error) {
-            logger.error(`Failed to stop daemon with PID ${pid}: ${error.message}`);
+            logger.error(`Failed to stop daemon with PID ${pid}: ${error.message}.`);
         }
     }
 

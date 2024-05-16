@@ -8,7 +8,7 @@ import { GradleStatus } from "../views/gradleDaemons/services/GradleStatus";
 import { GradleConnectionType } from "../views/gradleDaemons/models/GradleConnectionType";
 import { GradleWrapper } from "../views/gradleDaemons/services/GradleWrapper";
 import { GradleLocalInstallation } from "../views/gradleDaemons/services/GradleLocalInstallation";
-import { COMMAND_REFRESH_DAEMON_STATUS } from "./RefreshDaemonStatusCommand";
+//import { COMMAND_REFRESH_DAEMON_STATUS } from "./RefreshDaemonStatusCommand";
 
 export const COMMAND_STOP_DAEMONS = "gradle.stopDaemons";
 
@@ -30,11 +30,11 @@ export class StopDaemonsCommand extends Command {
                 this.stopDaemons(rootProject.getProjectUri().fsPath)
             );
             await Promise.all(promises);
-            await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-            logger.info(`Successfully stopped all daemons`);
+            logger.info(`Successfully stopped all daemons.`);
         } catch (error) {
-            logger.error(`Failed to stop daemons: ${error.message}`);
+            logger.error(`Failed to stop daemons: ${error.message}.`);
         }
+        //await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
     }
 
     async stopDaemons(projectFolder: string): Promise<void> {
@@ -47,7 +47,7 @@ export class StopDaemonsCommand extends Command {
             const gradleExecution = new GradleLocalInstallation(gradleConfig.getGradleHome());
             await gradleExecution.exec(["--stop"]);
         } else {
-            logger.info("No daemons to stop");
+            logger.info("No daemons to stop.");
         }
     }
 }

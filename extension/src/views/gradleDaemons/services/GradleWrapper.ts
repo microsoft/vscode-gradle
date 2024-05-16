@@ -1,10 +1,8 @@
 import { promises as fs } from "fs";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
 
-const execAsync = promisify(exec);
 
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
