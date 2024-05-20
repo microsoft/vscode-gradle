@@ -1,4 +1,4 @@
-import fsExtra from "fs-extra";
+import * as fse from 'fs-extra'
 import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
@@ -30,7 +30,7 @@ export class GradleWrapper implements GradleExecution {
     static async hasValidWrapper(projectRoot: string): Promise<boolean> {
         const propertiesPath = path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.properties");
 
-        const hasProperties = await fsExtra.pathExists(propertiesPath);
+        const hasProperties = await fse.pathExists(propertiesPath);
         return hasProperties;
     }
 }
