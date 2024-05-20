@@ -1,4 +1,4 @@
-import * as fse from 'fs-extra'
+import * as fse from "fs-extra";
 import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
