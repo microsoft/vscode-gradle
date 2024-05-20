@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import fsExtra from "fs-extra";
 import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
@@ -28,16 +28,9 @@ export class GradleWrapper implements GradleExecution {
     }
 
     static async hasValidWrapper(projectRoot: string): Promise<boolean> {
-        try {
-            const propertiesPath = path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.properties");
-            const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
-            const wrapperPath = path.join(projectRoot, wrapperName);
+        const propertiesPath = path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.properties");
 
-            await fs.access(propertiesPath);
-            await fs.access(wrapperPath);
-            return true;
-        } catch {
-            return false;
-        }
+        const hasProperties = await fsExtra.pathExists(propertiesPath);
+        return hasProperties;
     }
 }

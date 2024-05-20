@@ -15,7 +15,7 @@ export class GradleStatus {
             } else if (gradleConfig.getGradleHome()) {
                 return GradleConnectionType.LOCALINSTALLATION;
             }
-            return GradleConnectionType.SPECIFICVERSION;
+            return GradleConnectionType.WRAPPER;
         }
     }
 
@@ -26,17 +26,13 @@ export class GradleStatus {
                 if (await GradleWrapper.hasValidWrapper(projectRoot)) {
                     const wrapper = new GradleWrapper(projectRoot);
                     return wrapper.exec(["--status", "quiet"]);
-                } else {
-                    return "";
                 }
-
+                return "";
             case GradleConnectionType.LOCALINSTALLATION:
                 const localInstallation = new GradleLocalInstallation(gradleConfig.getGradleHome());
                 return localInstallation.exec(["--status", "quiet"]);
-
             case GradleConnectionType.SPECIFICVERSION:
                 return "";
-
             default:
                 throw new Error("Unknown connection type");
         }
@@ -64,7 +60,7 @@ export class GradleStatus {
                 const statusString = match[2];
                 const info = match[3];
 
-                const status = DaemonStatus[statusString as keyof typeof DaemonStatus];
+                const status = statusString as DaemonStatus;
 
                 daemonInfos.push(new DaemonInfo(pid, status, info));
             }
