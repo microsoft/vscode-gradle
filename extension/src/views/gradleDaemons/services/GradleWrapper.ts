@@ -10,7 +10,7 @@ export class GradleWrapper implements GradleExecution {
         this.gradleWrapperPath = path.join(projectRoot, wrapperName);
     }
 
-    async exec(args: string[]): Promise<string> {
+    public async exec(args: string[]): Promise<string> {
         if (args.length === 0) {
             throw new Error("No wrapper args supplied");
         }
@@ -27,7 +27,7 @@ export class GradleWrapper implements GradleExecution {
         }
     }
 
-    static async hasValidWrapper(projectRoot: string): Promise<boolean> {
+    public static async hasValidWrapper(projectRoot: string): Promise<boolean> {
         const propertiesPath = path.join(projectRoot, "gradle", "wrapper", "gradle-wrapper.properties");
 
         const hasProperties = await fse.pathExists(propertiesPath);

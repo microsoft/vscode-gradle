@@ -7,7 +7,7 @@ export class GradleLocalInstallation implements GradleExecution {
         this.gradleHomePath = gradleHomePath;
     }
 
-    async exec(args: string[]): Promise<string> {
+    public async exec(args: string[]): Promise<string> {
         if (args.length === 0) {
             throw new Error("No gradle args supplied");
         }

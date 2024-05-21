@@ -230,4 +230,64 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         assert.strictEqual(refreshedChildren[0].description, "IDLE");
     });
+
+    it("test parseDaemonInfo with various inputs", () => {
+        // Windows-style input with \r\n
+        const windowsOutput = `
+        95141 IDLE     8.6\r\n
+        12345 BUSY     7.5\r\n
+        67890 STOPPED  (by user or operating system)\r\n
+        malformed line\r\n
+        `;
+
+        const windowsDaemonInfos = GradleStatus.parseDaemonInfo(windowsOutput);
+
+        assert.strictEqual(windowsDaemonInfos.length, 3, "There should be 3 daemons parsed, ignoring malformed lines (Windows)");
+
+        const windowsDaemon1 = windowsDaemonInfos[0];
+        assert.strictEqual(windowsDaemon1.getPid(), "95141");
+        assert.strictEqual(windowsDaemon1.getStatus(), DaemonStatus.IDLE);
+        assert.strictEqual(windowsDaemon1.getInfo(), "8.6");
+
+        const windowsDaemon2 = windowsDaemonInfos[1];
+        assert.strictEqual(windowsDaemon2.getPid(), "12345");
+        assert.strictEqual(windowsDaemon2.getStatus(), DaemonStatus.BUSY);
+        assert.strictEqual(windowsDaemon2.getInfo(), "7.5");
+
+        const windowsDaemon3 = windowsDaemonInfos[2];
+        assert.strictEqual(windowsDaemon3.getPid(), "67890");
+        assert.strictEqual(windowsDaemon3.getStatus(), DaemonStatus.STOPPED);
+        assert.strictEqual(windowsDaemon3.getInfo(), "(by user or operating system)");
+
+        // Unix/Mac-style input with \n
+        const unixOutput = `
+        95141 IDLE     8.6\n
+        12345 BUSY     7.5\n
+        67890 STOPPED  (by user or operating system)\n
+        malformed line\n
+        `;
+
+        const unixDaemonInfos = GradleStatus.parseDaemonInfo(unixOutput);
+
+        assert.strictEqual(unixDaemonInfos.length, 3, "There should be 3 daemons parsed, ignoring malformed lines (Unix/Mac)");
+
+        const unixDaemon1 = unixDaemonInfos[0];
+        assert.strictEqual(unixDaemon1.getPid(), "95141");
+        assert.strictEqual(unixDaemon1.getStatus(), DaemonStatus.IDLE);
+        assert.strictEqual(unixDaemon1.getInfo(), "8.6");
+
+        const unixDaemon2 = unixDaemonInfos[1];
+        assert.strictEqual(unixDaemon2.getPid(), "12345");
+        assert.strictEqual(unixDaemon2.getStatus(), DaemonStatus.BUSY);
+        assert.strictEqual(unixDaemon2.getInfo(), "7.5");
+
+        const unixDaemon3 = unixDaemonInfos[2];
+        assert.strictEqual(unixDaemon3.getPid(), "67890");
+        assert.strictEqual(unixDaemon3.getStatus(), DaemonStatus.STOPPED);
+        assert.strictEqual(unixDaemon3.getInfo(), "(by user or operating system)");
+
+        const emptyOutput = "";
+        const emptyDaemonInfos = GradleStatus.parseDaemonInfo(emptyOutput);
+        assert.strictEqual(emptyDaemonInfos.length, 0, "There should be no daemons parsed for empty output");
+    });
 });

@@ -6,7 +6,7 @@ import { GradleWrapper } from "./GradleWrapper";
 import { GradleLocalInstallation } from "./GradleLocalInstallation";
 import { GradleConnectionType } from "../models/GradleConnectionType";
 export class GradleStatus {
-    static async getConnectionType(gradleConfig: GradleConfig): Promise<GradleConnectionType> {
+    public static async getConnectionType(gradleConfig: GradleConfig): Promise<GradleConnectionType> {
         if (gradleConfig.getWrapperEnabled()) {
             return GradleConnectionType.WRAPPER;
         } else {
@@ -19,7 +19,7 @@ export class GradleStatus {
         }
     }
 
-    static async getDaemonsStatusOutput(gradleConfig: GradleConfig, projectRoot: string): Promise<string> {
+    private static async getDaemonsStatusOutput(gradleConfig: GradleConfig, projectRoot: string): Promise<string> {
         const connectionType = await this.getConnectionType(gradleConfig);
         switch (connectionType) {
             case GradleConnectionType.WRAPPER:
@@ -38,17 +38,17 @@ export class GradleStatus {
         }
     }
 
-    static async getDaemonsStatusList(projectRoot: string): Promise<DaemonInfo[]> {
+    public static async getDaemonsStatusList(projectRoot: string): Promise<DaemonInfo[]> {
         const gradleConfig = getGradleConfig();
         const output = await this.getDaemonsStatusOutput(gradleConfig, projectRoot);
 
         return this.parseDaemonInfo(output);
     }
 
-    private static parseDaemonInfo(output: string): DaemonInfo[] {
+    public static parseDaemonInfo(output: string): DaemonInfo[] {
         if (!output) return [];
 
-        const lines = output.split("\n");
+        const lines = output.split(/\r?\n/);
         const daemonInfos: DaemonInfo[] = [];
 
         const statusRegex = /^\s*([0-9]+)\s+(\w+)\s+(.+)$/;
