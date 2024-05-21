@@ -231,7 +231,7 @@ describe(getSuiteName("Gradle daemons"), () => {
         assert.strictEqual(refreshedChildren[0].description, "IDLE");
     });
 
-    it("test parseDaemonInfo with various inputs", () => {
+    it("should correctly parse daemonInfos from input with Unix and Windows line endings", () => {
         // Windows-style input with \r\n
         const windowsOutput = `
         95141 IDLE     8.6\r\n
@@ -242,7 +242,11 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         const windowsDaemonInfos = GradleStatus.parseDaemonInfo(windowsOutput);
 
-        assert.strictEqual(windowsDaemonInfos.length, 3, "There should be 3 daemons parsed, ignoring malformed lines (Windows)");
+        assert.strictEqual(
+            windowsDaemonInfos.length,
+            3,
+            "There should be 3 daemons parsed, ignoring malformed lines (Windows)"
+        );
 
         const windowsDaemon1 = windowsDaemonInfos[0];
         assert.strictEqual(windowsDaemon1.getPid(), "95141");
@@ -269,7 +273,11 @@ describe(getSuiteName("Gradle daemons"), () => {
 
         const unixDaemonInfos = GradleStatus.parseDaemonInfo(unixOutput);
 
-        assert.strictEqual(unixDaemonInfos.length, 3, "There should be 3 daemons parsed, ignoring malformed lines (Unix/Mac)");
+        assert.strictEqual(
+            unixDaemonInfos.length,
+            3,
+            "There should be 3 daemons parsed, ignoring malformed lines (Unix/Mac)"
+        );
 
         const unixDaemon1 = unixDaemonInfos[0];
         assert.strictEqual(unixDaemon1.getPid(), "95141");
