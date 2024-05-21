@@ -111,11 +111,7 @@ export class Extension {
             treeDataProvider: this.gradleTasksTreeDataProvider,
             showCollapseAll: true,
         });
-        this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(
-            this.context,
-            this.rootProjectsStore,
-            this.client
-        );
+        this.gradleDaemonsTreeDataProvider = new GradleDaemonsTreeDataProvider(this.context, this.rootProjectsStore);
         this.gradleDaemonsTreeView = vscode.window.createTreeView(GRADLE_DAEMONS_VIEW, {
             treeDataProvider: this.gradleDaemonsTreeDataProvider,
             showCollapseAll: false,
