@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -32,6 +33,7 @@ import ch.epfl.scala.bsp4j.LogMessageParams;
 import ch.epfl.scala.bsp4j.MessageType;
 import ch.epfl.scala.bsp4j.PublishDiagnosticsParams;
 import ch.epfl.scala.bsp4j.ShowMessageParams;
+import ch.epfl.scala.bsp4j.StatusCode;
 import ch.epfl.scala.bsp4j.TaskDataKind;
 import ch.epfl.scala.bsp4j.TaskFinishParams;
 import ch.epfl.scala.bsp4j.TaskProgressParams;
@@ -60,6 +62,8 @@ public class GradleBuildClient implements BuildClient {
 
     private final JavaLanguageClient lsClient;
 
+    private final LruCache<String> failedTaskCache = new LruCache<>(16);
+
     public GradleBuildClient() {
         this.lsClient = JavaLanguageServerPlugin.getProjectsManager().getConnection();
     }
@@ -70,8 +74,12 @@ public class GradleBuildClient implements BuildClient {
         if (type == MessageType.LOG) {
             Utils.sendTelemetry(this.lsClient, params.getMessage());
         } else {
-            this.lsClient.sendNotification(new ExecuteCommandParams(CLIENT_BUILD_LOG_CMD,
-                    Arrays.asList(params.getMessage())));
+            String command = CLIENT_BUILD_LOG_CMD;
+            if (type == MessageType.ERROR && failedTaskCache.contains(params.getTask().getId())) {
+                // append the compilation failure message to the build output channel.
+                command = CLIENT_APPEND_BUILD_LOG_CMD;
+            }
+            this.lsClient.sendNotification(new ExecuteCommandParams(command, Arrays.asList(params.getMessage())));
         }
     }
 
@@ -154,12 +162,33 @@ public class GradleBuildClient implements BuildClient {
         if (Objects.equals(params.getDataKind(), TaskDataKind.COMPILE_REPORT)) {
             String msg = params.getMessage() + "\n------\n";
             lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
+            if (params.getStatus() == StatusCode.ERROR) {
+                failedTaskCache.addAll((params.getTaskId().getParents()));
+            }
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
             workDoneProgressEnd.setMessage(StringUtils.isBlank(params.getMessage()) ? BUILD_SERVER_TASK :
                     BUILD_SERVER_TASK + " - " + params.getMessage());
             lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressEnd)));
+        }
+    }
+
+    private class LruCache<T> extends LinkedHashSet<T> {
+        private final int maxSize;
+
+        public LruCache(int maxSize) {
+            super(maxSize);
+            this.maxSize = maxSize;
+        }
+
+        @Override
+        public boolean add(T element) {
+            if (size() >= maxSize) {
+                T oldestElement = iterator().next();
+                remove(oldestElement);
+            }
+            return super.add(element);
         }
     }
 }
