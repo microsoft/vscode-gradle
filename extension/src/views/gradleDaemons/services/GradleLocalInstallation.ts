@@ -1,10 +1,11 @@
 import { GradleExecution } from "./GradleExecution";
 import { execAsync } from "../../../util/execAsync";
 import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
+import * as vscode from "vscode";
 
 export class GradleLocalInstallation implements GradleExecution {
     private gradleHomePath: string;
-
+    private outputChannel: vscode.OutputChannel;
     constructor(gradleHomePath: string) {
         this.gradleHomePath = gradleHomePath;
     }
@@ -22,11 +23,12 @@ export class GradleLocalInstallation implements GradleExecution {
 
             const { stdout, stderr } = await execAsync(command, { env });
             if (stderr) {
-                throw new Error(`Error running gradle: ${stderr}`);
+                this.outputChannel.appendLine(`${stderr}`);
+                this.outputChannel.show();
             }
             return stdout;
         } catch (error) {
-            throw new Error(`Error running gradle: ${error.message}`);
+            throw new Error(`Error running gradle local installation: ${error.message}`);
         }
     }
 }
