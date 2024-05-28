@@ -21,6 +21,7 @@ export class GradleWrapper implements GradleExecution {
         try {
             const jdkPath = getConfigJavaImportGradleJavaHome();
             const env = jdkPath ? { ...process.env, JAVA_HOME: jdkPath } : process.env;
+
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
             if (stderr) {
                 logger.warn(stderr);
