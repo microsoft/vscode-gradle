@@ -2,7 +2,7 @@ import * as fse from "fs-extra";
 import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
-import { getConfigJavaImportGradleJavaHome} from "../../../util/config";
+import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
     constructor(private projectRoot: string) {
@@ -17,7 +17,7 @@ export class GradleWrapper implements GradleExecution {
 
         const command = `${this.gradleWrapperPath} ${args.join(" ")}`;
         try {
-            const jdkPath = getConfigJavaImportGradleJavaHome()
+            const jdkPath = getConfigJavaImportGradleJavaHome();
             const env = jdkPath ? { ...process.env, JAVA_HOME: jdkPath } : process.env;
 
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
