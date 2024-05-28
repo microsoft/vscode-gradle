@@ -3,6 +3,7 @@ import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
 import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
+import { logger } from "../../../logger";
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
     constructor(private projectRoot: string) {
@@ -22,7 +23,14 @@ export class GradleWrapper implements GradleExecution {
 
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
             if (stderr) {
-                throw new Error(`Error running gradle wrapper: ${stderr}`);
+                const stderrLines = stderr.split('\n');
+                const isError = stderrLines.some(line => line.toLowerCase().includes('error'));
+
+                if (isError) {
+                    throw new Error(`Error running gradle wrapper: ${stderr}`);
+                } else {
+                    logger.warn(`Warning: ${stderr}`);
+                }
             }
             return stdout;
         } catch (error) {
