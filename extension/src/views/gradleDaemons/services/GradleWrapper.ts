@@ -3,16 +3,13 @@ import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
 import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
-import * as vscode from "vscode";
-
+import { logger } from "../../../logger";
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
-    private outputChannel: vscode.OutputChannel;
 
     constructor(private projectRoot: string) {
         const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
         this.gradleWrapperPath = path.join(projectRoot, wrapperName);
-        this.outputChannel = vscode.window.createOutputChannel("Gradle Wrapper");
     }
 
     public async exec(args: string[]): Promise<string> {
@@ -24,11 +21,9 @@ export class GradleWrapper implements GradleExecution {
         try {
             const jdkPath = getConfigJavaImportGradleJavaHome();
             const env = jdkPath ? { ...process.env, JAVA_HOME: jdkPath } : process.env;
-
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
             if (stderr) {
-                this.outputChannel.appendLine(`${stderr}`);
-                this.outputChannel.show();
+                logger.warn(stderr);
             }
             return stdout;
         } catch (error) {
