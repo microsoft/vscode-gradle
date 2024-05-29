@@ -2,9 +2,12 @@ import * as fse from "fs-extra";
 import { execAsync } from "../../../util/execAsync";
 import { GradleExecution } from "./GradleExecution";
 import * as path from "path";
+import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
+import { logger } from "../../../logger";
 
 export class GradleWrapper implements GradleExecution {
     private gradleWrapperPath: string;
+
     constructor(private projectRoot: string) {
         const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
         this.gradleWrapperPath = path.join(projectRoot, wrapperName);
@@ -17,12 +20,16 @@ export class GradleWrapper implements GradleExecution {
 
         const command = `${this.gradleWrapperPath} ${args.join(" ")}`;
         try {
-            const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot });
+            const jdkPath = getConfigJavaImportGradleJavaHome();
+            const env = jdkPath ? { ...process.env, JAVA_HOME: jdkPath } : process.env;
+
+            const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
             if (stderr) {
-                throw new Error(`Error running gradle wrapper: ${stderr}`);
+                logger.error(stderr);
             }
             return stdout;
         } catch (error) {
+            logger.error(error.message);
             throw new Error(`Error running gradle wrapper: ${error.message}`);
         }
     }
