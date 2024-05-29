@@ -23,10 +23,11 @@ export class GradleLocalInstallation implements GradleExecution {
 
             const { stdout, stderr } = await execAsync(command, { env });
             if (stderr) {
-                logger.warn(stderr);
+                logger.error(stderr);
             }
             return stdout;
         } catch (error) {
+            logger.error(error.message);
             throw new Error(`Error running gradle local installation: ${error.message}`);
         }
     }

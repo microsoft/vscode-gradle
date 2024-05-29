@@ -25,10 +25,11 @@ export class GradleWrapper implements GradleExecution {
 
             const { stdout, stderr } = await execAsync(command, { cwd: this.projectRoot, env });
             if (stderr) {
-                logger.warn(stderr);
+                logger.error(stderr);
             }
             return stdout;
         } catch (error) {
+            logger.error(error.message);
             throw new Error(`Error running gradle wrapper: ${error.message}`);
         }
     }
