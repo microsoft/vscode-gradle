@@ -59,21 +59,29 @@ export class BuildServerController implements Disposable {
                     this.logOutputChannel.appendLine(msg);
                 }
             }),
-            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object) => {
-                let jsonString: string;
+            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object | Error) => {
                 let jsonObj: { [key: string]: any };
                 if (typeof data === "string") {
                     jsonObj = JSON.parse(data);
-                    jsonString = data;
                 } else {
                     jsonObj = data;
-                    jsonString = JSON.stringify(data);
                 }
-                sendInfo("", {
-                    kind: jsonObj.kind,
-                    data: jsonString,
-                    ...(jsonObj.schemaVersion && { schemaVersion: jsonObj.schemaVersion }),
-                });
+
+                const { kind, trace, rootCauseMessage, schemaVersion, ...rest } = jsonObj;
+                if (trace || rootCauseMessage) {
+                    sendInfo("", {
+                        kind: "bsp-error",
+                        operationName: jsonObj.operationName,
+                        rootCauseMessage,
+                        trace,
+                    });
+                } else {
+                    sendInfo("", {
+                        kind: kind,
+                        data2: JSON.stringify(rest),
+                        ...(schemaVersion && { schemaVersion: schemaVersion }),
+                    });
+                }
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {

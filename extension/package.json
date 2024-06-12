@@ -987,7 +987,7 @@
     "minimatch": "^5.1.1",
     "string-argv": "^0.3.1",
     "tree-kill": "^1.2.2",
-    "vscode-extension-telemetry-wrapper": "0.13.3",
+    "vscode-extension-telemetry-wrapper": "0.14.0",
     "vscode-languageclient": "7.0.0"
   }
 }
