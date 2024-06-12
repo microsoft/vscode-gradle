@@ -75,12 +75,13 @@ export class BuildServerController implements Disposable {
                         rootCauseMessage,
                         trace,
                     });
+                } else {
+                    sendInfo("", {
+                        kind: kind,
+                        data2: JSON.stringify(rest),
+                        ...(schemaVersion && { schemaVersion: schemaVersion }),
+                    });
                 }
-                sendInfo("", {
-                    kind: kind,
-                    data2: JSON.stringify(rest),
-                    ...(schemaVersion && { schemaVersion: schemaVersion }),
-                });
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
