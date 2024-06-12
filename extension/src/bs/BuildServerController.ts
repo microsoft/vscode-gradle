@@ -12,7 +12,7 @@ import {
     workspace,
 } from "vscode";
 import { GradleBuildLinkProvider } from "./GradleBuildLinkProvider";
-import { sendError, sendInfo } from "vscode-extension-telemetry-wrapper";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
