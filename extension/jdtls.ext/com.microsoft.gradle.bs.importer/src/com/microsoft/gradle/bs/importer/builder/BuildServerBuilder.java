@@ -80,8 +80,9 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
                 continue;
             }
 
-            IPath output = cp.getOutputLocation().removeFirstSegments(1);
+            IPath output = cp.getOutputLocation();
             if (output != null) {
+                output = output.removeFirstSegments(1);
                 javaProject.getProject().getFolder(output).refreshLocal(IProject.DEPTH_INFINITE, monitor);
             } else {
                 needRefreshDefaultOutput = true;
