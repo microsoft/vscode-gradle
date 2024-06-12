@@ -12,7 +12,7 @@ import {
     workspace,
 } from "vscode";
 import { GradleBuildLinkProvider } from "./GradleBuildLinkProvider";
-import { sendInfo } from "vscode-extension-telemetry-wrapper";
+import { sendError, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
@@ -59,20 +59,27 @@ export class BuildServerController implements Disposable {
                     this.logOutputChannel.appendLine(msg);
                 }
             }),
-            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object) => {
-                let jsonString: string;
+            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object | Error) => {
                 let jsonObj: { [key: string]: any };
                 if (typeof data === "string") {
                     jsonObj = JSON.parse(data);
-                    jsonString = data;
                 } else {
                     jsonObj = data;
-                    jsonString = JSON.stringify(data);
+                }
+
+                const { kind, trace, rootCauseMessage, schemaVersion, ...rest } = jsonObj;
+                if (trace || rootCauseMessage) {
+                    sendInfo("", {
+                        kind: "bsp-error",
+                        operationName: jsonObj.operationName,
+                        rootCauseMessage,
+                        trace,
+                    });
                 }
                 sendInfo("", {
-                    kind: jsonObj.kind,
-                    data: jsonString,
-                    ...(jsonObj.schemaVersion && { schemaVersion: jsonObj.schemaVersion }),
+                    kind: kind,
+                    data2: JSON.stringify(rest),
+                    ...(schemaVersion && { schemaVersion: schemaVersion }),
                 });
             }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
