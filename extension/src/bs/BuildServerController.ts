@@ -129,7 +129,7 @@ export class BuildServerController implements Disposable {
         machineStatus.hasProjectAtWorkspaceRoot = (await this.hasProjectAtWorkspaceRoot()).toString();
         sendInfo("", {
             kind: "machineStatus",
-            data: JSON.stringify(machineStatus),
+            data2: JSON.stringify(machineStatus),
         });
     }
 
