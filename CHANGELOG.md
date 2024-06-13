@@ -4,6 +4,25 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.14.0
+### What's Changed
+* enhancement - Bump Gradle Wrapper to v8.5 and change Java 21 min Gradle version by @JoseLion in https://github.com/microsoft/vscode-gradle/pull/1455
+* enhancement - Group the Gradle related menus in the file explorer into a submenu labeled 'Gradle' by @testforstephen in https://github.com/microsoft/vscode-gradle/pull/1474
+* enhancement - Upgrade Build Server for Gradle to 0.2.0
+* fix - Exclude the project itself becoming its project classpath entry by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1464
+* fix - Append the log message to build output if it's from compilation report. by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1490
+* fix - Set GradleExecution jdk use java.import.gradle.java.home by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1491
+* fix - Refresh the output folders after build tasks by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1493
+* build - Fix buildJars task by @donat in https://github.com/microsoft/vscode-gradle/pull/1481
+* build - Add Build Server debug config by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1486
+* build - Move Gradle Daemons implementation from Java into Typescript by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1489
+
+## New Contributors
+* @donat made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1481
+* @Jiaaming made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1486
+
+**Full Changelog**: https://github.com/microsoft/vscode-gradle/compare/3.13.5...3.14.0
+
 ## 3.13.5
 ### Added
 - Implement onWillUpdate() in GradleBuildServerBuildSupport. [PR#1405](https://github.com/microsoft/vscode-gradle/pull/1405)
