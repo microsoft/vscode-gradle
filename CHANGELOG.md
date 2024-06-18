@@ -4,6 +4,10 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+### 3.14.1
+### What's Changed
+* fix - Fix the importer version.
+
 ## 3.14.0
 ### What's Changed
 * enhancement - Bump Gradle Wrapper to v8.5 and change Java 21 min Gradle version by @JoseLion in https://github.com/microsoft/vscode-gradle/pull/1455
