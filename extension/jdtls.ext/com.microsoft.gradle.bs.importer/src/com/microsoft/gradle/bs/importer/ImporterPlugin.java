@@ -75,10 +75,31 @@ public class ImporterPlugin extends Plugin {
         return instance.digestStore;
     }
 
+    /**
+     * Get the build server connection for the given root path. If the connection doesn't exist,
+     * returns <code>null</code>.
+     * @param rootPath
+     * @throws CoreException
+     */
     public static BuildServerConnection getBuildServerConnection(IPath rootPath) throws CoreException {
+        return getBuildServerConnection(rootPath, false);
+    }
+
+    /**
+     * Get the build server connection for the given root path.
+     * @param rootPath the root path of the workspace.
+     * @param createIfMissing whether to create a new build server connection if it doesn't exist.
+     * @return the build server connection.
+     * @throws CoreException
+     */
+    public static BuildServerConnection getBuildServerConnection(IPath rootPath, boolean createIfMissing) throws CoreException {
         Pair<BuildServerConnection, BuildClient> pair = instance.buildServers.get(rootPath);
         if (pair != null) {
             return pair.getLeft();
+        }
+
+        if (!createIfMissing) {
+            return null;
         }
 
         String javaExecutablePath = getJavaExecutablePath();
