@@ -48,18 +48,20 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
             return null;
         }
         BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
-        if (buildServer != null) {
-            List<BuildTarget> targets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
-            List<BuildTargetIdentifier> ids = targets.stream().map(BuildTarget::getId).collect(Collectors.toList());
-            if (ids != null) {
-                // TODO: support clean build
-                CompileResult result = buildServer.buildTargetCompile(new CompileParams(ids)).join();
-                if (Objects.equals(result.getStatusCode(), StatusCode.ERROR)) {
-                    throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
-                            IResourceStatus.BUILD_FAILED, "Build Failed.", null));
-                }
-                this.refreshOutputs(monitor);
+        if (buildServer == null) {
+            JavaLanguageServerPlugin.logInfo("Skip building project: " + project.getName() + " because build server is not available.");
+            return null;
+        }
+        List<BuildTarget> targets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
+        List<BuildTargetIdentifier> ids = targets.stream().map(BuildTarget::getId).collect(Collectors.toList());
+        if (ids != null) {
+            // TODO: support clean build
+            CompileResult result = buildServer.buildTargetCompile(new CompileParams(ids)).join();
+            if (Objects.equals(result.getStatusCode(), StatusCode.ERROR)) {
+                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                        IResourceStatus.BUILD_FAILED, "Build Failed.", null));
             }
+            this.refreshOutputs(monitor);
         }
         return null;
     }

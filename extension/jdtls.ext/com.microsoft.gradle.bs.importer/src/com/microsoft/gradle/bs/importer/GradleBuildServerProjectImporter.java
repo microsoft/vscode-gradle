@@ -143,7 +143,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     @Override
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
 
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
@@ -183,14 +183,14 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
         for (IProject project : projects) {
-            buildSupport.updateClasspath(project, monitor);
+            buildSupport.updateClasspath(buildServer, project, monitor);
         }
 
         // We need to add the project dependencies after the Java nature is set to all
         // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
         // otherwise JDT will thrown exception when adding projects as dependencies.
         for (IProject project : projects) {
-            buildSupport.updateProjectDependencies(project, monitor);
+            buildSupport.updateProjectDependencies(buildServer, project, monitor);
         }
 
         for (IProject project : projects) {

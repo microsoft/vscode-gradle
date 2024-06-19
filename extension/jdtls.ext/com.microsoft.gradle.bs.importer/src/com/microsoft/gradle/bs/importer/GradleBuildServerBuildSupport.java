@@ -138,6 +138,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
         for (IPath rootPath : roots) {
             BuildServerConnection connection = ImporterPlugin.getBuildServerConnection(rootPath);
+            if (connection == null) {
+                JavaLanguageServerPlugin.logInfo("Skip reloading " + rootPath + " because the connection is not available.");
+                continue;
+            }
             connection.workspaceReload().join();
         }
     }
@@ -156,14 +160,18 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 return;
             }
             BuildServerConnection connection = ImporterPlugin.getBuildServerConnection(rootPath);
+            if (connection == null) {
+                JavaLanguageServerPlugin.logError("Cannot find build server connection for root: " + rootPath);
+                return;
+            }
             Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(connection);
             for (URI uri : buildTargetMap.keySet()) {
                 IProject projectFromUri = ProjectUtils.getProjectFromUri(uri.toString());
                 if (projectFromUri == null || !Utils.isGradleBuildServerProject(projectFromUri)) {
                     continue;
                 }
-                updateClasspath(projectFromUri, monitor);
-                updateProjectDependencies(projectFromUri, monitor);
+                updateClasspath(connection, projectFromUri, monitor);
+                updateProjectDependencies(connection, projectFromUri, monitor);
                 // TODO: in case that the projects/build targets are created or removed,
                 // we can use the server->client notification: 'buildTarget/didChange' to support this case.
             }
@@ -180,29 +188,28 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      * add Java nature if necessary.
      * @throws CoreException
      */
-    public void updateClasspath(IProject project, IProgressMonitor monitor) throws CoreException {
+    public void updateClasspath(BuildServerConnection connection, IProject project, IProgressMonitor monitor) throws CoreException {
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return;
         }
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
         // use map to dedupe the classpath entries having the same path field.
         Map<IPath, IClasspathEntry> classpathMap = new LinkedHashMap<>();
-        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
+        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(connection, project.getLocationURI());
         // put test targets to the end of the list
         moveTestTargetsToEnd(buildTargets);
 
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
-            OutputPathsResult outputResult = buildServer.buildTargetOutputPaths(
+            OutputPathsResult outputResult = connection.buildTargetOutputPaths(
                     new OutputPathsParams(Arrays.asList(buildTarget.getId()))).join();
             String sourceOutputUri = getOutputUriByKind(outputResult.getItems(), OUTPUT_KIND_SOURCE);
             IPath sourceOutputFullPath = getOutputFullPath(sourceOutputUri, project);
             if (sourceOutputFullPath == null) {
                 JavaLanguageServerPlugin.logError("Cannot find source output path for build target: " + buildTarget.getId());
             } else {
-                SourcesResult sourcesResult = buildServer.buildTargetSources(
+                SourcesResult sourcesResult = connection.buildTargetSources(
                         new SourcesParams(Arrays.asList(buildTarget.getId()))).join();
                 List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, sourceOutputFullPath, isTest, monitor);
                 for (IClasspathEntry entry : sourceEntries) {
@@ -214,7 +221,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             IPath resourceOutputFullPath = getOutputFullPath(resourceOutputUri, project);
             // resource output is nullable according to Gradle API definition.
             if (resourceOutputFullPath != null) {
-                ResourcesResult resourcesResult = buildServer.buildTargetResources(
+                ResourcesResult resourcesResult = connection.buildTargetResources(
                     new ResourcesParams(Arrays.asList(buildTarget.getId()))).join();
                 List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, resourceOutputFullPath, isTest);
                 for (IClasspathEntry entry : resourceEntries) {
@@ -246,7 +253,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
-            DependencyModulesResult dependencyModuleResult = buildServer.buildTargetDependencyModules(
+            DependencyModulesResult dependencyModuleResult = connection.buildTargetDependencyModules(
                     new DependencyModulesParams(Arrays.asList(buildTarget.getId()))).join();
             List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest, isModular);
             for (IClasspathEntry entry : dependencyEntries) {
@@ -257,7 +264,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
 
         // process jpms arguments.
-        JavacOptionsResult javacOptions = buildServer.buildTargetJavacOptions(new JavacOptionsParams(
+        JavacOptionsResult javacOptions = connection.buildTargetJavacOptions(new JavacOptionsParams(
                 buildTargets.stream().map(BuildTarget::getId).collect(Collectors.toList()))).join();
         List<String> compilerArgs = new LinkedList<>();
         for (JavacOptionsItem item : javacOptions.getItems()) {
@@ -276,14 +283,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      * Update the project dependencies of the project.
      * @throws CoreException
      */
-    public void updateProjectDependencies(IProject project, IProgressMonitor monitor) throws CoreException {
+    public void updateProjectDependencies(BuildServerConnection connection, IProject project, IProgressMonitor monitor) throws CoreException {
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return;
         }
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
-        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(buildServer, project.getLocationURI());
+        List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(connection, project.getLocationURI());
         Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
         for (BuildTarget buildTarget : buildTargets) {
             projectDependencies.addAll(buildTarget.getDependencies());
