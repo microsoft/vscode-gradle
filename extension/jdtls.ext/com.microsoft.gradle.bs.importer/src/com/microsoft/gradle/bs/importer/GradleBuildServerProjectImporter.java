@@ -321,6 +321,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // because that API will ignore the variable descriptions.
         if (project instanceof Project internalProject) {
             ProjectDescription description = internalProject.internalGetDescription();
+            if (description == null) {
+                return;
+            }
             VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
             boolean changed = description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
             if (changed) {
