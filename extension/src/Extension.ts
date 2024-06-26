@@ -227,6 +227,16 @@ export class Extension {
     }
 
     private async activate(): Promise<void> {
+        const testExtension = vscode.extensions.getExtension("vscjava.vscode-java-test");
+        if (testExtension) {
+            testExtension.activate().then((api: any) => {
+                api.registerTestProfile(
+                    "Delegate Test to Gradle",
+                    vscode.TestRunProfileKind.Run,
+                    this.buildServerController.getGradleTestRunner()
+                );
+            });
+        }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
         if (!this.server.isReady()) {
             await this.server.start();

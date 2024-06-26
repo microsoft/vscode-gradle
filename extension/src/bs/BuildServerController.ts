@@ -16,6 +16,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
+import { GradleTestRunner } from "./GradleTestRunner";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -25,8 +26,10 @@ export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
     private logOutputChannel: OutputChannel;
+    private gradleTestRunner: GradleTestRunner;
 
     public constructor(readonly context: ExtensionContext) {
+        this.gradleTestRunner = new GradleTestRunner();
         this.buildOutputChannel = window.createOutputChannel("Build Server for Gradle (Build)", "gradle-build");
         this.logOutputChannel = window.createOutputChannel("Build Server for Gradle (Log)");
         this.disposable = Disposable.from(
@@ -83,6 +86,27 @@ export class BuildServerController implements Disposable {
                     });
                 }
             }),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidFinishTestRun",
+                (status: number, message?: string) => {
+                    this.gradleTestRunner.finishTestRun({
+                        status,
+                        message,
+                    });
+                }
+            ),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidChangeTestItemStatus",
+                (test: string, state: number, displayName?: string, message?: string, duration?: number) => {
+                    this.gradleTestRunner.updateTestItem({
+                        test,
+                        state,
+                        displayName,
+                        message,
+                        duration,
+                    });
+                }
+            ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;
@@ -108,6 +132,10 @@ export class BuildServerController implements Disposable {
             })
         );
         this.checkMachineStatus();
+    }
+
+    public getGradleTestRunner(): GradleTestRunner {
+        return this.gradleTestRunner;
     }
 
     public dispose() {
