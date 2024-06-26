@@ -1,8 +1,5 @@
 package com.microsoft.gradle.bs.importer;
 
-import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
-import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getValue;
-
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -40,6 +37,7 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.internal.core.ClasspathEntry;
 import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.JavaRuntime;
+import org.eclipse.jdt.ls.core.internal.JSONUtility;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.ResourceUtils;
@@ -60,6 +58,8 @@ import ch.epfl.scala.bsp4j.DependencyModulesResult;
 import ch.epfl.scala.bsp4j.JavacOptionsItem;
 import ch.epfl.scala.bsp4j.JavacOptionsParams;
 import ch.epfl.scala.bsp4j.JavacOptionsResult;
+import ch.epfl.scala.bsp4j.MavenDependencyModule;
+import ch.epfl.scala.bsp4j.MavenDependencyModuleArtifact;
 import ch.epfl.scala.bsp4j.OutputPathItem;
 import ch.epfl.scala.bsp4j.OutputPathsItem;
 import ch.epfl.scala.bsp4j.OutputPathsParams;
@@ -533,17 +533,17 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 continue;
             }
 
-            String javaHome = getString((Map) buildTarget.getData(), JAVA_HOME);
-            if (StringUtils.isNotBlank(javaHome) && StringUtils.isBlank(jvmTarget.getJavaHome())) {
-                jvmTarget.setJavaHome(javaHome);
+            JvmBuildTargetEx rawJvmTarget = JSONUtility.toModel(buildTarget.getData(), JvmBuildTargetEx.class);
+            if (StringUtils.isNotBlank(rawJvmTarget.getJavaHome()) && StringUtils.isBlank(jvmTarget.getJavaHome())) {
+                jvmTarget.setJavaHome(rawJvmTarget.getJavaHome());
             }
 
-            String gradleVersion = getString((Map) buildTarget.getData(), GRADLE_VERSION);
+            String gradleVersion = rawJvmTarget.getGradleVersion();
             if (StringUtils.isNotBlank(gradleVersion) && StringUtils.isBlank(jvmTarget.getGradleVersion())) {
                 jvmTarget.setGradleVersion(gradleVersion);
             }
 
-            String sourceCompatibility = getString((Map) buildTarget.getData(), SOURCE_COMPATIBILITY);
+            String sourceCompatibility = rawJvmTarget.getSourceCompatibility();
             if (StringUtils.isNotBlank(sourceCompatibility)) {
                 sourceCompatibility = getEclipseCompatibleVersion(sourceCompatibility);
                 if (StringUtils.isBlank(jvmTarget.getSourceCompatibility())
@@ -552,7 +552,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
             }
 
-            String targetCompatibility = getString((Map) buildTarget.getData(), TARGET_COMPATIBILITY);
+            String targetCompatibility = rawJvmTarget.getTargetCompatibility();
             if (StringUtils.isNotBlank(targetCompatibility)) {
                 targetCompatibility = getEclipseCompatibleVersion(targetCompatibility);
                 if (StringUtils.isBlank(jvmTarget.getTargetCompatibility())
@@ -592,19 +592,21 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 if (!"maven".equals(module.getDataKind())) {
                     continue;
                 }
-                List<Map> artifacts = (List<Map>) getValue((Map) module.getData(), "artifacts");
+                MavenDependencyModule mavenDependencyModule =
+                        JSONUtility.toModel(module.getData(), MavenDependencyModule.class);
+                List<MavenDependencyModuleArtifact> artifacts = mavenDependencyModule.getArtifacts();
                 if (artifacts == null) {
                     continue;
                 }
 
                 File artifact = null;
                 File sourceArtifact = null;
-                for (Map artifactData : artifacts) {
-                    String uri = (String) getValue(artifactData, "uri");
+                for (MavenDependencyModuleArtifact artifactData : artifacts) {
+                    String uri = artifactData.getUri();
                     if (uri == null) {
                         continue;
                     }
-                    String classifier = (String) getValue(artifactData, "classifier");
+                    String classifier = artifactData.getClassifier();
                     try {
                         File jarFile = new File(new URI(uri));
                         if (classifier == null) {
@@ -614,7 +616,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                         }
                     } catch (URISyntaxException e) {
                         JavaLanguageServerPlugin.logException(e);
-                        continue;
                     }
                 }
 
