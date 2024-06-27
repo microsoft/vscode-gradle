@@ -89,22 +89,13 @@ export class BuildServerController implements Disposable {
             commands.registerCommand(
                 "java.gradle.buildServer.onDidFinishTestRun",
                 (status: number, message?: string) => {
-                    this.gradleTestRunner.finishTestRun({
-                        status,
-                        message,
-                    });
+                    this.gradleTestRunner.finishTestRun(status, message);
                 }
             ),
             commands.registerCommand(
                 "java.gradle.buildServer.onDidChangeTestItemStatus",
                 (test: string, state: number, displayName?: string, message?: string, duration?: number) => {
-                    this.gradleTestRunner.updateTestItem({
-                        test,
-                        state,
-                        displayName,
-                        message,
-                        duration,
-                    });
+                    this.gradleTestRunner.updateTestItem(test, state, displayName, message, duration);
                 }
             ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {

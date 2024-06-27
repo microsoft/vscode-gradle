@@ -31,11 +31,66 @@ export class GradleTestRunner implements TestRunner {
         );
     }
 
-    public updateTestItem(event: TestItemStatusChangeEvent): void {
-        this._onDidChangeTestItemStatus.fire(event);
+    public updateTestItem(
+        test: string,
+        state: number,
+        displayName?: string,
+        message?: string,
+        duration?: number
+    ): void {
+        if (message) {
+            message = this.filterStackTrace(message);
+        }
+        this._onDidChangeTestItemStatus.fire({
+            test,
+            state,
+            displayName,
+            message,
+            duration,
+        });
     }
 
-    public finishTestRun(event: TestFinishEvent): void {
-        this._onDidFinishTestRun.fire(event);
+    public finishTestRun(status: number, message?: string): void {
+        this._onDidFinishTestRun.fire({
+            status,
+            message,
+        });
+    }
+
+    private filterStackTrace(stackTrace: string): string {
+        const filterElements = this.getStacktraceFilterElements();
+        return stackTrace
+            .split("\n")
+            .filter((line) => filterElements.every((filterElement) => !line.includes(filterElement)))
+            .join("\n");
+    }
+
+    private getStacktraceFilterElements(): string[] {
+        return [
+            // junit 5
+            "junit.framework.TestCase",
+            "junit.framework.TestResult",
+            "junit.framework.TestResult$1",
+            "junit.framework.TestSuite",
+            "junit.framework.Assert",
+            // junit 4
+            "org.junit.",
+            // testng
+            "org.testng.internal.",
+            "org.testng.TestRunner",
+            "org.testng.SuiteRunner",
+            "org.testng.TestNG",
+            "org.testng.Assert",
+            // jdk
+            "java.lang.reflect.Method.invoke",
+            "sun.reflect.",
+            "jdk.internal.reflect.",
+            "jdk.proxy",
+            // gradle
+            "org.gradle.api.internal.tasks.testing.",
+            "org.gradle.internal.dispatch.",
+            "org.gradle.process.internal.",
+            "worker.org.gradle.process.internal.",
+        ];
     }
 }
