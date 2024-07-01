@@ -31,7 +31,7 @@ import {
     GRADLE_COMPLETION,
     GRADLE_PROPERTIES_FILE_CHANGE,
     VSCODE_TRIGGER_COMPLETION,
-    GET_EXTENSION_PATH
+    GET_EXTENSION_PATH,
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
@@ -91,10 +91,9 @@ export class Extension {
             })
         );
 
-        //this.context.subscriptions.push(new vscode.Disposable(() => this.forwardingAgent.dispose()));
-        this.buildServerHandler = new BuildServerHandler(serverLogger);
+        this.buildServerHandler = new BuildServerHandler();
         this.context.subscriptions.push(new vscode.Disposable(() => this.buildServerHandler.dispose()));
-        this.importerHandler = new ImporterHandler(this.context, logger);
+        this.importerHandler = new ImporterHandler(this.context);
         this.context.subscriptions.push(new vscode.Disposable(() => this.importerHandler.dispose()));
 
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.buildServerHandler);
@@ -247,7 +246,7 @@ export class Extension {
             await this.server.start();
         }
         await this.importerHandler.waitForImporterPipePath();
-        this.importerHandler.setupImporterHandler(this.buildServerHandler.buildServerConnection!);
+        this.importerHandler.setupImporterHandler(this.buildServerHandler.getBuildServerConnection());
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
     }

@@ -48,7 +48,7 @@ export class GradleServer {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
             }
-            let javaExecPath = await getRedHatJavaExecutablePath();
+            const javaExecPath = await getRedHatJavaExecutablePath();
 
             //Get the Java executable used by JDT.LS, which will be higher than JDK 17.
             if (!javaExecPath) {
@@ -90,7 +90,7 @@ export class GradleServer {
 
     public async getBundleDirectory(): Promise<string> {
         const extensionPath = await vscode.commands.executeCommand<string>(GET_EXTENSION_PATH);
-        return path.join(extensionPath, 'server');
+        return path.join(extensionPath, "server");
     }
 
     public async showRestartMessage(): Promise<void> {

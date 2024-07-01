@@ -91,41 +91,20 @@ public class ImporterPlugin extends Plugin {
         if (pair != null) {
             return pair.getLeft();
         }
-
-        if (!createIfMissing) {
+		if (!createIfMissing) {
             return null;
         }
+		try {
+			ImporterNamedPipeStream pipeStream = new ImporterNamedPipeStream(bundleDirectory);
 
-        String javaExecutablePath = getJavaExecutablePath();
-        String[] classpaths = getBuildServerClasspath();
-
-        String pluginPath = getBuildServerPluginPath();
-
-        List<String> command = new ArrayList<>();
-        command.add(javaExecutablePath);
-        if (Boolean.parseBoolean(System.getenv("DEBUG_GRADLE_BUILD_SERVER"))) {
-            command.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8989");
-        }
-        command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
-        command.add("--add-opens=java.base/java.io=ALL-UNNAMED");
-        command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
-        command.add("-Dplugin.dir=" + pluginPath);
-        command.add("-cp");
-        command.add(String.join(getClasspathSeparator(), classpaths));
-        command.add("com.microsoft.java.bs.core.Launcher");
-
-        ProcessBuilder build = new ProcessBuilder(command);
-        try {
-            Process process = build.start();
-            BuildClient client = new GradleBuildClient();
-            Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
-                    .setOutput(process.getOutputStream())
-                    .setInput(process.getInputStream())
-                    .setLocalService(client)
-                    .setExecutorService(Executors.newCachedThreadPool())
-                    .setRemoteInterface(BuildServerConnection.class)
-                    .create();
-
+			GradleBuildClient client = new GradleBuildClient();
+			Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
+					.setOutput(pipeStream.getOutputStream())
+					.setInput(pipeStream.getInputStream())
+					.setLocalService(client)
+					.setExecutorService(Executors.newCachedThreadPool())
+					.setRemoteInterface(BuildServerConnection.class)
+					.create();
 			launcher.startListening();
 			BuildServerConnection server = launcher.getRemoteProxy();
 			client.onConnectWithServer(server);

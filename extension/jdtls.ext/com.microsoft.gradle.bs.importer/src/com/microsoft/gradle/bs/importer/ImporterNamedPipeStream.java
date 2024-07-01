@@ -1,15 +1,3 @@
-/*******************************************************************************
- * Copyright (c) 2016-2017 Red Hat Inc. and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License 2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/legal/epl-2.0/
- *
- * SPDX-License-Identifier: EPL-2.0
- *
- * Contributors:
- *     Red Hat Inc. - initial API and implementation
- *******************************************************************************/
 package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
@@ -71,30 +59,26 @@ public class ImporterNamedPipeStream {
 		private void initializeNamedPipe() {
 			String pathName = generateRandomPipeName("importer");
 			sendImporterPipeName(pathName);
+
 			File pipeFile = new File(pathName);
-			if (isWindows()) {
-			    pipeFile = new File(pathName);
-				AsynchronousFileChannel channel = null;
-				try {
-					channel = AsynchronousFileChannel.open(pipeFile.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
-					input = new NamedPipeInputStream(channel);
-					output = new NamedPipeOutputStream(channel);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				return;
-			}
 
 			// Need to retry until the pipeName was sent and pipe is created by Extension side
 			boolean connected = false;
 			while (!connected) {
-				try {
-					UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(pipeFile.toPath());
-					SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX);
-					channel.connect(socketAddress);
-					input = new NamedPipeInputStream(channel);
-					output = new NamedPipeOutputStream(channel);
-					connected = true;
+				try{
+					if (isWindows()) {
+                        AsynchronousFileChannel channel = AsynchronousFileChannel.open(pipeFile.toPath(),
+                        StandardOpenOption.READ, StandardOpenOption.WRITE);
+                        input = new NamedPipeInputStream(channel);
+                        output = new NamedPipeOutputStream(channel);
+                    } else {
+                        UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(pipeFile.toPath());
+                        SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX);
+                        channel.connect(socketAddress);
+                        input = new NamedPipeInputStream(channel);
+                        output = new NamedPipeOutputStream(channel);
+                    }
+                    connected = true;
 				} catch (IOException e) {
 					try {
 						Thread.sleep(1000);
