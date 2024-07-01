@@ -171,30 +171,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
         buildServer.onBuildInitialized();
-
-		// InitializeBuildResult initializeResult = null;
-		// boolean success = false;
-		// int retries = 0;
-		// int MAX_RETRIES = 10;
-		// while (!success && retries < MAX_RETRIES) {
-		// 	try {
-		// 		initializeResult = buildServer.buildInitialize(params).join();
-		// 		success = true;
-		// 	} catch (CompletionException e) {
-		// 			System.out.println("Waiting for the TypeScript server to be ready...");
-		// 			try {
-		// 				Thread.sleep(1000);  // 等待一秒
-		// 			} catch (InterruptedException ie) {
-		// 				Thread.currentThread().interrupt();
-		// 				throw new RuntimeException("Thread interrupted while waiting to retry initialization", ie);
-		// 			}
-		// 	}
-		// 	retries++;
-		// }
-		// if (!success) {
-		// 	throw new RuntimeException("Failed to initialize after " + MAX_RETRIES + " attempts.");
-		// }
-
         // TODO: save the capabilities of this server
 
         if (monitor.isCanceled()) {

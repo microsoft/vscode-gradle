@@ -170,7 +170,7 @@ export class Extension {
             this.rootProjectsStore,
             this.taskTerminalsStore,
             this.recentTasksStore,
-            this.gradleTasksTreeView,
+            this.gradleTasksTreeView
         );
 
         this.buildServerController = new BuildServerController(context);
@@ -371,5 +371,4 @@ export class Extension {
     public getApi(): Api {
         return this.api;
     }
-
 }

@@ -93,17 +93,6 @@ public class ImporterPlugin extends Plugin {
      * @throws CoreException
      */
     public static BuildServerConnection getBuildServerConnection(IPath rootPath, boolean createIfMissing) throws CoreException {
-        return getBuildServerConnection(rootPath, false);
-    }
-
-    /**
-     * Get the build server connection for the given root path.
-     * @param rootPath the root path of the workspace.
-     * @param createIfMissing whether to create a new build server connection if it doesn't exist.
-     * @return the build server connection.
-     * @throws CoreException
-     */
-    public static BuildServerConnection getBuildServerConnection(IPath rootPath, boolean createIfMissing) throws CoreException {
         Pair<BuildServerConnection, BuildClient> pair = instance.buildServers.get(rootPath);
         if (pair != null) {
             return pair.getLeft();
