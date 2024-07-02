@@ -8,7 +8,7 @@ import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, GET_EXTENSION_PATH } from "../constant";
 import { getRedHatJavaExecutablePath } from "../util/config";
-import { BuildServerHandler } from "../bs/BuildServerHandler";
+import { MessageForwardHandler } from "../bs/MessageForwardHandler";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -32,7 +32,7 @@ export class GradleServer {
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
-        private buildServerHandler: BuildServerHandler
+        private messageForwardHandler: MessageForwardHandler
     ) {}
 
     public async start(): Promise<void> {
@@ -55,7 +55,7 @@ export class GradleServer {
                 await vscode.window.showErrorMessage("No Red Hat Java Extension Pack Found");
                 return;
             }
-            const serverPipeName = this.buildServerHandler.getBuildServerPipeName();
+            const serverPipeName = this.messageForwardHandler.getBuildServerPipeName();
             const args = [String(this.gradleServerPort), serverPipeName, bundleDirectory, javaExecPath];
             this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
             this.process = cp.spawn(`"${cmd}"`, args, {

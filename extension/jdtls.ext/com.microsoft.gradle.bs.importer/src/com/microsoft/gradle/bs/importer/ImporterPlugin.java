@@ -1,6 +1,7 @@
 package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
+import java.io.IOException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -89,29 +90,29 @@ public class ImporterPlugin extends Plugin {
         if (pair != null) {
             return pair.getLeft();
         }
-		if (!createIfMissing) {
+        if (!createIfMissing) {
             return null;
         }
-		try {
-			NamedPipeStream pipeStream = new NamedPipeStream();
+        try {
+            NamedPipeStream pipeStream = new NamedPipeStream();
 
-			GradleBuildClient client = new GradleBuildClient();
-			Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
-					.setOutput(pipeStream.getOutputStream())
-					.setInput(pipeStream.getInputStream())
-					.setLocalService(client)
-					.setExecutorService(Executors.newCachedThreadPool())
-					.setRemoteInterface(BuildServerConnection.class)
-					.create();
-			launcher.startListening();
-			BuildServerConnection server = launcher.getRemoteProxy();
-			client.onConnectWithServer(server);
+            GradleBuildClient client = new GradleBuildClient();
+            Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
+                    .setOutput(pipeStream.getOutputStream())
+                    .setInput(pipeStream.getInputStream())
+                    .setLocalService(client)
+                    .setExecutorService(Executors.newCachedThreadPool())
+                    .setRemoteInterface(BuildServerConnection.class)
+                    .create();
+            launcher.startListening();
+            BuildServerConnection server = launcher.getRemoteProxy();
+            client.onConnectWithServer(server);
 
-			instance.buildServers.put(rootPath, Pair.of(server, client));
-			return server;
-    	} catch (Exception e) {
-			e.printStackTrace();
-			throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID, "Failed to start build server.", e));
-		}
-	}
+            instance.buildServers.put(rootPath, Pair.of(server, client));
+            return server;
+        } catch (IOException e) {
+            throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
+            "Failed to start build server.", e));
+        }
+    }
 }

@@ -9,6 +9,7 @@ const safeIpcPathLengths: Map<NodeJS.Platform, number> = new Map([
     ["darwin", 103],
 ]);
 
+//TODO: remove this function after upgrading vscode-languageclient
 export function generateRandomPipeName(): string {
     if (process.platform === "win32") {
         return `\\\\.\\pipe\\${randomBytes(16).toString("hex")}-sock`;

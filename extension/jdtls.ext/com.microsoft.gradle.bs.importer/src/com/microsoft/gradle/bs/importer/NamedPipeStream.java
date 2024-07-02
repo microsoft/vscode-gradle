@@ -25,44 +25,44 @@ import org.eclipse.core.runtime.Platform;
  */
 public class NamedPipeStream {
 
-	private StreamProvider provider;
+    private StreamProvider provider;
 
-	interface StreamProvider {
-		InputStream getInputStream() throws IOException;
+    interface StreamProvider {
+        InputStream getInputStream() throws IOException;
 
-		OutputStream getOutputStream() throws IOException;
-	}
+        OutputStream getOutputStream() throws IOException;
+    }
 
-	protected final class PipeStreamProvider implements StreamProvider {
+    protected final class PipeStreamProvider implements StreamProvider {
 
-		private InputStream input;
-		private OutputStream output;
+        private InputStream input;
+        private OutputStream output;
 
-		public PipeStreamProvider() {
-			initializeNamedPipe();
-		}
+        public PipeStreamProvider() {
+            initializeNamedPipe();
+        }
 
-		@Override
-		public InputStream getInputStream() throws IOException {
-			return input;
-		}
+        @Override
+        public InputStream getInputStream() throws IOException {
+            return input;
+        }
 
-		@Override
-		public OutputStream getOutputStream() throws IOException {
-			return output;
-		}
+        @Override
+        public OutputStream getOutputStream() throws IOException {
+            return output;
+        }
 
-		private void initializeNamedPipe() {
-			String pathName = generateRandomPipeName();
-			sendImporterPipeName(pathName);
+        private void initializeNamedPipe() {
+            String pathName = generateRandomPipeName();
+            sendImporterPipeName(pathName);
 
-			File pipeFile = new File(pathName);
+            File pipeFile = new File(pathName);
 
-			// Need to retry until the pipeName was sent and pipe is created by Extension side
-			boolean connected = false;
-			while (!connected) {
-				try{
-					if (isWindows()) {
+            // Need to retry until the pipeName was sent and pipe is created by Extension side
+            boolean connected = false;
+            while (!connected) {
+                try{
+                    if (isWindows()) {
                         AsynchronousFileChannel channel = AsynchronousFileChannel.open(pipeFile.toPath(),
                         StandardOpenOption.READ, StandardOpenOption.WRITE);
                         input = new NamedPipeInputStream(channel);
@@ -75,146 +75,146 @@ public class NamedPipeStream {
                         output = new NamedPipeOutputStream(channel);
                     }
                     connected = true;
-				} catch (IOException e) {
-					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException ie) {
-						Thread.currentThread().interrupt();
-						throw new RuntimeException("Thread interrupted while trying to connect to named pipe", ie);
-					}
-				}
-			}
-		}
-	}
+                } catch (IOException e) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Thread interrupted while trying to connect to named pipe", ie);
+                    }
+                }
+            }
+        }
+    }
 
-	public class NamedPipeInputStream extends InputStream {
+    public class NamedPipeInputStream extends InputStream {
 
-		private ReadableByteChannel unixChannel;
-		private AsynchronousFileChannel winChannel;
-		private ByteBuffer buffer = ByteBuffer.allocate(1024);
-		private int readyBytes = 0;
+        private ReadableByteChannel unixChannel;
+        private AsynchronousFileChannel winChannel;
+        private ByteBuffer buffer = ByteBuffer.allocate(1024);
+        private int readyBytes = 0;
 
-		public NamedPipeInputStream(ReadableByteChannel channel) {
-			this.unixChannel = channel;
-		}
+        public NamedPipeInputStream(ReadableByteChannel channel) {
+            this.unixChannel = channel;
+        }
 
-		public NamedPipeInputStream(AsynchronousFileChannel channel) {
-			this.winChannel = channel;
-		}
+        public NamedPipeInputStream(AsynchronousFileChannel channel) {
+            this.winChannel = channel;
+        }
 
-		@Override
-		public int read() throws IOException {
-			if (buffer.position() < readyBytes) {
-				return buffer.get() & 0xFF;
-			}
-			try {
-				buffer.clear();
-				if (winChannel != null) {
-					readyBytes = winChannel.read(buffer, 0).get();
-				} else {
-					readyBytes = unixChannel.read(buffer);
-				}
-				if (readyBytes == -1) {
-					return -1; // EOF
-				}
-				buffer.flip();
-				return buffer.get() & 0xFF;
-			} catch (InterruptedException | ExecutionException e) {
-				throw new IOException(e);
-			}
-		}
-	}
+        @Override
+        public int read() throws IOException {
+            if (buffer.position() < readyBytes) {
+                return buffer.get() & 0xFF;
+            }
+            try {
+                buffer.clear();
+                if (winChannel != null) {
+                    readyBytes = winChannel.read(buffer, 0).get();
+                } else {
+                    readyBytes = unixChannel.read(buffer);
+                }
+                if (readyBytes == -1) {
+                    return -1; // EOF
+                }
+                buffer.flip();
+                return buffer.get() & 0xFF;
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IOException(e);
+            }
+        }
+    }
 
-	public class NamedPipeOutputStream extends OutputStream {
+    public class NamedPipeOutputStream extends OutputStream {
 
-		private WritableByteChannel unixChannel;
-		private AsynchronousFileChannel winChannel;
-		private ByteBuffer buffer = ByteBuffer.allocate(1);
+        private WritableByteChannel unixChannel;
+        private AsynchronousFileChannel winChannel;
+        private ByteBuffer buffer = ByteBuffer.allocate(1);
 
-		public NamedPipeOutputStream(WritableByteChannel channel) {
-			this.unixChannel = channel;
-		}
+        public NamedPipeOutputStream(WritableByteChannel channel) {
+            this.unixChannel = channel;
+        }
 
-		public NamedPipeOutputStream(AsynchronousFileChannel channel) {
-			this.winChannel = channel;
-		}
+        public NamedPipeOutputStream(AsynchronousFileChannel channel) {
+            this.winChannel = channel;
+        }
 
-		@Override
-		public void write(int b) throws IOException {
-			buffer.clear();
-			buffer.put((byte) b);
-			buffer.position(0);
-			if (winChannel != null) {
-				Future<Integer> result = winChannel.write(buffer, 0);
-				try {
-					result.get();
-				} catch (Exception e) {
-					throw new IOException(e);
-				}
-			} else {
-				unixChannel.write(buffer);
-			}
-		}
+        @Override
+        public void write(int b) throws IOException {
+            buffer.clear();
+            buffer.put((byte) b);
+            buffer.position(0);
+            if (winChannel != null) {
+                Future<Integer> result = winChannel.write(buffer, 0);
+                try {
+                    result.get();
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            } else {
+                unixChannel.write(buffer);
+            }
+        }
 
-		@Override
-		public void write(byte[] b) throws IOException {
-			final int BUFFER_SIZE = 1024;
-			int blocks = b.length / BUFFER_SIZE;
-			int writeBytes = 0;
-			for (int i = 0; i <= blocks; i++) {
-				int offset = i * BUFFER_SIZE;
-				int length = Math.min(b.length - writeBytes, BUFFER_SIZE);
-				if (length <= 0) {
-					break;
-				}
-				writeBytes += length;
-				ByteBuffer buffer = ByteBuffer.wrap(b, offset, length);
-				if (winChannel != null) {
-					Future<Integer> result = winChannel.write(buffer, 0);
-					try {
-						result.get();
-					} catch (Exception e) {
-						throw new IOException(e);
-					}
-				} else {
-					unixChannel.write(buffer);
-				}
-			}
-		}
-	}
+        @Override
+        public void write(byte[] b) throws IOException {
+            final int BUFFER_SIZE = 1024;
+            int blocks = b.length / BUFFER_SIZE;
+            int writeBytes = 0;
+            for (int i = 0; i <= blocks; i++) {
+                int offset = i * BUFFER_SIZE;
+                int length = Math.min(b.length - writeBytes, BUFFER_SIZE);
+                if (length <= 0) {
+                    break;
+                }
+                writeBytes += length;
+                ByteBuffer buffer = ByteBuffer.wrap(b, offset, length);
+                if (winChannel != null) {
+                    Future<Integer> result = winChannel.write(buffer, 0);
+                    try {
+                        result.get();
+                    } catch (Exception e) {
+                        throw new IOException(e);
+                    }
+                } else {
+                    unixChannel.write(buffer);
+                }
+            }
+        }
+    }
 
-	public NamedPipeStream() {}
+    public NamedPipeStream() {}
 
-	public StreamProvider getSelectedStream() {
-		if (provider == null) {
-			provider = createProvider()	;
-		}
-		return provider;
-	}
+    public StreamProvider getSelectedStream() {
+        if (provider == null) {
+            provider = createProvider()	;
+        }
+        return provider;
+    }
 
-	private StreamProvider createProvider() {
+    private StreamProvider createProvider() {
 
-		return new PipeStreamProvider();
-	}
+        return new PipeStreamProvider();
+    }
 
-	public InputStream getInputStream() throws IOException {
-		return getSelectedStream().getInputStream();
-	}
+    public InputStream getInputStream() throws IOException {
+        return getSelectedStream().getInputStream();
+    }
 
-	public OutputStream getOutputStream() throws IOException {
-		return getSelectedStream().getOutputStream();
-	}
+    public OutputStream getOutputStream() throws IOException {
+        return getSelectedStream().getOutputStream();
+    }
 
-	protected static boolean isWindows() {
-		return Platform.OS_WIN32.equals(Platform.getOS());
-	}
+    protected static boolean isWindows() {
+        return Platform.OS_WIN32.equals(Platform.getOS());
+    }
 
-	private void sendImporterPipeName(String pipeName){
-		JavaLanguageServerPlugin.getInstance().getClientConnection()
-			.sendNotification("gradle.getImporterPipeName", pipeName);
-	}
+    private void sendImporterPipeName(String pipeName){
+        JavaLanguageServerPlugin.getInstance().getClientConnection()
+            .sendNotification("gradle.getImporterPipeName", pipeName);
+    }
 
-	public static String generateRandomHex(int numBytes) {
+    public static String generateRandomHex(int numBytes) {
         SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[numBytes];
         random.nextBytes(bytes);
@@ -225,21 +225,23 @@ public class NamedPipeStream {
         return hexString.toString();
     }
 
-	public String generateRandomPipeName() {
+    public String generateRandomPipeName() {
         if (System.getProperty("os.name").startsWith("Windows")) {
             return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
         }
-		String tmpdir = System.getProperty("java.io.tmpdir");
+        String tmpDir = System.getenv("XDG_RUNTIME_DIR");
+        if (tmpDir == null || tmpDir.isEmpty()) {
+            tmpDir = System.getProperty("java.io.tmpdir");
+        }
+        int fixedLength = ".sock".length();
+        int safeIpcPathLengths = 103;
+        int availableLength = safeIpcPathLengths - fixedLength - tmpDir.length();
+        int randomLength = 32;
+        int bytesLength = Math.min(availableLength / 2, randomLength);
 
-		int fixedLength = ".sock".length();
-		int safeIpcPathLengths = 103;
-		int availableLength = safeIpcPathLengths - fixedLength - tmpdir.length();
-		int randomLength = 32;
-		int bytesLength = Math.min(availableLength / 2, randomLength);
-
-		if (bytesLength < 16) {
+        if (bytesLength < 16) {
             throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
         }
-        return Paths.get(tmpdir, generateRandomHex(bytesLength) + ".sock").toString();
+        return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
     }
 }

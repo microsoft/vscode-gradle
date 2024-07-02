@@ -36,11 +36,9 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
-import { BuildServerHandler } from "./bs/BuildServerHandler";
-import { ImporterHandler } from "./bs/ImporterHandler";
+import { MessageForwardHandler } from "./bs/MessageForwardHandler";
 export class Extension {
-    private readonly buildServerHandler: BuildServerHandler;
-    private readonly importerHandler: ImporterHandler;
+    private readonly messageForwardHandler: MessageForwardHandler;
     private readonly client: GradleClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
@@ -91,10 +89,8 @@ export class Extension {
             })
         );
 
-        this.buildServerHandler = new BuildServerHandler();
-        this.importerHandler = new ImporterHandler(this.context);
-
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.buildServerHandler);
+        this.messageForwardHandler = new MessageForwardHandler(this.context);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.messageForwardHandler);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
@@ -239,12 +235,10 @@ export class Extension {
 
     private async activate(): Promise<void> {
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
-        this.buildServerHandler.setupBuildServerHandler();
         if (!this.server.isReady()) {
             await this.server.start();
         }
-        await this.importerHandler.waitForImporterPipePath();
-        this.importerHandler.setupImporterHandler(this.buildServerHandler.getBuildServerConnection());
+        await this.messageForwardHandler.startForwarding();
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
     }
