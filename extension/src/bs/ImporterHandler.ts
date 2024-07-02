@@ -1,12 +1,11 @@
 import * as net from "net";
 import * as rpc from "vscode-jsonrpc/node";
-import * as fs from "fs";
 import * as vscode from "vscode";
 import * as path from "path";
 
 export const GET_IMPORTER_PIPE_NAME = "gradle.getImporterPipeName";
 
-export class ImporterHandler implements vscode.Disposable {
+export class ImporterHandler {
     public importerConnection: rpc.MessageConnection | null = null;
     private importerPipeServer: net.Server;
     private importerPipePath: string;
@@ -38,13 +37,6 @@ export class ImporterHandler implements vscode.Disposable {
 
             this.importerConnection.listen();
         });
-
         this.importerPipeServer.listen(this.importerPipePath);
-    }
-
-    public dispose(): void {
-        if (fs.existsSync(this.importerPipePath)) {
-            fs.unlinkSync(this.importerPipePath);
-        }
     }
 }

@@ -1,12 +1,30 @@
 import { randomBytes } from "crypto";
-import * as vscode from "vscode";
-import { GET_EXTENSION_PATH } from "../constant";
-export async function generateRandomPipeName(type: string): Promise<string> {
-    const randomSuffix = randomBytes(11).toString("hex");
+import * as os from "os";
+import * as path from "path";
+import * as fs from "fs";
+
+const XDG_RUNTIME_DIR = process.env["XDG_RUNTIME_DIR"];
+const safeIpcPathLengths: Map<NodeJS.Platform, number> = new Map([
+    ["linux", 107],
+    ["darwin", 103],
+]);
+
+export function generateRandomPipeName(): string {
     if (process.platform === "win32") {
-        return `\\\\.\\pipe\\${randomSuffix}-${type}-sock`;
-    } else {
-        const extensionPath = await vscode.commands.executeCommand<string>(GET_EXTENSION_PATH);
-        return `${extensionPath}/${randomSuffix}-${type}.sock`;
+        return `\\\\.\\pipe\\${randomBytes(16).toString("hex")}-sock`;
     }
+
+    let randomLength = 32;
+    const fixedLength = ".sock".length;
+    const tmpDir: string = fs.realpathSync(XDG_RUNTIME_DIR ?? os.tmpdir());
+    const limit = safeIpcPathLengths.get(process.platform);
+    if (limit !== undefined) {
+        randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
+    }
+    if (randomLength < 16) {
+        throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
+    }
+
+    const randomSuffix = randomBytes(Math.floor(randomLength / 2)).toString("hex");
+    return path.join(tmpDir, `${randomSuffix}.sock`);
 }

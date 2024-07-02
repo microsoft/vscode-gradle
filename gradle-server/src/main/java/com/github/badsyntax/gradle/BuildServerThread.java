@@ -37,7 +37,7 @@ public class BuildServerThread implements Runnable {
 			command.add("-cp");
 			command.add(String.join(getClasspathSeparator(), classpaths));
 			command.add("com.microsoft.java.bs.core.Launcher");
-			command.add(this.pipeName);
+			command.add("--pipe=" + this.pipeName);
 
 			ProcessBuilder build = new ProcessBuilder(command);
 			build.start();

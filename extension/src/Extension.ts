@@ -92,9 +92,7 @@ export class Extension {
         );
 
         this.buildServerHandler = new BuildServerHandler();
-        this.context.subscriptions.push(new vscode.Disposable(() => this.buildServerHandler.dispose()));
         this.importerHandler = new ImporterHandler(this.context);
-        this.context.subscriptions.push(new vscode.Disposable(() => this.importerHandler.dispose()));
 
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.buildServerHandler);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
@@ -241,7 +239,7 @@ export class Extension {
 
     private async activate(): Promise<void> {
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
-        await this.buildServerHandler.setupBuildServerHandler();
+        this.buildServerHandler.setupBuildServerHandler();
         if (!this.server.isReady()) {
             await this.server.start();
         }

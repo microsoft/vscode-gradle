@@ -13,6 +13,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.SecureRandom;
 
@@ -20,14 +21,9 @@ import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.core.runtime.Platform;
 
 /**
- * A factory for creating the streams for supported transmission methods.
- *
- * @author Gorkem Ercan
- *
+ * A class to create a named pipe stream for the importer to communicate with the extension.
  */
-
-public class ImporterNamedPipeStream {
-	private String bundleDir;
+public class NamedPipeStream {
 
 	private StreamProvider provider;
 
@@ -57,7 +53,7 @@ public class ImporterNamedPipeStream {
 		}
 
 		private void initializeNamedPipe() {
-			String pathName = generateRandomPipeName("importer");
+			String pathName = generateRandomPipeName();
 			sendImporterPipeName(pathName);
 
 			File pipeFile = new File(pathName);
@@ -187,9 +183,7 @@ public class ImporterNamedPipeStream {
 		}
 	}
 
-	public ImporterNamedPipeStream(String bundleDir) {
-		this.bundleDir = bundleDir;
-	}
+	public NamedPipeStream() {}
 
 	public StreamProvider getSelectedStream() {
 		if (provider == null) {
@@ -220,28 +214,32 @@ public class ImporterNamedPipeStream {
 			.sendNotification("gradle.getImporterPipeName", pipeName);
 	}
 
-	public String generateRandomPipeName(String type) {
+	public static String generateRandomHex(int numBytes) {
         SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[11];
+        byte[] bytes = new byte[numBytes];
         random.nextBytes(bytes);
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
             hexString.append(String.format("%02x", b));
         }
-        String randomSuffix = hexString.toString();
-        String path;
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            path = "\\\\.\\pipe\\" + randomSuffix + "-" + type + "-sock";
-        } else {
-			//save pipe file to extension folder
-            path = new File(this.bundleDir).getParent() +'/'+ randomSuffix + "-" + type + ".sock";
-        }
+        return hexString.toString();
+    }
 
-        try {
-            return new File(path).getCanonicalPath();
-        } catch (IOException e) {
-            System.err.println("Error generating the canonical pipe path: " + e.getMessage());
-            return null;
+	public String generateRandomPipeName() {
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
         }
+		String tmpdir = System.getProperty("java.io.tmpdir");
+
+		int fixedLength = ".sock".length();
+		int safeIpcPathLengths = 103;
+		int availableLength = safeIpcPathLengths - fixedLength - tmpdir.length();
+		int randomLength = 32;
+		int bytesLength = Math.min(availableLength / 2, randomLength);
+
+		if (bytesLength < 16) {
+            throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
+        }
+        return Paths.get(tmpdir, generateRandomHex(bytesLength) + ".sock").toString();
     }
 }

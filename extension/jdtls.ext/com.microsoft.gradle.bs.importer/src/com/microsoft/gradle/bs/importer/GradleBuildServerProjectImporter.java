@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.CompletionException;
 
 import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.internal.resources.ProjectDescription;
@@ -168,7 +167,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         );
         BuildServerPreferences data = getBuildServerPreferences();
         params.setData(data);
-
         InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
         buildServer.onBuildInitialized();
         // TODO: save the capabilities of this server

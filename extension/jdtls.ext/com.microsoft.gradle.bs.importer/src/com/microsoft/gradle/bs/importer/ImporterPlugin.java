@@ -35,7 +35,6 @@ public class ImporterPlugin extends Plugin {
 
     private static String bundleVersion = "";
 
-	private static String bundleDirectory;
     @Override
     public void start(BundleContext context) throws Exception {
         BuildStateManager.getBuildStateManager().startup();
@@ -46,7 +45,6 @@ public class ImporterPlugin extends Plugin {
         if (!bundleFile.isPresent()) {
            throw new IllegalStateException("Failed to get bundle location.");
         }
-		bundleDirectory = bundleFile.get().getParent();
     }
 
     @Override
@@ -75,12 +73,6 @@ public class ImporterPlugin extends Plugin {
      * @param rootPath
      * @throws CoreException
      */
-    /**
-     * Get the build server connection for the given root path. If the connection doesn't exist,
-     * returns <code>null</code>.
-     * @param rootPath
-     * @throws CoreException
-     */
     public static BuildServerConnection getBuildServerConnection(IPath rootPath) throws CoreException {
         return getBuildServerConnection(rootPath, false);
     }
@@ -101,7 +93,7 @@ public class ImporterPlugin extends Plugin {
             return null;
         }
 		try {
-			ImporterNamedPipeStream pipeStream = new ImporterNamedPipeStream(bundleDirectory);
+			NamedPipeStream pipeStream = new NamedPipeStream();
 
 			GradleBuildClient client = new GradleBuildClient();
 			Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()

@@ -48,7 +48,7 @@ export class GradleServer {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
             }
-            const javaExecPath = await getRedHatJavaExecutablePath();
+            const javaExecPath = getRedHatJavaExecutablePath();
 
             //Get the Java executable used by JDT.LS, which will be higher than JDK 17.
             if (!javaExecPath) {
