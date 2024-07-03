@@ -150,9 +150,9 @@ public class GradleBuildClient implements BuildClient {
                 // ignore the suite start message as the display name.
                 displayName = null;
             }
-            String testIdentifier = getTestIdentifier(testStartEx.getTestName());
+            List<String> testParts = getTestParts(testStartEx.getTestName());
             lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidChangeTestItemStatus",
-                    Arrays.asList(testIdentifier, 2/*Running status*/, displayName)));
+                    Arrays.asList(testParts, 2/*Running status*/, displayName)));
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             lsClient.createProgress(new WorkDoneProgressCreateParams(id));
@@ -187,7 +187,7 @@ public class GradleBuildClient implements BuildClient {
             }
         } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_FINISH)) {
             TestFinishEx testFinishEx = JSONUtility.toModel(params.getData(), TestFinishEx.class);
-            String testIdentifier = getTestIdentifier(testFinishEx.getTestName());
+            List<String> testParts = getTestParts(testFinishEx.getTestName());
             JavaTestStatus testStatus = switch (testFinishEx.getStatus()) {
                 case PASSED -> JavaTestStatus.Passed;
                 case FAILED -> JavaTestStatus.Failed;
@@ -198,7 +198,7 @@ public class GradleBuildClient implements BuildClient {
                 throw new IllegalArgumentException("Unsupported test status: " + testFinishEx.getStatus());
             }
             lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidChangeTestItemStatus",
-                Arrays.asList(testIdentifier, testStatus.getValue(), null, testFinishEx.getStackTrace()))); // TODO: test duration is missing
+                Arrays.asList(testParts, testStatus.getValue(), null, testFinishEx.getStackTrace()))); // TODO: test duration is missing
         } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_REPORT)) {
             lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidFinishTestRun",
                     Arrays.asList(params.getTaskId().getId(), params.getMessage())));
@@ -214,9 +214,9 @@ public class GradleBuildClient implements BuildClient {
     /**
      * Currently, the test name returned from gradle build server is started from the class name,
      * then follows the method or invocation name.
-     * @return The test identifier
+     * @return The test identifier parts
      */
-    private String getTestIdentifier(TestName testName) {
+    private List<String> getTestParts(TestName testName) {
         List<String> testNames = new LinkedList<>();
         while (testName != null) {
             if (testName.getSuiteName() != null) {
@@ -241,7 +241,7 @@ public class GradleBuildClient implements BuildClient {
             }
         }
 
-        return String.join("#", testNames.subList(i, testNames.size()));
+        return testNames.subList(i, testNames.size());
     }
 
     private class LruCache<T> extends LinkedHashSet<T> {

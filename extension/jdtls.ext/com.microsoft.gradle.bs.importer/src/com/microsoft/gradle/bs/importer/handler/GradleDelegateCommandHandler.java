@@ -3,9 +3,7 @@ package com.microsoft.gradle.bs.importer.handler;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.eclipse.core.resources.IProject;
@@ -33,7 +31,7 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
         switch (commandId) {
             case "java.gradle.delegateTest":
                 String projectName = (String) arguments.get(0);
-                List<String> tests = (ArrayList<String>) arguments.get(1);
+                Map<String, List<String>> tests = JSONUtility.toModel(arguments.get(1), Map.class);
                 IProject project = ProjectUtils.getProject(projectName);
                 if (project == null) {
                     throw new IllegalArgumentException("Project not found: " + projectName);
@@ -56,9 +54,8 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                 TestParams testParams = new TestParams(btIds);
                 testParams.setDataKind("scala-test-suites-selection");
                 testParams.setArguments(getArguments(arguments));
-                Map<String, List<String>> groupedTests = groupTests(tests);
                 List<ScalaTestSuiteSelection> testSelections = new LinkedList<>();
-                for (Map.Entry<String, List<String>> entry : groupedTests.entrySet()) {
+                for (Map.Entry<String, List<String>> entry : tests.entrySet()) {
                     ScalaTestSuiteSelection testSelection = new ScalaTestSuiteSelection(
                         entry.getKey(),
                         entry.getValue()
@@ -77,26 +74,6 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                 break;
         }
         throw new UnsupportedOperationException("The command: " + commandId + "is not supported.");
-    }
-
-    private Map<String, List<String>> groupTests(List<String> tests) {
-        Map<String, List<String>> groupedTests = new HashMap<>();
-
-        for (String test : tests) {
-            String[] parts = test.split("#");
-            String className = parts[0];
-            String methodName = parts.length > 1 ? parts[1] : null;
-
-            groupedTests.computeIfAbsent(className, k -> new ArrayList<>());
-            if (methodName != null) {
-                if (methodName.contains("(")) {
-                    methodName = methodName.substring(0, methodName.indexOf('(')); // gradle test task doesn't support method with parameters
-                }
-                groupedTests.get(className).add(methodName);
-            }
-        }
-
-        return groupedTests;
     }
 
     private List<String> getArguments(List<Object> arguments) {

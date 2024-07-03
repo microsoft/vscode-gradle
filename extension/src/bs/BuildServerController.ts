@@ -26,10 +26,9 @@ export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
     private logOutputChannel: OutputChannel;
-    private gradleTestRunner: GradleTestRunner;
+    private gradleTestRunner: GradleTestRunner | undefined;
 
     public constructor(readonly context: ExtensionContext) {
-        this.gradleTestRunner = new GradleTestRunner();
         this.buildOutputChannel = window.createOutputChannel("Build Server for Gradle (Build)", "gradle-build");
         this.logOutputChannel = window.createOutputChannel("Build Server for Gradle (Log)");
         this.disposable = Disposable.from(
@@ -89,13 +88,13 @@ export class BuildServerController implements Disposable {
             commands.registerCommand(
                 "java.gradle.buildServer.onDidFinishTestRun",
                 (status: number, message?: string) => {
-                    this.gradleTestRunner.finishTestRun(status, message);
+                    this.gradleTestRunner?.finishTestRun(status, message);
                 }
             ),
             commands.registerCommand(
                 "java.gradle.buildServer.onDidChangeTestItemStatus",
-                (test: string, state: number, displayName?: string, message?: string, duration?: number) => {
-                    this.gradleTestRunner.updateTestItem(test, state, displayName, message, duration);
+                (testParts: string[], state: number, displayName?: string, message?: string, duration?: number) => {
+                    this.gradleTestRunner?.updateTestItem(testParts, state, displayName, message, duration);
                 }
             ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
@@ -125,7 +124,10 @@ export class BuildServerController implements Disposable {
         this.checkMachineStatus();
     }
 
-    public getGradleTestRunner(): GradleTestRunner {
+    public getGradleTestRunner(testRunnerApi: any): GradleTestRunner {
+        if (!this.gradleTestRunner) {
+            this.gradleTestRunner = new GradleTestRunner(testRunnerApi);
+        }
         return this.gradleTestRunner;
     }
 

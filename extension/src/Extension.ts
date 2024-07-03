@@ -35,6 +35,7 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
+import { GradleTestRunner } from "./bs/GradleTestRunner";
 
 export class Extension {
     private readonly client: GradleClient;
@@ -230,11 +231,10 @@ export class Extension {
         const testExtension = vscode.extensions.getExtension("vscjava.vscode-java-test");
         if (testExtension) {
             testExtension.activate().then((api: any) => {
-                api.registerTestProfile(
-                    "Delegate Test to Gradle",
-                    vscode.TestRunProfileKind.Run,
-                    this.buildServerController.getGradleTestRunner()
-                );
+                if (api) {
+                    const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(api);
+                    api.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
+                }
             });
         }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;

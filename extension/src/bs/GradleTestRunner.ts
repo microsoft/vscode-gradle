@@ -1,20 +1,43 @@
 import * as vscode from "vscode";
-import { TestRunner, TestItemStatusChangeEvent, TestFinishEvent, IRunTestContext } from "../java-test-runner.api";
+import {
+    TestRunner,
+    TestItemStatusChangeEvent,
+    TestFinishEvent,
+    IRunTestContext,
+    TestIdParts,
+} from "../java-test-runner.api";
 
 export class GradleTestRunner implements TestRunner {
     private readonly _onDidChangeTestItemStatus = new vscode.EventEmitter<TestItemStatusChangeEvent>();
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
+    private context: IRunTestContext;
+    private testRunnerApi: any;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
 
+    constructor(testRunnerApi: any) {
+        this.testRunnerApi = testRunnerApi;
+    }
+
     public launch(context: IRunTestContext): void {
-        const tests: string[] = context.testItems.map((testItem) => {
+        this.context = context;
+        const tests: Map<string, string[]> = new Map();
+        context.testItems.forEach((testItem) => {
             const id = testItem.id;
-            if (id.includes("@")) {
-                return id.slice(id.indexOf("@") + 1);
+            const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
+            if (!parts.class) {
+                return;
             }
-            return id;
+            const testMethods = tests.get(parts.class) || [];
+            if (parts.invocations?.length) {
+                let methodId = parts.invocations[0];
+                if (methodId.includes("(")) {
+                    methodId = methodId.slice(0, methodId.indexOf("(")); // gradle test task doesn't support method with parameters
+                }
+                testMethods.push(methodId);
+            }
+            tests.set(parts.class, testMethods);
         });
 
         const agrs = context.testConfig?.args;
@@ -24,7 +47,7 @@ export class GradleTestRunner implements TestRunner {
             "java.execute.workspaceCommand",
             "java.gradle.delegateTest",
             context.projectName,
-            tests,
+            JSON.stringify([...tests]),
             agrs,
             vmArgs,
             env
@@ -32,7 +55,7 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public updateTestItem(
-        test: string,
+        testParts: string[],
         state: number,
         displayName?: string,
         message?: string,
@@ -41,8 +64,13 @@ export class GradleTestRunner implements TestRunner {
         if (message) {
             message = this.filterStackTrace(message);
         }
+        const testId = this.testRunnerApi.parseTestIdFromParts({
+            project: this.context.projectName,
+            class: testParts[0],
+            invocations: testParts.slice(1),
+        });
         this._onDidChangeTestItemStatus.fire({
-            test,
+            testId,
             state,
             displayName,
             message,
@@ -50,9 +78,9 @@ export class GradleTestRunner implements TestRunner {
         });
     }
 
-    public finishTestRun(status: number, message?: string): void {
+    public finishTestRun(statusCode: number, message?: string): void {
         this._onDidFinishTestRun.fire({
-            status,
+            statusCode,
             message,
         });
     }
