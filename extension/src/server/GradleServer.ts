@@ -64,6 +64,7 @@ export class GradleServer {
                 `--javaExecPath=${javaExecPath}`,
             ];
             this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
+
             this.process = cp.spawn(`"${cmd}"`, args, {
                 cwd,
                 env,

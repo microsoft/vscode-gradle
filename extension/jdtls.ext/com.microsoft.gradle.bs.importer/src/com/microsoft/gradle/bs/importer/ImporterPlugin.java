@@ -20,6 +20,7 @@ import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
 import com.microsoft.java.builder.BuildStateManager;
+
 import ch.epfl.scala.bsp4j.BuildClient;
 
 public class ImporterPlugin extends Plugin {
@@ -29,6 +30,7 @@ public class ImporterPlugin extends Plugin {
     private Map<IPath, Pair<BuildServerConnection, BuildClient>> buildServers = new ConcurrentHashMap<>();
 
     private static ImporterPlugin instance;
+
     /**
      * Digest store for the gradle configuration files.
      */
@@ -90,6 +92,7 @@ public class ImporterPlugin extends Plugin {
         if (pair != null) {
             return pair.getLeft();
         }
+
         if (!createIfMissing) {
             return null;
         }
@@ -104,10 +107,10 @@ public class ImporterPlugin extends Plugin {
                     .setExecutorService(Executors.newCachedThreadPool())
                     .setRemoteInterface(BuildServerConnection.class)
                     .create();
+
             launcher.startListening();
             BuildServerConnection server = launcher.getRemoteProxy();
             client.onConnectWithServer(server);
-
             instance.buildServers.put(rootPath, Pair.of(server, client));
             return server;
         } catch (IOException e) {

@@ -52,6 +52,7 @@ export async function getJavaExecutablePath(): Promise<string | null> {
     }
     return null;
 }
+
 export function redHatJavaInstalled(): boolean {
     return !!vscode.extensions.getExtension("redhat.java");
 }
