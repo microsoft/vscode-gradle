@@ -7,7 +7,7 @@ import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, GET_EXTENSION_PATH } from "../constant";
-import { getRedHatJavaExecutablePath } from "../util/config";
+import { getRedHatJavaExecutablePath, getJavaExecutablePath, redHatJavaInstalled } from "../util/config";
 import { MessageForwardHandler } from "../bs/MessageForwardHandler";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
@@ -48,15 +48,21 @@ export class GradleServer {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
             }
-            const javaExecPath = getRedHatJavaExecutablePath();
-
-            //Get the Java executable used by JDT.LS, which will be higher than JDK 17.
-            if (!javaExecPath) {
-                await vscode.window.showErrorMessage("No Red Hat Java Extension Pack Found");
-                return;
+            let javaExecPath: string | null = null;
+            //Get the Java executable, which will be higher than JDK 17.
+            if (redHatJavaInstalled()) {
+                javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
+                if (javaExecPath === null) {
+                    await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+                }
             }
             const serverPipeName = this.messageForwardHandler.getBuildServerPipeName();
-            const args = [String(this.gradleServerPort), serverPipeName, bundleDirectory, javaExecPath];
+            const args = [
+                `--port=${this.gradleServerPort}`,
+                `--pipeName=${serverPipeName}`,
+                `--bundleDir=${bundleDirectory}`,
+                `--javaExecPath=${javaExecPath}`,
+            ];
             this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
             this.process = cp.spawn(`"${cmd}"`, args, {
                 cwd,

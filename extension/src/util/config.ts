@@ -1,9 +1,10 @@
 import { execSync } from "child_process";
-import { getRuntime } from "jdk-utils";
+import { getRuntime, JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
 import * as fs from "fs";
+import * as fse from "fs-extra";
 import * as path from "path";
 
 type AutoDetect = "on" | "off";
@@ -28,31 +29,48 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
+export async function getJavaExecutablePath(): Promise<string | null> {
+    const javaHomeGetters = [
+        getConfigJavaImportGradleJavaHome,
+        getJdtlsConfigJavaHome,
+        getConfigJavaHome,
+        () => process.env.JAVA_HOME,
+    ];
+
+    for (const getJavaHome of javaHomeGetters) {
+        const javaHome = getJavaHome();
+        if (javaHome) {
+            const runtime = await getRuntime(javaHome, { withVersion: true });
+            // Ensure the Java version is greater than 17
+            if (runtime?.version && runtime.version.major >= 17) {
+                const javaExecPath = path.join(javaHome, "bin", "java");
+                if (fs.existsSync(javaExecPath)) {
+                    return javaExecPath;
+                }
+            }
+        }
+    }
+    return null;
+}
+export function redHatJavaInstalled(): boolean {
+    return !!vscode.extensions.getExtension("redhat.java");
+}
+
 export function getRedHatJavaExecutablePath(): string | null {
-    const javaExtension = vscode.extensions.getExtension("redhat.java");
-    if (!javaExtension) {
+    if (!redHatJavaInstalled()) {
         return null;
     }
 
-    const extensionPath = javaExtension.extensionPath;
-    const jrePath = path.join(extensionPath, "jre");
-    if (!fs.existsSync(jrePath) || !fs.lstatSync(jrePath).isDirectory()) {
-        return null;
+    const jreHome = path.join(vscode.extensions.getExtension("redhat.java")!.extensionPath, "jre");
+    if (fse.existsSync(jreHome) && fse.statSync(jreHome).isDirectory()) {
+        const candidates = fse.readdirSync(jreHome);
+        for (const candidate of candidates) {
+            const javaExecutable = path.join(jreHome, candidate, "bin", JAVA_FILENAME);
+            if (fse.existsSync(javaExecutable)) {
+                return javaExecutable;
+            }
+        }
     }
-
-    // Read the entries in the jre directory and filter out hidden files
-    const entries = fs.readdirSync(jrePath).filter((entry) => !entry.startsWith("."));
-    if (entries.length === 0) {
-        return null;
-    }
-
-    const entry = entries[0];
-    const javaExec = process.platform === "win32" ? "java.exe" : "java";
-    const javaExecPath = path.join(jrePath, entry, "bin", javaExec);
-    if (fs.existsSync(javaExecPath)) {
-        return javaExecPath;
-    }
-
     return null;
 }
 

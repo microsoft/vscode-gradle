@@ -3,6 +3,8 @@ package com.github.badsyntax.gradle;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +56,11 @@ public class GradleServer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		int gradleServerPort = Integer.parseInt(args[0]);
-		String buildServerPipeName = args[1];
-		String bundleDirectory = args[2];
-		String javaExecutablePath = args[3];
+		Map<String, String> params = parseArgs(args);
+		int gradleServerPort = Integer.parseInt(params.get("port"));
+		String buildServerPipeName = params.get("pipeName");
+		String bundleDirectory = params.get("bundleDir");
+		String javaExecutablePath = params.getOrDefault("javaExecPath", null);
 
 		GradleServer server = new GradleServer(gradleServerPort);
 		Thread gradleServerThread = new Thread(() -> {
@@ -68,15 +71,31 @@ public class GradleServer {
 				e.printStackTrace();
 			}
 		});
-
-		BuildServerThread buildServerConnectionThread = new BuildServerThread(buildServerPipeName, bundleDirectory,
-				javaExecutablePath);
-		Thread buildServerThread = new Thread(buildServerConnectionThread);
-
 		gradleServerThread.start();
-		buildServerThread.start();
+
+		if (javaExecutablePath != null) {
+			BuildServerThread buildServerConnectionThread = new BuildServerThread(buildServerPipeName, bundleDirectory,
+					javaExecutablePath);
+			Thread buildServerThread = new Thread(buildServerConnectionThread);
+			buildServerThread.start();
+			buildServerThread.join();
+		}
 
 		gradleServerThread.join();
-		buildServerThread.join();
+	}
+
+	private static Map<String, String> parseArgs(String[] args) {
+		Map<String, String> paramMap = new HashMap<>();
+		for (String arg : args) {
+			if (arg.startsWith("--")) {
+				int index = arg.indexOf('=');
+				if (index != -1) {
+					String key = arg.substring(2, index);
+					String value = arg.substring(index + 1);
+					paramMap.put(key, value);
+				}
+			}
+		}
+		return paramMap;
 	}
 }
