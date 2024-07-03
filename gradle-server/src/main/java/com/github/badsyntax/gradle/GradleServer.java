@@ -1,14 +1,13 @@
 package com.github.badsyntax.gradle;
 
+import com.github.badsyntax.gradle.utils.Utils;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 public class GradleServer {
 	private static final Logger logger = LoggerFactory.getLogger(GradleServer.class.getName());
 
@@ -56,14 +55,24 @@ public class GradleServer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		Map<String, String> params = parseArgs(args);
-		int gradleServerPort = Integer.parseInt(params.get("port"));
-		String buildServerPipeName = params.get("pipeName");
-		String bundleDirectory = params.get("bundleDir");
-		String javaExecutablePath = params.getOrDefault("javaExecPath", null);
+		Map<String, String> params = Utils.parseArgs(args);
 
-		GradleServer server = new GradleServer(gradleServerPort);
-		Thread gradleServerThread = new Thread(() -> {
+		int gradleServerPort = Utils.parseIntegerParam(params, "port");
+		String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
+		String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
+		// JavaExecutablePath is optional. Null means that the build server will not be
+		// started.
+		String javaExecutablePath = params.get("javaExecPath");
+
+		startGradleServer(gradleServerPort);
+		if (javaExecutablePath != null) {
+			startBuildServerThread(buildServerPipeName, bundleDirectory, javaExecutablePath);
+		}
+	}
+
+	private static void startGradleServer(int port) {
+		GradleServer server = new GradleServer(port);
+		Thread serverThread = new Thread(() -> {
 			try {
 				server.start();
 				server.blockUntilShutdown();
@@ -71,31 +80,14 @@ public class GradleServer {
 				e.printStackTrace();
 			}
 		});
-		gradleServerThread.start();
-
-		if (javaExecutablePath != null) {
-			BuildServerThread buildServerConnectionThread = new BuildServerThread(buildServerPipeName, bundleDirectory,
-					javaExecutablePath);
-			Thread buildServerThread = new Thread(buildServerConnectionThread);
-			buildServerThread.start();
-			buildServerThread.join();
-		}
-
-		gradleServerThread.join();
+		serverThread.start();
 	}
 
-	private static Map<String, String> parseArgs(String[] args) {
-		Map<String, String> paramMap = new HashMap<>();
-		for (String arg : args) {
-			if (arg.startsWith("--")) {
-				int index = arg.indexOf('=');
-				if (index != -1) {
-					String key = arg.substring(2, index);
-					String value = arg.substring(index + 1);
-					paramMap.put(key, value);
-				}
-			}
-		}
-		return paramMap;
+	private static void startBuildServerThread(String pipeName, String directory, String javaPath)
+			throws InterruptedException {
+		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory, javaPath);
+		Thread buildServerThread = new Thread(buildServerConnectionThread);
+		buildServerThread.start();
+		buildServerThread.join();
 	}
 }

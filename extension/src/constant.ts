@@ -5,7 +5,6 @@
 export namespace Context {
     export const ACTIVATION_CONTEXT_KEY = "gradle:extensionActivated";
 }
-export const GET_EXTENSION_PATH = "gradle.getExtensionPath";
 
 export const GRADLE_BUILD_FILE_CHANGE = "gradle.buildFileChanged";
 

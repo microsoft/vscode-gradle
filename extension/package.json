@@ -132,14 +132,6 @@
         }
       },
       {
-        "command": "gradle.getBundleDirectory",
-        "title": "Get Build Server Port"
-      },
-      {
-        "command": "gradle.getBundlePath",
-        "title": "Get Build Server Port"
-      },
-      {
         "command": "gradle.runBuild",
         "category": "Gradle",
         "title": "Run a Gradle Build",

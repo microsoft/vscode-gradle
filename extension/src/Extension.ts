@@ -31,14 +31,13 @@ import {
     GRADLE_COMPLETION,
     GRADLE_PROPERTIES_FILE_CHANGE,
     VSCODE_TRIGGER_COMPLETION,
-    GET_EXTENSION_PATH,
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
-import { MessageForwardHandler } from "./bs/MessageForwardHandler";
+import { MessageProxy } from "./bs/MessageProxy";
 export class Extension {
-    private readonly messageForwardHandler: MessageForwardHandler;
+    private readonly messageProxy: MessageProxy;
     private readonly client: GradleClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
@@ -83,14 +82,8 @@ export class Extension {
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.context.subscriptions.push(
-            vscode.commands.registerCommand(GET_EXTENSION_PATH, () => {
-                return this.context.extensionPath;
-            })
-        );
-
-        this.messageForwardHandler = new MessageForwardHandler(this.context);
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.messageForwardHandler);
+        this.messageProxy = new MessageProxy(this.context);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.messageProxy);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
@@ -238,7 +231,7 @@ export class Extension {
         if (!this.server.isReady()) {
             await this.server.start();
         }
-        await this.messageForwardHandler.startForwarding();
+        await this.messageProxy.start();
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
     }

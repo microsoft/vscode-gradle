@@ -6,9 +6,9 @@ import * as kill from "tree-kill";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE, GET_EXTENSION_PATH } from "../constant";
+import { NO_JAVA_EXECUTABLE } from "../constant";
 import { getRedHatJavaExecutablePath, getJavaExecutablePath, redHatJavaInstalled } from "../util/config";
-import { MessageForwardHandler } from "../bs/MessageForwardHandler";
+import { MessageProxy } from "../bs/MessageProxy";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -32,7 +32,7 @@ export class GradleServer {
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
-        private messageForwardHandler: MessageForwardHandler
+        private messageProxy: MessageProxy
     ) {}
 
     public async start(): Promise<void> {
@@ -43,7 +43,7 @@ export class GradleServer {
             const cwd = this.context.asAbsolutePath("lib");
             const cmd = path.join(cwd, getGradleServerCommand());
             const env = await getGradleServerEnv();
-            const bundleDirectory = await this.getBundleDirectory();
+            const bundleDirectory = this.context.asAbsolutePath("server");
             if (!env) {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
@@ -56,7 +56,7 @@ export class GradleServer {
                     await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 }
             }
-            const serverPipeName = this.messageForwardHandler.getBuildServerPipeName();
+            const serverPipeName = this.messageProxy.getBuildServerPipeName();
             const args = [
                 `--port=${this.gradleServerPort}`,
                 `--pipeName=${serverPipeName}`,
@@ -92,11 +92,6 @@ export class GradleServer {
 
     public isReady(): boolean {
         return this.ready;
-    }
-
-    public async getBundleDirectory(): Promise<string> {
-        const extensionPath = await vscode.commands.executeCommand<string>(GET_EXTENSION_PATH);
-        return path.join(extensionPath, "server");
     }
 
     public async showRestartMessage(): Promise<void> {

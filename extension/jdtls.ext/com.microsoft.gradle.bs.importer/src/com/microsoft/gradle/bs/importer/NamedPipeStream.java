@@ -27,6 +27,7 @@ public class NamedPipeStream {
 
     private StreamProvider provider;
 
+    private final int MAX_ATTEMPTS = 5;
     interface StreamProvider {
         InputStream getInputStream() throws IOException;
 
@@ -55,34 +56,46 @@ public class NamedPipeStream {
         private void initializeNamedPipe() {
             String pathName = generateRandomPipeName();
             sendImporterPipeName(pathName);
-
             File pipeFile = new File(pathName);
 
-            // Need to retry until the pipeName was sent and pipe is created by Extension side
+            int attempts = 0;
             boolean connected = false;
-            while (!connected) {
-                try{
-                    if (isWindows()) {
-                        AsynchronousFileChannel channel = AsynchronousFileChannel.open(pipeFile.toPath(),
-                        StandardOpenOption.READ, StandardOpenOption.WRITE);
-                        input = new NamedPipeInputStream(channel);
-                        output = new NamedPipeOutputStream(channel);
-                    } else {
-                        UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(pipeFile.toPath());
-                        SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX);
-                        channel.connect(socketAddress);
-                        input = new NamedPipeInputStream(channel);
-                        output = new NamedPipeOutputStream(channel);
-                    }
+            // Need to retry until the pipeName was sent and pipe is created by Extension side
+            while (!connected && attempts < MAX_ATTEMPTS) {
+                try {
+                    attemptConnection(pipeFile);
                     connected = true;
                 } catch (IOException e) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Thread interrupted while trying to connect to named pipe", ie);
-                    }
+                    handleConnectionFailure(e, attempts);
+                    attempts++;
                 }
+            }
+            if (!connected) {
+                throw new RuntimeException("Failed to connect after " + MAX_ATTEMPTS + " attempts.");
+            }
+        }
+
+        private void attemptConnection(File pipeFile) throws IOException {
+            if (isWindows()) {
+                AsynchronousFileChannel channel = AsynchronousFileChannel.open(pipeFile.toPath(),
+                        StandardOpenOption.READ, StandardOpenOption.WRITE);
+                input = new NamedPipeInputStream(channel);
+                output = new NamedPipeOutputStream(channel);
+            } else {
+                UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(pipeFile.toPath());
+                SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX);
+                channel.connect(socketAddress);
+                input = new NamedPipeInputStream(channel);
+                output = new NamedPipeOutputStream(channel);
+            }
+        }
+
+        private void handleConnectionFailure(IOException e, int attempts) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Thread interrupted while handling connection failure", ie);
             }
         }
     }
@@ -202,6 +215,7 @@ public class NamedPipeStream {
     }
 
     public OutputStream getOutputStream() throws IOException {
+
         return getSelectedStream().getOutputStream();
     }
 
@@ -214,7 +228,7 @@ public class NamedPipeStream {
             .sendNotification("gradle.getImporterPipeName", pipeName);
     }
 
-    public static String generateRandomHex(int numBytes) {
+    private static String generateRandomHex(int numBytes) {
         SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[numBytes];
         random.nextBytes(bytes);
@@ -225,7 +239,7 @@ public class NamedPipeStream {
         return hexString.toString();
     }
 
-    public String generateRandomPipeName() {
+    private String generateRandomPipeName() {
         if (System.getProperty("os.name").startsWith("Windows")) {
             return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
         }
