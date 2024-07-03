@@ -59,19 +59,17 @@ public class NamedPipeStream {
             File pipeFile = new File(pathName);
 
             int attempts = 0;
-            boolean connected = false;
             // Need to retry until the pipeName was sent and pipe is created by Extension side
-            while (!connected && attempts < MAX_ATTEMPTS) {
+            while (attempts < MAX_ATTEMPTS) {
                 try {
                     attemptConnection(pipeFile);
-                    connected = true;
                 } catch (IOException e) {
-                    handleConnectionFailure(e, attempts);
+                    sleep(e, attempts);
                     attempts++;
                 }
             }
-            if (!connected) {
-                throw new RuntimeException("Failed to connect after " + MAX_ATTEMPTS + " attempts.");
+            if (attempts == MAX_ATTEMPTS) {
+                throw new RuntimeException("Failed to connect to the named pipe after " + MAX_ATTEMPTS + " attempts");
             }
         }
 
@@ -90,7 +88,7 @@ public class NamedPipeStream {
             }
         }
 
-        private void handleConnectionFailure(IOException e, int attempts) {
+        private void sleep(IOException e, int attempts) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ie) {
@@ -196,8 +194,6 @@ public class NamedPipeStream {
         }
     }
 
-    public NamedPipeStream() {}
-
     public StreamProvider getSelectedStream() {
         if (provider == null) {
             provider = createProvider()	;
@@ -206,7 +202,6 @@ public class NamedPipeStream {
     }
 
     private StreamProvider createProvider() {
-
         return new PipeStreamProvider();
     }
 
@@ -215,7 +210,6 @@ public class NamedPipeStream {
     }
 
     public OutputStream getOutputStream() throws IOException {
-
         return getSelectedStream().getOutputStream();
     }
 
