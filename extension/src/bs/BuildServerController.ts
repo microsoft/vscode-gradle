@@ -16,6 +16,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
+import { GradleTestRunner } from "./GradleTestRunner";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -25,6 +26,7 @@ export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
     private logOutputChannel: OutputChannel;
+    private gradleTestRunner: GradleTestRunner | undefined;
 
     public constructor(readonly context: ExtensionContext) {
         this.buildOutputChannel = window.createOutputChannel("Build Server for Gradle (Build)", "gradle-build");
@@ -83,6 +85,18 @@ export class BuildServerController implements Disposable {
                     });
                 }
             }),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidFinishTestRun",
+                (status: number, message?: string) => {
+                    this.gradleTestRunner?.finishTestRun(status, message);
+                }
+            ),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidChangeTestItemStatus",
+                (testParts: string[], state: number, displayName?: string, message?: string, duration?: number) => {
+                    this.gradleTestRunner?.updateTestItem(testParts, state, displayName, message, duration);
+                }
+            ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;
@@ -108,6 +122,13 @@ export class BuildServerController implements Disposable {
             })
         );
         this.checkMachineStatus();
+    }
+
+    public getGradleTestRunner(testRunnerApi: any): GradleTestRunner {
+        if (!this.gradleTestRunner) {
+            this.gradleTestRunner = new GradleTestRunner(testRunnerApi);
+        }
+        return this.gradleTestRunner;
     }
 
     public dispose() {

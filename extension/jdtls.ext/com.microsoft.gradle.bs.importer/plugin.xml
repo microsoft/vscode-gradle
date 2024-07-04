@@ -42,4 +42,9 @@
             <dynamicReference class="org.eclipse.jdt.internal.core.DynamicProjectReferences"/>
         </builder>
     </extension>
+    <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
+        <delegateCommandHandler class="com.microsoft.gradle.bs.importer.handler.GradleDelegateCommandHandler">
+            <command id="java.gradle.delegateTest" />
+        </delegateCommandHandler>
+  </extension>
 </plugin>

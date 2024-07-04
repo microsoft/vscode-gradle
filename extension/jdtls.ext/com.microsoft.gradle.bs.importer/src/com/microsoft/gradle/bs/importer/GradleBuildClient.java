@@ -3,9 +3,12 @@ package com.microsoft.gradle.bs.importer;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +26,10 @@ import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
 import org.eclipse.lsp4j.WorkDoneProgressEnd;
 import org.eclipse.lsp4j.WorkDoneProgressReport;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+
+import com.microsoft.gradle.bs.importer.model.JavaTestStatus;
+
+import org.eclipse.jdt.ls.core.internal.JSONUtility;
 import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
 
 import ch.epfl.scala.bsp4j.BuildClient;
@@ -38,6 +45,9 @@ import ch.epfl.scala.bsp4j.TaskDataKind;
 import ch.epfl.scala.bsp4j.TaskFinishParams;
 import ch.epfl.scala.bsp4j.TaskProgressParams;
 import ch.epfl.scala.bsp4j.TaskStartParams;
+import ch.epfl.scala.bsp4j.extended.TestFinishEx;
+import ch.epfl.scala.bsp4j.extended.TestName;
+import ch.epfl.scala.bsp4j.extended.TestStartEx;
 
 public class GradleBuildClient implements BuildClient {
 
@@ -133,6 +143,16 @@ public class GradleBuildClient implements BuildClient {
             Date now = new Date();
             String msg = "> Build starts at " + dateFormat.format(now) + "\n" + params.getMessage();
             lsClient.sendNotification(new ExecuteCommandParams(CLIENT_APPEND_BUILD_LOG_CMD, Arrays.asList(msg)));
+        } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_START)) {
+            TestStartEx testStartEx = JSONUtility.toModel(params.getData(), TestStartEx.class);
+            String displayName = testStartEx.getTestName().getDisplayName();
+            if (displayName.matches("(?i)test suite '.+'") || displayName.matches("(?i)test\\s+\\w+\\(.*\\)\\(\\w+(\\.\\w+)*\\)")) {
+                // ignore the suite start message as the display name.
+                displayName = null;
+            }
+            List<String> testParts = getTestParts(testStartEx.getTestName());
+            lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidChangeTestItemStatus",
+                    Arrays.asList(testParts, 2/*Running status*/, displayName)));
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             lsClient.createProgress(new WorkDoneProgressCreateParams(id));
@@ -165,6 +185,23 @@ public class GradleBuildClient implements BuildClient {
             if (params.getStatus() == StatusCode.ERROR) {
                 failedTaskCache.addAll((params.getTaskId().getParents()));
             }
+        } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_FINISH)) {
+            TestFinishEx testFinishEx = JSONUtility.toModel(params.getData(), TestFinishEx.class);
+            List<String> testParts = getTestParts(testFinishEx.getTestName());
+            JavaTestStatus testStatus = switch (testFinishEx.getStatus()) {
+                case PASSED -> JavaTestStatus.Passed;
+                case FAILED -> JavaTestStatus.Failed;
+                case IGNORED, CANCELLED, SKIPPED -> JavaTestStatus.Skipped;
+                default -> null;
+            };
+            if (testStatus == null) {
+                throw new IllegalArgumentException("Unsupported test status: " + testFinishEx.getStatus());
+            }
+            lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidChangeTestItemStatus",
+                Arrays.asList(testParts, testStatus.getValue(), null, testFinishEx.getStackTrace()))); // TODO: test duration is missing
+        } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_REPORT)) {
+            lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidFinishTestRun",
+                    Arrays.asList(params.getTaskId().getId(), params.getMessage())));
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
@@ -172,6 +209,39 @@ public class GradleBuildClient implements BuildClient {
                     BUILD_SERVER_TASK + " - " + params.getMessage());
             lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressEnd)));
         }
+    }
+
+    /**
+     * Currently, the test name returned from gradle build server is started from the class name,
+     * then follows the method or invocation name.
+     * @return The test identifier parts
+     */
+    private List<String> getTestParts(TestName testName) {
+        List<String> testNames = new LinkedList<>();
+        while (testName != null) {
+            if (testName.getSuiteName() != null) {
+                testNames.add(testName.getSuiteName());
+            } else if (testName.getMethodName() != null) {
+                testNames.add(testName.getMethodName());
+            } else if (testName.getClassName() != null) {
+                testNames.add(testName.getClassName());
+            }
+            testName = testName.getParent();
+        }
+        Collections.reverse(testNames);
+
+        // eliminate the common prefix when there is nested class test
+        // only reserve the last one as the fully qualified name.
+        int i = 0;
+        for (; i < testNames.size() - 1; i++) {
+            String cur = testNames.get(i);
+            String next = testNames.get(i + 1);
+            if (!next.startsWith(cur + "$")) {
+                break;
+            }
+        }
+
+        return testNames.subList(i, testNames.size());
     }
 
     private class LruCache<T> extends LinkedHashSet<T> {
