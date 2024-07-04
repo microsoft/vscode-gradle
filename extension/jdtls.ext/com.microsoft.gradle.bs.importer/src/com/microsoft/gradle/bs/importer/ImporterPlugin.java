@@ -96,6 +96,12 @@ public class ImporterPlugin extends Plugin {
         if (!createIfMissing) {
             return null;
         }
+
+        if (instance.buildServers.size() > 0) {
+            throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
+                    "Not support multiple workspaces."));
+        }
+
         try {
             NamedPipeStream pipeStream = new NamedPipeStream();
 
@@ -115,7 +121,7 @@ public class ImporterPlugin extends Plugin {
             return server;
         } catch (IOException e) {
             throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
-            "Failed to start build server.", e));
+                    "Failed to start build server.", e));
         }
     }
 }

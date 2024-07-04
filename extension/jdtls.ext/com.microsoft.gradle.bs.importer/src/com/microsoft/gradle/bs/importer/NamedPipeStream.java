@@ -39,10 +39,6 @@ public class NamedPipeStream {
         private InputStream input;
         private OutputStream output;
 
-        public PipeStreamProvider() {
-            initializeNamedPipe();
-        }
-
         @Override
         public InputStream getInputStream() throws IOException {
             return input;
@@ -63,6 +59,7 @@ public class NamedPipeStream {
             while (attempts < MAX_ATTEMPTS) {
                 try {
                     attemptConnection(pipeFile);
+                    break;
                 } catch (IOException e) {
                     sleep(e, attempts);
                     attempts++;
@@ -202,7 +199,9 @@ public class NamedPipeStream {
     }
 
     private StreamProvider createProvider() {
-        return new PipeStreamProvider();
+        PipeStreamProvider pipeStreamProvider = new PipeStreamProvider();
+        pipeStreamProvider.initializeNamedPipe();
+        return pipeStreamProvider;
     }
 
     public InputStream getInputStream() throws IOException {

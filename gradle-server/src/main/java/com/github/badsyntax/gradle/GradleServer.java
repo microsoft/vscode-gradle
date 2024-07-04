@@ -65,13 +65,13 @@ public class GradleServer {
 		// started.
 		String javaExecutablePath = params.get("javaExecPath");
 
-		startGradleServer(gradleServerPort);
+		startGradleServerThread(gradleServerPort);
 		if (javaExecutablePath != null) {
 			startBuildServerThread(buildServerPipeName, bundleDirectory, javaExecutablePath);
 		}
 	}
 
-	private static void startGradleServer(int port) {
+	private static void startGradleServerThread(int port) throws InterruptedException {
 		GradleServer server = new GradleServer(port);
 		Thread serverThread = new Thread(() -> {
 			try {
@@ -89,6 +89,5 @@ public class GradleServer {
 		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory, javaPath);
 		Thread buildServerThread = new Thread(buildServerConnectionThread);
 		buildServerThread.start();
-		buildServerThread.join();
 	}
 }

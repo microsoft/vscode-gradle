@@ -1,6 +1,7 @@
 import { JdtlsImporterConnector } from "./JdtlsImporterConnector";
 import { BuildServerConnector } from "./BuildServerConnector";
 import * as vscode from "vscode";
+import * as rpc from "vscode-jsonrpc/node";
 
 export class MessageProxy {
     private buildServerConnector: BuildServerConnector;
@@ -13,9 +14,29 @@ export class MessageProxy {
 
     public async start(): Promise<void> {
         await this.jdtlsImporterConnector.waitForImporterPipePath();
-        this.jdtlsImporterConnector.setupImporterServer(this.buildServerConnector.getServerConnection());
+        await this.jdtlsImporterConnector.setupImporterServer();
+
+        this.setupMessageForwarding(
+            this.jdtlsImporterConnector.getImporterConnection(),
+            this.buildServerConnector.getServerConnection()
+        );
+        this.jdtlsImporterConnector.startListening();
     }
+
     public getBuildServerPipeName(): string {
         return this.buildServerConnector.getServerPipePath();
+    }
+
+    private setupMessageForwarding(
+        importerConnection: rpc.MessageConnection | null,
+        buildServerConnection: rpc.MessageConnection | null
+    ): void {
+        importerConnection?.onRequest((method, params) => {
+            return buildServerConnection?.sendRequest(method, params);
+        });
+
+        buildServerConnection?.onNotification((method, params) => {
+            importerConnection?.sendNotification(method, params);
+        });
     }
 }
