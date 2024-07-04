@@ -35,6 +35,7 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
+import { GradleTestRunner } from "./bs/GradleTestRunner";
 import { MessageProxy } from "./bs/MessageProxy";
 
 export class Extension {
@@ -230,6 +231,15 @@ export class Extension {
     }
 
     private async activate(): Promise<void> {
+        const testExtension = vscode.extensions.getExtension("vscjava.vscode-java-test");
+        if (testExtension) {
+            testExtension.activate().then((api: any) => {
+                if (api) {
+                    const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(api);
+                    api.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
+                }
+            });
+        }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
         if (!this.server.isReady()) {
             await this.server.start();
