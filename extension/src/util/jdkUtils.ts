@@ -42,8 +42,8 @@ export async function listJdks(force?: boolean): Promise<IJavaRuntime[]> {
                 return (
                     fs.existsSync(path.join(jdk.homedir, "lib", "rt.jar")) ||
                     fs.existsSync(path.join(jdk.homedir, "jre", "lib", "rt.jar")) || // Java 8
-                    fs.existsSync(path.join(jdk.homedir, "lib", "jrt-fs.jar"))
-                ); // Java 9+
+                    fs.existsSync(path.join(jdk.homedir, "lib", "jrt-fs.jar")) // Java 9+
+                );
             })
         );
     }
