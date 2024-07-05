@@ -12,6 +12,10 @@ export class MessageProxy {
         this.jdtlsImporterConnector = new JdtlsImporterConnector(context);
     }
 
+    public prepareToStart(): void {
+        this.buildServerConnector.setupServer();
+    }
+
     public async start(): Promise<void> {
         await this.jdtlsImporterConnector.waitForImporterPipePath();
         await this.jdtlsImporterConnector.setupImporterServer();

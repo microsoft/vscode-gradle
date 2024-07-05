@@ -2,7 +2,6 @@ package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

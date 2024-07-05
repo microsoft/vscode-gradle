@@ -241,6 +241,7 @@ export class Extension {
             });
         }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
+        this.messageProxy.prepareToStart();
         if (!this.server.isReady()) {
             await this.server.start();
         }

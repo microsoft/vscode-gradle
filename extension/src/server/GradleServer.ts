@@ -48,11 +48,10 @@ export class GradleServer {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 return;
             }
-            let javaExecPath: string | null = null;
-            //Get the Java executable, which will be higher than JDK 17.
+            let javaExecPath: string | undefined = undefined;
             if (redHatJavaInstalled()) {
                 javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
-                if (javaExecPath === null) {
+                if (javaExecPath === undefined) {
                     await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 }
             }

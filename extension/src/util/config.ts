@@ -6,7 +6,13 @@ import { RootProject } from "../rootProject/RootProject";
 import * as fs from "fs";
 import * as fse from "fs-extra";
 import * as path from "path";
-
+import {
+    sortJdksBySource,
+    findDefaultRuntimeFromSettings,
+    getMajorVersion,
+    listJdks,
+    sortJdksByVersion,
+} from "./jdkUtils";
 type AutoDetect = "on" | "off";
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
@@ -29,28 +35,48 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export async function getJavaExecutablePath(): Promise<string | null> {
-    const javaHomeGetters = [
-        getConfigJavaImportGradleJavaHome,
-        getJdtlsConfigJavaHome,
-        getConfigJavaHome,
-        () => process.env.JAVA_HOME,
-    ];
+export async function getJavaExecutablePath(): Promise<string | undefined> {
+    const REQUIRED_JDK_VERSION = 17;
+
+    // search from jdt.ls.java.home, java.home
+    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome];
+    let javaHome: string | undefined = undefined;
+    let javaVersion = 0;
 
     for (const getJavaHome of javaHomeGetters) {
-        const javaHome = getJavaHome();
+        javaHome = getJavaHome() || undefined;
         if (javaHome) {
-            const runtime = await getRuntime(javaHome, { withVersion: true });
+            javaVersion = await getMajorVersion(javaHome);
             // Ensure the Java version is greater than 17
-            if (runtime?.version && runtime.version.major >= 17) {
-                const javaExecPath = path.join(javaHome, "bin", "java");
+            if (javaVersion >= REQUIRED_JDK_VERSION) {
+                const javaExecPath = path.join(javaHome, "bin", JAVA_FILENAME);
                 if (fs.existsSync(javaExecPath)) {
                     return javaExecPath;
                 }
             }
         }
     }
-    return null;
+
+    // search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, Common directories
+    const javaRuntimes = await listJdks();
+    sortJdksByVersion(javaRuntimes);
+
+    const validJdks = javaRuntimes.filter((r) => r.version!.major >= REQUIRED_JDK_VERSION);
+    if (validJdks.length > 0) {
+        sortJdksBySource(validJdks);
+        javaHome = validJdks[0].homedir;
+        javaVersion = validJdks[0].version!.major;
+    }
+
+    //search java.configuration.runtimes
+    if (javaHome) {
+        javaHome = await findDefaultRuntimeFromSettings();
+        javaVersion = await getMajorVersion(javaHome);
+    }
+    if (javaHome && javaVersion >= REQUIRED_JDK_VERSION) {
+        return path.join(javaHome, "bin", JAVA_FILENAME);
+    }
+    return undefined;
 }
 
 export function redHatJavaInstalled(): boolean {

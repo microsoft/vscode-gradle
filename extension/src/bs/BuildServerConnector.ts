@@ -11,11 +11,7 @@ export class BuildServerConnector {
     private serverPipeServer: net.Server;
     private serverPipePath: string;
 
-    constructor() {
-        this.setupServer();
-    }
-
-    private setupServer(): void {
+    public setupServer(): void {
         this.serverPipePath = generateRandomPipeName();
         this.serverPipeServer = net.createServer((socket: net.Socket) => {
             this.serverConnection = rpc.createMessageConnection(

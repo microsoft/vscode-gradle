@@ -28,12 +28,37 @@ public class NamedPipeStream {
     private StreamProvider provider;
 
     private final int MAX_ATTEMPTS = 5;
+
     interface StreamProvider {
         InputStream getInputStream() throws IOException;
-
         OutputStream getOutputStream() throws IOException;
     }
 
+    public StreamProvider getSelectedStream() {
+        if (provider == null) {
+            provider = createProvider();
+        }
+        return provider;
+    }
+
+    private StreamProvider createProvider() {
+        PipeStreamProvider pipeStreamProvider = new PipeStreamProvider();
+        pipeStreamProvider.initializeNamedPipe();
+        return pipeStreamProvider;
+    }
+
+    public InputStream getInputStream() throws IOException {
+        return getSelectedStream().getInputStream();
+    }
+
+    public OutputStream getOutputStream() throws IOException {
+        return getSelectedStream().getOutputStream();
+    }
+
+    private void sendImporterPipeName(String pipeName) {
+        JavaLanguageServerPlugin.getInstance().getClientConnection()
+            .sendNotification("gradle.getImporterPipeName", pipeName);
+    }
     protected final class PipeStreamProvider implements StreamProvider {
 
         private InputStream input;
@@ -191,34 +216,8 @@ public class NamedPipeStream {
         }
     }
 
-    public StreamProvider getSelectedStream() {
-        if (provider == null) {
-            provider = createProvider()	;
-        }
-        return provider;
-    }
-
-    private StreamProvider createProvider() {
-        PipeStreamProvider pipeStreamProvider = new PipeStreamProvider();
-        pipeStreamProvider.initializeNamedPipe();
-        return pipeStreamProvider;
-    }
-
-    public InputStream getInputStream() throws IOException {
-        return getSelectedStream().getInputStream();
-    }
-
-    public OutputStream getOutputStream() throws IOException {
-        return getSelectedStream().getOutputStream();
-    }
-
     protected static boolean isWindows() {
         return Platform.OS_WIN32.equals(Platform.getOS());
-    }
-
-    private void sendImporterPipeName(String pipeName){
-        JavaLanguageServerPlugin.getInstance().getClientConnection()
-            .sendNotification("gradle.getImporterPipeName", pipeName);
     }
 
     private static String generateRandomHex(int numBytes) {
@@ -251,4 +250,5 @@ public class NamedPipeStream {
         }
         return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
     }
+
 }
