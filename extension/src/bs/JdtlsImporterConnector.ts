@@ -3,7 +3,7 @@ import * as rpc from "vscode-jsonrpc/node";
 import * as vscode from "vscode";
 import * as path from "path";
 
-export const ON_WILL_IMPORTER_READY = "gradle.onWillImporterReady";
+export const ON_WILL_IMPORTER_CONNECT = "gradle.onWillImporterConnect";
 
 /**
  * This class will receive the pipe name from Java jdt.ls importer,
@@ -43,7 +43,7 @@ export class JdtlsImporterConnector {
      */
     private registerCommand(): void {
         this.context.subscriptions.push(
-            vscode.commands.registerCommand(ON_WILL_IMPORTER_READY, (pipeName: string) => {
+            vscode.commands.registerCommand(ON_WILL_IMPORTER_CONNECT, (pipeName: string) => {
                 this._onImporterReady.fire(path.resolve(pipeName));
             })
         );

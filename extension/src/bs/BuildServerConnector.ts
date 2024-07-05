@@ -3,7 +3,7 @@ import * as rpc from "vscode-jsonrpc/node";
 import { generateRandomPipeName } from "../util/generateRandomPipeName";
 
 /**
- * This class will create named pipe file and setting up a pipe server
+ * Create named pipe file and setting up a pipe server
  * that will be used to communicate with the build server.
  */
 export class BuildServerConnector {
@@ -12,7 +12,7 @@ export class BuildServerConnector {
     private serverPipePath: string;
 
     /**
-     * It generates a random pipe name, creates a pipe server and
+     * Generates a random pipe name, creates a pipe server and
      * waiting for the connection from the Java build server.
      */
     public setupBuildServerPipeStream(): void {

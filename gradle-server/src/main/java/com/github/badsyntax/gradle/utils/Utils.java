@@ -91,14 +91,6 @@ public class Utils {
 		return paramMap;
 	}
 
-	public static int parseIntegerParam(Map<String, String> params, String key) throws IllegalArgumentException {
-		String valueStr = params.get(key);
-		if (valueStr == null || valueStr.isEmpty()) {
-			throw new IllegalArgumentException(key + " is required and can not be empty");
-		}
-		return Integer.parseInt(valueStr);
-	}
-
 	public static String validateRequiredParam(Map<String, String> params, String key) throws IllegalArgumentException {
 		String value = params.get(key);
 		if (value == null || value.isEmpty()) {

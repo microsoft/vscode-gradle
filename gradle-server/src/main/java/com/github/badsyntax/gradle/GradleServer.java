@@ -58,7 +58,7 @@ public class GradleServer {
 	public static void main(String[] args) throws Exception {
 		Map<String, String> params = Utils.parseArgs(args);
 
-		int gradleServerPort = Utils.parseIntegerParam(params, "port");
+		int gradleServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
 		String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
 		String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
 		// JavaExecutablePath is optional. Null means that the build server will not be
