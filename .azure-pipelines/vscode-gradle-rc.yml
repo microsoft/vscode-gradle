@@ -50,9 +50,9 @@ extends:
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
-                displayName: Install Node 16.14.2
+                displayName: Install Node 18.x
                 inputs:
-                  versionSpec: '16.14.2'
+                  versionSpec: 18.x
               - task: Gradle@2
                 displayName: Build
                 inputs:
@@ -71,12 +71,12 @@ extends:
               - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'ESRP-Release-Test'
-                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
-                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-                  AuthAKVName: 'vscjavaci'
-                  AuthCertName: 'vscjava-esrprelease-auth'
-                  AuthSignCertName: 'VSCJava-CodeSign'
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
                   FolderPath: 'extension/lib'
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
@@ -146,12 +146,12 @@ extends:
               - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'ESRP-Release-Test'
-                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
-                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-                  AuthAKVName: 'vscjavaci'
-                  AuthCertName: 'vscjava-esrprelease-auth'
-                  AuthSignCertName: 'VSCJava-CodeSign'
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
                   FolderPath: 'extension/server'
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
@@ -175,11 +175,46 @@ extends:
                         "ToolVersion" : "1.0"
                       }
                     ]
-              - bash: npx @vscode/vsce@latest package
+              - bash: npx @vscode/vsce@latest package -o extension.vsix
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
+              - bash: npx @vscode/vsce@latest generate-manifest -i extension.vsix -o extension.manifest
+                workingDirectory: $(Build.SourcesDirectory)/extension
+                displayName: 'Generate extension manifest'
+              - script: cp extension.manifest extension.signature.p7s
+                workingDirectory: $(Build.SourcesDirectory)/extension
+                displayName: 'Prepare manifest for signing'
+              - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
+                inputs:
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
+                  FolderPath: 'extension'
+                  Pattern: 'extension.signature.p7s'
+                  signConfigType: inlineSignParams
+                  inlineOperation: |
+                    [
+                      {
+                        "keyCode": "CP-401405",
+                        "operationSetCode": "VSCodePublisherSign",
+                        "parameters" : [],
+                        "toolName": "sign",
+                        "toolVersion": "1.0"
+                      }
+                    ]
+                  SessionTimeout: 90
+                  MaxConcurrency: 25
+                  MaxRetryAttempts: 5
+                  PendingAnalysisWaitTimeoutMinutes: 5
+                displayName: 'Sign extension'
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:
-                  Contents: 'extension/*.vsix'
+                  Contents: |
+                    'extension/extension.vsix'
+                    'extension/extension.manifest'
+                    'extension/extension.signature.p7s'
                   TargetFolder: '$(Build.ArtifactStagingDirectory)'
