@@ -68,8 +68,8 @@ export async function getJavaExecutablePath(): Promise<string | undefined> {
         javaVersion = validJdks[0].version!.major;
     }
 
-    //search java.configuration.runtimes
-    if (javaHome) {
+    //search java.configuration.runtimes if still not found
+    if (!javaHome) {
         javaHome = await findDefaultRuntimeFromSettings();
         javaVersion = await getMajorVersion(javaHome);
     }
