@@ -3,7 +3,15 @@ import { BuildServerConnector } from "./BuildServerConnector";
 import * as vscode from "vscode";
 import * as rpc from "vscode-jsonrpc/node";
 
-export class MessageProxy {
+/**
+ * Forwards JSON-RPC messages between the build server and the Java JDT LS importer.
+ *
+ * This layer is necessary because named pipes are not well supported by Java on Windows,
+ * but are well supported by Node.js. So Node.js is used to create two named pipe servers.
+ *
+ * During the named pipe connecting process, Both the build server and JDT LS importer act as clients connecting to BspProxy.
+ */
+export class BspProxy {
     private buildServerConnector: BuildServerConnector;
     private jdtlsImporterConnector: JdtlsImporterConnector;
 
@@ -11,14 +19,22 @@ export class MessageProxy {
         this.buildServerConnector = new BuildServerConnector();
         this.jdtlsImporterConnector = new JdtlsImporterConnector(context);
     }
-
+    /**
+     * This function needs to be called before we start Java Gradle Server.
+     */
     public prepareToStart(): void {
-        this.buildServerConnector.setupServer();
+        this.buildServerConnector.setupBuildServerPipeStream();
     }
 
+    /**
+     * The order of the following start steps is important.
+     *
+     * We have to start listening after the message forwarding is setup, otherwise the Java importer
+     * will stop polling and start sending messages before the forwarding is setup and the messages will be lost.
+     */
     public async start(): Promise<void> {
         await this.jdtlsImporterConnector.waitForImporterPipePath();
-        await this.jdtlsImporterConnector.setupImporterServer();
+        await this.jdtlsImporterConnector.setupImporterPipeStream();
 
         this.setupMessageForwarding(
             this.jdtlsImporterConnector.getImporterConnection(),

@@ -54,11 +54,6 @@ public class NamedPipeStream {
     public OutputStream getOutputStream() throws IOException {
         return getSelectedStream().getOutputStream();
     }
-
-    private void sendImporterPipeName(String pipeName) {
-        JavaLanguageServerPlugin.getInstance().getClientConnection()
-            .sendNotification("gradle.getImporterPipeName", pipeName);
-    }
     protected final class PipeStreamProvider implements StreamProvider {
 
         private InputStream input;
@@ -95,6 +90,42 @@ public class NamedPipeStream {
             }
         }
 
+        private static String generateRandomHex(int numBytes) {
+            SecureRandom random = new SecureRandom();
+            byte[] bytes = new byte[numBytes];
+            random.nextBytes(bytes);
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : bytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        }
+
+        private String generateRandomPipeName() {
+            if (System.getProperty("os.name").startsWith("Windows")) {
+                return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
+            }
+            String tmpDir = System.getenv("XDG_RUNTIME_DIR");
+            if (tmpDir == null || tmpDir.isEmpty()) {
+                tmpDir = System.getProperty("java.io.tmpdir");
+            }
+            int fixedLength = ".sock".length();
+            int safeIpcPathLengths = 103;
+            int availableLength = safeIpcPathLengths - fixedLength - tmpDir.length();
+            int randomLength = 32;
+            int bytesLength = Math.min(availableLength / 2, randomLength);
+
+            if (bytesLength < 16) {
+                throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
+            }
+            return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
+        }
+
+        private void sendImporterPipeName(String pipeName) {
+            JavaLanguageServerPlugin.getInstance().getClientConnection()
+                .sendNotification("gradle.onWillImporterReady", pipeName);
+        }
+
         private void attemptConnection(File pipeFile) throws IOException {
             if (isWindows()) {
                 AsynchronousFileChannel channel = AsynchronousFileChannel.open(pipeFile.toPath(),
@@ -117,6 +148,10 @@ public class NamedPipeStream {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Thread interrupted while handling connection failure", ie);
             }
+        }
+
+        protected static boolean isWindows() {
+            return Platform.OS_WIN32.equals(Platform.getOS());
         }
     }
 
@@ -215,40 +250,4 @@ public class NamedPipeStream {
             }
         }
     }
-
-    protected static boolean isWindows() {
-        return Platform.OS_WIN32.equals(Platform.getOS());
-    }
-
-    private static String generateRandomHex(int numBytes) {
-        SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[numBytes];
-        random.nextBytes(bytes);
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            hexString.append(String.format("%02x", b));
-        }
-        return hexString.toString();
-    }
-
-    private String generateRandomPipeName() {
-        if (System.getProperty("os.name").startsWith("Windows")) {
-            return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
-        }
-        String tmpDir = System.getenv("XDG_RUNTIME_DIR");
-        if (tmpDir == null || tmpDir.isEmpty()) {
-            tmpDir = System.getProperty("java.io.tmpdir");
-        }
-        int fixedLength = ".sock".length();
-        int safeIpcPathLengths = 103;
-        int availableLength = safeIpcPathLengths - fixedLength - tmpDir.length();
-        int randomLength = 32;
-        int bytesLength = Math.min(availableLength / 2, randomLength);
-
-        if (bytesLength < 16) {
-            throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
-        }
-        return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
-    }
-
 }

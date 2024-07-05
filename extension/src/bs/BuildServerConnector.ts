@@ -4,14 +4,18 @@ import { generateRandomPipeName } from "../util/generateRandomPipeName";
 
 /**
  * This class will create named pipe file and setting up a pipe server
- * that will be used to communicate with the build server
+ * that will be used to communicate with the build server.
  */
 export class BuildServerConnector {
     private serverConnection: rpc.MessageConnection | null = null;
     private serverPipeServer: net.Server;
     private serverPipePath: string;
 
-    public setupServer(): void {
+    /**
+     * It generates a random pipe name, creates a pipe server and
+     * waiting for the connection from the Java build server.
+     */
+    public setupBuildServerPipeStream(): void {
         this.serverPipePath = generateRandomPipeName();
         this.serverPipeServer = net.createServer((socket: net.Socket) => {
             this.serverConnection = rpc.createMessageConnection(

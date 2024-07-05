@@ -8,7 +8,7 @@ import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE } from "../constant";
 import { getRedHatJavaExecutablePath, getJavaExecutablePath, redHatJavaInstalled } from "../util/config";
-import { MessageProxy } from "../bs/MessageProxy";
+import { BspProxy } from "../bs/BspProxy";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -32,7 +32,7 @@ export class GradleServer {
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
-        private messageProxy: MessageProxy
+        private bspProxy: BspProxy
     ) {}
 
     public async start(): Promise<void> {
@@ -55,7 +55,7 @@ export class GradleServer {
                     await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
                 }
             }
-            const serverPipeName = this.messageProxy.getBuildServerPipeName();
+            const serverPipeName = this.bspProxy.getBuildServerPipeName();
             const args = [
                 `--port=${this.gradleServerPort}`,
                 `--pipeName=${serverPipeName}`,

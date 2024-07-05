@@ -3,7 +3,7 @@ import * as rpc from "vscode-jsonrpc/node";
 import * as vscode from "vscode";
 import * as path from "path";
 
-export const GET_IMPORTER_PIPE_NAME = "gradle.getImporterPipeName";
+export const ON_WILL_IMPORTER_READY = "gradle.onWillImporterReady";
 
 /**
  * This class will receive the pipe name from Java jdt.ls importer,
@@ -15,32 +15,41 @@ export class JdtlsImporterConnector {
     private importerPipeServer: net.Server;
     private importerPipePath: string;
     private readonly context: vscode.ExtensionContext;
-    private readonly _onPipePathReady: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
+    private readonly _onImporterReady: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.registerCommand();
     }
 
-    //Receive the pipe name from Java jdt.ls importer
+    /**
+     * Waits for the importer pipe path to be ready.
+     * It listens for the `_onImporterReady` event, and when the event is fired,
+     * it updates the `importerPipePath` with the resolved path and resolves the Promise.
+     *
+     * @returns Promise that resolves when the pipe path is ready
+     */
     public async waitForImporterPipePath(): Promise<void> {
         return new Promise((resolve) => {
-            this._onPipePathReady.event((resolvedPath) => {
+            this._onImporterReady.event((resolvedPath) => {
                 this.importerPipePath = resolvedPath;
                 resolve();
             });
         });
     }
 
+    /**
+     * The `_onPipePathReady` event will be fired when the pipe path is received from Java jdt.ls importer
+     */
     private registerCommand(): void {
         this.context.subscriptions.push(
-            vscode.commands.registerCommand(GET_IMPORTER_PIPE_NAME, (pipeName: string) => {
-                this._onPipePathReady.fire(path.resolve(pipeName));
+            vscode.commands.registerCommand(ON_WILL_IMPORTER_READY, (pipeName: string) => {
+                this._onImporterReady.fire(path.resolve(pipeName));
             })
         );
     }
 
-    public async setupImporterServer(): Promise<void> {
+    public async setupImporterPipeStream(): Promise<void> {
         return new Promise((resolve) => {
             this.importerPipeServer = net.createServer((socket: net.Socket) => {
                 this.importerConnection = rpc.createMessageConnection(
