@@ -45,9 +45,9 @@ extends:
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
-                displayName: Install Node 16.14.2
+                displayName: Install Node 18.x
                 inputs:
-                  versionSpec: '16.14.2'
+                  versionSpec: 18.x
               - task: Gradle@2
                 displayName: Build
                 inputs:
