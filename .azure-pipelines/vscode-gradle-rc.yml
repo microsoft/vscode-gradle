@@ -181,7 +181,7 @@ extends:
               - bash: npx @vscode/vsce@latest generate-manifest -i extension.vsix -o extension.manifest
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: 'Generate extension manifest'
-              - script: cp extension.manifest extension.signature.p7s
+              - bash: cp extension.manifest extension.signature.p7s
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: 'Prepare manifest for signing'
               - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
@@ -214,7 +214,7 @@ extends:
                 displayName: Copy VSIX
                 inputs:
                   Contents: |
-                    'extension/extension.vsix'
-                    'extension/extension.manifest'
-                    'extension/extension.signature.p7s'
+                    extension/extension.vsix
+                    extension/extension.manifest
+                    extension/extension.signature.p7s
                   TargetFolder: '$(Build.ArtifactStagingDirectory)'
