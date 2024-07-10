@@ -235,8 +235,18 @@ task copyBuildServerJars(type: Copy) {
   mustRunAfter copyDocs
 }
 
+task copyBuildServerJarsToGradleServer(type: Copy) {
+  dependsOn ':extension:buildBuildServer'
+  from('./build-server-for-gradle/server/build/libs/') {
+    include '**/*.jar'
+    include '**/init.gradle'
+  }
+  into '../gradle-server/build/libs/'
+  mustRunAfter copyDocs
+}
+
 task buildJars() {
-  dependsOn copyJdtlsPluginJar, copyBuildServerJars
+  dependsOn copyJdtlsPluginJar, copyBuildServerJars, copyBuildServerJarsToGradleServer
 }
 
 build.finalizedBy buildProd, buildTest

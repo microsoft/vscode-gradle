@@ -61,13 +61,11 @@ public class GradleServer {
 		int gradleServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
 		String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
 		String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
-		// JavaExecutablePath is optional. Null means that the build server will not be
-		// started.
-		String javaExecutablePath = params.get("javaExecPath");
+		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
 
 		startGradleServerThread(gradleServerPort);
-		if (javaExecutablePath != null) {
-			startBuildServerThread(buildServerPipeName, bundleDirectory, javaExecutablePath);
+		if (startBuildServer) {
+			startBuildServerThread(buildServerPipeName, bundleDirectory);
 		}
 	}
 
@@ -84,9 +82,8 @@ public class GradleServer {
 		serverThread.start();
 	}
 
-	private static void startBuildServerThread(String pipeName, String directory, String javaPath)
-			throws InterruptedException {
-		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory, javaPath);
+	private static void startBuildServerThread(String pipeName, String directory) throws InterruptedException {
+		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory);
 		Thread buildServerThread = new Thread(buildServerConnectionThread);
 		buildServerThread.start();
 	}

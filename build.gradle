@@ -8,7 +8,7 @@ plugins {
 project.ext.set('grpcVersion', '1.53.0')
 project.ext.set('protobufVersion', '3.12.0')
 project.ext.set('protocVersion', project.protobufVersion)
-project.ext.set('toolingAPIVersion', '8.0.2')
+project.ext.set('toolingAPIVersion', '8.8')
 
 allprojects {
   group = 'vscode-gradle'

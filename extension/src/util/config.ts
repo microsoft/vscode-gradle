@@ -83,9 +83,9 @@ export function redHatJavaInstalled(): boolean {
     return !!vscode.extensions.getExtension("redhat.java");
 }
 
-export function getRedHatJavaExecutablePath(): string | null {
+export function getRedHatJavaExecutablePath(): string | undefined {
     if (!redHatJavaInstalled()) {
-        return null;
+        return undefined;
     }
 
     const jreHome = path.join(vscode.extensions.getExtension("redhat.java")!.extensionPath, "jre");
@@ -98,7 +98,7 @@ export function getRedHatJavaExecutablePath(): string | null {
             }
         }
     }
-    return null;
+    return undefined;
 }
 
 export function getConfigGradleJavaHome(): string | null {

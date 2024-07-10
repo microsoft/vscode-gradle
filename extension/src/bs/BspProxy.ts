@@ -52,11 +52,11 @@ export class BspProxy {
         buildServerConnection: rpc.MessageConnection | null
     ): void {
         importerConnection?.onRequest((method, params) => {
-            return buildServerConnection?.sendRequest(method, params);
+            return buildServerConnection?.sendRequest(method, params ?? {});
         });
 
         buildServerConnection?.onNotification((method, params) => {
-            importerConnection?.sendNotification(method, params);
+            importerConnection?.sendNotification(method, params ?? {});
         });
     }
 }

@@ -1,3 +1,4 @@
+// See: https://github.com/microsoft/vscode-languageserver-node/blob/6d0454dca7fba8529ba3fc6d930642f134291d3d/jsonrpc/src/node/main.ts#L176
 import { randomBytes } from "crypto";
 import * as os from "os";
 import * as path from "path";
@@ -9,7 +10,7 @@ const safeIpcPathLengths: Map<NodeJS.Platform, number> = new Map([
     ["darwin", 103],
 ]);
 
-//TODO: remove this function after upgrading vscode-languageclient
+// TODO: remove this function after upgrading vscode-languageclient
 export function generateRandomPipeName(): string {
     if (process.platform === "win32") {
         return `\\\\.\\pipe\\${randomBytes(16).toString("hex")}-sock`;

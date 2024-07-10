@@ -1,3 +1,4 @@
+// See: https://github.com/redhat-developer/vscode-java/blob/2015139c5773c0107f75d2289e3656f45cb38c98/src/jdkUtils.ts
 import { getRuntime, findRuntimes, IJavaRuntime, getSources } from "jdk-utils";
 import * as vscode from "vscode";
 import * as fs from "fs";

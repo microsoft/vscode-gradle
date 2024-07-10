@@ -4,7 +4,6 @@ import * as cp from "child_process";
 import * as getPort from "get-port";
 import * as kill from "tree-kill";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
-import { isDebuggingServer } from "../util";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE } from "../constant";
 import { getRedHatJavaExecutablePath, getJavaExecutablePath, redHatJavaInstalled } from "../util/config";
@@ -36,58 +35,55 @@ export class GradleServer {
     ) {}
 
     public async start(): Promise<void> {
-        if (isDebuggingServer()) {
-            this.fireOnStart();
-        } else {
-            this.gradleServerPort = await getPort();
-            const cwd = this.context.asAbsolutePath("lib");
-            const cmd = path.join(cwd, getGradleServerCommand());
-            const env = await getGradleServerEnv();
-            const bundleDirectory = this.context.asAbsolutePath("server");
-            if (!env) {
-                await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
-                return;
-            }
-            let javaExecPath: string | undefined = undefined;
-            if (redHatJavaInstalled()) {
-                javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
-                if (javaExecPath === undefined) {
-                    await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
-                }
-            }
-            const serverPipeName = this.bspProxy.getBuildServerPipeName();
-            const args = [
-                `--port=${this.gradleServerPort}`,
-                `--pipeName=${serverPipeName}`,
-                `--bundleDir=${bundleDirectory}`,
-                `--javaExecPath=${javaExecPath}`,
-            ];
-            this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
-
-            this.process = cp.spawn(`"${cmd}"`, args, {
-                cwd,
-                env,
-                shell: true,
-            });
-            this.process.stdout.on("data", this.logOutput);
-            this.process.stderr.on("data", this.logOutput);
-            this.process
-                .on("error", (err: Error) => this.logger.error(err.message))
-                .on("exit", async (code) => {
-                    this.logger.warn("Gradle server stopped");
-                    this._onDidStop.fire(null);
-                    this.ready = false;
-                    this.process?.removeAllListeners();
-                    if (this.restarting) {
-                        this.restarting = false;
-                        await this.start();
-                    } else if (code !== 0) {
-                        await this.handleServerStartError();
-                    }
-                });
-
-            this.fireOnStart();
+        this.gradleServerPort = await getPort();
+        const cwd = this.context.asAbsolutePath("lib");
+        const cmd = path.join(cwd, getGradleServerCommand());
+        const env = await getGradleServerEnv();
+        const bundleDirectory = this.context.asAbsolutePath("server");
+        if (!env) {
+            await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+            return;
         }
+        let startBuildServer = "false";
+        if (redHatJavaInstalled()) {
+            const javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
+            if (javaExecPath === undefined) {
+                await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+            }
+            startBuildServer = "true";
+        }
+        const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
+        const args = [
+            `--port=${this.gradleServerPort}`,
+            `--pipeName=${buildServerPipeName}`,
+            `--bundleDir=${bundleDirectory}`,
+            `--startBuildServer=${startBuildServer}`,
+        ];
+        this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
+
+        this.process = cp.spawn(`"${cmd}"`, args, {
+            cwd,
+            env,
+            shell: true,
+        });
+        this.process.stdout.on("data", this.logOutput);
+        this.process.stderr.on("data", this.logOutput);
+        this.process
+            .on("error", (err: Error) => this.logger.error(err.message))
+            .on("exit", async (code) => {
+                this.logger.warn("Gradle server stopped");
+                this._onDidStop.fire(null);
+                this.ready = false;
+                this.process?.removeAllListeners();
+                if (this.restarting) {
+                    this.restarting = false;
+                    await this.start();
+                } else if (code !== 0) {
+                    await this.handleServerStartError();
+                }
+            });
+
+        this.fireOnStart();
     }
 
     public isReady(): boolean {

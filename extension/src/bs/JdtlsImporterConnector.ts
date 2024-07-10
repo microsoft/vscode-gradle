@@ -6,9 +6,8 @@ import * as path from "path";
 export const ON_WILL_IMPORTER_CONNECT = "gradle.onWillImporterConnect";
 
 /**
- * This class will receive the pipe name from Java jdt.ls importer,
- * generate named pipe file and setting up a pipe server that will be used to
- * communicate with the importer
+ * Receive the pipe name from Java jdt.ls importer, generate named pipe file and
+ * setting up a pipe server that will be used to communicate with the importer
  */
 export class JdtlsImporterConnector {
     private importerConnection: rpc.MessageConnection | null = null;
