@@ -48,8 +48,16 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                 List<BuildTargetIdentifier> btIds = targets.stream().filter(bt -> {
                     return bt.getTags().contains(BuildTargetTag.INTEGRATION_TEST) || bt.getTags().contains(BuildTargetTag.TEST);
                 }).map(BuildTarget::getId).collect(Collectors.toList());
-                if (btIds.isEmpty() || btIds.size() > 1) {
+                if (btIds.isEmpty()) {
                     throw new IllegalStateException("Invalid number of build targets: " + btIds.size());
+                }
+
+                if (btIds.size() > 1) {
+                    // The build server only allows to accept one build target per test request. At client side,
+                    // each test request is sent per project, so even multiple build targets are found, they
+                    // belongs to the same project. Thus, we only use the first one here. Build server will use
+                    // this single build target to locate the project to test.
+                    btIds = btIds.subList(0, 1);
                 }
                 TestParams testParams = new TestParams(btIds);
                 testParams.setDataKind("scala-test-suites-selection");
@@ -64,8 +72,8 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                 }
                 ScalaTestSuites scalaTestSuites = new ScalaTestSuites(
                     testSelections,
-                    getJvmOptions(arguments), // jvmOptions
-                    getEnvVarPairs(arguments)  // envVariables
+                    getJvmOptions(arguments),
+                    getEnvVarPairs(arguments)
                 );
                 testParams.setData(scalaTestSuites);
                 buildServerConnection.buildTargetTest(testParams).join();
