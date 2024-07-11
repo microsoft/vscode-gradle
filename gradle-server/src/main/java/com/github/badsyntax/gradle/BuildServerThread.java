@@ -15,13 +15,9 @@ public class BuildServerThread implements Runnable {
 
 	@Override
 	public void run() {
-		try {
-			System.setProperty("plugin.dir", getBuildServerPluginPath());
-			String[] args = {"--pipe=" + this.pipeName};
-			Launcher.main(args);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		System.setProperty("plugin.dir", getBuildServerPluginPath());
+		String[] args = {"--pipe=" + this.pipeName};
+		Launcher.main(args);
 	}
 
 	private String getBuildServerPluginPath() {

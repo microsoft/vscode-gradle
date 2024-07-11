@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { commands, window } from "vscode";
 import { logger, LogVerbosity, Logger } from "./logger";
 import { Api } from "./api";
 import { GradleClient } from "./client";
@@ -317,7 +318,21 @@ export class Extension {
     private async restartServer(): Promise<void> {
         if (this.server.isReady()) {
             await this.client.cancelBuilds();
-            await this.server.restart();
+            // TODO: find a better way to restart task server separately
+            const msg = "Please reload to make the change take effect. Reload now?";
+            const action = "Reload";
+            window.showWarningMessage(msg, action).then((selection) => {
+                if (selection === action) {
+                    sendInfo("", {
+                        kind: "acceptServerRestart",
+                    });
+                    commands.executeCommand("workbench.action.reloadWindow");
+                } else {
+                    sendInfo("", {
+                        kind: "rejectServerRestart",
+                    });
+                }
+            });
         }
     }
 

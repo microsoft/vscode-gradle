@@ -6,13 +6,7 @@ import { RootProject } from "../rootProject/RootProject";
 import * as fs from "fs";
 import * as fse from "fs-extra";
 import * as path from "path";
-import {
-    sortJdksBySource,
-    findDefaultRuntimeFromSettings,
-    getMajorVersion,
-    listJdks,
-    sortJdksByVersion,
-} from "./jdkUtils";
+import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
 type AutoDetect = "on" | "off";
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
@@ -47,7 +41,6 @@ export async function getJavaExecutablePath(): Promise<string | undefined> {
         javaHome = getJavaHome() || undefined;
         if (javaHome) {
             javaVersion = await getMajorVersion(javaHome);
-            // Ensure the Java version is greater than 17
             if (javaVersion >= REQUIRED_JDK_VERSION) {
                 const javaExecPath = path.join(javaHome, "bin", JAVA_FILENAME);
                 if (fs.existsSync(javaExecPath)) {
@@ -59,11 +52,9 @@ export async function getJavaExecutablePath(): Promise<string | undefined> {
 
     // search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, Common directories
     const javaRuntimes = await listJdks();
-    sortJdksByVersion(javaRuntimes);
 
     const validJdks = javaRuntimes.filter((r) => r.version!.major >= REQUIRED_JDK_VERSION);
     if (validJdks.length > 0) {
-        sortJdksBySource(validJdks);
         javaHome = validJdks[0].homedir;
         javaVersion = validJdks[0].version!.major;
     }

@@ -19,6 +19,7 @@ import java.security.SecureRandom;
 
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.core.runtime.Platform;
+import com.microsoft.gradle.bs.importer.model.Telemetry;
 
 /**
  * A class to create a named pipe stream for the importer to communicate with the extension.
@@ -85,6 +86,9 @@ public class NamedPipeStream {
                     attempts++;
                 }
             }
+            Telemetry telemetry = new Telemetry("importerConnectAttempts", attempts);
+            Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
             if (attempts == MAX_ATTEMPTS) {
                 throw new RuntimeException("Failed to connect to the named pipe after " + MAX_ATTEMPTS + " attempts");
             }
