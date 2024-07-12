@@ -43,7 +43,9 @@ The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get 
 ## Debugging Gradle Server
 
 1. Run vscode launch configuration `Debug Gradle Server & Extension`.
-2. Run vscode launch configuration `Attach to Gradle Server`.
+2. Run vscode launch configuration `Attach to Gradle Server` when you notice the `Gradle: Connecting...` message in the bottom status bar.
+
+> Note: If `Java: Error` message appear in the bottom status bar, it indicates that the connection attempt in step 2 was too slow. [GradleBuildClient](/extension/jdtls.ext/com.microsoft.gradle.bs.importer/src/com/microsoft/gradle/bs/importer/ImporterPlugin.java#L107) requires the Gradle Server to be active to establish a connection. If this happens, retry the attachment more swiftly.
 
 ## Debugging Gradle Language Server (editing feature related)
 

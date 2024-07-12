@@ -13,7 +13,7 @@ public class GradleServer {
 	private static final Logger logger = LoggerFactory.getLogger(GradleServer.class.getName());
 
 	private final int port;
-	private final Server server;
+	private final Server taskServer;
 
 	public GradleServer(int port) {
 		this(ServerBuilder.forPort(port), port);
@@ -21,12 +21,12 @@ public class GradleServer {
 
 	public GradleServer(ServerBuilder<?> serverBuilder, int port) {
 		this.port = port;
-		server = serverBuilder.addService(new GradleService()).build();
+		taskServer = serverBuilder.addService(new TaskService()).build();
 	}
 
 	@SuppressWarnings("java:S106")
 	public void start() throws IOException {
-		server.start();
+		taskServer.start();
 		logger.info("Gradle Server started, listening on {}", port);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
@@ -44,32 +44,32 @@ public class GradleServer {
 	}
 
 	public void stop() throws InterruptedException {
-		if (server != null) {
-			server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+		if (taskServer != null) {
+			taskServer.shutdown().awaitTermination(30, TimeUnit.SECONDS);
 		}
 	}
 
 	private void blockUntilShutdown() throws InterruptedException {
-		if (server != null) {
-			server.awaitTermination();
+		if (taskServer != null) {
+			taskServer.awaitTermination();
 		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		Map<String, String> params = Utils.parseArgs(args);
 
-		int gradleServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
+		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
 		String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
 		String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
 		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
 
-		startGradleServerThread(gradleServerPort);
+		startTaskServerThread(taskServerPort);
 		if (startBuildServer) {
 			startBuildServerThread(buildServerPipeName, bundleDirectory);
 		}
 	}
 
-	private static void startGradleServerThread(int port) throws InterruptedException {
+	private static void startTaskServerThread(int port) throws InterruptedException {
 		GradleServer server = new GradleServer(port);
 		Thread serverThread = new Thread(() -> {
 			try {

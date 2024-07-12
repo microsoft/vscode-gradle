@@ -235,6 +235,7 @@ task copyBuildServerJars(type: Copy) {
   mustRunAfter copyDocs
 }
 
+// TODO: This task can be removed once the build server is published.
 task copyBuildServerJarsToGradleServer(type: Copy) {
   dependsOn ':extension:buildBuildServer'
   from('./build-server-for-gradle/server/build/libs/') {

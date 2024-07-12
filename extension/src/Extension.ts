@@ -307,7 +307,19 @@ export class Extension {
         this.gradleWrapperWatcher.onDidChange(
             instrumentOperation(GRADLE_PROPERTIES_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
                 logger.info("Gradle wrapper properties changed:", uri.fsPath);
-                await this.restartServer();
+                const selection = await this.showRestartWindow();
+                if (selection === "Reload") {
+                    sendInfo("", {
+                        kind: "wrapperPropertiesChangedReloadRequest",
+                        data2: "true",
+                    });
+                    await this.restartServer();
+                } else {
+                    sendInfo("", {
+                        kind: "wrapperPropertiesChangedReloadRequest",
+                        data2: "false",
+                    });
+                }
                 if (isLanguageServerStarted) {
                     void vscode.commands.executeCommand("gradle.distributionChanged");
                 }
@@ -318,22 +330,15 @@ export class Extension {
     private async restartServer(): Promise<void> {
         if (this.server.isReady()) {
             await this.client.cancelBuilds();
-            // TODO: find a better way to restart task server separately
-            const msg = "Please reload to make the change take effect. Reload now?";
-            const action = "Reload";
-            window.showWarningMessage(msg, action).then((selection) => {
-                if (selection === action) {
-                    sendInfo("", {
-                        kind: "acceptServerRestart",
-                    });
-                    commands.executeCommand("workbench.action.reloadWindow");
-                } else {
-                    sendInfo("", {
-                        kind: "rejectServerRestart",
-                    });
-                }
-            });
+            await commands.executeCommand("workbench.action.reloadWindow");
         }
+    }
+
+    private async showRestartWindow(): Promise<string | undefined> {
+        const msg = "Please reload to make the change take effect. Reload now?";
+        const action = "Reload";
+        const selection = await window.showWarningMessage(msg, action);
+        return selection;
     }
 
     private refresh(): Thenable<void> {
@@ -348,7 +353,19 @@ export class Extension {
                     event.affectsConfiguration("java.jdt.ls.java.home") ||
                     event.affectsConfiguration("java.import.gradle.java.home")
                 ) {
-                    await this.restartServer();
+                    const selection = await this.showRestartWindow();
+                    if (selection === "Reload") {
+                        sendInfo("", {
+                            kind: "javaHomeChangedReloadRequest",
+                            data2: "true",
+                        });
+                        await this.restartServer();
+                    } else {
+                        sendInfo("", {
+                            kind: "javaHomeChangedReloadRequest",
+                            data2: "false",
+                        });
+                    }
                 } else if (
                     event.affectsConfiguration("gradle.javaDebug.cleanOutput") ||
                     event.affectsConfiguration("gradle.nestedProjects")

@@ -20,7 +20,7 @@ export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
-    private gradleServerPort: number | undefined;
+    private taskServerPort: number | undefined;
     private restarting = false;
 
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
@@ -35,7 +35,7 @@ export class GradleServer {
     ) {}
 
     public async start(): Promise<void> {
-        this.gradleServerPort = await getPort();
+        this.taskServerPort = await getPort();
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
         const env = await getGradleServerEnv();
@@ -47,14 +47,15 @@ export class GradleServer {
         let startBuildServer = "false";
         if (redHatJavaInstalled()) {
             const javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
-            if (javaExecPath === undefined) {
+            if (!javaExecPath) {
                 await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+            } else {
+                startBuildServer = "true";
             }
-            startBuildServer = "true";
         }
         const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
         const args = [
-            `--port=${this.gradleServerPort}`,
+            `--port=${this.taskServerPort}`,
             `--pipeName=${buildServerPipeName}`,
             `--bundleDir=${bundleDirectory}`,
             `--startBuildServer=${startBuildServer}`,
@@ -151,7 +152,7 @@ export class GradleServer {
     }
 
     public getPort(): number | undefined {
-        return this.gradleServerPort;
+        return this.taskServerPort;
     }
 
     public getOpts(): ServerOptions {
