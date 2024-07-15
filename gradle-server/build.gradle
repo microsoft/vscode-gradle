@@ -6,13 +6,15 @@ plugins {
 description = 'vscode-gradle :: gradle-server'
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
   implementation project(":gradle-plugin-api")
-  implementation "org.gradle:gradle-tooling-api:${toolingAPIVersion}"
+  implementation files('build/libs/server.jar')
+  implementation fileTree(dir: 'build/libs/runtime', include: ['*.jar'], exclude: ['gradle-tooling-api-*.jar', 'slf4j-api-*.jar'])
+  implementation("org.gradle:gradle-tooling-api:${toolingAPIVersion}")
   implementation 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
   implementation "io.grpc:grpc-stub:${grpcVersion}"
@@ -124,12 +126,23 @@ task serverStartScripts(type: CreateStartScripts) {
 task copyRuntimeLibs(type: Copy) {
   into "../extension/lib"
   from configurations.runtimeClasspath
+  duplicatesStrategy = 'exclude'
 }
 
 project.tasks.named("processResources") {
   dependsOn(':gradle-plugin:copyJar')
   duplicatesStrategy = 'include'
 }
+
+test {
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED',
+    '--add-opens=java.base/java.util=ALL-UNNAMED',
+    '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+    '--add-opens=java.base/java.nio.file=ALL-UNNAMED',
+    '--add-opens=java.base/java.io=ALL-UNNAMED',
+    '--add-opens=java.base/sun.nio.fs=ALL-UNNAMED'
+}
+
 
 compileJava.dependsOn 'generateProto', 'spotlessCheck'
 assemble.dependsOn serverStartScripts

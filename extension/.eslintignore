@@ -9,3 +9,5 @@ src/proto/
 build/
 beta/
 webpack.config.js
+build-server-for-gradle/
+bin/

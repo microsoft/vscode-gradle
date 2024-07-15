@@ -9,3 +9,5 @@ lib/
 src/proto/
 build/
 src/java-test-runner.api.ts
+build-server-for-gradle/
+bin/

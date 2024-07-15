@@ -4,6 +4,14 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+### 3.15.0
+## What's Changed
+* feat - Support delegate tests to Gradle build Server by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1510
+* fix - Only send request after initialization by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1503
+* fix - Add java 22 to compatibility matrix by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1505
+* refactor - Introduce gson to simplify the object parsing by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1509
+* fix - Slice the build target list to 1 when running gradle tests by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1518
+
 ### 3.14.1
 ### What's Changed
 * fix - Fix the importer version.

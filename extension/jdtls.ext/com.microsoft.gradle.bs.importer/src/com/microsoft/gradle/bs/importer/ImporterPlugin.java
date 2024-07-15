@@ -2,9 +2,6 @@ package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,8 +35,6 @@ public class ImporterPlugin extends Plugin {
      */
     private DigestStore digestStore;
 
-    private static String bundleDirectory;
-
     private static String bundleVersion = "";
 
     @Override
@@ -52,7 +47,6 @@ public class ImporterPlugin extends Plugin {
         if (!bundleFile.isPresent()) {
            throw new IllegalStateException("Failed to get bundle location.");
         }
-        bundleDirectory = bundleFile.get().getParent();
     }
 
     @Override
@@ -102,31 +96,18 @@ public class ImporterPlugin extends Plugin {
             return null;
         }
 
-        String javaExecutablePath = getJavaExecutablePath();
-        String[] classpaths = getBuildServerClasspath();
-
-        String pluginPath = getBuildServerPluginPath();
-
-        List<String> command = new ArrayList<>();
-        command.add(javaExecutablePath);
-        if (Boolean.parseBoolean(System.getenv("DEBUG_GRADLE_BUILD_SERVER"))) {
-            command.add("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8989");
+        if (instance.buildServers.size() > 0) {
+            throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
+                    "Not support multiple workspaces."));
         }
-        command.add("--add-opens=java.base/java.lang=ALL-UNNAMED");
-        command.add("--add-opens=java.base/java.io=ALL-UNNAMED");
-        command.add("--add-opens=java.base/java.util=ALL-UNNAMED");
-        command.add("-Dplugin.dir=" + pluginPath);
-        command.add("-cp");
-        command.add(String.join(getClasspathSeparator(), classpaths));
-        command.add("com.microsoft.java.bs.core.Launcher");
 
-        ProcessBuilder build = new ProcessBuilder(command);
         try {
-            Process process = build.start();
-            BuildClient client = new GradleBuildClient();
+            NamedPipeStream pipeStream = new NamedPipeStream();
+
+            GradleBuildClient client = new GradleBuildClient();
             Launcher<BuildServerConnection> launcher = new Launcher.Builder<BuildServerConnection>()
-                    .setOutput(process.getOutputStream())
-                    .setInput(process.getInputStream())
+                    .setOutput(pipeStream.getOutputStream())
+                    .setInput(pipeStream.getInputStream())
                     .setLocalService(client)
                     .setExecutorService(Executors.newCachedThreadPool())
                     .setRemoteInterface(BuildServerConnection.class)
@@ -141,38 +122,5 @@ public class ImporterPlugin extends Plugin {
             throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
                     "Failed to start build server.", e));
         }
-    }
-
-    /**
-     * Get the Java executable used by JDT.LS, which will be higher than JDK 17.
-     */
-    private static String getJavaExecutablePath() {
-        Optional<String> command = ProcessHandle.current().info().command();
-        if (command.isPresent()) {
-            return command.get();
-        }
-
-        throw new IllegalStateException("Failed to get Java executable path.");
-    }
-
-    private static String[] getBuildServerClasspath() {
-        return new String[]{
-            Paths.get(bundleDirectory, "server.jar").toString(),
-            Paths.get(bundleDirectory, "runtime").toString() + File.separatorChar + "*"
-        };
-    }
-
-    private static String getBuildServerPluginPath() {
-        return Paths.get(bundleDirectory, "plugins").toString();
-    }
-
-    private static String getClasspathSeparator() {
-        String os = System.getProperty("os.name").toLowerCase();
-
-        if (os.contains("win")) {
-            return ";";
-        }
-
-        return ":"; // Linux or Mac
     }
 }
