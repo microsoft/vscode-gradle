@@ -2,6 +2,8 @@ import { JdtlsImporterConnector } from "./JdtlsImporterConnector";
 import { BuildServerConnector } from "./BuildServerConnector";
 import * as vscode from "vscode";
 import * as rpc from "vscode-jsonrpc/node";
+import { Logger } from "../logger/index";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 
 /**
  * Forwards JSON-RPC messages between the build server and the Java JDT LS importer.
@@ -15,7 +17,7 @@ export class BspProxy {
     private buildServerConnector: BuildServerConnector;
     private jdtlsImporterConnector: JdtlsImporterConnector;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext, private readonly logger: Logger) {
         this.buildServerConnector = new BuildServerConnector();
         this.jdtlsImporterConnector = new JdtlsImporterConnector(context);
     }
@@ -63,6 +65,31 @@ export class BspProxy {
                 return importerConnection?.sendNotification(method, params);
             }
             importerConnection?.sendNotification(method);
+        });
+        importerConnection?.onError(([error, message, code]) => {
+            this.logger.error(`Error on importerConnection: ${error.message}`);
+            sendInfo("", {
+                kind: "bspProxy-importerConnectionError",
+                data2: JSON.stringify({
+                    error,
+                    message,
+                    code,
+                }),
+            });
+            // TODO: Implement more specific error handling logic here
+        });
+
+        buildServerConnection?.onError(([error, message, code]) => {
+            this.logger.error(`Error on buildServerConnection: ${error.message}`);
+            sendInfo("", {
+                kind: "bspProxy-importerConnectionError",
+                data2: JSON.stringify({
+                    error,
+                    message,
+                    code,
+                }),
+            });
+            // TODO: Implement more specific error handling logic here
         });
     }
 }

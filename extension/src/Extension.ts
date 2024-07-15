@@ -81,12 +81,15 @@ export class Extension {
         const serverLogger = new Logger("gradle-server");
         serverLogger.setLoggingChannel(loggingChannel);
 
+        const bspLogger = new Logger("bspProxy");
+        bspLogger.setLoggingChannel(loggingChannel);
+
         if (getConfigIsDebugEnabled()) {
             Logger.setLogVerbosity(LogVerbosity.DEBUG);
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.bspProxy = new BspProxy(this.context);
+        this.bspProxy = new BspProxy(this.context, bspLogger);
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
@@ -335,7 +338,7 @@ export class Extension {
     }
 
     private async showRestartWindow(): Promise<string | undefined> {
-        const msg = "Please reload to make the change take effect. Reload now?";
+        const msg = "Please reload the window to make the change take effect. Reload now?";
         const action = "Reload";
         const selection = await window.showWarningMessage(msg, action);
         return selection;

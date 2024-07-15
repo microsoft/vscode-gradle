@@ -3,6 +3,8 @@ import * as path from "path";
 import * as cp from "child_process";
 import * as getPort from "get-port";
 import * as kill from "tree-kill";
+import { commands } from "vscode";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE } from "../constant";
@@ -92,13 +94,22 @@ export class GradleServer {
     }
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Restart Server";
+        const OPT_RESTART = "Reload";
         const input = await vscode.window.showErrorMessage(
-            "No connection to gradle server. Try restarting the server.",
+            "No connection to gradle server. Try reload the window.",
             OPT_RESTART
         );
         if (input === OPT_RESTART) {
-            await this.start();
+            sendInfo("", {
+                kind: "taskServerRestart",
+                data2: "true",
+            });
+            await commands.executeCommand("workbench.action.reloadWindow");
+        } else {
+            sendInfo("", {
+                kind: "taskServerRestart",
+                data2: "false",
+            });
         }
     }
 

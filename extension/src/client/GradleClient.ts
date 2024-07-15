@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as grpc from "@grpc/grpc-js";
 import { connectivityState as ConnectivityState } from "@grpc/grpc-js";
-
+import { commands } from "vscode";
 import {
     Output,
     GetBuildRequest,
@@ -495,7 +495,7 @@ export class GradleClient implements vscode.Disposable {
             OPT_RESTART
         );
         if (input === OPT_RESTART) {
-            await this.handleServerStart();
+            await commands.executeCommand("workbench.action.reloadWindow");
         }
     }
 
