@@ -96,7 +96,7 @@ export class GradleServer {
     public async showRestartMessage(): Promise<void> {
         const OPT_RESTART = "Reload";
         const input = await vscode.window.showErrorMessage(
-            "No connection to gradle server. Try reload the window.",
+            "No connection to gradle server. Try reloading the window.",
             OPT_RESTART
         );
         if (input === OPT_RESTART) {

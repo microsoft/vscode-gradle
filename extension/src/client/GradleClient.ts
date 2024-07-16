@@ -489,9 +489,9 @@ export class GradleClient implements vscode.Disposable {
     };
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Re-connect Client";
+        const OPT_RESTART = "Reload";
         const input = await vscode.window.showErrorMessage(
-            "The Gradle client was unable to connect. Try re-connecting.",
+            "The Gradle client was unable to connect. Try reloading the window.",
             OPT_RESTART
         );
         if (input === OPT_RESTART) {
