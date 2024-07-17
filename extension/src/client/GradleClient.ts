@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as grpc from "@grpc/grpc-js";
 import { connectivityState as ConnectivityState } from "@grpc/grpc-js";
-import { commands } from "vscode";
 import {
     Output,
     GetBuildRequest,
@@ -489,13 +488,13 @@ export class GradleClient implements vscode.Disposable {
     };
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Reload";
+        const OPT_RESTART = "Re-connect Client";
         const input = await vscode.window.showErrorMessage(
-            "The Gradle client was unable to connect. Try reloading the window.",
+            "The Gradle client was unable to connect. Try re-connecting.",
             OPT_RESTART
         );
         if (input === OPT_RESTART) {
-            await commands.executeCommand("workbench.action.reloadWindow");
+            await this.handleServerStart();
         }
     }
 
