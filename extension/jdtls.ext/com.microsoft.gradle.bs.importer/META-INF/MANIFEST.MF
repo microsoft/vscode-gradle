@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Gradle Build Server Importer
 Bundle-SymbolicName: com.microsoft.gradle.bs.importer;singleton:=true
-Bundle-Version: 0.3.0
+Bundle-Version: 0.4.0
 Bundle-Activator: com.microsoft.gradle.bs.importer.ImporterPlugin
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
