@@ -7,6 +7,7 @@ import * as fse from "fs-extra";
 import * as path from "path";
 import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
 type AutoDetect = "on" | "off";
+const REQUIRED_JDK_VERSION = 17;
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
     return (
@@ -33,7 +34,6 @@ export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
 }
 
 export async function findValidJavaHome(): Promise<string | undefined> {
-    const REQUIRED_JDK_VERSION = 17;
     const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome, getConfigJavaImportGradleJavaHome];
     let javaHome: string | undefined = undefined;
     let javaVersion = 0;
