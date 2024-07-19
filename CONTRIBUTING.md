@@ -8,7 +8,7 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Build Gradle Server and Gradle Language Server.
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 8](https://adoptium.net/)
+2. Install [Java version >= 17](https://adoptium.net/)
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
 5. If using an Apple M1:
@@ -45,7 +45,11 @@ The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get 
 1. Run vscode launch configuration `Debug Gradle Server & Extension`.
 2. Run vscode launch configuration `Attach to Gradle Server` when you notice the `Gradle: Connecting...` message in the bottom status bar.
 
-> Note: If `Java: Error` message appear in the bottom status bar, it indicates that the connection attempt in step 2 was too slow. [GradleBuildClient](/extension/jdtls.ext/com.microsoft.gradle.bs.importer/src/com/microsoft/gradle/bs/importer/ImporterPlugin.java#L107) requires the Gradle Server to be active to establish a connection. If this happens, retry the attachment more swiftly.
+> **Note:** If the "Java: Error" message appears in the bottom status bar and the following error is logged in the `.log` file:
+> ```java
+> java.lang.NullPointerException: Cannot invoke "ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult.getTargets()"
+> ```
+> it indicates that the connection attempt to the Gradle Server was too slow. The [GradleBuildClient](/extension/jdtls.ext/com.microsoft.gradle.bs.importer/src/com/microsoft/gradle/bs/importer/ImporterPlugin.java#L107) requires an active Gradle Server to successfully establish a connection. If you encounter this issue, please retry the connection promptly to avoid this error.
 
 ## Debugging Gradle Language Server (editing feature related)
 

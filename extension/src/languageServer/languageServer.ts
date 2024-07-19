@@ -15,7 +15,8 @@ import {
     getConfigJavaImportGradleUserHome,
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
-    getSupportedJavaHome,
+    findValidJavaHome,
+    getJavaExecutablePathFromJavaHome,
 } from "../util/config";
 import { prepareLanguageServerParams } from "./utils";
 const CHANNEL_NAME = "Gradle for Java (Language Server)";
@@ -54,10 +55,10 @@ export async function startLanguageServer(
                 serverOptions = awaitServerConnection.bind(null, port);
             } else {
                 // keep consistent with gRPC server
-                const javaHome = await getSupportedJavaHome();
+                const javaHome = await findValidJavaHome();
                 let javaCommand;
                 if (javaHome) {
-                    javaCommand = path.join(javaHome, "bin", "java");
+                    javaCommand = getJavaExecutablePathFromJavaHome(javaHome);
                 } else {
                     if (!checkEnvJavaExecutable()) {
                         // we have already show error message in gRPC server for no java executable found, so here we will just reject and return

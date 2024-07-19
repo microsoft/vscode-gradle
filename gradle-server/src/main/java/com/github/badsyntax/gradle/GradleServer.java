@@ -59,12 +59,13 @@ public class GradleServer {
 		Map<String, String> params = Utils.parseArgs(args);
 
 		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
-		String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
-		String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
 		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
 
 		startTaskServerThread(taskServerPort);
+
 		if (startBuildServer) {
+			String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
+			String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
 			startBuildServerThread(buildServerPipeName, bundleDirectory);
 		}
 	}

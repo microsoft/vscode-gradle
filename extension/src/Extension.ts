@@ -331,10 +331,8 @@ export class Extension {
     }
 
     private async restartServer(): Promise<void> {
-        if (this.server.isReady()) {
-            await this.client.cancelBuilds();
-            await commands.executeCommand("workbench.action.reloadWindow");
-        }
+        await this.client.cancelBuilds();
+        await commands.executeCommand("workbench.action.reloadWindow");
     }
 
     private async showRestartWindow(): Promise<string | undefined> {

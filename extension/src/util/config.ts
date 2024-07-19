@@ -1,9 +1,8 @@
 import { execSync } from "child_process";
-import { getRuntime, JAVA_FILENAME } from "jdk-utils";
+import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
-import * as fs from "fs";
 import * as fse from "fs-extra";
 import * as path from "path";
 import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
@@ -29,11 +28,13 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export async function getJavaExecutablePath(): Promise<string | undefined> {
-    const REQUIRED_JDK_VERSION = 17;
+export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
+    return path.join(javaHome, "bin", JAVA_FILENAME);
+}
 
-    // search from jdt.ls.java.home, java.home
-    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome];
+export async function findValidJavaHome(): Promise<string | undefined> {
+    const REQUIRED_JDK_VERSION = 17;
+    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome, getConfigJavaImportGradleJavaHome];
     let javaHome: string | undefined = undefined;
     let javaVersion = 0;
 
@@ -42,31 +43,25 @@ export async function getJavaExecutablePath(): Promise<string | undefined> {
         if (javaHome) {
             javaVersion = await getMajorVersion(javaHome);
             if (javaVersion >= REQUIRED_JDK_VERSION) {
-                const javaExecPath = path.join(javaHome, "bin", JAVA_FILENAME);
-                if (fs.existsSync(javaExecPath)) {
-                    return javaExecPath;
-                }
+                return javaHome;
             }
         }
     }
 
-    // search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, Common directories
+    // Search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, common directories
     const javaRuntimes = await listJdks();
-
     const validJdks = javaRuntimes.filter((r) => r.version!.major >= REQUIRED_JDK_VERSION);
     if (validJdks.length > 0) {
-        javaHome = validJdks[0].homedir;
-        javaVersion = validJdks[0].version!.major;
+        return validJdks[0].homedir;
     }
 
-    //search java.configuration.runtimes if still not found
-    if (!javaHome) {
-        javaHome = await findDefaultRuntimeFromSettings();
-        javaVersion = await getMajorVersion(javaHome);
+    // Search java.configuration.runtimes if still not found
+    javaHome = await findDefaultRuntimeFromSettings();
+    javaVersion = await getMajorVersion(javaHome);
+    if (javaVersion >= REQUIRED_JDK_VERSION) {
+        return javaHome;
     }
-    if (javaHome && javaVersion >= REQUIRED_JDK_VERSION) {
-        return path.join(javaHome, "bin", JAVA_FILENAME);
-    }
+
     return undefined;
 }
 
@@ -74,7 +69,7 @@ export function redHatJavaInstalled(): boolean {
     return !!vscode.extensions.getExtension("redhat.java");
 }
 
-export function getRedHatJavaExecutablePath(): string | undefined {
+export function getRedHatJavaEmbeddedJRE(): string | undefined {
     if (!redHatJavaInstalled()) {
         return undefined;
     }
@@ -83,26 +78,9 @@ export function getRedHatJavaExecutablePath(): string | undefined {
     if (fse.existsSync(jreHome) && fse.statSync(jreHome).isDirectory()) {
         const candidates = fse.readdirSync(jreHome);
         for (const candidate of candidates) {
-            const javaExecutable = path.join(jreHome, candidate, "bin", JAVA_FILENAME);
-            if (fse.existsSync(javaExecutable)) {
-                return javaExecutable;
+            if (fse.existsSync(path.join(jreHome, candidate, "bin", JAVA_FILENAME))) {
+                return path.join(jreHome, candidate);
             }
-        }
-    }
-    return undefined;
-}
-
-export function getConfigGradleJavaHome(): string | null {
-    return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
-}
-
-export async function getSupportedJavaHome(): Promise<string | undefined> {
-    const javaHome = getConfigGradleJavaHome() || process.env.JAVA_HOME;
-    if (javaHome) {
-        const runtime = await getRuntime(javaHome, { withVersion: true });
-        if (runtime?.version) {
-            // check the JDK version of given java home is supported, otherwise return undefined
-            return runtime.version.major >= 8 && runtime.version.major <= 21 ? javaHome : undefined;
         }
     }
     return undefined;

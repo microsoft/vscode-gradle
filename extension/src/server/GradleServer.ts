@@ -8,7 +8,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE } from "../constant";
-import { getRedHatJavaExecutablePath, getJavaExecutablePath, redHatJavaInstalled } from "../util/config";
+import { redHatJavaInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
@@ -46,22 +46,12 @@ export class GradleServer {
             await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
             return;
         }
-        let startBuildServer = "false";
-        if (redHatJavaInstalled()) {
-            const javaExecPath = getRedHatJavaExecutablePath() || (await getJavaExecutablePath());
-            if (!javaExecPath) {
-                await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
-            } else {
-                startBuildServer = "true";
-            }
+        const startBuildServer = redHatJavaInstalled() ? "true" : "false";
+        const args = [`--port=${this.taskServerPort}`, `--startBuildServer=${startBuildServer}`];
+        if (startBuildServer === "true") {
+            const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
+            args.push(`--pipeName=${buildServerPipeName}`, `--bundleDir=${bundleDirectory}`);
         }
-        const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
-        const args = [
-            `--port=${this.taskServerPort}`,
-            `--pipeName=${buildServerPipeName}`,
-            `--bundleDir=${bundleDirectory}`,
-            `--startBuildServer=${startBuildServer}`,
-        ];
         this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
 
         this.process = cp.spawn(`"${cmd}"`, args, {
@@ -82,7 +72,7 @@ export class GradleServer {
                     this.restarting = false;
                     await this.start();
                 } else if (code !== 0) {
-                    await this.handleServerStartError();
+                    await this.handleServerStartError(code);
                 }
             });
 
@@ -101,13 +91,13 @@ export class GradleServer {
         );
         if (input === OPT_RESTART) {
             sendInfo("", {
-                kind: "taskServerRestart",
+                kind: "serverProcessExitRestart",
                 data2: "true",
             });
             await commands.executeCommand("workbench.action.reloadWindow");
         } else {
             sendInfo("", {
-                kind: "taskServerRestart",
+                kind: "serverProcessExitRestart",
                 data2: "false",
             });
         }
@@ -145,7 +135,11 @@ export class GradleServer {
         }
     }
 
-    private async handleServerStartError(): Promise<void> {
+    private async handleServerStartError(code: number | null): Promise<void> {
+        sendInfo("", {
+            kind: "serverProcessExit",
+            data2: code ? code.toString() : "",
+        });
         await this.showRestartMessage();
     }
 
