@@ -332,12 +332,12 @@ export class Extension {
 
     private async restartServer(): Promise<void> {
         await this.client.cancelBuilds();
-        await commands.executeCommand("workbench.action.reloadWindow");
+        await commands.executeCommand("workbench.action.restartExtensionHost");
     }
 
     private async showRestartWindow(): Promise<string | undefined> {
-        const msg = "Please reload the window to make the change take effect. Reload now?";
-        const action = "Reload";
+        const msg = "Please restart the extension to make the change take effect. Restart now?";
+        const action = "Restart";
         const selection = await window.showWarningMessage(msg, action);
         return selection;
     }

@@ -59,10 +59,9 @@ public class GradleServer {
 		Map<String, String> params = Utils.parseArgs(args);
 
 		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
-		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
-
 		startTaskServerThread(taskServerPort);
 
+		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
 		if (startBuildServer) {
 			String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
 			String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
@@ -70,20 +69,20 @@ public class GradleServer {
 		}
 	}
 
-	private static void startTaskServerThread(int port) throws InterruptedException {
+	private static void startTaskServerThread(int port) {
 		GradleServer server = new GradleServer(port);
 		Thread serverThread = new Thread(() -> {
 			try {
 				server.start();
 				server.blockUntilShutdown();
 			} catch (IOException | InterruptedException e) {
-				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		});
 		serverThread.start();
 	}
 
-	private static void startBuildServerThread(String pipeName, String directory) throws InterruptedException {
+	private static void startBuildServerThread(String pipeName, String directory) {
 		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory);
 		Thread buildServerThread = new Thread(buildServerConnectionThread);
 		buildServerThread.start();

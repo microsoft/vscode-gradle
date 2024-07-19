@@ -84,9 +84,9 @@ export class GradleServer {
     }
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Reload";
+        const OPT_RESTART = "Restart";
         const input = await vscode.window.showErrorMessage(
-            "No connection to gradle server. Try reloading the window.",
+            "No connection to gradle server. Try restarting the server.",
             OPT_RESTART
         );
         if (input === OPT_RESTART) {
@@ -94,7 +94,7 @@ export class GradleServer {
                 kind: "serverProcessExitRestart",
                 data2: "true",
             });
-            await commands.executeCommand("workbench.action.reloadWindow");
+            await commands.executeCommand("workbench.action.restartExtensionHost");
         } else {
             sendInfo("", {
                 kind: "serverProcessExitRestart",
