@@ -7,7 +7,7 @@ import { commands } from "vscode";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
 import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE } from "../constant";
+import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
 import { redHatJavaInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 
@@ -84,7 +84,6 @@ export class GradleServer {
     }
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Restart";
         const selection = await vscode.window.showErrorMessage(
             "No connection to gradle server. Try restarting the server.",
             OPT_RESTART

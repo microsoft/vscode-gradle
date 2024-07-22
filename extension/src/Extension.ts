@@ -32,13 +32,13 @@ import {
     GRADLE_COMPLETION,
     GRADLE_PROPERTIES_FILE_CHANGE,
     VSCODE_TRIGGER_COMPLETION,
+    OPT_RESTART,
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
 import { GradleTestRunner } from "./bs/GradleTestRunner";
 import { BspProxy } from "./bs/BspProxy";
-const OPT_RESTART = "Restart";
 
 export class Extension {
     private readonly bspProxy: BspProxy;
