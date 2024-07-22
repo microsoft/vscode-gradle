@@ -50,9 +50,9 @@ export async function findValidJavaHome(): Promise<string | undefined> {
 
     // Search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, common directories
     const javaRuntimes = await listJdks();
-    const validJdks = javaRuntimes.filter((r) => r.version!.major >= REQUIRED_JDK_VERSION);
-    if (validJdks.length > 0) {
-        return validJdks[0].homedir;
+    const validJdks = javaRuntimes.find((r) => r.version!.major >= REQUIRED_JDK_VERSION);
+    if (validJdks !== undefined) {
+        return validJdks.homedir;
     }
 
     // Search java.configuration.runtimes if still not found

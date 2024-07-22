@@ -14,7 +14,6 @@ dependencies {
   implementation project(":gradle-plugin-api")
   implementation files('build/libs/server.jar')
   implementation fileTree(dir: 'build/libs/runtime', include: ['*.jar'], exclude: ['gradle-tooling-api-*.jar', 'slf4j-api-*.jar'])
-  implementation fileTree(dir: 'build/libs/plugins', include: ['*.jar'])
   implementation("org.gradle:gradle-tooling-api:${toolingAPIVersion}")
   implementation 'javax.annotation:javax.annotation-api:1.3.2'
   implementation "io.grpc:grpc-protobuf:${grpcVersion}"
