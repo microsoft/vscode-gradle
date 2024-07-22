@@ -38,6 +38,7 @@ import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider"
 import { BuildServerController } from "./bs/BuildServerController";
 import { GradleTestRunner } from "./bs/GradleTestRunner";
 import { BspProxy } from "./bs/BspProxy";
+const OPT_RESTART = "Restart";
 
 export class Extension {
     private readonly bspProxy: BspProxy;
@@ -311,17 +312,12 @@ export class Extension {
             instrumentOperation(GRADLE_PROPERTIES_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
                 logger.info("Gradle wrapper properties changed:", uri.fsPath);
                 const selection = await this.showRestartWindow();
-                if (selection === "Reload") {
-                    sendInfo("", {
-                        kind: "wrapperPropertiesChangedReloadRequest",
-                        data2: "true",
-                    });
+                sendInfo("", {
+                    kind: "wrapperPropertiesChangedReloadRequest",
+                    data2: selection === OPT_RESTART ? "true" : "false",
+                });
+                if (selection === OPT_RESTART) {
                     await this.restartServer();
-                } else {
-                    sendInfo("", {
-                        kind: "wrapperPropertiesChangedReloadRequest",
-                        data2: "false",
-                    });
                 }
                 if (isLanguageServerStarted) {
                     void vscode.commands.executeCommand("gradle.distributionChanged");
@@ -337,8 +333,7 @@ export class Extension {
 
     private async showRestartWindow(): Promise<string | undefined> {
         const msg = "Please restart the extension to make the change take effect. Restart now?";
-        const action = "Restart";
-        const selection = await window.showWarningMessage(msg, action);
+        const selection = await window.showWarningMessage(msg, OPT_RESTART);
         return selection;
     }
 
@@ -355,17 +350,12 @@ export class Extension {
                     event.affectsConfiguration("java.import.gradle.java.home")
                 ) {
                     const selection = await this.showRestartWindow();
-                    if (selection === "Reload") {
-                        sendInfo("", {
-                            kind: "javaHomeChangedReloadRequest",
-                            data2: "true",
-                        });
+                    sendInfo("", {
+                        kind: "javaHomeChangedReloadRequest",
+                        data2: selection === OPT_RESTART ? "true" : "false",
+                    });
+                    if (selection === OPT_RESTART) {
                         await this.restartServer();
-                    } else {
-                        sendInfo("", {
-                            kind: "javaHomeChangedReloadRequest",
-                            data2: "false",
-                        });
                     }
                 } else if (
                     event.affectsConfiguration("gradle.javaDebug.cleanOutput") ||

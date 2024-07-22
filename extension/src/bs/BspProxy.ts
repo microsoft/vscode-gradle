@@ -66,28 +66,22 @@ export class BspProxy {
             }
             importerConnection?.sendNotification(method);
         });
-        importerConnection?.onError(([error, message, code]) => {
+        importerConnection?.onError(([error]) => {
             this.logger.error(`Error on importerConnection: ${error.message}`);
             sendInfo("", {
                 kind: "bspProxy-importerConnectionError",
-                data2: JSON.stringify({
-                    error,
-                    message,
-                    code,
-                }),
+                message: error.message,
+                errorStack: error.stack ? error.stack.toString() : "",
             });
             // TODO: Implement more specific error handling logic here
         });
 
-        buildServerConnection?.onError(([error, message, code]) => {
+        buildServerConnection?.onError(([error]) => {
             this.logger.error(`Error on buildServerConnection: ${error.message}`);
             sendInfo("", {
                 kind: "bspProxy-importerConnectionError",
-                data2: JSON.stringify({
-                    error,
-                    message,
-                    code,
-                }),
+                message: error.message,
+                errorStack: error.stack ? error.stack.toString() : "",
             });
             // TODO: Implement more specific error handling logic here
         });
