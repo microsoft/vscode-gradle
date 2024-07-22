@@ -11,11 +11,9 @@ This extension contains three major components:
 The gradle server is a long-running Java process that include two threads: 1. Build Server 2. Task Server
 
 ## Build Server
-The Gradle Build Server uses the [Build Server Protocol](https://build-server-protocol.github.io/) to communicate with the server.
+The Gradle Build Server communicates with the Build Client using the [Build Server Protocol](https://build-server-protocol.github.io/) through named pipes.
 
-Historically, the Build Client and Build Server were connected via standard input/output, which posed security concerns. To address these issues and accommodate limitations with named pipe support in Java and JSON-RPC connections (based on the Java implementation [bsp4j](https://github.com/build-server-protocol/build-server-protocol/) of the Build Server Protocol, which itself relies on [lsp4j](https://github.com/eclipse-lsp4j/lsp4j)), a TypeScript layer named [bspProxy](./extension/src/bs/bspProxy.ts) was introduced.
-
-This layer acts as a middleware, facilitating message forwarding and establishing a more secure named pipe JSON-RPC connection between the TypeScript and Java components.
+Due to Java's limited support for named pipes on Windows, a TypeScript layer named [BspProxy](./extension/src/bs/BspProxy.ts) was introduced. This layer acts as a middleware and it helps by sending messages back and forth and creating a safer named pipe JSON-RPC connection between the TypeScript and Java parts.
 
 For information about the Build Server itself, visit the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle).
 
