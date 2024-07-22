@@ -8,7 +8,7 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Build Gradle Server and Gradle Language Server.
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 8](https://adoptium.net/)
+2. Install [Java version >= 17](https://adoptium.net/)
 3. Change directory to the root of the project
 4. Select Node version: `nvm use`
 5. If using an Apple M1:
@@ -40,33 +40,21 @@ The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get 
 
 > Note: There is a known issue that when the Gradle project stores in a sub-folder of the root folder, the `Attach to Gradle Plugin` will fail to attach. See [#1237](https://github.com/microsoft/vscode-gradle/issues/1237).
 
-## Debugging Gradle Build Server
+## Debugging Gradle Server
 
-To debug the Extension with the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle), follow these steps:
+1. Run vscode launch configuration `Debug Gradle Server & Extension`.
+2. Run vscode launch configuration `Attach to Gradle Server` when you notice the `Gradle: Connecting...` message in the bottom status bar.
 
-1. Open the `extension/build-server-for-gradle` directory, which you should have [imported previously](#build-gradle-project-importer) as a separate project.
-2. In the `.vscode/launch.json` of the build-server-for-gradle project, ensure you have the following configuration to attach the debugger:
-   ```json
-   {
-     "type": "java",
-     "name": "Attach to Gradle Build Server",
-     "request": "attach",
-     "hostName": "localhost",
-     "port": "8989",
-     "projectName": "server"
-   }
-   ```
-3. In your main project (vscode-gradle), start the `Debug Extension & Build Server` launch configuration.
-4. In the build-server-for-gradle project, start the `Attach to Gradle Build Server` launch configuration.
+> **Note:** If the "Java: Error" message appears in the bottom status bar and the following error is logged in the `.log` file:
+> ```java
+> java.lang.NullPointerException: Cannot invoke "ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult.getTargets()"
+> ```
+> it indicates that the connection attempt to the Gradle Server was too slow. The [GradleBuildClient](/extension/jdtls.ext/com.microsoft.gradle.bs.importer/src/com/microsoft/gradle/bs/importer/ImporterPlugin.java#L107) requires an active Gradle Server to successfully establish a connection. If you encounter this issue, please retry the connection promptly to avoid this error.
 
 ## Debugging Gradle Language Server (editing feature related)
 
 1. Run vscode launch configuration `Debug Language Server: Launch Extension`.
 2. Run vscode launch configuration `Debug Language Server: Launch Language Server`.
-
-## Debugging Gradle Server (work with Gradle daemon)
-
-Run vscode launch configuration `Debug Server & Extension`.
 
 ## Development Workflow
 

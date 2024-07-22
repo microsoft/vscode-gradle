@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { commands, window } from "vscode";
 import { logger, LogVerbosity, Logger } from "./logger";
 import { Api } from "./api";
 import { GradleClient } from "./client";
@@ -31,13 +32,16 @@ import {
     GRADLE_COMPLETION,
     GRADLE_PROPERTIES_FILE_CHANGE,
     VSCODE_TRIGGER_COMPLETION,
+    OPT_RESTART,
 } from "./constant";
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
 import { GradleTestRunner } from "./bs/GradleTestRunner";
+import { BspProxy } from "./bs/BspProxy";
 
 export class Extension {
+    private readonly bspProxy: BspProxy;
     private readonly client: GradleClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
@@ -78,12 +82,16 @@ export class Extension {
         const serverLogger = new Logger("gradle-server");
         serverLogger.setLoggingChannel(loggingChannel);
 
+        const bspLogger = new Logger("bspProxy");
+        bspLogger.setLoggingChannel(loggingChannel);
+
         if (getConfigIsDebugEnabled()) {
             Logger.setLogVerbosity(LogVerbosity.DEBUG);
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger);
+        this.bspProxy = new BspProxy(this.context, bspLogger);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
@@ -238,11 +246,13 @@ export class Extension {
             });
         }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
+        this.bspProxy.prepareToStart();
         if (!this.server.isReady()) {
             await this.server.start();
         }
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
+        await this.bspProxy.start();
     }
 
     private registerCommands(): void {
@@ -301,7 +311,14 @@ export class Extension {
         this.gradleWrapperWatcher.onDidChange(
             instrumentOperation(GRADLE_PROPERTIES_FILE_CHANGE, async (_operationId: string, uri: vscode.Uri) => {
                 logger.info("Gradle wrapper properties changed:", uri.fsPath);
-                await this.restartServer();
+                const selection = await this.showRestartWindow();
+                sendInfo("", {
+                    kind: "wrapperPropertiesChangedReloadRequest",
+                    data2: selection === OPT_RESTART ? "true" : "false",
+                });
+                if (selection === OPT_RESTART) {
+                    await this.restartServer();
+                }
                 if (isLanguageServerStarted) {
                     void vscode.commands.executeCommand("gradle.distributionChanged");
                 }
@@ -310,10 +327,14 @@ export class Extension {
     }
 
     private async restartServer(): Promise<void> {
-        if (this.server.isReady()) {
-            await this.client.cancelBuilds();
-            await this.server.restart();
-        }
+        await this.client.cancelBuilds();
+        await commands.executeCommand("workbench.action.restartExtensionHost");
+    }
+
+    private async showRestartWindow(): Promise<string | undefined> {
+        const msg = "Please restart the extension to make the change take effect. Restart now?";
+        const selection = await window.showWarningMessage(msg, OPT_RESTART);
+        return selection;
     }
 
     private refresh(): Thenable<void> {
@@ -328,7 +349,14 @@ export class Extension {
                     event.affectsConfiguration("java.jdt.ls.java.home") ||
                     event.affectsConfiguration("java.import.gradle.java.home")
                 ) {
-                    await this.restartServer();
+                    const selection = await this.showRestartWindow();
+                    sendInfo("", {
+                        kind: "javaHomeChangedReloadRequest",
+                        data2: selection === OPT_RESTART ? "true" : "false",
+                    });
+                    if (selection === OPT_RESTART) {
+                        await this.restartServer();
+                    }
                 } else if (
                     event.affectsConfiguration("gradle.javaDebug.cleanOutput") ||
                     event.affectsConfiguration("gradle.nestedProjects")

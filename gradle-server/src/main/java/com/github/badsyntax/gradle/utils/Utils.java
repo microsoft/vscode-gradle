@@ -5,7 +5,9 @@ package com.github.badsyntax.gradle.utils;
 
 import io.github.g00fy2.versioncompare.Version;
 import java.io.File;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class Utils {
 	public static boolean isValidFile(File file) {
@@ -73,5 +75,27 @@ public class Utils {
 			}
 		}
 		return result.toString();
+	}
+	public static Map<String, String> parseArgs(String[] args) {
+		Map<String, String> paramMap = new HashMap<>();
+		for (String arg : args) {
+			if (arg.startsWith("--")) {
+				int index = arg.indexOf('=');
+				if (index != -1) {
+					String key = arg.substring(2, index);
+					String value = arg.substring(index + 1);
+					paramMap.put(key, value);
+				}
+			}
+		}
+		return paramMap;
+	}
+
+	public static String validateRequiredParam(Map<String, String> params, String key) throws IllegalArgumentException {
+		String value = params.get(key);
+		if (value == null || value.isEmpty()) {
+			throw new IllegalArgumentException(key + " is required and can not be empty");
+		}
+		return value;
 	}
 }

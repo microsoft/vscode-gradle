@@ -31,19 +31,14 @@
     },
     {
       "type": "java",
-      "name": "Debug Server",
-      "request": "launch",
-      "mainClass": "com.github.badsyntax.gradle.GradleServer",
-      "projectName": "gradle-server",
-      "cwd": "${workspaceFolder}/gradle-server",
-      "presentation": {
-        "group": "debug",
-        "order": 2,
-        "hidden": true
-      }
+      "name": "Attach to Gradle Server",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": "8089",
+      "projectName": "com.github.badsyntax.gradle"
     },
     {
-      "name": "Debug Extension with Debug Server",
+      "name": "Debug Gradle Server & Extension",
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
@@ -54,12 +49,13 @@
         "${workspaceFolder}/extension/dist/**/*.js"
       ],
       "preLaunchTask": "Gradle: Build",
-      "env": {
-        "VSCODE_DEBUG_SERVER": "true"
-      },
       "presentation": {
-        "hidden": true
-      }
+        "group": "debug",
+        "order": 2
+      },
+      "env": {
+        "GRADLE_SERVER_OPTS":"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8089"
+      },
     },
     {
       "name": "Debug Extension & Gradle Plugin",
@@ -78,28 +74,8 @@
       },
       "presentation": {
         "group": "debug",
-        "order": 2
-      }
-    },
-    {
-      "name": "Debug Extension & Build Server",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/extension"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/extension/dist/**/*.js"
-      ],
-      "preLaunchTask": "Gradle: Build",
-      "presentation": {
-        "group": "debug",
         "order": 3
-      },
-      "env": {
-        "DEBUG_GRADLE_BUILD_SERVER":"true"
-      },
+      }
     },
     {
       "name": "Debug Language Server: Launch Extension",
@@ -372,17 +348,4 @@
       }
     },
   ],
-  "compounds": [
-    {
-      "name": "Debug Server & Extension",
-      "configurations": [
-        "Debug Server",
-        "Debug Extension with Debug Server"
-      ],
-      "presentation": {
-        "group": "debug",
-        "order": 3
-      }
-    }
-  ]
 }

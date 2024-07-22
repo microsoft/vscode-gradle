@@ -10,7 +10,7 @@ import com.github.badsyntax.gradle.handlers.StopDaemonHandler;
 import com.github.badsyntax.gradle.handlers.StopDaemonsHandler;
 import io.grpc.stub.StreamObserver;
 
-public class GradleService extends GradleGrpc.GradleImplBase {
+public class TaskService extends GradleGrpc.GradleImplBase {
 
 	@Override
 	public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {

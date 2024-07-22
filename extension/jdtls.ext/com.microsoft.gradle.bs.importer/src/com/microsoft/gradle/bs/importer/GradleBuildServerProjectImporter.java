@@ -61,6 +61,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
+        //TODO: support multi-root workspaces
+        if (getPreferences().getRootPaths().size() != 1) {
+            return false;
+        }
 
         if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
