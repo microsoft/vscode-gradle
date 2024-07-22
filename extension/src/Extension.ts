@@ -250,9 +250,9 @@ export class Extension {
         if (!this.server.isReady()) {
             await this.server.start();
         }
-        await this.bspProxy.start();
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
+        await this.bspProxy.start();
     }
 
     private registerCommands(): void {
