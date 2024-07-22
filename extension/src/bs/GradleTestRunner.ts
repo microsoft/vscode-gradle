@@ -20,7 +20,7 @@ export class GradleTestRunner implements TestRunner {
         this.testRunnerApi = testRunnerApi;
     }
 
-    public launch(context: IRunTestContext): void {
+    public async launch(context: IRunTestContext): Promise<void> {
         this.context = context;
         const tests: Map<string, string[]> = new Map();
         context.testItems.forEach((testItem) => {
@@ -43,15 +43,19 @@ export class GradleTestRunner implements TestRunner {
         const agrs = context.testConfig?.args;
         const vmArgs = context.testConfig?.vmArgs;
         const env = context.testConfig?.env;
-        vscode.commands.executeCommand(
-            "java.execute.workspaceCommand",
-            "java.gradle.delegateTest",
-            context.projectName,
-            JSON.stringify([...tests]),
-            agrs,
-            vmArgs,
-            env
-        );
+        try {
+            await vscode.commands.executeCommand(
+                "java.execute.workspaceCommand",
+                "java.gradle.delegateTest",
+                context.projectName,
+                JSON.stringify([...tests]),
+                agrs,
+                vmArgs,
+                env
+            );
+        } catch (error) {
+            this.finishTestRun(-1, error.message);
+        }
     }
 
     public updateTestItem(
