@@ -7,7 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.microsoft.gradle.semantictokens.TokenModifier;
 import com.microsoft.gradle.semantictokens.TokenType;
-import com.microsoft.gradle.utils.NamedPipeStream;
+import com.microsoft.gradle.transport.NamedPipeStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Paths;
@@ -42,9 +42,9 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 	public static void main(String[] args) {
 		GradleLanguageServer server = new GradleLanguageServer();
 		try {
-			Launcher<LanguageClient> launcher;
-			// Get named pipe path
 			NamedPipeStream pipeStream = new NamedPipeStream(args[0]);
+
+			Launcher<LanguageClient> launcher;
 			launcher = Launcher.createLauncher(server, LanguageClient.class, pipeStream.getInputStream(),
 					pipeStream.getOutputStream());
 			server.connect(launcher.getRemoteProxy());

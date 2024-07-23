@@ -47,7 +47,11 @@ export class GradleServer {
             return;
         }
         const startBuildServer = redHatJavaInstalled() ? "true" : "false";
-        const args = [`--port=${this.taskServerPort}`, `--startBuildServer=${startBuildServer}`, `--languageServerPipePath=${this.languageServerPipePath}`];
+        const args = [
+            `--port=${this.taskServerPort}`,
+            `--startBuildServer=${startBuildServer}`,
+            `--languageServerPipePath=${this.languageServerPipePath}`,
+        ];
         if (startBuildServer === "true") {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
             args.push(`--pipeName=${buildServerPipeName}`, `--bundleDir=${bundleDirectory}`);

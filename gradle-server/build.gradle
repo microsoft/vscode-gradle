@@ -132,7 +132,6 @@ task copyRuntimeLibs(type: Copy) {
   into "../extension/lib"
   from configurations.runtimeClasspath
   duplicatesStrategy = 'exclude'
-  duplicatesStrategy = 'exclude'
 }
 
 project.tasks.named("processResources") {

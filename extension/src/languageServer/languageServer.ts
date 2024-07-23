@@ -12,13 +12,13 @@ import {
     getConfigJavaImportGradleHome,
     getConfigJavaImportGradleUserHome,
     getConfigJavaImportGradleVersion,
-    getConfigJavaImportGradleWrapperEnabled
+    getConfigJavaImportGradleWrapperEnabled,
 } from "../util/config";
 const CHANNEL_NAME = "Gradle for Java (Language Server)";
 
 export let isLanguageServerStarted = false;
 
-export async function startLanguageServer(
+export async function startLanguageClientAndWaitForConnection(
     context: vscode.ExtensionContext,
     contentProvider: GradleBuildContentProvider,
     rootProjectsStore: RootProjectsStore,
@@ -38,7 +38,7 @@ export async function startLanguageServer(
                     settings: getGradleSettings(),
                 },
             };
-            let serverOptions = () => awaitServerConnection(languageServerPipePath)
+            const serverOptions = () => awaitServerConnection(languageServerPipePath);
             const languageClient = new LanguageClient("gradle", "Gradle Language Server", serverOptions, clientOptions);
             void languageClient.onReady().then(
                 () => {

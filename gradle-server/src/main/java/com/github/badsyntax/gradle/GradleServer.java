@@ -93,11 +93,7 @@ public class GradleServer {
 
 	private static void startLanguageServerThread(String languageServerPipePath) {
 		Thread languageServerThread = new Thread(() -> {
-			try {
-				GradleLanguageServer.main(new String[]{languageServerPipePath});
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+			GradleLanguageServer.main(new String[]{languageServerPipePath});
 		});
 		languageServerThread.start();
 	}
