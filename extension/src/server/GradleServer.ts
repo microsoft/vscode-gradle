@@ -24,7 +24,6 @@ export class GradleServer {
     private ready = false;
     private taskServerPort: number | undefined;
     private restarting = false;
-
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
@@ -33,7 +32,8 @@ export class GradleServer {
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
-        private bspProxy: BspProxy
+        private bspProxy: BspProxy,
+        private languageServerPipePath: string
     ) {}
 
     public async start(): Promise<void> {
@@ -47,7 +47,7 @@ export class GradleServer {
             return;
         }
         const startBuildServer = redHatJavaInstalled() ? "true" : "false";
-        const args = [`--port=${this.taskServerPort}`, `--startBuildServer=${startBuildServer}`];
+        const args = [`--port=${this.taskServerPort}`, `--startBuildServer=${startBuildServer}`, `--languageServerPipePath=${this.languageServerPipePath}`];
         if (startBuildServer === "true") {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
             args.push(`--pipeName=${buildServerPipeName}`, `--bundleDir=${bundleDirectory}`);

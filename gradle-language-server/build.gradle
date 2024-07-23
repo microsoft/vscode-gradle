@@ -4,8 +4,8 @@ plugins {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 }
 
 repositories  {
@@ -32,10 +32,16 @@ dependencies {
 
 ext.mainClass = "com.microsoft.gradle.GradleLanguageServer"
 
-task copyJar(type: Copy) {
-  from "build/libs/gradle-language-server.jar"
-  from configurations.runtimeClasspath
-  into "../extension/lib"
+task copyJar {
+    doLast {
+        ['../extension/lib', '../gradle-server/build/libs'].each { destDir ->
+            copy {
+                from "build/libs/gradle-language-server.jar"
+                from configurations.runtimeClasspath
+                into destDir
+            }
+        }
+    }
 }
 
 tasks.build.dependsOn tasks.copyJar

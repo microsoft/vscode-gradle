@@ -39,6 +39,7 @@ import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider"
 import { BuildServerController } from "./bs/BuildServerController";
 import { GradleTestRunner } from "./bs/GradleTestRunner";
 import { BspProxy } from "./bs/BspProxy";
+import { generateRandomPipeName } from "./util/generateRandomPipeName";
 
 export class Extension {
     private readonly bspProxy: BspProxy;
@@ -71,7 +72,7 @@ export class Extension {
     private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this._onDidTerminalOpen.event;
     private recentTerminal: vscode.Terminal | undefined;
     private readonly buildServerController: BuildServerController;
-
+    private readonly languageServerPipePath: string;
     public constructor(private readonly context: vscode.ExtensionContext) {
         const loggingChannel = vscode.window.createOutputChannel("Gradle for Java");
         logger.setLoggingChannel(loggingChannel);
@@ -85,13 +86,14 @@ export class Extension {
         const bspLogger = new Logger("bspProxy");
         bspLogger.setLoggingChannel(loggingChannel);
 
+        this.languageServerPipePath = generateRandomPipeName();
         if (getConfigIsDebugEnabled()) {
             Logger.setLogVerbosity(LogVerbosity.DEBUG);
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
         this.bspProxy = new BspProxy(this.context, bspLogger);
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy, this.languageServerPipePath);
         this.client = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
@@ -206,8 +208,8 @@ export class Extension {
         );
 
         this.client.onDidConnect(() => this.refresh());
+        void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore, this.languageServerPipePath);
         void this.activate();
-        void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore);
         void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
         void vscode.commands.executeCommand("setContext", Context.ACTIVATION_CONTEXT_KEY, true);
     }
