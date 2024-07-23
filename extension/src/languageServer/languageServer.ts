@@ -14,7 +14,6 @@ import {
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
 } from "../util/config";
-const CHANNEL_NAME = "Gradle for Java (Language Server)";
 
 export let isLanguageServerStarted = false;
 
@@ -32,8 +31,6 @@ export async function startLanguageClientAndWaitForConnection(
             });
             const clientOptions: LanguageClientOptions = {
                 documentSelector: [{ scheme: "file", language: "gradle" }],
-                outputChannel: vscode.window.createOutputChannel(CHANNEL_NAME),
-                outputChannelName: CHANNEL_NAME,
                 initializationOptions: {
                     settings: getGradleSettings(),
                 },
