@@ -21,10 +21,10 @@ application {
 }
 
 dependencies {
-  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.12.0"
-  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.12.0"
+  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.19.0"
+  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.19.0"
   implementation "org.codehaus.groovy:groovy-eclipse-batch:4.0.16-03"
-  implementation "com.google.code.gson:gson:2.8.9"
+  implementation "com.google.code.gson:gson:2.9.1"
   implementation "org.apache.bcel:bcel:6.6.1"
   testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
   testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.8.1"
@@ -32,16 +32,10 @@ dependencies {
 
 ext.mainClass = "com.microsoft.gradle.GradleLanguageServer"
 
-task copyJar {
-    doLast {
-        ['../extension/lib', '../gradle-server/build/libs'].each { destDir ->
-            copy {
-                from "build/libs/gradle-language-server.jar"
-                from configurations.runtimeClasspath
-                into destDir
-            }
-        }
-    }
+task copyJar(type: Copy) {
+    from "build/libs/gradle-language-server.jar"
+    from configurations.runtimeClasspath
+    into "../gradle-server/build/libs"
 }
 
 tasks.build.dependsOn tasks.copyJar
