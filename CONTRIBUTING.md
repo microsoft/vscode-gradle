@@ -6,7 +6,17 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ## Running the Project
 
-### Build Gradle Server and Gradle Language Server.
+### Build Gradle Project Importer
+Before proceeding with the build steps for Gradle Server , you need to build the Gradle Project Importer first.
+
+1. Install [Java version >= 17](https://adoptium.net/)
+2. `cd extension`
+3. `git clone https://github.com/microsoft/build-server-for-gradle.git `
+4. Build the Importer and Build Server jars: `../gradlew buildJars`
+
+### Build Gradle Server
+After building the Gradle Project Importer, proceed with the following steps.
+
 1. Install [nvm](https://github.com/nvm-sh/nvm)
 2. Install [Java version >= 17](https://adoptium.net/)
 3. Change directory to the root of the project
@@ -24,12 +34,6 @@ Start by opening an issue using one of the issue templates, or propose a change 
 7. Build project files: `./gradlew build`
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
-
-### Build Gradle Project Importer
-1. Install [Java version >= 17](https://adoptium.net/)
-2. `cd extension`
-3. `git clone https://github.com/microsoft/build-server-for-gradle.git `
-4. Build the Importer and Build Server jars: `../gradlew buildJars`
 
 ## Debugging Gradle plugin
 
@@ -50,11 +54,6 @@ The extension uses a Gradle plugin (`com.microsoft.gradle.GradlePlugin`) to get 
 > java.lang.NullPointerException: Cannot invoke "ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult.getTargets()"
 > ```
 > it indicates that the connection attempt to the Gradle Server was too slow. The [GradleBuildClient](/extension/jdtls.ext/com.microsoft.gradle.bs.importer/src/com/microsoft/gradle/bs/importer/ImporterPlugin.java#L107) requires an active Gradle Server to successfully establish a connection. If you encounter this issue, please retry the connection promptly to avoid this error.
-
-## Debugging Gradle Language Server (editing feature related)
-
-1. Run vscode launch configuration `Debug Language Server: Launch Extension`.
-2. Run vscode launch configuration `Debug Language Server: Launch Language Server`.
 
 ## Development Workflow
 
