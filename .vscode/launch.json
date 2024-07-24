@@ -78,41 +78,6 @@
       }
     },
     {
-      "name": "Debug Language Server: Launch Extension",
-      "type": "extensionHost",
-      "request": "launch",
-      "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/extension"
-      ],
-      "outFiles": [
-        "${workspaceFolder}/extension/dist/**/*.js"
-      ],
-      "preLaunchTask": "Gradle: Build",
-      "env": {
-        "VSCODE_DEBUG_LANGUAGE_SERVER": "true",
-        "VSCODE_GRADLE_PORT": "6006"
-      },
-      "presentation": {
-        "group": "debug",
-        "order": 4
-      }
-    },
-    {
-      "type": "java",
-      "name": "Debug Language Server: Launch Language Server",
-      "request": "launch",
-      "mainClass": "com.microsoft.gradle.GradleLanguageServer",
-      "projectName": "gradle-language-server",
-      "env": {
-        "VSCODE_GRADLE_PORT": "6006"
-      },
-      "presentation": {
-        "group": "debug",
-        "order": 5
-      }
-    },
-    {
       "type": "java",
       "name": "Attach to Gradle Plugin",
       "request": "attach",

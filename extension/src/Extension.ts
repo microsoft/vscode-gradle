@@ -22,7 +22,7 @@ import { FileWatcher } from "./util/FileWatcher";
 import { DependencyTreeItem } from "./views/gradleTasks/DependencyTreeItem";
 import { GRADLE_DEPENDENCY_REVEAL } from "./views/gradleTasks/DependencyUtils";
 import { GradleDependencyProvider } from "./dependencies/GradleDependencyProvider";
-import { isLanguageServerStarted, startLanguageServer } from "./languageServer/languageServer";
+import { isLanguageServerStarted, startLanguageClientAndWaitForConnection } from "./languageServer/languageServer";
 import { DefaultProjectsTreeDataProvider } from "./views/defaultProject/DefaultProjectsTreeDataProvider";
 import {
     CompletionKinds,
@@ -42,7 +42,7 @@ import { BspProxy } from "./bs/BspProxy";
 
 export class Extension {
     private readonly bspProxy: BspProxy;
-    private readonly client: GradleClient;
+    private readonly taskServerClient: GradleClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
     private readonly recentTasksStore: RecentTasksStore;
@@ -71,7 +71,6 @@ export class Extension {
     private readonly onDidTerminalOpen: vscode.Event<vscode.Terminal> = this._onDidTerminalOpen.event;
     private recentTerminal: vscode.Terminal | undefined;
     private readonly buildServerController: BuildServerController;
-
     public constructor(private readonly context: vscode.ExtensionContext) {
         const loggingChannel = vscode.window.createOutputChannel("Gradle for Java");
         logger.setLoggingChannel(loggingChannel);
@@ -92,15 +91,15 @@ export class Extension {
         const statusBarItem = vscode.window.createStatusBarItem();
         this.bspProxy = new BspProxy(this.context, bspLogger);
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
-        this.client = new GradleClient(this.server, statusBarItem, clientLogger);
+        this.taskServerClient = new GradleClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
         this.taskTerminalsStore = new TaskTerminalsStore();
         this.rootProjectsStore = new RootProjectsStore();
-        this.gradleBuildContentProvider = new GradleBuildContentProvider(this.client);
+        this.gradleBuildContentProvider = new GradleBuildContentProvider(this.taskServerClient);
         this.gradleTaskProvider = new GradleTaskProvider(
             this.rootProjectsStore,
-            this.client,
+            this.taskServerClient,
             this.gradleBuildContentProvider
         );
         this.gradleDependencyProvider = new GradleDependencyProvider(this.gradleBuildContentProvider);
@@ -114,7 +113,7 @@ export class Extension {
             this.gradleTaskProvider,
             this.gradleDependencyProvider,
             this.icons,
-            this.client
+            this.taskServerClient
         );
         this.gradleTasksTreeView = vscode.window.createTreeView(GRADLE_TASKS_VIEW, {
             treeDataProvider: this.gradleTasksTreeDataProvider,
@@ -130,7 +129,7 @@ export class Extension {
             this.taskTerminalsStore,
             this.rootProjectsStore,
             this.gradleTaskProvider,
-            this.client,
+            this.taskServerClient,
             this.icons
         );
         this.recentTasksTreeView = vscode.window.createTreeView(RECENT_TASKS_VIEW, {
@@ -140,7 +139,7 @@ export class Extension {
         this.defaultProjectsTreeDataProvider = new DefaultProjectsTreeDataProvider(
             this.gradleTaskProvider,
             this.rootProjectsStore,
-            this.client,
+            this.taskServerClient,
             this.icons
         );
         this.defaultProjectsTreeView = vscode.window.createTreeView(GRADLE_DEFAULT_PROJECTS_VIEW, {
@@ -151,7 +150,12 @@ export class Extension {
         this.gradleTaskManager = new GradleTaskManager(context);
         this.buildFileWatcher = new FileWatcher("**/*.{gradle,gradle.kts}");
         this.gradleWrapperWatcher = new FileWatcher("**/gradle/wrapper/gradle-wrapper.properties");
-        this.api = new Api(this.client, this.gradleTasksTreeDataProvider, this.gradleTaskProvider, this.icons);
+        this.api = new Api(
+            this.taskServerClient,
+            this.gradleTasksTreeDataProvider,
+            this.gradleTaskProvider,
+            this.icons
+        );
 
         this.commands = new Commands(
             this.context,
@@ -161,7 +165,7 @@ export class Extension {
             this.gradleTasksTreeDataProvider,
             this.recentTasksTreeDataProvider,
             this.gradleDaemonsTreeDataProvider,
-            this.client,
+            this.taskServerClient,
             this.rootProjectsStore,
             this.taskTerminalsStore,
             this.recentTasksStore,
@@ -205,16 +209,21 @@ export class Extension {
             )
         );
 
-        this.client.onDidConnect(() => this.refresh());
+        this.taskServerClient.onDidConnect(() => this.refresh());
+        void startLanguageClientAndWaitForConnection(
+            this.context,
+            this.gradleBuildContentProvider,
+            this.rootProjectsStore,
+            this.server.getLanguageServerPipePath()
+        );
         void this.activate();
-        void startLanguageServer(this.context, this.gradleBuildContentProvider, this.rootProjectsStore);
         void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
         void vscode.commands.executeCommand("setContext", Context.ACTIVATION_CONTEXT_KEY, true);
     }
 
     private storeSubscriptions(): void {
         this.context.subscriptions.push(
-            this.client,
+            this.taskServerClient,
             this.pinnedTasksStore,
             this.recentTasksStore,
             this.taskTerminalsStore,
@@ -327,7 +336,7 @@ export class Extension {
     }
 
     private async restartServer(): Promise<void> {
-        await this.client.cancelBuilds();
+        await this.taskServerClient.cancelBuilds();
         await commands.executeCommand("workbench.action.restartExtensionHost");
     }
 

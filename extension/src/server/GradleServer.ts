@@ -10,7 +10,7 @@ import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
 import { redHatJavaInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
-
+import { generateRandomPipeName } from "../util/generateRandomPipeName";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 
@@ -24,18 +24,35 @@ export class GradleServer {
     private ready = false;
     private taskServerPort: number | undefined;
     private restarting = false;
-
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
+    private languageServerPipePath: string;
 
     constructor(
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
         private bspProxy: BspProxy
-    ) {}
+    ) {
+        this.setLanguageServerPipePath();
+    }
 
+    private setLanguageServerPipePath(): void {
+        try {
+            this.languageServerPipePath = generateRandomPipeName();
+        } catch (error) {
+            this.languageServerPipePath = "";
+            this.logger.error("Failed to generate language server pipe path", error.message);
+            sendInfo("", {
+                kind: "languageServerPipePathGenerationError",
+            });
+        }
+    }
+
+    public getLanguageServerPipePath(): string {
+        return this.languageServerPipePath;
+    }
     public async start(): Promise<void> {
         this.taskServerPort = await getPort();
         const cwd = this.context.asAbsolutePath("lib");
@@ -47,7 +64,11 @@ export class GradleServer {
             return;
         }
         const startBuildServer = redHatJavaInstalled() ? "true" : "false";
-        const args = [`--port=${this.taskServerPort}`, `--startBuildServer=${startBuildServer}`];
+        const args = [
+            `--port=${this.taskServerPort}`,
+            `--startBuildServer=${startBuildServer}`,
+            `--languageServerPipePath=${this.languageServerPipePath}`,
+        ];
         if (startBuildServer === "true") {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
             args.push(`--pipeName=${buildServerPipeName}`, `--bundleDir=${bundleDirectory}`);

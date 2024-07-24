@@ -7,8 +7,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.microsoft.gradle.semantictokens.TokenModifier;
 import com.microsoft.gradle.semantictokens.TokenType;
+import com.microsoft.gradle.transport.NamedPipeStream;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.ExecuteCommandOptions;
@@ -35,25 +36,21 @@ import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
-
 public class GradleLanguageServer implements LanguageServer, LanguageClientAware {
 
 	private GradleServices gradleServices;
 
 	public static void main(String[] args) {
 		GradleLanguageServer server = new GradleLanguageServer();
+		if (StringUtils.isBlank(args[0])) {
+			server.exit();
+		}
 		try {
+			NamedPipeStream pipeStream = new NamedPipeStream(args[0]);
+
 			Launcher<LanguageClient> launcher;
-			String port = System.getenv("VSCODE_GRADLE_PORT");
-			if (port == null) {
-				// Launch Mode
-				launcher = Launcher.createLauncher(server, LanguageClient.class, System.in, System.out);
-			} else {
-				// Debug Mode
-				Socket socket = new Socket("localhost", Integer.parseInt(port));
-				launcher = Launcher.createLauncher(server, LanguageClient.class, socket.getInputStream(),
-						socket.getOutputStream());
-			}
+			launcher = Launcher.createLauncher(server, LanguageClient.class, pipeStream.getInputStream(),
+					pipeStream.getOutputStream());
 			server.connect(launcher.getRemoteProxy());
 			launcher.startListening();
 		} catch (IOException e) {
