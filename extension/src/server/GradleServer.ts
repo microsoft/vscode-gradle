@@ -38,7 +38,7 @@ export class GradleServer {
         this.setLanguageServerPipePath();
     }
 
-    public setLanguageServerPipePath(): void {
+    private setLanguageServerPipePath(): void {
         try {
             this.languageServerPipePath = generateRandomPipeName();
         } catch (error) {
