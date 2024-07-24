@@ -124,9 +124,13 @@ task serverStartScripts(type: CreateStartScripts) {
   )
 }
 
+task deleteLibsDir(type: Delete) {
+  delete libsDir
+}
+
 task copyRuntimeLibs(type: Copy) {
-  //delete libsDir
-  into "../extension/lib"
+  dependsOn 'deleteLibsDir'
+  into libsDir
   from configurations.runtimeClasspath
   duplicatesStrategy = 'exclude'
   mustRunAfter ':gradle-language-server:customFatJar'
