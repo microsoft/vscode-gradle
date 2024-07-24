@@ -125,6 +125,7 @@ task serverStartScripts(type: CreateStartScripts) {
 }
 
 task copyRuntimeLibs(type: Copy) {
+  delete libsDir
   into "../extension/lib"
   from configurations.runtimeClasspath
   duplicatesStrategy = 'exclude'
