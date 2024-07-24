@@ -32,22 +32,18 @@ dependencies {
 
 ext.mainClass = "com.microsoft.gradle.GradleLanguageServer"
 
-task copyJar(type: Copy) {
-    from "build/libs/gradle-language-server.jar"
-    from configurations.runtimeClasspath
-    into "../gradle-server/build/libs"
-}
-
-tasks.build.dependsOn tasks.copyJar
-tasks.copyJar.dependsOn jar
-
-jar {
-  manifest {
-    attributes(
-      "Main-Class": "com.microsoft.gradle.GradleLanguageServer",
-      "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.join(' ')
-    )
-  }
+task customFatJar(type: Jar) {
+    manifest {
+      attributes(
+        "Main-Class": "com.microsoft.gradle.GradleLanguageServer",
+      )
+    }
+    archiveBaseName = 'ls-fat-jar'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    destinationDirectory = file('../gradle-server/build/libs')
+    with jar
 }
 
 def mainJavaDir = 'src/main/java';
