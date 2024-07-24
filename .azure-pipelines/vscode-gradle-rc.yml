@@ -44,15 +44,41 @@ extends:
               - checkout: self
                 fetchTags: true
               - task: JavaToolInstaller@0
-                displayName: Install Java 11
+                displayName: Install Java 17
                 inputs:
-                  versionSpec: '11'
+                  versionSpec: '17'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
                 displayName: Install Node 18.x
                 inputs:
                   versionSpec: 18.x
+              - task: DownloadBuildArtifacts@1
+                displayName: 'Download Build Server Artifacts'
+                inputs:
+                  buildType: specific
+                  project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
+                  pipeline: 16493
+                  downloadType: specific
+                  extractTars: false
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Plugin Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs/plugins'
+                  Contents: '**'
+                  TargetFolder: $(Build.SourcesDirectory)/extension/server/plugins
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
+                  Contents: 'server.jar'
+                  TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Runtime Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs/runtime'
+                  Contents: '**'
+                  TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
               - task: Gradle@2
                 displayName: Build
                 inputs:
@@ -117,28 +143,8 @@ extends:
                 inputs:
                   artifact: 'NOTICE.txt'
                   path: $(Build.SourcesDirectory)/extension
-              - task: DownloadBuildArtifacts@1
-                displayName: 'Download Build Server Artifacts'
-                inputs:
-                  buildType: specific
-                  project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
-                  pipeline: 16493
-                  downloadType: specific
-                  extractTars: false
-              - task: CopyFiles@2
-                displayName: 'Copy Build Server Artifacts'
-                inputs:
-                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
-                  Contents: '**'
-                  TargetFolder: $(Build.SourcesDirectory)/extension/server
-              - task: JavaToolInstaller@0
-                displayName: Install Java 17
-                inputs:
-                  versionSpec: '17'
-                  jdkArchitectureOption: 'x64'
-                  jdkSourceOption: 'PreInstalled'
               - task: Gradle@2
-                displayName: Build
+                displayName: Build Gradle Build Server Importer
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'

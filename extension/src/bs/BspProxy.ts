@@ -71,7 +71,7 @@ export class BspProxy {
             sendInfo("", {
                 kind: "bspProxy-importerConnectionError",
                 message: error.message,
-                errorStack: error.stack ? error.stack.toString() : "",
+                proxyErrorStack: error.stack ? error.stack.toString() : "",
             });
             // TODO: Implement more specific error handling logic here
         });
@@ -81,7 +81,7 @@ export class BspProxy {
             sendInfo("", {
                 kind: "bspProxy-importerConnectionError",
                 message: error.message,
-                errorStack: error.stack ? error.stack.toString() : "",
+                proxyErrorStack: error.stack ? error.stack.toString() : "",
             });
             // TODO: Implement more specific error handling logic here
         });
