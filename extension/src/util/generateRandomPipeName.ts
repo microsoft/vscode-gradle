@@ -38,7 +38,7 @@ export function getRandomPipeName(): string {
         pipeName = generateRandomPipeName();
     } catch (error) {
         sendInfo("", {
-            kind: "languageServerPipePathGenerationError",
+            kind: "generateRandomPipeNameError",
         });
     }
     return pipeName;
