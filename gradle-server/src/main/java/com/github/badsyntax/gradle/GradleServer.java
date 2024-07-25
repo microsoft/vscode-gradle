@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.utils.Utils;
+import com.microsoft.gradle.GradleLanguageServer;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
@@ -65,7 +66,9 @@ public class GradleServer {
 		if (startBuildServer) {
 			String buildServerPipeName = Utils.validateRequiredParam(params, "pipeName");
 			String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
+			String languageServerPipePath = Utils.validateRequiredParam(params, "languageServerPipePath");
 			startBuildServerThread(buildServerPipeName, bundleDirectory);
+			startLanguageServerThread(languageServerPipePath);
 		}
 	}
 
@@ -86,5 +89,12 @@ public class GradleServer {
 		BuildServerThread buildServerConnectionThread = new BuildServerThread(pipeName, directory);
 		Thread buildServerThread = new Thread(buildServerConnectionThread);
 		buildServerThread.start();
+	}
+
+	private static void startLanguageServerThread(String languageServerPipePath) {
+		Thread languageServerThread = new Thread(() -> {
+			GradleLanguageServer.main(new String[]{languageServerPipePath});
+		});
+		languageServerThread.start();
 	}
 }

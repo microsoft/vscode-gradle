@@ -5,10 +5,10 @@ This extension contains three major components:
 - [A Gradle language server](./gradle-language-server) that provides language features such as code completion and diagnostics for gradle script files.
 - [A Gradle project importer](./extension/jdtls.ext/com.microsoft.gradle.bs.importer) that imports Gradle projects detected by the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle) into the workspace. This importer works with the Language Support for Java extension.
 
-# Gradle Server and Gradle Language Server
+# Gradle Server
 
 <img src="images/gradle-server-architecture.svg" />
-The gradle server is a long-running Java process that include two threads: 1. Build Server 2. Task Server
+The gradle server is a long-running Java process that include three threads: 1. Build Server 2. Task Server 3. Language Server
 
 ## Build Server
 The Gradle Build Server communicates with the Build Client using the [Build Server Protocol](https://build-server-protocol.github.io/) through named pipes.
@@ -16,6 +16,9 @@ The Gradle Build Server communicates with the Build Client using the [Build Serv
 Due to Java's limited support for named pipes on Windows, a TypeScript layer named [BspProxy](./extension/src/bs/BspProxy.ts) was introduced. This layer acts as a middleware and it helps by sending messages back and forth and creating a safer named pipe JSON-RPC connection between the Gradle Build Server and the Build Client.
 
 For information about the Build Server itself, visit the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle).
+
+## Language Server
+Language Server provides language features such as code completion and diagnostics for Gradle script files. It communicates with the Language Client using the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) through named pipe.
 
 ## Task Server
 The task server and client using [gRPC](https://grpc.io/) as the interface between each other. It uses TypeScript (Node.js) on the client and Java on the server. A long running server provides very good performance.

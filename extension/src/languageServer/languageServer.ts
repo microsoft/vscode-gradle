@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 import * as net from "net";
-import * as path from "path";
 import * as vscode from "vscode";
 import { DidChangeConfigurationNotification, LanguageClientOptions } from "vscode-languageclient";
 import { LanguageClient, StreamInfo } from "vscode-languageclient/node";
@@ -10,72 +9,33 @@ import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider
 import { GradleBuild, GradleProject } from "../proto/gradle_pb";
 import { RootProjectsStore } from "../stores";
 import {
-    checkEnvJavaExecutable,
     getConfigJavaImportGradleHome,
     getConfigJavaImportGradleUserHome,
     getConfigJavaImportGradleVersion,
     getConfigJavaImportGradleWrapperEnabled,
-    findValidJavaHome,
-    getJavaExecutablePathFromJavaHome,
 } from "../util/config";
-import { prepareLanguageServerParams } from "./utils";
-const CHANNEL_NAME = "Gradle for Java (Language Server)";
 
 export let isLanguageServerStarted = false;
 
-export async function startLanguageServer(
+export async function startLanguageClientAndWaitForConnection(
     context: vscode.ExtensionContext,
     contentProvider: GradleBuildContentProvider,
-    rootProjectsStore: RootProjectsStore
+    rootProjectsStore: RootProjectsStore,
+    languageServerPipePath: string
 ): Promise<void> {
     void vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, (progress) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        return new Promise<void>(async (resolve, reject) => {
+        return new Promise<void>(async (resolve) => {
             progress.report({
                 message: "Initializing Gradle Language Server",
             });
             const clientOptions: LanguageClientOptions = {
                 documentSelector: [{ scheme: "file", language: "gradle" }],
-                outputChannel: vscode.window.createOutputChannel(CHANNEL_NAME),
-                outputChannelName: CHANNEL_NAME,
                 initializationOptions: {
                     settings: getGradleSettings(),
                 },
             };
-            let serverOptions;
-            if (process.env.VSCODE_DEBUG_LANGUAGE_SERVER === "true") {
-                // debug mode
-                const port = process.env.VSCODE_GRADLE_PORT;
-                if (!port) {
-                    void vscode.window.showErrorMessage(
-                        "VSCODE_GRADLE_PORT is invalid, please check it in launch.json."
-                    );
-                    return;
-                }
-                serverOptions = awaitServerConnection.bind(null, port);
-            } else {
-                // keep consistent with gRPC server
-                const javaHome = await findValidJavaHome();
-                let javaCommand;
-                if (javaHome) {
-                    javaCommand = getJavaExecutablePathFromJavaHome(javaHome);
-                } else {
-                    if (!checkEnvJavaExecutable()) {
-                        // we have already show error message in gRPC server for no java executable found, so here we will just reject and return
-                        return reject();
-                    }
-                    javaCommand = "java";
-                }
-                const args = [
-                    ...prepareLanguageServerParams(),
-                    "-jar",
-                    path.resolve(context.extensionPath, "lib", "gradle-language-server.jar"),
-                ];
-                serverOptions = {
-                    command: javaCommand,
-                    args: args,
-                };
-            }
+            const serverOptions = () => awaitServerConnection(languageServerPipePath);
             const languageClient = new LanguageClient("gradle", "Gradle Language Server", serverOptions, clientOptions);
             void languageClient.onReady().then(
                 () => {
@@ -88,6 +48,7 @@ export async function startLanguageServer(
                 }
             );
             const disposable = languageClient.start();
+
             context.subscriptions.push(disposable);
             context.subscriptions.push(
                 vscode.workspace.onDidChangeConfiguration((e) => {
@@ -102,15 +63,14 @@ export async function startLanguageServer(
     });
 }
 
-async function awaitServerConnection(port: string): Promise<StreamInfo> {
-    const addr = parseInt(port);
+async function awaitServerConnection(pipeName: string): Promise<StreamInfo> {
     return new Promise((resolve, reject) => {
         const server = net.createServer((stream) => {
             server.close();
             resolve({ reader: stream, writer: stream });
         });
         server.on("error", reject);
-        server.listen(addr, () => {
+        server.listen(pipeName, () => {
             server.removeListener("error", reject);
         });
         return server;
