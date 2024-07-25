@@ -28,7 +28,7 @@ public class NamedPipeStream {
 
     private StreamProvider provider;
 
-    private final int MAX_ATTEMPTS = 5;
+    private final int MAX_ATTEMPTS = 30;
 
     interface StreamProvider {
         InputStream getInputStream() throws IOException;

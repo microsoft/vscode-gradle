@@ -10,7 +10,7 @@ import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
 import { redHatJavaInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
-import { generateRandomPipeName } from "../util/generateRandomPipeName";
+import { getRandomPipeName } from "../util/generateRandomPipeName";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 
@@ -39,14 +39,9 @@ export class GradleServer {
     }
 
     private setLanguageServerPipePath(): void {
-        try {
-            this.languageServerPipePath = generateRandomPipeName();
-        } catch (error) {
-            this.languageServerPipePath = "";
-            this.logger.error("Failed to generate language server pipe path", error.message);
-            sendInfo("", {
-                kind: "languageServerPipePathGenerationError",
-            });
+        this.languageServerPipePath = getRandomPipeName();
+        if (this.languageServerPipePath === "") {
+            this.logger.error("Failed to generate language server pipe path, language server will not start");
         }
     }
 
