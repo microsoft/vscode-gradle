@@ -125,10 +125,13 @@ task serverStartScripts(type: CreateStartScripts) {
 }
 
 task copyRuntimeLibs(type: Copy) {
-  into "../extension/lib"
   from configurations.runtimeClasspath
+  into libsDir
   duplicatesStrategy = 'exclude'
   mustRunAfter ':gradle-language-server:customFatJar'
+  doFirst {
+    delete libsDir
+  }
 }
 
 project.tasks.named("processResources") {
