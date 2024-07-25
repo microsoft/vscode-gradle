@@ -124,16 +124,14 @@ task serverStartScripts(type: CreateStartScripts) {
   )
 }
 
-task deleteLibsDir(type: Delete) {
-  delete libsDir
-}
-
 task copyRuntimeLibs(type: Copy) {
-  dependsOn 'deleteLibsDir'
-  into libsDir
   from configurations.runtimeClasspath
+  into libsDir
   duplicatesStrategy = 'exclude'
   mustRunAfter ':gradle-language-server:customFatJar'
+  doFirst {
+    delete libsDir
+  }
 }
 
 project.tasks.named("processResources") {
