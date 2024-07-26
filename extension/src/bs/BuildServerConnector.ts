@@ -1,6 +1,6 @@
 import * as net from "net";
 import * as rpc from "vscode-jsonrpc/node";
-import { generateRandomPipeName } from "../util/generateRandomPipeName";
+import { getRandomPipeName } from "../util/generateRandomPipeName";
 
 /**
  * Creates a named pipe file and sets up a pipe server
@@ -16,7 +16,7 @@ export class BuildServerConnector {
      * waiting for the connection from the Java build server.
      */
     public setupBuildServerPipeStream(): void {
-        this.serverPipePath = generateRandomPipeName();
+        this.serverPipePath = getRandomPipeName();
         this.serverPipeServer = net.createServer((socket: net.Socket) => {
             this.serverConnection = rpc.createMessageConnection(
                 new rpc.StreamMessageReader(socket),
