@@ -9,7 +9,7 @@ import { RootProject } from "../rootProject/RootProject";
 import { isTaskRunning } from "../tasks/taskUtil";
 import { COMMAND_CANCEL_BUILD } from "../commands";
 import { GradleTaskDefinition } from "../tasks";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 
 const NL = "\n";
 const CR = "\r";
@@ -27,7 +27,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         private readonly rootProject: RootProject,
         private readonly args: string[],
         private readonly cancellationKey: string,
-        private readonly client: GradleClient
+        private readonly client: TaskServerClient
     ) {
         if (isTest()) {
             // TODO: this is only needed for the tests. Find a better way to test task output in the tests.

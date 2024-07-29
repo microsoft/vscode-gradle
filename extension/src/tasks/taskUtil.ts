@@ -17,7 +17,7 @@ import { getTaskArgs } from "../util/input";
 import { COMMAND_RENDER_TASK } from "../commands";
 import { RootProject } from "../rootProject/RootProject";
 import { getRunTaskCommandCancellationKey } from "../client/CancellationKeys";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { RootProjectsStore } from "../stores";
 import { getConfigIsAutoDetectionEnabled, getConfigReuseTerminals, getAllowParallelRun } from "../util/config";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
@@ -50,7 +50,11 @@ export function isTaskRunning(task: vscode.Task, args?: TaskArgs): boolean {
     return getTaskExecution(task, args) !== undefined;
 }
 
-export async function cancelBuild(client: GradleClient, cancellationKey: string, task?: vscode.Task): Promise<void> {
+export async function cancelBuild(
+    client: TaskServerClient,
+    cancellationKey: string,
+    task?: vscode.Task
+): Promise<void> {
     if (task && isTaskRunning(task)) {
         cancellingTasks.set(task.definition.id, task);
         await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
@@ -102,7 +106,7 @@ export function removeCancellingTask(task: vscode.Task): void {
     }
 }
 
-export async function queueRestartTask(client: GradleClient, task: vscode.Task): Promise<void> {
+export async function queueRestartTask(client: TaskServerClient, task: vscode.Task): Promise<void> {
     if (isTaskRunning(task)) {
         const definition = task.definition as GradleTaskDefinition;
         restartingTasks.set(definition.id, task);
@@ -124,7 +128,7 @@ export function buildTaskName(definition: GradleTaskDefinition): string {
 export function createTaskFromDefinition(
     definition: Required<GradleTaskDefinition>,
     rootProject: RootProject,
-    client: GradleClient,
+    client: TaskServerClient,
     useUniqueId = false
 ): vscode.Task {
     if (getAllowParallelRun() && useUniqueId) {
@@ -167,7 +171,7 @@ export function createTaskFromDefinition(
 export function resolveTaskFromDefinition(
     definition: Required<GradleTaskDefinition>,
     workspaceFolder: vscode.WorkspaceFolder,
-    client: GradleClient
+    client: TaskServerClient
 ): vscode.Task | undefined {
     const taskName = buildTaskName(definition);
     const task = new vscode.Task(
@@ -221,7 +225,7 @@ export function resolveTaskFromDefinition(
 function createVSCodeTaskFromGradleTask(
     gradleTask: GradleTask,
     rootProject: RootProject,
-    client: GradleClient,
+    client: TaskServerClient,
     args = ""
 ): vscode.Task {
     const taskPath = gradleTask.getPath();
@@ -248,7 +252,7 @@ function createVSCodeTaskFromGradleTask(
 export function getVSCodeTasksFromGradleProject(
     rootProject: RootProject,
     gradleProject: GradleProject,
-    client: GradleClient
+    client: TaskServerClient
 ): vscode.Task[] {
     let projects: Array<GradleProject> = [gradleProject];
     const vsCodeTasks: vscode.Task[] = [];
@@ -265,7 +269,7 @@ export function getVSCodeTasksFromGradleProject(
 }
 
 export async function loadTasksForProjectRoots(
-    client: GradleClient,
+    client: TaskServerClient,
     rootProjects: ReadonlyArray<RootProject>,
     gradleBuildContentProvider: GradleBuildContentProvider
 ): Promise<vscode.Task[]> {
@@ -307,7 +311,7 @@ export async function loadTasksForProjectRoots(
 export async function runTask(
     rootProjectsStore: RootProjectsStore,
     task: vscode.Task,
-    client: GradleClient,
+    client: TaskServerClient,
     args = "",
     debug = false
 ): Promise<void> {
@@ -350,7 +354,7 @@ export async function runTask(
 export async function runTaskWithArgs(
     rootProjectsStore: RootProjectsStore,
     task: vscode.Task,
-    client: GradleClient,
+    client: TaskServerClient,
     debug = false
 ): Promise<void> {
     const args = await getTaskArgs();
@@ -365,7 +369,7 @@ export function cloneTask(
     rootProjectsStore: RootProjectsStore,
     task: vscode.Task,
     args: string,
-    client: GradleClient,
+    client: TaskServerClient,
     javaDebug = false,
     useUniqueId = false
 ): vscode.Task {

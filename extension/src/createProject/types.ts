@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 
 export interface IProjectCreationMetadata {
     isAdvanced: boolean;
@@ -14,7 +14,7 @@ export interface IProjectCreationMetadata {
     targetFolder: string;
     steps: IProjectCreationStep[];
     nextStep?: IProjectCreationStep;
-    client: GradleClient;
+    client: TaskServerClient;
 }
 
 export interface IProjectCreationStep {

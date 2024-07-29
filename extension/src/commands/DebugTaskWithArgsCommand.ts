@@ -3,11 +3,11 @@ import { runTaskWithArgs } from "../tasks/taskUtil";
 import { logger } from "../logger";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 export const COMMAND_DEBUG_TASK_WITH_ARGS = "gradle.debugTaskWithArgs";
 
 export class DebugTaskWithArgsCommand extends Command {
-    constructor(private rootProjectsStore: RootProjectsStore, private client: GradleClient) {
+    constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
         super();
     }
     async run(treeItem: GradleTaskTreeItem): Promise<void> {

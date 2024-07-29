@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { commands, window } from "vscode";
 import { logger, LogVerbosity, Logger } from "./logger";
 import { Api } from "./api";
-import { GradleClient } from "./client";
+import { TaskServerClient } from "./client";
 import { GradleServer } from "./server";
 import { Icons } from "./icons";
 import { GradleDaemonsTreeDataProvider, RecentTasksTreeDataProvider, GradleTasksTreeDataProvider } from "./views";
@@ -42,7 +42,7 @@ import { BspProxy } from "./bs/BspProxy";
 
 export class Extension {
     private readonly bspProxy: BspProxy;
-    private readonly taskServerClient: GradleClient;
+    private readonly taskServerClient: TaskServerClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
     private readonly recentTasksStore: RecentTasksStore;
@@ -91,7 +91,7 @@ export class Extension {
         const statusBarItem = vscode.window.createStatusBarItem();
         this.bspProxy = new BspProxy(this.context, bspLogger);
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
-        this.taskServerClient = new GradleClient(this.server, statusBarItem, clientLogger);
+        this.taskServerClient = new TaskServerClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
         this.taskTerminalsStore = new TaskTerminalsStore();

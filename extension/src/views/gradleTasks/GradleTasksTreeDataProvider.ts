@@ -21,7 +21,7 @@ import { ProjectTaskTreeItem } from "./ProjectTaskTreeItem";
 import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
 import { findRootProject } from "../../client/utils";
 import { TaskArgs, TaskId } from "../../stores/types";
-import { GradleClient } from "../../client";
+import { TaskServerClient } from "../../client";
 import { buildPinnedTaskTreeItem } from "./utils";
 import { PinnedTasksTreeItem } from "./PinnedTasksTreeItem";
 import { PinnedTasksRootProjectTreeItem } from "./PinnedTasksRootProjectTreeItem";
@@ -65,7 +65,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly gradleDependencyProvider: GradleDependencyProvider,
         private readonly icons: Icons,
-        private readonly client: GradleClient
+        private readonly client: TaskServerClient
     ) {
         const collapsed = this.context.workspaceState.get("gradleTasksCollapsed", false);
         // eslint-disable-next-line @typescript-eslint/no-floating-promises

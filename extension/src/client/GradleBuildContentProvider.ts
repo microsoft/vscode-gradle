@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 import AwaitLock from "await-lock";
-import { GradleClient } from ".";
+import { TaskServerClient } from ".";
 import { syncGradleBuild } from "../languageServer/languageServer";
 import { GradleBuild } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject";
@@ -13,7 +13,7 @@ const lock = new AwaitLock();
 export class GradleBuildContentProvider {
     private cachedBuild: Map<string, GradleBuild> = new Map();
 
-    constructor(private readonly client: GradleClient) {}
+    constructor(private readonly client: TaskServerClient) {}
 
     public async getGradleBuild(rootProject: RootProject): Promise<GradleBuild | undefined> {
         await lock.acquireAsync();
