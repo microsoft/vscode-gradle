@@ -201,7 +201,7 @@ public class GradleBuildClient implements BuildClient {
                 Arrays.asList(testParts, testStatus.getValue(), null, testFinishEx.getStackTrace()))); // TODO: test duration is missing
         } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_REPORT)) {
             lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidFinishTestRun",
-                    Arrays.asList(params.getTaskId().getId(), params.getMessage())));
+                    Arrays.asList(params.getStatus().getValue(), params.getMessage())));
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
