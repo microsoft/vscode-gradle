@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { Output } from "../proto/gradle_pb";
 import { Logger, logger } from "../logger";
 import { GradleTasksTreeDataProvider } from "../views";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { Icons } from "../icons";
 import { getRunBuildCancellationKey } from "../client/CancellationKeys";
 import { GradleTaskProvider } from "../tasks";
@@ -40,7 +40,7 @@ export interface CancelBuildOpts {
 
 export class Api {
     constructor(
-        private readonly client: GradleClient,
+        private readonly client: TaskServerClient,
         private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider,
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly icons: Icons

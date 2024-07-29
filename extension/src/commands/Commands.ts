@@ -66,7 +66,7 @@ import {
     COMMAND_RUN_TASK_DOUBLE_CLICK,
     RunTaskDoubleClickCommand,
 } from ".";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 import { PinnedTasksStore, RecentTasksStore, RootProjectsStore, TaskTerminalsStore } from "../stores";
 import { GradleTaskProvider } from "../tasks";
@@ -88,7 +88,7 @@ export class Commands {
         private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
         private recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
         private gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
-        private client: GradleClient,
+        private client: TaskServerClient,
         private rootProjectsStore: RootProjectsStore,
         private taskTerminalsStore: TaskTerminalsStore,
         private recentTasksStore: RecentTasksStore,

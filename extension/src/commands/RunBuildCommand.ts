@@ -5,11 +5,11 @@ import { GradleRunnerTerminal } from "../terminal";
 import { getRunBuildCancellationKey } from "../client/CancellationKeys";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 export const COMMAND_RUN_BUILD = "gradle.runBuild";
 
 export class RunBuildCommand extends Command {
-    constructor(private rootProjectsStore: RootProjectsStore, private client: GradleClient) {
+    constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
         super();
     }
     async run(): Promise<void> {

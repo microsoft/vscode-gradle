@@ -3,7 +3,7 @@
 
 import * as path from "path";
 import * as vscode from "vscode";
-import { GradleClient } from "../../client";
+import { TaskServerClient } from "../../client";
 import { isLanguageServerStarted } from "../../languageServer/languageServer";
 import { RootProject } from "../../rootProject";
 import { GradleTaskDefinition } from "../../tasks";
@@ -30,7 +30,7 @@ export class DefaultProjectProvider {
         this.defaultTasks = [];
     }
 
-    public async getDefaultTasks(rootProjects: RootProject[], client: GradleClient): Promise<vscode.Task[]> {
+    public async getDefaultTasks(rootProjects: RootProject[], client: TaskServerClient): Promise<vscode.Task[]> {
         if (this.defaultTasks.length) {
             return this.defaultTasks;
         }
