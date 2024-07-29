@@ -34,7 +34,7 @@ export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
 }
 
 export async function findValidJavaHome(): Promise<string | undefined> {
-    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome, getConfigJavaImportGradleJavaHome];
+    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome];
     let javaHome: string | undefined = undefined;
     let javaVersion = 0;
 

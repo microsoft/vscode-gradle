@@ -1,4 +1,9 @@
-import { checkEnvJavaExecutable, findValidJavaHome, getRedHatJavaEmbeddedJRE } from "../util/config";
+import {
+    checkEnvJavaExecutable,
+    findValidJavaHome,
+    getConfigJavaImportGradleJavaHome,
+    getRedHatJavaEmbeddedJRE,
+} from "../util/config";
 
 export function getGradleServerCommand(): string {
     const platform = process.platform;
@@ -16,7 +21,7 @@ export interface ProcessEnv {
 }
 
 export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
-    const javaHome = getRedHatJavaEmbeddedJRE() || (await findValidJavaHome());
+    const javaHome = getConfigJavaImportGradleJavaHome() || getRedHatJavaEmbeddedJRE() || (await findValidJavaHome());
     const env = { ...process.env };
     if (javaHome) {
         Object.assign(env, {
