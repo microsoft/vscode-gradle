@@ -27,6 +27,7 @@ import org.eclipse.lsp4j.SemanticTokensLegend;
 import org.eclipse.lsp4j.SemanticTokensServerFull;
 import org.eclipse.lsp4j.SemanticTokensWithRegistrationOptions;
 import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.SetTraceParams;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.TextDocumentSyncOptions;
 import org.eclipse.lsp4j.WorkspaceFolder;
@@ -122,5 +123,10 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 	@Override
 	public void connect(LanguageClient client) {
 		this.gradleServices.connect(client);
+	}
+
+	@Override
+	public void setTrace(SetTraceParams params) {
+		// Override to avoid exception throw by the default implementation
 	}
 }
