@@ -79,7 +79,7 @@ export class BspProxy {
         buildServerConnection?.onError(([error]) => {
             this.logger.error(`Error on buildServerConnection: ${error.message}`);
             sendInfo("", {
-                kind: "bspProxy-importerConnectionError",
+                kind: "bspProxy-buildServerConnectionError",
                 message: error.message,
                 proxyErrorStack: error.stack ? error.stack.toString() : "",
             });
