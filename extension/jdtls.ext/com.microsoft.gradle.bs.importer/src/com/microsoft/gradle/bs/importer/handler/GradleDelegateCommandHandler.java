@@ -76,7 +76,7 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                     getEnvVarPairs(arguments)
                 );
                 testParams.setData(scalaTestSuites);
-                buildServerConnection.buildTargetTest(testParams).join();
+                buildServerConnection.buildTargetTest(testParams);
                 return null;
             default:
                 break;
