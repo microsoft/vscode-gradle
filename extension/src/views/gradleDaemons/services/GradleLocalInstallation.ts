@@ -7,7 +7,7 @@ export class GradleLocalInstallation implements GradleExecution {
     private gradleHomePath: string;
 
     constructor(gradleHomePath: string) {
-        this.gradleHomePath = gradleHomePath;
+        this.gradleHomePath = `"${gradleHomePath}"`;
     }
 
     public async exec(args: string[]): Promise<string> {
@@ -15,7 +15,8 @@ export class GradleLocalInstallation implements GradleExecution {
             throw new Error("No gradle args supplied");
         }
 
-        const command = `${this.gradleHomePath} ${args.join(" ")}`;
+        const quotedArgs = args.map((arg) => `"${arg}"`).join(" ");
+        const command = `${this.gradleHomePath} ${quotedArgs}`;
 
         try {
             const jdkPath = getConfigJavaImportGradleJavaHome();

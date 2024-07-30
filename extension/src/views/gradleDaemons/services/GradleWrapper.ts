@@ -10,15 +10,15 @@ export class GradleWrapper implements GradleExecution {
 
     constructor(private projectRoot: string) {
         const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
-        this.gradleWrapperPath = path.join(projectRoot, wrapperName);
+        this.gradleWrapperPath = `"${path.join(projectRoot, wrapperName)}"`;
     }
 
     public async exec(args: string[]): Promise<string> {
         if (args.length === 0) {
             throw new Error("No wrapper args supplied");
         }
-
-        const command = `${this.gradleWrapperPath} ${args.join(" ")}`;
+        const quotedArgs = args.map((arg) => `"${arg}"`).join(" ");
+        const command = `${this.gradleWrapperPath} ${quotedArgs}`;
         try {
             const jdkPath = getConfigJavaImportGradleJavaHome();
             const env = jdkPath ? { ...process.env, JAVA_HOME: jdkPath } : process.env;
