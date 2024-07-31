@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.microsoft.gradle.jdtls.ext</groupId>
 		<artifactId>gradle-jdtls-ext-parent</artifactId>
-		<version>0.4.0</version>
+		<version>0.5.0</version>
 	</parent>
 	<artifactId>com.microsoft.gradle.bs.importer.tp</artifactId>
 	<name>${base.name} :: Target Platform</name>
