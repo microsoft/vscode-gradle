@@ -4,6 +4,17 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.16.0
+## What's Changed
+* performance - Merge Task Server & Build Server by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1512
+* performance - Merge Language Server to Gradle Server by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1525
+* fix - Catch the error when running Gradle tests by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1524
+* fix - Wrong status code returned for test completion by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1532
+* fix - Override LanguageServer setTrace to avoid default Exception throw by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1533
+* fix - Get daemon status handle project folder name include empty space by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1537
+* documentation - Update architecture.md for merge server by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1520
+* documentation - Update doc after merge language server by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1528
+
 ### 3.15.0
 ## What's Changed
 * feat - Support delegate tests to Gradle build Server by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1510
