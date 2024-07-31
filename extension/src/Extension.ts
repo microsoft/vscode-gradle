@@ -251,6 +251,11 @@ export class Extension {
                 if (api) {
                     const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(api);
                     api.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
+                    api.registerTestProfile(
+                        "Delegate Test to Gradle (Debug)",
+                        vscode.TestRunProfileKind.Debug,
+                        testRunner
+                    );
                 }
             });
         }
