@@ -23,6 +23,9 @@ export const NO_JAVA_EXECUTABLE =
 
 export const OPT_RESTART = "Restart";
 
+export const GRADLE_SERVER_BASE_JVM_OPTS =
+    "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED";
+
 export enum CompletionKinds {
     DEPENDENCY_GROUP = "dependency_group",
     DEPENDENCY_ARTIFACT = "dependency_artifact",

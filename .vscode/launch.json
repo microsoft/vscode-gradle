@@ -54,7 +54,7 @@
         "order": 2
       },
       "env": {
-        "GRADLE_SERVER_OPTS":"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8089"
+        "DEBUG_GRADLE_SERVER": "true",
       },
     },
     {
