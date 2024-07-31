@@ -147,7 +147,7 @@ public class NamedPipeStream {
 
         private void sleep(IOException e, int attempts) {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Thread interrupted while handling connection failure", ie);
