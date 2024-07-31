@@ -55,6 +55,9 @@ export class GradleServer {
         const env = await getGradleServerEnv();
         const bundleDirectory = this.context.asAbsolutePath("server");
         if (!env) {
+            sendInfo("", {
+                kind: "GradleServerEnvMissing",
+            });
             await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
             return;
         }
