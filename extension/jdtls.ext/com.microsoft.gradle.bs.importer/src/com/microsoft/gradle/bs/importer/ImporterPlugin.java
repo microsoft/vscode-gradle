@@ -43,10 +43,6 @@ public class ImporterPlugin extends Plugin {
         ImporterPlugin.instance = this;
         bundleVersion = context.getBundle().getVersion().toString();
         digestStore = new DigestStore(getStateLocation().toFile());
-        Optional<File> bundleFile = FileLocator.getBundleFileLocation(context.getBundle());
-        if (!bundleFile.isPresent()) {
-           throw new IllegalStateException("Failed to get bundle location.");
-        }
     }
 
     @Override

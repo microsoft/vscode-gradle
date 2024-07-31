@@ -5,7 +5,7 @@ import * as getPort from "get-port";
 import * as kill from "tree-kill";
 import { commands } from "vscode";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
-import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
+import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
 import { redHatJavaInstalled } from "../util/config";
@@ -63,13 +63,14 @@ export class GradleServer {
         }
         const startBuildServer = redHatJavaInstalled() ? "true" : "false";
         const args = [
-            `--port=${this.taskServerPort}`,
-            `--startBuildServer=${startBuildServer}`,
-            `--languageServerPipePath=${this.languageServerPipePath}`,
+            quoteArg(`--port=${this.taskServerPort}`),
+            quoteArg(`--startBuildServer=${startBuildServer}`),
+            quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
         ];
         if (startBuildServer === "true") {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
-            args.push(`--pipeName=${buildServerPipeName}`, `--bundleDir=${bundleDirectory}`);
+            args.push(quoteArg(`--pipeName=${buildServerPipeName}`));
+            args.push(quoteArg(`--bundleDir=${bundleDirectory}`));
         }
         this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
 

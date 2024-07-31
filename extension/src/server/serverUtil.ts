@@ -21,6 +21,10 @@ export interface ProcessEnv {
     [key: string]: string | undefined;
 }
 
+export function quoteArg(arg: string): string {
+    return `"${arg}"`;
+}
+
 export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
     const javaHome = getConfigJavaImportGradleJavaHome() || getRedHatJavaEmbeddedJRE() || (await findValidJavaHome());
     const env = { ...process.env };
