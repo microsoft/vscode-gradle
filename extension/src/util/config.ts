@@ -7,7 +7,7 @@ import * as fse from "fs-extra";
 import * as path from "path";
 import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
 type AutoDetect = "on" | "off";
-const REQUIRED_JDK_VERSION = 17;
+export const REQUIRED_JDK_VERSION = 17;
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
     return (
@@ -27,6 +27,17 @@ export function getJdtlsConfigJavaHome(): string | null {
 
 export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
+}
+
+export async function getNeededConfigJavaImportGradleJavaHome(required_jdk_version: number): Promise<string | null> {
+    const javaHome = vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
+    if (javaHome) {
+        const javaVersion = await getMajorVersion(javaHome);
+        if (javaVersion >= required_jdk_version) {
+            return javaHome;
+        }
+    }
+    return null;
 }
 
 export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
