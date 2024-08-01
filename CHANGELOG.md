@@ -4,6 +4,11 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.16.1
+## What's Changed
+* enhancement - Support debug test delegation by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1536
+* fix - Gradle build server cannot be started when path has spaces @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1542
+
 ## 3.16.0
 ## What's Changed
 * performance - Merge Task Server & Build Server by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1512
