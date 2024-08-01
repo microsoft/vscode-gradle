@@ -2,7 +2,7 @@
   "name": "vscode-gradle",
   "displayName": "Gradle for Java",
   "description": "Manage Gradle Projects, run Gradle tasks and provide better Gradle file authoring experience in VS Code",
-  "version": "3.16.0",
+  "version": "3.16.1",
   "private": true,
   "publisher": "vscjava",
   "aiKey": "b4aae7d0-c65b-4819-92bf-1d2f537ae7ce",
@@ -43,7 +43,7 @@
   "main": "./dist/index.js",
   "contributes": {
     "javaExtensions": [
-      "./server/com.microsoft.gradle.bs.importer-0.5.0.jar"
+      "./server/com.microsoft.gradle.bs.importer-0.5.1.jar"
     ],
     "languages": [
       {
