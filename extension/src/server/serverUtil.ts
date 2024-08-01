@@ -1,8 +1,9 @@
 import {
     checkEnvJavaExecutable,
     findValidJavaHome,
-    getConfigJavaImportGradleJavaHome,
+    getConfigJavaImportGradleJavaHomeIfHigherThan,
     getRedHatJavaEmbeddedJRE,
+    REQUIRED_JDK_VERSION,
 } from "../util/config";
 import { GRADLE_SERVER_BASE_JVM_OPTS } from "../constant";
 
@@ -26,7 +27,10 @@ export function quoteArg(arg: string): string {
 }
 
 export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
-    const javaHome = getConfigJavaImportGradleJavaHome() || getRedHatJavaEmbeddedJRE() || (await findValidJavaHome());
+    const javaHome =
+        (await getConfigJavaImportGradleJavaHomeIfHigherThan(REQUIRED_JDK_VERSION)) ||
+        getRedHatJavaEmbeddedJRE() ||
+        (await findValidJavaHome());
     const env = { ...process.env };
     if (javaHome) {
         Object.assign(env, {

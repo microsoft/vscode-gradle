@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## 3.16.1
 ## What's Changed
 * enhancement - Support debug test delegation by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1536
-* fix - Gradle build server cannot be started when path has spaces @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1542
+* fix - Gradle build server cannot be started when path has spaces by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1542
+* fix - Fail to start if import.gradle.java.home jdk version lower than 17 by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1547
 
 ## 3.16.0
 ## What's Changed
