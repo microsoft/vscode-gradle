@@ -29,7 +29,9 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export async function getNeededConfigJavaImportGradleJavaHome(requiredJdkVersion: number): Promise<string | null> {
+export async function getConfigJavaImportGradleJavaHomeIfHigherThan(
+    requiredJdkVersion: number
+): Promise<string | null> {
     const javaHome = vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
     if (javaHome) {
         const javaVersion = await getMajorVersion(javaHome);
