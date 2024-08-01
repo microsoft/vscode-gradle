@@ -29,11 +29,11 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export async function getNeededConfigJavaImportGradleJavaHome(required_jdk_version: number): Promise<string | null> {
+export async function getNeededConfigJavaImportGradleJavaHome(requiredJdkVersion: number): Promise<string | null> {
     const javaHome = vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
     if (javaHome) {
         const javaVersion = await getMajorVersion(javaHome);
-        if (javaVersion >= required_jdk_version) {
+        if (javaVersion >= requiredJdkVersion) {
             return javaHome;
         }
     }
