@@ -15,8 +15,11 @@ export class BuildServerConnector {
      * Generates a random pipe name, creates a pipe server and
      * waiting for the connection from the Java build server.
      */
-    public setupBuildServerPipeStream(): void {
+    public setupBuildServerPipeStream(): boolean {
         this.serverPipePath = getRandomPipeName();
+        if (this.serverPipePath === "") {
+            return false;
+        }
         this.serverPipeServer = net.createServer((socket: net.Socket) => {
             this.serverConnection = rpc.createMessageConnection(
                 new rpc.StreamMessageReader(socket),
@@ -25,6 +28,7 @@ export class BuildServerConnector {
             this.serverConnection.listen();
         });
         this.serverPipeServer.listen(this.serverPipePath);
+        return true;
     }
 
     public getServerConnection(): rpc.MessageConnection | null {

@@ -24,8 +24,8 @@ export class BspProxy {
     /**
      * This function needs to be called before we start Java Gradle Server.
      */
-    public prepareToStart(): void {
-        this.buildServerConnector.setupBuildServerPipeStream();
+    public prepareToStart(): boolean {
+        return this.buildServerConnector.setupBuildServerPipeStream();
     }
 
     /**

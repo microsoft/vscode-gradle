@@ -260,7 +260,6 @@ export class Extension {
             });
         }
         const activated = !!(await this.rootProjectsStore.getProjectRoots()).length;
-        this.bspProxy.prepareToStart();
         if (!this.server.isReady()) {
             await this.server.start();
         }

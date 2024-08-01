@@ -49,6 +49,12 @@ export class GradleServer {
         return this.languageServerPipePath;
     }
     public async start(): Promise<void> {
+        const isPrepared = this.bspProxy.prepareToStart();
+        if (!isPrepared) {
+            this.logger.error("Failed to generate build server pipe path, build server will not start");
+        }
+        const startBuildServer = isPrepared && redHatJavaInstalled() ? "true" : "false";
+
         this.taskServerPort = await getPort();
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
@@ -61,7 +67,6 @@ export class GradleServer {
             await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
             return;
         }
-        const startBuildServer = redHatJavaInstalled() ? "true" : "false";
         const args = [
             quoteArg(`--port=${this.taskServerPort}`),
             quoteArg(`--startBuildServer=${startBuildServer}`),
