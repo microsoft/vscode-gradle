@@ -88,6 +88,7 @@ export class GradleServer {
                 this._onDidStop.fire(null);
                 this.ready = false;
                 this.process?.removeAllListeners();
+                this.bspProxy.closeConnection();
                 if (this.restarting) {
                     this.restarting = false;
                     await this.start();
@@ -163,6 +164,7 @@ export class GradleServer {
     }
 
     public async asyncDispose(): Promise<void> {
+        this.bspProxy.closeConnection();
         this.process?.removeAllListeners();
         await this.killProcess();
         this.ready = false;
