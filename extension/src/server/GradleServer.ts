@@ -53,7 +53,12 @@ export class GradleServer {
         if (!isPrepared) {
             this.logger.error("Failed to generate build server pipe path, build server will not start");
         }
-        const startBuildServer = isPrepared && redHatJavaInstalled() ? "true" : "false";
+        let startBuildServer = isPrepared && redHatJavaInstalled();
+        if (process.env.DEBUG_VSCODE_JAVA) {
+            const debugBuildServer = process.env.DEBUG_START_BUILD_SERVER === "true";
+            startBuildServer = startBuildServer && debugBuildServer;
+        }
+        this.bspProxy.setBuildServerStarted(startBuildServer);
 
         this.taskServerPort = await getPort();
         const cwd = this.context.asAbsolutePath("lib");
@@ -72,7 +77,7 @@ export class GradleServer {
             quoteArg(`--startBuildServer=${startBuildServer}`),
             quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
         ];
-        if (startBuildServer === "true") {
+        if (startBuildServer) {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
             args.push(quoteArg(`--pipeName=${buildServerPipeName}`));
             args.push(quoteArg(`--bundleDir=${bundleDirectory}`));

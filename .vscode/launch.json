@@ -18,7 +18,8 @@
         "order": 1
       },
       "env": {
-        "DEBUG_VSCODE_JAVA":"true"
+        "DEBUG_VSCODE_JAVA":"true",
+        "DEBUG_START_BUILD_SERVER": "true"
       },
     },
     {
