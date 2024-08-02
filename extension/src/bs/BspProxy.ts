@@ -16,6 +16,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 export class BspProxy {
     private buildServerConnector: BuildServerConnector;
     private jdtlsImporterConnector: JdtlsImporterConnector;
+    private buildServerStart: boolean;
 
     constructor(context: vscode.ExtensionContext, private readonly logger: Logger) {
         this.buildServerConnector = new BuildServerConnector();
@@ -24,8 +25,8 @@ export class BspProxy {
     /**
      * This function needs to be called before we start Java Gradle Server.
      */
-    public prepareToStart(): void {
-        this.buildServerConnector.setupBuildServerPipeStream();
+    public prepareToStart(): boolean {
+        return this.buildServerConnector.setupBuildServerPipeStream();
     }
 
     /**
@@ -37,11 +38,12 @@ export class BspProxy {
     public async start(): Promise<void> {
         await this.jdtlsImporterConnector.waitForImporterPipePath();
         await this.jdtlsImporterConnector.setupImporterPipeStream();
-
-        this.setupMessageForwarding(
-            this.jdtlsImporterConnector.getImporterConnection(),
-            this.buildServerConnector.getServerConnection()
-        );
+        if (this.buildServerStart) {
+            this.setupMessageForwarding(
+                this.jdtlsImporterConnector.getImporterConnection(),
+                this.buildServerConnector.getServerConnection()
+            );
+        }
         this.jdtlsImporterConnector.startListening();
     }
 
@@ -53,20 +55,23 @@ export class BspProxy {
         importerConnection: rpc.MessageConnection | null,
         buildServerConnection: rpc.MessageConnection | null
     ): void {
-        importerConnection?.onRequest((method, params) => {
+        if (!importerConnection || !buildServerConnection) {
+            return;
+        }
+        importerConnection.onRequest((method, params) => {
             if (params !== null) {
-                return buildServerConnection?.sendRequest(method, params);
+                return buildServerConnection.sendRequest(method, params);
             }
-            return buildServerConnection?.sendRequest(method);
+            return buildServerConnection.sendRequest(method);
         });
 
-        buildServerConnection?.onNotification((method, params) => {
+        buildServerConnection.onNotification((method, params) => {
             if (params !== null) {
-                return importerConnection?.sendNotification(method, params);
+                return importerConnection.sendNotification(method, params);
             }
-            importerConnection?.sendNotification(method);
+            importerConnection.sendNotification(method);
         });
-        importerConnection?.onError(([error]) => {
+        importerConnection.onError(([error]) => {
             this.logger.error(`Error on importerConnection: ${error.message}`);
             sendInfo("", {
                 kind: "bspProxy-importerConnectionError",
@@ -76,7 +81,7 @@ export class BspProxy {
             // TODO: Implement more specific error handling logic here
         });
 
-        buildServerConnection?.onError(([error]) => {
+        buildServerConnection.onError(([error]) => {
             this.logger.error(`Error on buildServerConnection: ${error.message}`);
             sendInfo("", {
                 kind: "bspProxy-buildServerConnectionError",
@@ -85,6 +90,9 @@ export class BspProxy {
             });
             // TODO: Implement more specific error handling logic here
         });
+    }
+    public setBuildServerStarted(started: boolean): void {
+        this.buildServerStart = started;
     }
 
     public closeConnection(): void {

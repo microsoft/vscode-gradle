@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletionException;
 
 import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.internal.resources.ProjectDescription;
@@ -31,6 +32,8 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+
 import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 import com.microsoft.gradle.bs.importer.model.Telemetry;
@@ -54,6 +57,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
     public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
+    private boolean isResolved = true;
 
     @Override
     public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
@@ -172,9 +176,20 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         );
         BuildServerPreferences data = getBuildServerPreferences();
         params.setData(data);
-        InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
-        buildServer.onBuildInitialized();
-        // TODO: save the capabilities of this server
+        try {
+            InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
+            buildServer.onBuildInitialized();
+            // TODO: save the capabilities of this server
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (e.getCause() instanceof ResponseErrorException responseError) {
+                if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
+                    JavaLanguageServerPlugin.logException("Failed to start Gradle Build Server, use BuildShip instead", null);
+                    this.isResolved = false;
+                    return;
+                }
+            }
+        }
 
         if (monitor.isCanceled()) {
             return;
@@ -207,6 +222,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
+        if (!this.isResolved){
+            return false;
+        }
         for (IProject project : ProjectUtils.getAllProjects()) {
             if (Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {
