@@ -55,10 +55,7 @@ export class BspProxy {
         importerConnection: rpc.MessageConnection | null,
         buildServerConnection: rpc.MessageConnection | null
     ): void {
-        if (!importerConnection) {
-            return;
-        }
-        if (!buildServerConnection) {
+        if (!importerConnection || !buildServerConnection) {
             return;
         }
         importerConnection.onRequest((method, params) => {

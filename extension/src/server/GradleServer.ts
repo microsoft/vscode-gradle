@@ -49,11 +49,16 @@ export class GradleServer {
         return this.languageServerPipePath;
     }
     public async start(): Promise<void> {
-        const isPrepared = this.bspProxy.prepareToStart();
-        if (!isPrepared) {
-            this.logger.error("Failed to generate build server pipe path, build server will not start");
+        let startBuildServer = false;
+        if (redHatJavaInstalled()) {
+            const isPrepared = this.bspProxy.prepareToStart();
+            if (isPrepared) {
+                startBuildServer = true;
+            } else {
+                this.logger.error("Failed to generate build server pipe path, build server will not start");
+            }
         }
-        const startBuildServer = isPrepared && redHatJavaInstalled();
+
         this.bspProxy.setBuildServerStarted(startBuildServer);
 
         this.taskServerPort = await getPort();
