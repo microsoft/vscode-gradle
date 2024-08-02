@@ -201,6 +201,7 @@ export function getGradleConfig(): GradleConfig {
     const gradleUserHome = getConfigJavaImportGradleUserHome();
     const gradleJvmArguments = getConfigJavaImportGradleJvmArguments();
     const gradleVersion = getConfigJavaImportGradleVersion();
+    const javaHome = getConfigJavaImportGradleJavaHome();
     if (gradleHome !== null) {
         gradleConfig.setGradleHome(gradleHome);
     }
@@ -212,6 +213,9 @@ export function getGradleConfig(): GradleConfig {
     }
     if (gradleVersion !== null) {
         gradleConfig.setVersion(gradleVersion);
+    }
+    if (javaHome !== null) {
+        gradleConfig.setJavaHome(javaHome);
     }
     gradleConfig.setWrapperEnabled(getConfigJavaImportGradleWrapperEnabled());
     const javaExtension = vscode.extensions.getExtension("redhat.java");

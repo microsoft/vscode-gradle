@@ -121,6 +121,9 @@ public class GetBuildHandler {
 			action.withCancellationToken(cancellationToken).addProgressListener(progressListener, progressEvents)
 					.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
 					.setColorOutput(req.getShowOutputColors());
+			if (!Strings.isNullOrEmpty(req.getGradleConfig().getJavaHome())) {
+				action.setJavaHome(new File(req.getGradleConfig().getJavaHome()));
+			}
 			GradleProjectModel gradleModel = action.run();
 			if (gradleModel == null) {
 				throw new Exception("Error occurs in querying custom model.");
@@ -193,13 +196,15 @@ public class GetBuildHandler {
 			BuildEnvironment environment = buildEnvironment.get();
 			org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
 			org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
+			String javaHome = Strings.isNullOrEmpty(req.getGradleConfig().getJavaHome())
+					? javaEnvironment.getJavaHome().getAbsolutePath()
+					: req.getGradleConfig().getJavaHome();
 			return Environment.newBuilder()
 					.setGradleEnvironment(GradleEnvironment.newBuilder()
 							.setGradleUserHome(gradleEnvironment.getGradleUserHome().getAbsolutePath())
 							.setGradleVersion(gradleEnvironment.getGradleVersion()))
-					.setJavaEnvironment(
-							JavaEnvironment.newBuilder().setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
-									.addAllJvmArgs(javaEnvironment.getJvmArguments()))
+					.setJavaEnvironment(JavaEnvironment.newBuilder().setJavaHome(javaHome)
+							.addAllJvmArgs(javaEnvironment.getJvmArguments()))
 					.build();
 		} finally {
 			GradleBuildCancellation.clearToken(req.getCancellationKey());
