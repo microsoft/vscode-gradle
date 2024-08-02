@@ -68,4 +68,10 @@ export class JdtlsImporterConnector {
     public getImporterConnection(): rpc.MessageConnection | null {
         return this.importerConnection;
     }
+
+    public close(): void {
+        this.importerConnection?.end();
+        this.importerConnection?.dispose();
+        this.importerPipeServer.close();
+    }
 }

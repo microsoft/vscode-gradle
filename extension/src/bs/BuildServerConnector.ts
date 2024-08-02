@@ -38,4 +38,10 @@ export class BuildServerConnector {
     public getServerPipePath(): string {
         return this.serverPipePath;
     }
+
+    public close(): void {
+        this.serverConnection?.end();
+        this.serverConnection?.dispose();
+        this.serverPipeServer.close();
+    }
 }

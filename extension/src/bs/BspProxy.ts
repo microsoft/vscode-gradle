@@ -96,8 +96,13 @@ export class BspProxy {
             // TODO: Implement more specific error handling logic here
         });
     }
-
     public setBuildServerStarted(started: boolean): void {
         this.buildServerStart = started;
+    }
+
+    public closeConnection(): void {
+        this.buildServerConnector.close();
+        this.jdtlsImporterConnector.close();
+        this.logger.info("Build Server connection closed");
     }
 }
