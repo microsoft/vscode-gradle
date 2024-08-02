@@ -58,7 +58,6 @@ export class GradleServer {
                 this.logger.error("Failed to generate build server pipe path, build server will not start");
             }
         }
-
         this.bspProxy.setBuildServerStarted(startBuildServer);
 
         this.taskServerPort = await getPort();

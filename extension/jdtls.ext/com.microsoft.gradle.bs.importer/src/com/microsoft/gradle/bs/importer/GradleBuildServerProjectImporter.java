@@ -222,8 +222,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
+        if (!this.isResolved){
+            return false;
+        }
         for (IProject project : ProjectUtils.getAllProjects()) {
-            if (this.isResolved && Utils.isGradleBuildServerProject(project) &&
+            if (Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {
                 return true;
             }
