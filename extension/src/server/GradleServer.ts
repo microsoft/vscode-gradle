@@ -53,11 +53,7 @@ export class GradleServer {
         if (!isPrepared) {
             this.logger.error("Failed to generate build server pipe path, build server will not start");
         }
-        let startBuildServer = isPrepared && redHatJavaInstalled();
-        if (process.env.DEBUG_VSCODE_JAVA) {
-            const debugBuildServer = process.env.DEBUG_START_BUILD_SERVER === "true";
-            startBuildServer = startBuildServer && debugBuildServer;
-        }
+        const startBuildServer = isPrepared && redHatJavaInstalled();
         this.bspProxy.setBuildServerStarted(startBuildServer);
 
         this.taskServerPort = await getPort();

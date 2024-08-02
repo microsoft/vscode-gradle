@@ -56,11 +56,9 @@ export class BspProxy {
         buildServerConnection: rpc.MessageConnection | null
     ): void {
         if (!importerConnection) {
-            this.logger.error("Failed to setup importer message forwarding");
             return;
         }
         if (!buildServerConnection) {
-            this.logger.error("Failed to setup build server message forwarding");
             return;
         }
         importerConnection.onRequest((method, params) => {

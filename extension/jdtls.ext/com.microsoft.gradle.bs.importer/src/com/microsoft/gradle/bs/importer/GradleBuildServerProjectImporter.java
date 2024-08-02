@@ -57,7 +57,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
     public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
-    private boolean IS_RESOLVED = true;
+    private boolean isResolved = true;
 
     @Override
     public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
@@ -182,11 +182,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             // TODO: save the capabilities of this server
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof ResponseErrorException) {
-                ResponseErrorException responseError = (ResponseErrorException) cause;
+            if (e.getCause() instanceof ResponseErrorException responseError) {
                 if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
                     JavaLanguageServerPlugin.logException("Failed to start Gradle Build Server, use BuildShip instead", null);
-                    this.IS_RESOLVED = false;
+                    this.isResolved = false;
                     return;
                 }
             }
@@ -224,7 +223,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
         for (IProject project : ProjectUtils.getAllProjects()) {
-            if (this.IS_RESOLVED && Utils.isGradleBuildServerProject(project) &&
+            if (this.isResolved && Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {
                 return true;
             }
