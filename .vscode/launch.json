@@ -35,7 +35,7 @@
       "request": "attach",
       "hostName": "localhost",
       "port": "8089",
-      "projectName": "com.github.badsyntax.gradle"
+      "projectName": "gradle-server"
     },
     {
       "name": "Debug Gradle Server & Extension",

@@ -153,6 +153,7 @@ message GradleConfig {
   bool wrapper_enabled = 4;
   string version = 5;
   string java_extension_version = 6;
+  string java_home = 7;
 }
 
 message GradleBuild { GradleProject project = 1; }
