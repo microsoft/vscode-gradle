@@ -29,25 +29,12 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export async function getConfigJavaImportGradleJavaHomeIfHigherThan(
-    requiredJdkVersion: number
-): Promise<string | null> {
-    const javaHome = vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
-    if (javaHome) {
-        const javaVersion = await getMajorVersion(javaHome);
-        if (javaVersion >= requiredJdkVersion) {
-            return javaHome;
-        }
-    }
-    return null;
-}
-
 export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
     return path.join(javaHome, "bin", JAVA_FILENAME);
 }
 
 export async function findValidJavaHome(): Promise<string | undefined> {
-    const javaHomeGetters = [getJdtlsConfigJavaHome, getConfigJavaHome];
+    const javaHomeGetters = [getConfigJavaImportGradleJavaHome, getJdtlsConfigJavaHome, getConfigJavaHome];
     let javaHome: string | undefined = undefined;
     let javaVersion = 0;
 
