@@ -4,6 +4,13 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.16.2
+### What's Changed
+* fix - Stop start build server when getRandomPipepath return empty by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1545
+* fix - Use 'java.import.gradle.java.home' when it's specified by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1552
+* fix - Inform that JDK 17 is required by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1549
+* fix - Refine findValidJavaHome logic by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1554
+
 ## 3.16.1
 ## What's Changed
 * enhancement - Support debug test delegation by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1536
