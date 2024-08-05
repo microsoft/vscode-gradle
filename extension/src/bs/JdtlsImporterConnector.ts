@@ -2,6 +2,7 @@ import * as net from "net";
 import * as rpc from "vscode-jsonrpc/node";
 import * as vscode from "vscode";
 import * as path from "path";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 
 export const ON_WILL_IMPORTER_CONNECT = "gradle.onWillImporterConnect";
 
@@ -56,6 +57,13 @@ export class JdtlsImporterConnector {
                     new rpc.StreamMessageWriter(socket)
                 );
                 resolve();
+            });
+            this.importerPipeServer.on("error", (error) => {
+                sendInfo("", {
+                    kind: "JdtlsImporterConnectorError",
+                    error: error.message,
+                    proxyErrorStack: error.stack ? error.stack.toString() : "",
+                });
             });
             this.importerPipeServer.listen(this.importerPipePath);
         });

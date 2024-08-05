@@ -1,6 +1,7 @@
 import * as net from "net";
 import * as rpc from "vscode-jsonrpc/node";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 
 /**
  * Creates a named pipe file and sets up a pipe server
@@ -26,6 +27,13 @@ export class BuildServerConnector {
                 new rpc.StreamMessageWriter(socket)
             );
             this.serverConnection.listen();
+        });
+        this.serverPipeServer.on("error", (error) => {
+            sendInfo("", {
+                kind: "BuildServerConnectorError",
+                error: error.message,
+                proxyErrorStack: error.stack ? error.stack.toString() : "",
+            });
         });
         this.serverPipeServer.listen(this.serverPipePath);
         return true;
