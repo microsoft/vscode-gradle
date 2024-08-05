@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.DocumentFilter;
 import org.eclipse.lsp4j.ExecuteCommandOptions;
@@ -43,9 +42,6 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 
 	public static void main(String[] args) {
 		GradleLanguageServer server = new GradleLanguageServer();
-		if (StringUtils.isBlank(args[0])) {
-			server.exit();
-		}
 		try {
 			NamedPipeStream pipeStream = new NamedPipeStream(args[0]);
 
@@ -55,7 +51,7 @@ public class GradleLanguageServer implements LanguageServer, LanguageClientAware
 			server.connect(launcher.getRemoteProxy());
 			launcher.startListening();
 		} catch (IOException e) {
-			server.exit();
+			throw new RuntimeException("Gradle language server start failed", e);
 		}
 
 	}

@@ -23,6 +23,10 @@ export async function startLanguageClientAndWaitForConnection(
     rootProjectsStore: RootProjectsStore,
     languageServerPipePath: string
 ): Promise<void> {
+    if (languageServerPipePath === "") {
+        isLanguageServerStarted = false;
+        return;
+    }
     void vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, (progress) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         return new Promise<void>(async (resolve) => {

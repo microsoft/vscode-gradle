@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.utils.Utils;
+import com.google.common.base.Strings;
 import com.microsoft.gradle.GradleLanguageServer;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -62,8 +63,10 @@ public class GradleServer {
 		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
 		startTaskServerThread(taskServerPort);
 
-		String languageServerPipePath = Utils.validateRequiredParam(params, "languageServerPipePath");
-		startLanguageServerThread(languageServerPipePath);
+		String languageServerPipePath = params.get("languageServerPipePath");
+		if (!Strings.isNullOrEmpty(languageServerPipePath)) {
+			startLanguageServerThread(languageServerPipePath);
+		}
 
 		boolean startBuildServer = Boolean.parseBoolean(Utils.validateRequiredParam(params, "startBuildServer"));
 		if (startBuildServer) {
