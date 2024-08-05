@@ -41,7 +41,7 @@ export class GradleServer {
     private setLanguageServerPipePath(): void {
         this.languageServerPipePath = getRandomPipeName();
         if (this.languageServerPipePath === "") {
-            this.logger.error("Failed to generate language server pipe path, language server will not start");
+            this.logger.error("Gradle language server will not start due to pipe path generation failure");
         }
     }
 
@@ -55,7 +55,7 @@ export class GradleServer {
             if (isPrepared) {
                 startBuildServer = true;
             } else {
-                this.logger.error("Failed to generate build server pipe path, build server will not start");
+                this.logger.error("Gradle build server will not start due to pipe path generation failure");
             }
         }
         this.bspProxy.setBuildServerStarted(startBuildServer);
