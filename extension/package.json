@@ -951,7 +951,7 @@
     "update-tpn": "node scripts/update-third-party-notice.js"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.8.11",
+    "@grpc/grpc-js": "^1.8.22",
     "@types/fs-extra": "^11.0.1",
     "@types/glob": "^8.1.0",
     "@types/google-protobuf": "^3.15.6",
