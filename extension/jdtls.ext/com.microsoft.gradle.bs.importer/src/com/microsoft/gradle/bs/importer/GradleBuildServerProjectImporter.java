@@ -152,7 +152,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
         BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
-
+        if (buildServer == null) {
+            JavaLanguageServerPlugin.logError("Reach the maximum number of attempts to connect to the build server, use BuildShip instead");
+            this.isResolved = false;
+            return;
+        }
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
         // TODO: consider the following folder structure
@@ -181,10 +185,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             buildServer.onBuildInitialized();
             // TODO: save the capabilities of this server
         } catch (CompletionException e) {
-            Throwable cause = e.getCause();
             if (e.getCause() instanceof ResponseErrorException responseError) {
                 if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
-                    JavaLanguageServerPlugin.logException("Failed to start Gradle Build Server, use BuildShip instead", null);
+                    JavaLanguageServerPlugin.logError("Failed to start Gradle Build Server, use BuildShip instead");
                     this.isResolved = false;
                     return;
                 }

@@ -14,11 +14,9 @@ export class JdtlsImporterConnector {
     private importerConnection: rpc.MessageConnection | null = null;
     private importerPipeServer: net.Server;
     private importerPipePath: string;
-    private readonly context: vscode.ExtensionContext;
     private readonly _onImporterReady: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
 
-    constructor(context: vscode.ExtensionContext) {
-        this.context = context;
+    constructor(private readonly context: vscode.ExtensionContext) {
         this.registerCommand();
     }
 
@@ -33,6 +31,9 @@ export class JdtlsImporterConnector {
         return new Promise((resolve) => {
             this._onImporterReady.event((resolvedPath) => {
                 this.importerPipePath = resolvedPath;
+                sendInfo("", {
+                    kind: "JdtlsImporterConnectorReceivedPipePath",
+                });
                 resolve();
             });
         });

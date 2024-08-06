@@ -1,15 +1,12 @@
 package com.microsoft.gradle.bs.importer;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Plugin;
@@ -18,6 +15,7 @@ import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
 
+import com.microsoft.gradle.bs.importer.model.NamedPipeConnectionException;
 import com.microsoft.java.builder.BuildStateManager;
 
 import ch.epfl.scala.bsp4j.BuildClient;
@@ -79,7 +77,7 @@ public class ImporterPlugin extends Plugin {
      * Get the build server connection for the given root path.
      * @param rootPath the root path of the workspace.
      * @param createIfMissing whether to create a new build server connection if it doesn't exist.
-     * @return the build server connection.
+     * @return the build server connection. If fail to connect before max attempt, returns null and fallback to BuildShip.
      * @throws CoreException
      */
     public static BuildServerConnection getBuildServerConnection(IPath rootPath, boolean createIfMissing) throws CoreException {
@@ -114,6 +112,8 @@ public class ImporterPlugin extends Plugin {
             client.onConnectWithServer(server);
             instance.buildServers.put(rootPath, Pair.of(server, client));
             return server;
+        } catch (NamedPipeConnectionException e) {
+            return null;
         } catch (IOException e) {
             throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
                     "Failed to start build server.", e));
