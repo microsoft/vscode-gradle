@@ -32,7 +32,7 @@ export class JdtlsImporterConnector {
             this._onImporterReady.event((resolvedPath) => {
                 this.importerPipePath = resolvedPath;
                 sendInfo("", {
-                    kind: "JdtlsImporterReceivedPipePath",
+                    kind: "JdtlsImporterConnectorReceivedPipePath",
                 });
                 resolve();
             });

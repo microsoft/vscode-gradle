@@ -153,7 +153,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
         BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
         if (buildServer == null) {
-            JavaLanguageServerPlugin.logException("Reach the maximum number of attempts to connect to the build server, use BuildShip instead", null);
+            JavaLanguageServerPlugin.logError("Reach the maximum number of attempts to connect to the build server, use BuildShip instead");
             this.isResolved = false;
             return;
         }
@@ -187,7 +187,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         } catch (CompletionException e) {
             if (e.getCause() instanceof ResponseErrorException responseError) {
                 if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
-                    JavaLanguageServerPlugin.logException("Failed to start Gradle Build Server, use BuildShip instead", null);
+                    JavaLanguageServerPlugin.logError("Failed to start Gradle Build Server, use BuildShip instead");
                     this.isResolved = false;
                     return;
                 }
