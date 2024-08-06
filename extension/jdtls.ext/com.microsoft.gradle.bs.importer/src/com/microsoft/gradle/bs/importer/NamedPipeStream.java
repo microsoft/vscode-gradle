@@ -19,6 +19,8 @@ import java.security.SecureRandom;
 
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.core.runtime.Platform;
+
+import com.microsoft.gradle.bs.importer.model.NamedPipeConnectionException;
 import com.microsoft.gradle.bs.importer.model.Telemetry;
 
 /**
@@ -90,7 +92,7 @@ public class NamedPipeStream {
             Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
                         telemetry);
             if (attempts == MAX_ATTEMPTS) {
-                throw new RuntimeException("Failed to connect to the named pipe after " + MAX_ATTEMPTS + " attempts");
+                throw new NamedPipeConnectionException("Failed to connect to extension", MAX_ATTEMPTS);
             }
         }
 
