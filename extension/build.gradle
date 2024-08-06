@@ -225,18 +225,28 @@ task buildBuildServer(type: CrossPlatformExec) {
   }
 }
 
-task copyBuildServerJars(type: Copy) {
+task copyBuildServerPluginJars(type: Copy) {
   dependsOn ':extension:buildBuildServer'
   from('./build-server-for-gradle/server/build/libs/') {
-    include '**/*.jar'
-    include '**/init.gradle'
+    include 'plugins/'
   }
   into 'server'
   mustRunAfter copyDocs
 }
 
+// TODO: This task can be removed once the build server is published.
+task copyBuildServerJarsToGradleServer(type: Copy) {
+  dependsOn ':extension:buildBuildServer'
+  from('./build-server-for-gradle/server/build/libs/') {
+    include 'runtime/'
+  }
+  from('./build-server-for-gradle/server/build/libs/server.jar')
+  into '../gradle-server/build/libs/'
+  mustRunAfter copyDocs
+}
+
 task buildJars() {
-  dependsOn copyJdtlsPluginJar, copyBuildServerJars
+  dependsOn copyJdtlsPluginJar, copyBuildServerPluginJars, copyBuildServerJarsToGradleServer
 }
 
 build.finalizedBy buildProd, buildTest

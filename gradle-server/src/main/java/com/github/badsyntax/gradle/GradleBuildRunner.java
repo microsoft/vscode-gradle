@@ -2,6 +2,7 @@ package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
 import com.google.common.base.Strings;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -110,6 +111,10 @@ public class GradleBuildRunner {
 
 		if (!Strings.isNullOrEmpty(gradleConfig.getJvmArguments())) {
 			build.setJvmArguments(gradleConfig.getJvmArguments());
+		}
+
+		if (!Strings.isNullOrEmpty(gradleConfig.getJavaHome())) {
+			build.setJavaHome(new File(gradleConfig.getJavaHome()));
 		}
 
 		build.run();

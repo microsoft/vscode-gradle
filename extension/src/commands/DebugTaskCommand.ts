@@ -2,11 +2,11 @@ import { GradleTaskTreeItem } from "../views";
 import { runTask } from "../tasks/taskUtil";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 export const COMMAND_DEBUG_TASK = "gradle.debugTask";
 
 export class DebugTaskCommand extends Command {
-    constructor(private rootProjectsStore: RootProjectsStore, private client: GradleClient) {
+    constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
         super();
     }
     async run(treeItem: GradleTaskTreeItem, args = ""): Promise<void> {

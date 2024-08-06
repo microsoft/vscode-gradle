@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletionException;
 
 import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.internal.resources.ProjectDescription;
@@ -31,6 +32,8 @@ import org.eclipse.jdt.ls.core.internal.ResourceUtils;
 import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+
 import com.microsoft.java.builder.JavaProblemChecker;
 import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
 import com.microsoft.gradle.bs.importer.model.Telemetry;
@@ -54,6 +57,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
     public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
+    private boolean isResolved = true;
 
     @Override
     public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
@@ -61,6 +65,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
+        //TODO: support multi-root workspaces
+        if (getPreferences().getRootPaths().size() != 1) {
+            return false;
+        }
 
         if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
@@ -143,7 +151,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     @Override
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath);
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
 
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
@@ -168,9 +176,20 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         );
         BuildServerPreferences data = getBuildServerPreferences();
         params.setData(data);
-        InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
-        buildServer.onBuildInitialized();
-        // TODO: save the capabilities of this server
+        try {
+            InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
+            buildServer.onBuildInitialized();
+            // TODO: save the capabilities of this server
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            if (e.getCause() instanceof ResponseErrorException responseError) {
+                if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
+                    JavaLanguageServerPlugin.logException("Failed to start Gradle Build Server, use BuildShip instead", null);
+                    this.isResolved = false;
+                    return;
+                }
+            }
+        }
 
         if (monitor.isCanceled()) {
             return;
@@ -183,14 +202,14 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
         for (IProject project : projects) {
-            buildSupport.updateClasspath(project, monitor);
+            buildSupport.updateClasspath(buildServer, project, monitor);
         }
 
         // We need to add the project dependencies after the Java nature is set to all
         // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
         // otherwise JDT will thrown exception when adding projects as dependencies.
         for (IProject project : projects) {
-            buildSupport.updateProjectDependencies(project, monitor);
+            buildSupport.updateProjectDependencies(buildServer, project, monitor);
         }
 
         for (IProject project : projects) {
@@ -203,6 +222,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
+        if (!this.isResolved){
+            return false;
+        }
         for (IProject project : ProjectUtils.getAllProjects()) {
             if (Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {
@@ -321,6 +343,9 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // because that API will ignore the variable descriptions.
         if (project instanceof Project internalProject) {
             ProjectDescription description = internalProject.internalGetDescription();
+            if (description == null) {
+                return;
+            }
             VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
             boolean changed = description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
             if (changed) {

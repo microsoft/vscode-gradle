@@ -10,12 +10,6 @@ import {
     GradleBuild,
     Environment,
     GradleConfig,
-    GetDaemonsStatusReply,
-    GetDaemonsStatusRequest,
-    StopDaemonsReply,
-    StopDaemonsRequest,
-    StopDaemonRequest,
-    StopDaemonReply,
     RunBuildRequest,
     RunBuildReply,
     CancelBuildRequest,
@@ -48,7 +42,7 @@ function logBuildEnvironment(environment: Environment): void {
     logger.info("Gradle Version:", gradleEnv.getGradleVersion());
 }
 
-export class GradleClient implements vscode.Disposable {
+export class TaskServerClient implements vscode.Disposable {
     private readonly connectDeadline = 30; // seconds
     private grpcClient: GrpcClient | null = null;
     private readonly _onDidConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
@@ -357,86 +351,6 @@ export class GradleClient implements vscode.Disposable {
             }
         } catch (err) {
             logger.error("Error cancelling builds:", err.details || err.message);
-        }
-    }
-
-    public async getDaemonsStatus(
-        projectFolder: string,
-        cancelToken: vscode.CancellationToken
-    ): Promise<GetDaemonsStatusReply | void> {
-        await this.waitForConnect();
-        logger.debug("Get daemon status");
-        const request = new GetDaemonsStatusRequest();
-        request.setProjectDir(projectFolder);
-        try {
-            return await new Promise((resolve, reject) => {
-                const stream = this.grpcClient!.getDaemonsStatus(
-                    request,
-                    (err: grpc.ServiceError | null, getDaemonsStatusReply: GetDaemonsStatusReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(getDaemonsStatusReply);
-                        }
-                    }
-                );
-                cancelToken.onCancellationRequested(() => stream.cancel());
-            });
-        } catch (err) {
-            const errMessage = err.details || err.message;
-            if (cancelToken.isCancellationRequested) {
-                logger.debug("Get daemon status:", errMessage);
-            } else {
-                logger.error("Unable to get daemon status:", errMessage);
-            }
-        }
-    }
-
-    public async stopDaemons(projectFolder: string): Promise<StopDaemonsReply | void> {
-        await this.waitForConnect();
-        const request = new StopDaemonsRequest();
-        request.setProjectDir(projectFolder);
-        try {
-            return await new Promise((resolve, reject) => {
-                this.grpcClient!.stopDaemons(
-                    request,
-                    (err: grpc.ServiceError | null, stopDaemonsReply: StopDaemonsReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(stopDaemonsReply);
-                        }
-                    }
-                );
-            });
-        } catch (err) {
-            logger.error("Error stopping daemons:", err.details || err.message);
-        } finally {
-            await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-        }
-    }
-
-    public async stopDaemon(pid: string): Promise<StopDaemonReply | void> {
-        await this.waitForConnect();
-        const request = new StopDaemonRequest();
-        request.setPid(pid);
-        try {
-            return await new Promise((resolve, reject) => {
-                this.grpcClient!.stopDaemon(
-                    request,
-                    (err: grpc.ServiceError | null, stopDaemonReply: StopDaemonReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(stopDaemonReply);
-                        }
-                    }
-                );
-            });
-        } catch (err) {
-            logger.error("Error stopping daemon:", err.details || err.message);
-        } finally {
-            await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
         }
     }
 

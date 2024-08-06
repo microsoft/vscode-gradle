@@ -20,8 +20,8 @@ extends:
   parameters:
     pool:
       name: 1ES_JavaTooling_Pool
-      image: 1ES_JavaTooling_Windows_2022
-      os: windows
+      image: 1ES_JavaTooling_Ubuntu-2004
+      os: linux
     sdl:
       sourceAnalysisPool:
         name: 1ES_JavaTooling_Pool
@@ -44,15 +44,41 @@ extends:
               - checkout: self
                 fetchTags: true
               - task: JavaToolInstaller@0
-                displayName: Install Java 11
+                displayName: Install Java 17
                 inputs:
-                  versionSpec: '11'
+                  versionSpec: '17'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
-                displayName: Install Node 16.14.2
+                displayName: Install Node 18.x
                 inputs:
-                  versionSpec: '16.14.2'
+                  versionSpec: 18.x
+              - task: DownloadBuildArtifacts@1
+                displayName: 'Download Build Server Artifacts'
+                inputs:
+                  buildType: specific
+                  project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
+                  pipeline: 16493
+                  downloadType: specific
+                  extractTars: false
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Plugin Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs/plugins'
+                  Contents: '**'
+                  TargetFolder: $(Build.SourcesDirectory)/extension/server/plugins
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
+                  Contents: 'server.jar'
+                  TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Runtime Artifacts'
+                inputs:
+                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs/runtime'
+                  Contents: '**'
+                  TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
               - task: Gradle@2
                 displayName: Build
                 inputs:
@@ -71,12 +97,12 @@ extends:
               - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'ESRP-Release-Test'
-                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
-                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-                  AuthAKVName: 'vscjavaci'
-                  AuthCertName: 'vscjava-esrprelease-auth'
-                  AuthSignCertName: 'VSCJava-CodeSign'
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
                   FolderPath: 'extension/lib'
                   Pattern: 'gradle-server.jar'
                   signConfigType: 'inlineSignParams'
@@ -122,28 +148,8 @@ extends:
                 inputs:
                   artifact: 'NOTICE.txt'
                   path: $(Build.SourcesDirectory)/extension
-              - task: DownloadBuildArtifacts@1
-                displayName: 'Download Build Server Artifacts'
-                inputs:
-                  buildType: specific
-                  project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
-                  pipeline: 16493
-                  downloadType: specific
-                  extractTars: false
-              - task: CopyFiles@2
-                displayName: 'Copy Build Server Artifacts'
-                inputs:
-                  SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs'
-                  Contents: '**'
-                  TargetFolder: $(Build.SourcesDirectory)/extension/server
-              - task: JavaToolInstaller@0
-                displayName: Install Java 17
-                inputs:
-                  versionSpec: '17'
-                  jdkArchitectureOption: 'x64'
-                  jdkSourceOption: 'PreInstalled'
               - task: Gradle@2
-                displayName: Build
+                displayName: Build Gradle Build Server Importer
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
@@ -151,12 +157,12 @@ extends:
               - task: EsrpCodeSigning@5
                 displayName: 'ESRP CodeSigning'
                 inputs:
-                  ConnectedServiceName: 'ESRP-Release-Test'
-                  AppRegistrationClientId: '1992ee18-e9d2-42d6-ab20-94dd947a44b6'
-                  AppRegistrationTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
-                  AuthAKVName: 'vscjavaci'
-                  AuthCertName: 'vscjava-esrprelease-auth'
-                  AuthSignCertName: 'VSCJava-CodeSign'
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
                   FolderPath: 'extension/server'
                   Pattern: 'com.microsoft.gradle.bs.importer-*.jar'
                   signConfigType: 'inlineSignParams'
@@ -180,30 +186,46 @@ extends:
                         "ToolVersion" : "1.0"
                       }
                     ]
-              - bash: npx @vscode/vsce@latest package --pre-release
+              - bash: npx @vscode/vsce@latest package --pre-release -o extension.vsix
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
-              ### Copy files for APIScan
-              - task: CopyFiles@2
-                displayName: "Copy Files for APIScan"
+              - bash: npx @vscode/vsce@latest generate-manifest -i extension.vsix -o extension.manifest
+                workingDirectory: $(Build.SourcesDirectory)/extension
+                displayName: 'Generate extension manifest'
+              - bash: cp extension.manifest extension.signature.p7s
+                workingDirectory: $(Build.SourcesDirectory)/extension
+                displayName: 'Prepare manifest for signing'
+              - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@5
                 inputs:
-                  Contents: "extension/*.vsix"
-                  TargetFolder: $(Agent.TempDirectory)/APIScanFiles
-                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
-              ### Run latest version of APIScan listed at https://www.1eswiki.com/wiki/APIScan_Build_Task
-              - task: APIScan@2
-                displayName: Run APIScan
-                inputs:
-                  softwareFolder: $(Agent.TempDirectory)/APIScanFiles
-                  softwareName: "vscode-gradle"
-                  softwareVersionNum: "$(Build.BuildId)"
-                  isLargeApp: false
-                  toolVersion: "Latest"
-                condition: and(succeeded(), ne(variables['DisableAPIScan'], 'true'))
-                env:
-                  AzureServicesAuthConnectionString: runAs=App;AppId=$(ApiScanClientId);TenantId=$(ApiScanTenant);AppKey=$(ApiScanSecret)
+                  ConnectedServiceName: $(ConnectedServiceName)
+                  AppRegistrationClientId: $(AppRegistrationClientId)
+                  AppRegistrationTenantId: $(AppRegistrationTenantId)
+                  AuthAKVName: $(AuthAKVName)
+                  AuthCertName: $(AuthCertName)
+                  AuthSignCertName: $(AuthSignCertName)
+                  FolderPath: 'extension'
+                  Pattern: 'extension.signature.p7s'
+                  signConfigType: inlineSignParams
+                  inlineOperation: |
+                    [
+                      {
+                        "keyCode": "CP-401405",
+                        "operationSetCode": "VSCodePublisherSign",
+                        "parameters" : [],
+                        "toolName": "sign",
+                        "toolVersion": "1.0"
+                      }
+                    ]
+                  SessionTimeout: 90
+                  MaxConcurrency: 25
+                  MaxRetryAttempts: 5
+                  PendingAnalysisWaitTimeoutMinutes: 5
+                displayName: 'Sign extension'
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:
-                  Contents: 'extension/*.vsix'
+                  Contents: |
+                    extension/extension.vsix
+                    extension/extension.manifest
+                    extension/extension.signature.p7s
                   TargetFolder: '$(Build.ArtifactStagingDirectory)'

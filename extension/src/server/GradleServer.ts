@@ -3,11 +3,14 @@ import * as path from "path";
 import * as cp from "child_process";
 import * as getPort from "get-port";
 import * as kill from "tree-kill";
-import { getGradleServerCommand, getGradleServerEnv } from "./serverUtil";
-import { isDebuggingServer } from "../util";
+import { commands } from "vscode";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
+import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE } from "../constant";
-
+import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
+import { redHatJavaInstalled } from "../util/config";
+import { BspProxy } from "../bs/BspProxy";
+import { getRandomPipeName } from "../util/generateRandomPipeName";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 
@@ -19,61 +22,92 @@ export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
-    private port: number | undefined;
+    private taskServerPort: number | undefined;
     private restarting = false;
-
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
+    private languageServerPipePath: string;
 
     constructor(
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
-        private readonly logger: Logger
-    ) {}
+        private readonly logger: Logger,
+        private bspProxy: BspProxy
+    ) {
+        this.setLanguageServerPipePath();
+    }
 
-    public async start(): Promise<void> {
-        if (isDebuggingServer()) {
-            this.port = 8887;
-            this.fireOnStart();
-        } else {
-            this.port = await getPort();
-            const cwd = this.context.asAbsolutePath("lib");
-            const cmd = path.join(cwd, getGradleServerCommand());
-            const env = await getGradleServerEnv();
-            if (!env) {
-                await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
-                return;
-            }
-            const args = [String(this.port)];
-
-            this.logger.debug("Starting server");
-            this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
-
-            this.process = cp.spawn(`"${cmd}"`, args, {
-                cwd,
-                env,
-                shell: true,
-            });
-            this.process.stdout.on("data", this.logOutput);
-            this.process.stderr.on("data", this.logOutput);
-            this.process
-                .on("error", (err: Error) => this.logger.error(err.message))
-                .on("exit", async (code) => {
-                    this.logger.warn("Gradle server stopped");
-                    this._onDidStop.fire(null);
-                    this.ready = false;
-                    this.process?.removeAllListeners();
-                    if (this.restarting) {
-                        this.restarting = false;
-                        await this.start();
-                    } else if (code !== 0) {
-                        await this.handleServerStartError();
-                    }
-                });
-
-            this.fireOnStart();
+    private setLanguageServerPipePath(): void {
+        this.languageServerPipePath = getRandomPipeName();
+        if (this.languageServerPipePath === "") {
+            this.logger.error("Gradle language server will not start due to pipe path generation failure");
         }
+    }
+
+    public getLanguageServerPipePath(): string {
+        return this.languageServerPipePath;
+    }
+    public async start(): Promise<void> {
+        let startBuildServer = false;
+        if (redHatJavaInstalled()) {
+            const isPrepared = this.bspProxy.prepareToStart();
+            if (isPrepared) {
+                startBuildServer = true;
+            } else {
+                this.logger.error("Gradle build server will not start due to pipe path generation failure");
+            }
+        }
+        this.bspProxy.setBuildServerStarted(startBuildServer);
+
+        this.taskServerPort = await getPort();
+        const cwd = this.context.asAbsolutePath("lib");
+        const cmd = path.join(cwd, getGradleServerCommand());
+        const env = await getGradleServerEnv();
+        const bundleDirectory = this.context.asAbsolutePath("server");
+        if (!env) {
+            sendInfo("", {
+                kind: "GradleServerEnvMissing",
+            });
+            await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+            return;
+        }
+        const args = [
+            quoteArg(`--port=${this.taskServerPort}`),
+            quoteArg(`--startBuildServer=${startBuildServer}`),
+            quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
+        ];
+        if (startBuildServer) {
+            const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
+            args.push(quoteArg(`--pipeName=${buildServerPipeName}`));
+            args.push(quoteArg(`--bundleDir=${bundleDirectory}`));
+        }
+        this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
+
+        this.process = cp.spawn(`"${cmd}"`, args, {
+            cwd,
+            env,
+            shell: true,
+        });
+        this.process.stdout.on("data", this.logOutput);
+        this.process.stderr.on("data", this.logOutput);
+        this.process
+            .on("error", (err: Error) => this.logger.error(err.message))
+            .on("exit", async (code) => {
+                this.logger.warn("Gradle server stopped");
+                this._onDidStop.fire(null);
+                this.ready = false;
+                this.process?.removeAllListeners();
+                this.bspProxy.closeConnection();
+                if (this.restarting) {
+                    this.restarting = false;
+                    await this.start();
+                } else if (code !== 0) {
+                    await this.handleServerStartError(code);
+                }
+            });
+
+        this.fireOnStart();
     }
 
     public isReady(): boolean {
@@ -81,13 +115,16 @@ export class GradleServer {
     }
 
     public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Restart Server";
-        const input = await vscode.window.showErrorMessage(
+        const selection = await vscode.window.showErrorMessage(
             "No connection to gradle server. Try restarting the server.",
             OPT_RESTART
         );
-        if (input === OPT_RESTART) {
-            await this.start();
+        sendInfo("", {
+            kind: "serverProcessExitRestart",
+            data2: selection === OPT_RESTART ? "true" : "false",
+        });
+        if (selection === OPT_RESTART) {
+            await commands.executeCommand("workbench.action.restartExtensionHost");
         }
     }
 
@@ -123,7 +160,11 @@ export class GradleServer {
         }
     }
 
-    private async handleServerStartError(): Promise<void> {
+    private async handleServerStartError(code: number | null): Promise<void> {
+        sendInfo("", {
+            kind: "serverProcessExit",
+            data2: code ? code.toString() : "",
+        });
         await this.showRestartMessage();
     }
 
@@ -133,6 +174,7 @@ export class GradleServer {
     }
 
     public async asyncDispose(): Promise<void> {
+        this.bspProxy.closeConnection();
         this.process?.removeAllListeners();
         await this.killProcess();
         this.ready = false;
@@ -141,7 +183,7 @@ export class GradleServer {
     }
 
     public getPort(): number | undefined {
-        return this.port;
+        return this.taskServerPort;
     }
 
     public getOpts(): ServerOptions {

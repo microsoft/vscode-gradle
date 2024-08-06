@@ -19,7 +19,12 @@ export const VSCODE_TRIGGER_COMPLETION = "editor.action.triggerSuggest";
 export const GRADLE_BUILD_FILE_NAMES = ["build.gradle", "settings.gradle", "build.gradle.kts", "settings.gradle.kts"];
 
 export const NO_JAVA_EXECUTABLE =
-    "No Java executable found, please consider to configure your 'java.jdt.ls.java.home' setting or set JAVA_HOME in your path or put a Java executable in your path.";
+    "JDK 17 or higher is required. Please set a valid Java home path to 'java.jdt.ls.java.home' setting or JAVA_HOME environment variable. Or ensure a valid Java executable is in your PATH.";
+
+export const OPT_RESTART = "Restart";
+
+export const GRADLE_SERVER_BASE_JVM_OPTS =
+    "--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED";
 
 export enum CompletionKinds {
     DEPENDENCY_GROUP = "dependency_group",

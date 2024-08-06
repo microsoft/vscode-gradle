@@ -16,6 +16,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
+import { GradleTestRunner } from "./GradleTestRunner";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -25,6 +26,7 @@ export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
     private logOutputChannel: OutputChannel;
+    private gradleTestRunner: GradleTestRunner | undefined;
 
     public constructor(readonly context: ExtensionContext) {
         this.buildOutputChannel = window.createOutputChannel("Build Server for Gradle (Build)", "gradle-build");
@@ -59,22 +61,42 @@ export class BuildServerController implements Disposable {
                     this.logOutputChannel.appendLine(msg);
                 }
             }),
-            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object) => {
-                let jsonString: string;
+            commands.registerCommand(SEND_TELEMETRY_CMD, (data: string | object | Error) => {
                 let jsonObj: { [key: string]: any };
                 if (typeof data === "string") {
                     jsonObj = JSON.parse(data);
-                    jsonString = data;
                 } else {
                     jsonObj = data;
-                    jsonString = JSON.stringify(data);
                 }
-                sendInfo("", {
-                    kind: jsonObj.kind,
-                    data: jsonString,
-                    ...(jsonObj.schemaVersion && { schemaVersion: jsonObj.schemaVersion }),
-                });
+
+                const { kind, trace, rootCauseMessage, schemaVersion, ...rest } = jsonObj;
+                if (trace || rootCauseMessage) {
+                    sendInfo("", {
+                        kind: "bsp-error",
+                        operationName: jsonObj.operationName,
+                        rootCauseMessage,
+                        trace,
+                    });
+                } else {
+                    sendInfo("", {
+                        kind: kind,
+                        data2: JSON.stringify(rest),
+                        ...(schemaVersion && { schemaVersion: schemaVersion }),
+                    });
+                }
             }),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidFinishTestRun",
+                (status: number, message?: string) => {
+                    this.gradleTestRunner?.finishTestRun(status, message);
+                }
+            ),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidChangeTestItemStatus",
+                (testParts: string[], state: number, displayName?: string, message?: string, duration?: number) => {
+                    this.gradleTestRunner?.updateTestItem(testParts, state, displayName, message, duration);
+                }
+            ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;
@@ -102,6 +124,13 @@ export class BuildServerController implements Disposable {
         this.checkMachineStatus();
     }
 
+    public getGradleTestRunner(testRunnerApi: any): GradleTestRunner {
+        if (!this.gradleTestRunner) {
+            this.gradleTestRunner = new GradleTestRunner(testRunnerApi);
+        }
+        return this.gradleTestRunner;
+    }
+
     public dispose() {
         this.disposable.dispose();
     }
@@ -121,7 +150,7 @@ export class BuildServerController implements Disposable {
         machineStatus.hasProjectAtWorkspaceRoot = (await this.hasProjectAtWorkspaceRoot()).toString();
         sendInfo("", {
             kind: "machineStatus",
-            data: JSON.stringify(machineStatus),
+            data2: JSON.stringify(machineStatus),
         });
     }
 

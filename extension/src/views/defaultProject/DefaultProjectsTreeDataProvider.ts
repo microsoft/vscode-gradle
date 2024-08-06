@@ -4,7 +4,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { GradleTasksTreeDataProvider, GroupTreeItem, ProjectTreeItem } from "..";
-import { GradleClient } from "../../client";
+import { TaskServerClient } from "../../client";
 import { RootProjectsStore } from "../../stores";
 import { GradleTaskProvider } from "../../tasks";
 import { DefaultProjectProvider } from "./DefaultProjectProvider";
@@ -18,7 +18,7 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
     constructor(
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly rootProjectStore: RootProjectsStore,
-        private readonly client: GradleClient,
+        private readonly client: TaskServerClient,
         private readonly icons: Icons
     ) {
         this.defaultProjectProvider = new DefaultProjectProvider();

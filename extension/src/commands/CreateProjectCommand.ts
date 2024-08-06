@@ -3,7 +3,7 @@
 
 import * as path from "path";
 import * as vscode from "vscode";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { getRunTaskCommandCancellationKey } from "../client/CancellationKeys";
 import { selectProjectTypeStep } from "../createProject/SelectProjectTypeStep";
 import { selectScriptDSLStep } from "../createProject/SelectScriptDSLStep";
@@ -15,7 +15,7 @@ export const COMMAND_CREATE_PROJECT = "gradle.createProject";
 export const COMMAND_CREATE_PROJECT_ADVANCED = "gradle.createProjectAdvanced";
 
 export class CreateProjectCommand extends Command {
-    constructor(private client: GradleClient) {
+    constructor(private client: TaskServerClient) {
         super();
     }
 
