@@ -11,9 +11,6 @@ service Gradle {
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
-  rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
-  rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
-  rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
   rpc executeCommand(ExecuteCommandRequest) returns (ExecuteCommandReply) {}
 }
 
@@ -107,43 +104,6 @@ message CancelBuildReply {
 
 message CancelBuildsReply {
   string message = 1;
-}
-
-message GetDaemonsStatusRequest {
-  string project_dir = 1;
-}
-
-message GetDaemonsStatusReply {
-  repeated DaemonInfo daemon_info = 1;
-}
-
-message StopDaemonsRequest {
-  string project_dir = 1;
-}
-
-message StopDaemonsReply {
-  string message = 1;
-}
-
-message StopDaemonRequest {
-  string pid = 1;
-}
-
-message StopDaemonReply {
-  string message = 1;
-}
-
-message DaemonInfo {
-  enum DaemonStatus {
-    IDLE = 0;
-    BUSY = 1;
-    STOPPED = 2;
-    STOPPING = 3;
-    CANCELED = 4;
-  }
-  string pid = 1;
-  DaemonStatus status = 2;
-  string info = 3;
 }
 
 message GradleConfig {
