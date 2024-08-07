@@ -300,13 +300,15 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         javaProject.setRawClasspath(classpath.toArray(IClasspathEntry[]::new), javaProject.getOutputLocation(), monitor);
     }
 
-    private List<IClasspathEntry> getProjectDependencyEntries(IProject project, Set<BuildTargetIdentifier> projectDependencies) {
-        List<IClasspathEntry> entries = new LinkedList<>();
+    private Collection<IClasspathEntry> getProjectDependencyEntries(IProject project, Set<BuildTargetIdentifier> projectDependencies) {
+        Map<String, IClasspathEntry> projectEntryMap = new LinkedHashMap<>();
         for (BuildTargetIdentifier dependency : projectDependencies) {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
-            if (dependencyProject != null && !Objects.equals(project, dependencyProject)) {
-                entries.add(JavaCore.newProjectEntry(
+            String projectName = dependencyProject.getName();
+            if (dependencyProject != null && !Objects.equals(project, dependencyProject) &&
+                    !projectEntryMap.containsKey(projectName)) {
+                projectEntryMap.put(projectName, JavaCore.newProjectEntry(
                     dependencyProject.getFullPath(),
                     ClasspathEntry.NO_ACCESS_RULES,
                     true,
@@ -315,7 +317,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 ));
             }
         }
-        return entries;
+        return projectEntryMap.values();
     }
 
     @Override
