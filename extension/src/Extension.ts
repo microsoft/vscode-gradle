@@ -38,10 +38,8 @@ import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrappe
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
 import { GradleTestRunner } from "./bs/GradleTestRunner";
-import { BspProxy } from "./bs/BspProxy";
 
 export class Extension {
-    private readonly bspProxy: BspProxy;
     private readonly taskServerClient: TaskServerClient;
     private readonly server: GradleServer;
     private readonly pinnedTasksStore: PinnedTasksStore;
@@ -81,16 +79,12 @@ export class Extension {
         const serverLogger = new Logger("gradle-server");
         serverLogger.setLoggingChannel(loggingChannel);
 
-        const bspLogger = new Logger("bspProxy");
-        bspLogger.setLoggingChannel(loggingChannel);
-
         if (getConfigIsDebugEnabled()) {
             Logger.setLogVerbosity(LogVerbosity.DEBUG);
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.bspProxy = new BspProxy(this.context, bspLogger);
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, this.bspProxy);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger);
         this.taskServerClient = new TaskServerClient(this.server, statusBarItem, clientLogger);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
@@ -265,7 +259,6 @@ export class Extension {
         }
         await vscode.commands.executeCommand("setContext", "gradle:activated", activated);
         await vscode.commands.executeCommand("setContext", "gradle:defaultView", true);
-        await this.bspProxy.start();
     }
 
     private registerCommands(): void {

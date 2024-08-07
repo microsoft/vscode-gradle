@@ -28,14 +28,15 @@ export class GradleServer {
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
     private languageServerPipePath: string;
+    private bspProxy: BspProxy;
 
     constructor(
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
-        private readonly logger: Logger,
-        private bspProxy: BspProxy
+        private readonly logger: Logger
     ) {
         this.setLanguageServerPipePath();
+        this.bspProxy = new BspProxy(this.context, logger);
     }
 
     private setLanguageServerPipePath(): void {
@@ -59,7 +60,7 @@ export class GradleServer {
             }
         }
         this.bspProxy.setBuildServerStarted(startBuildServer);
-
+        this.bspProxy.start();
         this.taskServerPort = await getPort();
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
