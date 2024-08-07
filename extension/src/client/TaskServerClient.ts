@@ -388,6 +388,13 @@ export class TaskServerClient implements vscode.Disposable {
         logger.info("Build cancelled:", cancelled.getMessage());
     };
 
+    /**
+     * This is called when there is an error connecting to the Task server which uses GRPC.
+     * If Task server is down, it means that the whole Gradle server is not running.
+     * So here if the server is not ready, we should restart the gradle server.
+     * If gradle server is ready, it implies that  GRPC server is up but the grpc client was unable to connect.
+     * @param e GRPC connection error
+     */
     private handleConnectError = async (e: Error): Promise<void> => {
         logger.error("Error connecting to gradle server:", e.message);
         this.close();
