@@ -18,8 +18,8 @@
   "main": "./index.js",
   "types": "./index.ts",
   "engines": {
-    "node": "^14.15.4",
-    "npm": "^6.14.10"
+    "node": "^18.20.4",
+    "npm": "^10.7.0"
   },
   "scripts": {
     "compile": "tsc -p ."

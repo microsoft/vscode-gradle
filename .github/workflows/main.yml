@@ -18,10 +18,10 @@ jobs:
         with:
           java-version: "17"
           architecture: x64
-      - name: Use Node 16.14.2
+      - name: Use Node 18.20.4
         uses: actions/setup-node@v4
         with:
-          node-version: 16.14.2
+          node-version: 18.20.4
           cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Cache npm cache directory
@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [16.14.2]
+        node-version: [18.20.4]
         java-version: ["17", "21"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
