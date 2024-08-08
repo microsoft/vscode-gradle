@@ -43,7 +43,7 @@
     "workspaceContains:*/build.gradle.kts",
     "workspaceContains:settings.gradle.kts",
     "workspaceContains:*/settings.gradle.kts",
-    "onCommand:gradle.onWillImporterConnect"
+    "onCommand:_gradle.onWillImporterConnect"
   ],
   "main": "./dist/index.js",
   "contributes": {
