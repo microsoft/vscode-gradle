@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 
-export const ON_WILL_IMPORTER_CONNECT = "gradle.onWillImporterConnect";
+export const ON_WILL_IMPORTER_CONNECT = "_gradle.onWillImporterConnect";
 
 /**
  * Receive the pipe name from Java jdt.ls importer, generate named pipe file and

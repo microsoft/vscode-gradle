@@ -129,7 +129,7 @@ public class NamedPipeStream {
 
         private void sendImporterPipeName(String pipeName) {
             JavaLanguageServerPlugin.getInstance().getClientConnection()
-                .sendNotification("gradle.onWillImporterConnect", pipeName);
+                .sendNotification("_gradle.onWillImporterConnect", pipeName);
         }
 
         private void attemptConnection(File pipeFile) throws IOException {

@@ -36,9 +36,14 @@
     "workspaceContains:**/gradlew",
     "workspaceContains:**/gradlew.bat",
     "workspaceContains:build.gradle",
+    "workspaceContains:*/build.gradle",
     "workspaceContains:settings.gradle",
+    "workspaceContains:*/settings.gradle",
     "workspaceContains:build.gradle.kts",
-    "workspaceContains:settings.gradle.kts"
+    "workspaceContains:*/build.gradle.kts",
+    "workspaceContains:settings.gradle.kts",
+    "workspaceContains:*/settings.gradle.kts",
+    "onCommand:_gradle.onWillImporterConnect"
   ],
   "main": "./dist/index.js",
   "contributes": {
