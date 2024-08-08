@@ -7,8 +7,8 @@ import { commands } from "vscode";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE, OPT_RESTART } from "../constant";
-import { redHatJavaInstalled } from "../util/config";
+import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
+import { extensionInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
@@ -51,7 +51,7 @@ export class GradleServer {
     }
     public async start(): Promise<void> {
         let startBuildServer = false;
-        if (redHatJavaInstalled()) {
+        if (extensionInstalled("redhat.java")) {
             const isPrepared = this.bspProxy.prepareToStart();
             if (isPrepared) {
                 startBuildServer = true;
@@ -65,12 +65,16 @@ export class GradleServer {
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
         const env = await getGradleServerEnv();
-        const bundleDirectory = this.context.asAbsolutePath("server");
         if (!env) {
             sendInfo("", {
                 kind: "GradleServerEnvMissing",
             });
-            await vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE);
+            const choice = extensionInstalled("vscjava.vscode-java-pack") ? [INSTALL_JDK] : [];
+            vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE, ...choice).then((selection) => {
+                if (selection === INSTALL_JDK) {
+                    vscode.commands.executeCommand("java.installJdk");
+                }
+            });
             return;
         }
         const args = [
@@ -80,6 +84,7 @@ export class GradleServer {
         ];
         if (startBuildServer) {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
+            const bundleDirectory = this.context.asAbsolutePath("server");
             args.push(quoteArg(`--pipeName=${buildServerPipeName}`));
             args.push(quoteArg(`--bundleDir=${bundleDirectory}`));
         }
