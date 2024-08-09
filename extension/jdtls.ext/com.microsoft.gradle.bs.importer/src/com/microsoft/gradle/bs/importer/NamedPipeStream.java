@@ -122,7 +122,7 @@ public class NamedPipeStream {
             int bytesLength = Math.min(availableLength / 2, randomLength);
 
             if (bytesLength < 16) {
-                throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
+                throw new NamedPipeConnectionException("Unable to generate a random pipe name with character length less than 16");
             }
             return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
         }
