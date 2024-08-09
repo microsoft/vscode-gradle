@@ -4,7 +4,4 @@ public class NamedPipeConnectionException extends RuntimeException {
   public NamedPipeConnectionException(String message) {
     super(message);
   }
-  public NamedPipeConnectionException(String message, int maxAttempts) {
-    super(String.format("%s, Max attempts: %d", message, maxAttempts));
-  }
 }

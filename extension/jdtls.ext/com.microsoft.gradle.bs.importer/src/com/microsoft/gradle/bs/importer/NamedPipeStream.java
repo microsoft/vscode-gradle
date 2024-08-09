@@ -92,7 +92,7 @@ public class NamedPipeStream {
             Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
                         telemetry);
             if (attempts == MAX_ATTEMPTS) {
-                throw new NamedPipeConnectionException("Failed to connect to extension", MAX_ATTEMPTS);
+                throw new NamedPipeConnectionException(String.format("Failed to connect to extension, Max attempts: %d", MAX_ATTEMPTS));
             }
         }
 

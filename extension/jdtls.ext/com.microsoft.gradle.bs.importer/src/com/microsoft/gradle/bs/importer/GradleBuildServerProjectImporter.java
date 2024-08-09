@@ -191,7 +191,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
         BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
         if (buildServer == null) {
-            JavaLanguageServerPlugin.logError("Reach the maximum number of attempts to connect to the build server, use BuildShip instead");
             this.isResolved = false;
             return;
         }
