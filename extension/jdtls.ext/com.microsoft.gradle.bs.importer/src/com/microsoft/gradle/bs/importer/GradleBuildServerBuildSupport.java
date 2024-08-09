@@ -223,7 +223,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             if (resourceOutputFullPath != null) {
                 ResourcesResult resourcesResult = connection.buildTargetResources(
                     new ResourcesParams(Arrays.asList(buildTarget.getId()))).join();
-                List<IClasspathEntry> resourceEntries = getResourceEntries(project, resourcesResult, resourceOutputFullPath, isTest);
+                List<IClasspathEntry> resourceEntries = getResourceEntries(rootPath, project, resourcesResult, resourceOutputFullPath, isTest, monitor);
                 for (IClasspathEntry entry : resourceEntries) {
                     classpathMap.putIfAbsent(entry.getPath(), entry);
                 }
@@ -355,23 +355,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         for (SourcesItem sources : sourcesResult.getItems()) {
             for (SourceItem source : sources.getSources()) {
                 IPath sourcePath = ResourceUtils.filePathFromURI(source.getUri());
-                IPath projectLocation = project.getLocation();
-                IPath sourceFullPath;
-                if (projectLocation.isPrefixOf(sourcePath)) {
-                    IPath relativeSourcePath = sourcePath.makeRelativeTo(project.getLocation());
-                    sourceFullPath = project.getFolder(relativeSourcePath).getFullPath();
-                } else {
-                    // if the source path is not relative to the project location, we need to create a linked folder for it.
-                    IPath relativeSourcePath = sourcePath.makeRelativeTo(rootPath);
-                    if (relativeSourcePath.isAbsolute()) {
-                        JavaLanguageServerPlugin.logError("The source path is not relative to the workspace root: " + relativeSourcePath);
-                        continue;
-                    }
-                    IFolder linkFolder = project.getFolder(String.join("_", relativeSourcePath.segments()));
-                    if (!linkFolder.exists()) {
-                        linkFolder.createLink(sourcePath, IResource.REPLACE | IResource.ALLOW_MISSING_LOCAL, monitor);
-                    }
-                    sourceFullPath = linkFolder.getFullPath();
+                IPath sourceFullPath = getFullPath(rootPath, project, sourcePath, monitor);
+                if (sourceFullPath == null) {
+                    continue;
                 }
                 // Continue if this source path has already been added.
                 if (sourceEntries.stream().anyMatch(entry -> entry.getPath().equals(sourceFullPath))) {
@@ -400,13 +386,19 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return sourceEntries;
     }
 
-    private List<IClasspathEntry> getResourceEntries(IProject project, ResourcesResult resourcesResult, IPath outputFullPath, boolean isTest) {
+    private List<IClasspathEntry> getResourceEntries(IPath rootPath, IProject project, ResourcesResult resourcesResult, IPath outputFullPath, boolean isTest, IProgressMonitor monitor) throws CoreException {
         List<IClasspathEntry> resourceEntries = new LinkedList<>();
         for (ResourcesItem resources : resourcesResult.getItems()) {
             for (String resourceUri : resources.getResources()) {
                 IPath resourcePath = ResourceUtils.filePathFromURI(resourceUri);
-                IPath relativeResourcePath = resourcePath.makeRelativeTo(project.getLocation());
-                IPath resourceFullPath = project.getFolder(relativeResourcePath).getFullPath();
+                IPath resourceFullPath = getFullPath(rootPath, project, resourcePath, monitor);
+                if (resourceFullPath == null) {
+                    continue;
+                };
+                // Continue if this resource path has already been added.
+                if (resourceEntries.stream().anyMatch(entry -> entry.getPath().equals(resourceFullPath))) {
+                    continue;
+                }
                 List<IClasspathAttribute> classpathAttributes = new LinkedList<>();
                 if (isTest) {
                     classpathAttributes.add(testAttribute);
@@ -426,6 +418,34 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
         return resourceEntries;
+    }
+
+    /**
+     * Get the full path which is used in the classpath entry for the input path
+     * @param rootPath the workspace root path.
+     * @param project the project.
+     * @param path the input path.
+     */
+    private IPath getFullPath(IPath rootPath, IProject project, IPath path, IProgressMonitor monitor) throws CoreException {
+        IPath projectLocation = project.getLocation();
+        IPath fullPath;
+        if (projectLocation.isPrefixOf(path)) {
+            IPath relativeSourcePath = path.makeRelativeTo(project.getLocation());
+            fullPath = project.getFolder(relativeSourcePath).getFullPath();
+        } else {
+            // if the path is not relative to the project location, we need to create a linked folder for it.
+            IPath relativePath = path.makeRelativeTo(rootPath);
+            if (relativePath.isAbsolute()) {
+                JavaLanguageServerPlugin.logError("The path is not relative to the workspace root: " + relativePath);
+                return null;
+            }
+            IFolder linkFolder = project.getFolder(String.join("_", relativePath.segments()));
+            if (!linkFolder.exists()) {
+                linkFolder.createLink(path, IResource.REPLACE | IResource.ALLOW_MISSING_LOCAL, monitor);
+            }
+            fullPath = linkFolder.getFullPath();
+        }
+        return fullPath;
     }
 
     private void moveTestTargetsToEnd(List<BuildTarget> buildTargets) {
