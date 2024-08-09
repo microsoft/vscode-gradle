@@ -14,6 +14,7 @@ export class JdtlsImporterConnector {
     private importerConnection: rpc.MessageConnection | null = null;
     private importerPipeServer: net.Server;
     private importerPipePath: string;
+    private setPipePathPromise: Promise<void> | null = null;
     private readonly _onImporterReady: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
 
     constructor(private readonly context: vscode.ExtensionContext) {
@@ -28,7 +29,14 @@ export class JdtlsImporterConnector {
      * @returns Promise that resolves when the pipe path is ready
      */
     public async waitForImporterPipePath(): Promise<void> {
-        return new Promise((resolve) => {
+        await this.setPipePathPromise;
+    }
+
+    /**
+     * The `_onPipePathReady` event will be fired when the pipe path is received from Java jdt.ls importer
+     */
+    private registerCommand(): void {
+        this.setPipePathPromise = new Promise((resolve) => {
             this._onImporterReady.event((resolvedPath) => {
                 this.importerPipePath = resolvedPath;
                 sendInfo("", {
@@ -37,12 +45,6 @@ export class JdtlsImporterConnector {
                 resolve();
             });
         });
-    }
-
-    /**
-     * The `_onPipePathReady` event will be fired when the pipe path is received from Java jdt.ls importer
-     */
-    private registerCommand(): void {
         this.context.subscriptions.push(
             vscode.commands.registerCommand(ON_WILL_IMPORTER_CONNECT, (pipeName: string) => {
                 this._onImporterReady.fire(path.resolve(pipeName));
