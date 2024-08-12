@@ -23,6 +23,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
@@ -249,9 +250,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
-        if (!this.isResolved){
+        if (!this.isResolved) {
+            for (IProject project : ProjectUtils.getAllProjects()) {
+                if (Utils.isGradleBuildServerProject(project)) {
+                    project.delete(IResource.NEVER_DELETE_PROJECT_CONTENT, new NullProgressMonitor());
+                }
+            }
             return false;
         }
+
         for (IProject project : ProjectUtils.getAllProjects()) {
             if (Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {
