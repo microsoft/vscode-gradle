@@ -96,8 +96,12 @@ export class BspProxy {
     }
 
     public closeConnection(): void {
-        this.buildServerConnector.close();
-        this.jdtlsImporterConnector.close();
+        try {
+            this.buildServerConnector.close();
+            this.jdtlsImporterConnector.close();
+        } catch (error) {
+            // Error when pipe server not started. Ignore it.
+        }
         this.logger.info("Build Server connection closed");
     }
 }
