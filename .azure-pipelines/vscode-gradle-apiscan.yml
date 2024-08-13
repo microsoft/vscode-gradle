@@ -74,13 +74,13 @@ extends:
                   SourceFolder: '$(System.ArtifactsDirectory)/build-server/server/build/libs/runtime'
                   Contents: '**'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
-              - task: Gradle@2
+              - task: Gradle@3
                 displayName: Build
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'build'
-              - task: Gradle@2
+              - task: Gradle@3
                 displayName: PrepareForRelease
                 inputs:
                   gradleWrapperFile: 'gradlew'
@@ -89,7 +89,7 @@ extends:
               - bash: chmod +x gradle-server
                 workingDirectory: $(Build.SourcesDirectory)/extension/lib
                 displayName: Set permission
-              - task: Gradle@2
+              - task: Gradle@3
                 displayName: Build Gradle Build Server Importer
                 inputs:
                   gradleWrapperFile: 'gradlew'
