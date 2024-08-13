@@ -111,20 +111,28 @@ public class NamedPipeStream {
             if (System.getProperty("os.name").startsWith("Windows")) {
                 return Paths.get("\\\\.\\pipe\\", generateRandomHex(16) + "-sock").toString();
             }
+
+            int randomLength = 32;
+            int fixedLength = ".sock".length();
             String tmpDir = System.getenv("XDG_RUNTIME_DIR");
             if (tmpDir == null || tmpDir.isEmpty()) {
                 tmpDir = System.getProperty("java.io.tmpdir");
             }
-            int fixedLength = ".sock".length();
-            int safeIpcPathLengths = 103;
-            int availableLength = safeIpcPathLengths - fixedLength - tmpDir.length();
-            int randomLength = 32;
-            int bytesLength = Math.min(availableLength / 2, randomLength);
-
-            if (bytesLength < 16) {
+            int limit = 0;
+            if (System.getProperty("os.name").startsWith("Mac")) {
+                limit = 103;
+            } else if (System.getProperty("os.name").startsWith("Linux")) {
+                limit = 107;
+            }
+            if (limit != 0){
+                randomLength = Math.min(limit - tmpDir.length() - fixedLength, randomLength);
+            }
+            if (randomLength < 16) {
                 throw new NamedPipeConnectionException("Unable to generate a random pipe name with character length less than 16");
             }
-            return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
+
+            String randomSuffix = generateRandomHex(randomLength/2);
+            return Paths.get(tmpDir, randomSuffix + ".sock").toString();
         }
 
         private void sendImporterPipeName(String pipeName) {
