@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.microsoft.gradle.jdtls.ext</groupId>
         <artifactId>gradle-jdtls-ext-parent</artifactId>
-        <version>0.5.2</version>
+        <version>0.5.3</version>
     </parent>
     <artifactId>com.microsoft.gradle.bs.importer</artifactId>
     <packaging>eclipse-plugin</packaging>

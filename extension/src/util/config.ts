@@ -65,12 +65,12 @@ export async function findValidJavaHome(): Promise<string | undefined> {
     return undefined;
 }
 
-export function redHatJavaInstalled(): boolean {
-    return !!vscode.extensions.getExtension("redhat.java");
+export function extensionInstalled(extensionId: string): boolean {
+    return !!vscode.extensions.getExtension(extensionId);
 }
 
 export function getRedHatJavaEmbeddedJRE(): string | undefined {
-    if (!redHatJavaInstalled()) {
+    if (!extensionInstalled("redhat.java")) {
         return undefined;
     }
 

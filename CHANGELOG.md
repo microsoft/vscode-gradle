@@ -4,6 +4,24 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.16.3
+## What's Changed
+* enhancement - Activate the extension when gradle files are in sub-folders of the workspace by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1570
+* enhancement - Notify user to install jdk when GradleServerEnv not found by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1569
+* fix - Language server generatePipepath error by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1557
+* fix - Add bspProxy connectors error listeners by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1558
+* fix - Fallback to BuildShip when importer connect hit max attempts  by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1560
+* fix - Improve bspProxy start sequence by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1563
+* fix - Deduplicate the project dependency by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1568
+* fix - Refine waitForImporterPipePath event & listener sequence by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1573
+* fix - Fallback to Buildship when multiple gradle projects in same level by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1574
+* fix - Create linked folder for resource if it's placed out of the project by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1575
+* fix - Fallback to Buildship when failed to generate named pipe by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1576
+* docs - Refine doc & Remove redundant file by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1561
+* docs - Add comments for taskServerClient handleConnectError by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1565
+* build - Bump @grpc/grpc-js from 1.8.14 to 1.8.22 in /extension by @dependabot in https://github.com/microsoft/vscode-gradle/pull/1494
+* build - Bump node version to 18.20.4 by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1567
+
 ## 3.16.2
 ### What's Changed
 * fix - Stop start build server when getRandomPipepath return empty by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1545

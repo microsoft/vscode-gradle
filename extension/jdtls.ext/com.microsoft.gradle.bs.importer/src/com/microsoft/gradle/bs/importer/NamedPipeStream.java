@@ -92,7 +92,7 @@ public class NamedPipeStream {
             Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
                         telemetry);
             if (attempts == MAX_ATTEMPTS) {
-                throw new NamedPipeConnectionException("Failed to connect to extension", MAX_ATTEMPTS);
+                throw new NamedPipeConnectionException(String.format("Failed to connect to extension, Max attempts: %d", MAX_ATTEMPTS));
             }
         }
 
@@ -122,14 +122,14 @@ public class NamedPipeStream {
             int bytesLength = Math.min(availableLength / 2, randomLength);
 
             if (bytesLength < 16) {
-                throw new IllegalArgumentException("Unable to generate a random pipe name with character length less than 16");
+                throw new NamedPipeConnectionException("Unable to generate a random pipe name with character length less than 16");
             }
             return Paths.get(tmpDir, generateRandomHex(bytesLength) + ".sock").toString();
         }
 
         private void sendImporterPipeName(String pipeName) {
             JavaLanguageServerPlugin.getInstance().getClientConnection()
-                .sendNotification("gradle.onWillImporterConnect", pipeName);
+                .sendNotification("_gradle.onWillImporterConnect", pipeName);
         }
 
         private void attemptConnection(File pipeFile) throws IOException {

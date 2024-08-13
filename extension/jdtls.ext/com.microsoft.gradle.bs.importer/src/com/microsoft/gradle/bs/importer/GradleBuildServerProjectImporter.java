@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.internal.resources.Project;
 import org.eclipse.core.internal.resources.ProjectDescription;
@@ -22,6 +23,7 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.SubMonitor;
@@ -150,13 +152,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     @Override
     public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
-        IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
-        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
-        if (buildServer == null) {
-            JavaLanguageServerPlugin.logError("Reach the maximum number of attempts to connect to the build server, use BuildShip instead");
-            this.isResolved = false;
-            return;
-        }
         // for all the path in this.directories, find the out most directory which belongs
         // to rootFolder and use that directory as the root folder for the build server.
         // TODO: consider the following folder structure
@@ -166,11 +161,41 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         //    |-- sub3
         // if user partially selects sub1 and sub2, we should still use ROOT as the root folder
         // and only import sub1 and sub2 as projects.
-        java.nio.file.Path inferredRoot = this.directories.stream()
+        java.nio.file.Path inferredRoot = null;
+        List<java.nio.file.Path> sortedDirectories = this.directories.stream()
                 .filter(directory -> directory.startsWith(rootFolder.toPath()))
                 .sorted((p1, p2) -> p1.getNameCount() - p2.getNameCount())
-                .findFirst()
-                .orElse(rootFolder.toPath());
+                .collect(Collectors.toList());
+        if (sortedDirectories.isEmpty()) {
+            inferredRoot = null; // theoretically this should not happen
+        } else if (sortedDirectories.size() == 1) {
+            inferredRoot = sortedDirectories.get(0);
+        } else {
+            if (sortedDirectories.get(0).getNameCount() == sortedDirectories.get(1).getNameCount()) {
+                // if there are multiple directories with the same name count, we can't determine
+                // the root folder for the build server.
+                Telemetry telemetry = new Telemetry("unableToDetermineRootFolder", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
+                inferredRoot = null;
+            } else {
+                inferredRoot = sortedDirectories.get(0);
+            }
+        }
+
+        if (inferredRoot == null) {
+            JavaLanguageServerPlugin.logError("Failed to determine the root folder for the build server, use BuildShip instead");
+            this.isResolved = false;
+            return;
+        }
+
+        IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
+        if (buildServer == null) {
+            this.isResolved = false;
+            return;
+        }
+
         InitializeBuildParams params = new InitializeBuildParams(
                 CLIENT_NAME,
                 ImporterPlugin.getBundleVersion(),
@@ -225,9 +250,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
         // the gradle project has already imported by other importers, we can modify this logic
         // so that Maven importer can be involved for other projects.
-        if (!this.isResolved){
+        if (!this.isResolved) {
+            for (IProject project : ProjectUtils.getAllProjects()) {
+                if (Utils.isGradleBuildServerProject(project)) {
+                    project.delete(IResource.NEVER_DELETE_PROJECT_CONTENT, new NullProgressMonitor());
+                }
+            }
             return false;
         }
+
         for (IProject project : ProjectUtils.getAllProjects()) {
             if (Utils.isGradleBuildServerProject(project) &&
                     project.getLocation().toPath().startsWith(folder.toPath())) {

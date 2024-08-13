@@ -11,6 +11,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.osgi.framework.BundleContext;
@@ -113,6 +114,7 @@ public class ImporterPlugin extends Plugin {
             instance.buildServers.put(rootPath, Pair.of(server, client));
             return server;
         } catch (NamedPipeConnectionException e) {
+            JavaLanguageServerPlugin.logException("Failed to connect to build server using named pipe.", e);
             return null;
         } catch (IOException e) {
             throw new CoreException(new Status(IStatus.ERROR, PLUGIN_ID,
