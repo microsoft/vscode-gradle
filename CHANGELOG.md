@@ -4,6 +4,12 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.16.4
+## What's Changed
+* fix - closeConnection will fail if pipe server hasn't been started by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1579
+* build - Update Gradle task to v3 by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1580
+* build - Compilation error in test code by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1571
+
 ## 3.16.3
 ## What's Changed
 * enhancement - Activate the extension when gradle files are in sub-folders of the workspace by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1570
