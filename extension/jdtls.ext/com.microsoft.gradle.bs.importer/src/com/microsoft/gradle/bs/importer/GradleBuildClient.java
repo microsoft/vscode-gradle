@@ -20,6 +20,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.lsp4j.ExecuteCommandParams;
+import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.WorkDoneProgressBegin;
 import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
@@ -100,9 +101,16 @@ public class GradleBuildClient implements BuildClient {
     }
 
     @Override
-    public void onBuildShowMessage(ShowMessageParams arg0) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'onBuildShowMessage'");
+    public void onBuildShowMessage(ShowMessageParams params) {
+        org.eclipse.lsp4j.MessageType type = switch (params.getType()) {
+            case ERROR -> org.eclipse.lsp4j.MessageType.Error;
+            case WARNING -> org.eclipse.lsp4j.MessageType.Warning;
+            case INFORMATION -> org.eclipse.lsp4j.MessageType.Info;
+            case LOG -> org.eclipse.lsp4j.MessageType.Log;
+            default -> throw new IllegalArgumentException("Unsupported message type: " + params.getType());
+        };
+        MessageParams messageParams = new MessageParams(type, params.getMessage());
+        this.lsClient.showMessage(messageParams);
     }
 
     @Override
