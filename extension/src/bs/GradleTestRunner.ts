@@ -52,22 +52,7 @@ export class GradleTestRunner implements TestRunner {
         let debugPort = -1;
         if (isDebug) {
             debugPort = await getPort();
-            // See: https://docs.gradle.org/current/javadoc/org/gradle/tooling/TestLauncher.html#debugTestsOn(int)
-            // since the gradle tooling api does not support debug tests in server=y mode, so we use the init script
-            // as a workaround
-            const initScriptContent = `allprojects {
-    afterEvaluate {
-        tasks.withType(Test) {
-            debugOptions {
-                enabled = true
-                host = 'localhost'
-                port = ${debugPort}
-                server = true
-                suspend = true
-            }
-        }
-    }
-}`;
+            const initScriptContent = this.getInitScriptContent(debugPort);
             await vscode.workspace.fs.writeFile(
                 vscode.Uri.file(this.testInitScriptPath),
                 Buffer.from(initScriptContent)
@@ -179,5 +164,24 @@ export class GradleTestRunner implements TestRunner {
         if (!startedDebugging) {
             throw new Error("The debugger was not started");
         }
+    }
+
+    /**
+     * See: https://docs.gradle.org/current/javadoc/org/gradle/tooling/TestLauncher.html#debugTestsOn(int)
+     * since the gradle tooling api does not support debug tests in server=y mode, so we use the init script
+     * as a workaround.
+     *
+     * We directly set the jvmArgs here because the debugOptions in the init script does not work for Gradle > 8.4.
+     *
+     * Note that this approach may have problem that multiple test tasks are executed in one build invocation.
+     * In that case, there's a race between tasks that first uses the specified debug port. To resolve this issue,
+     * we may consider checking the project root path in the init script as well.
+     */
+    private getInitScriptContent(debugPort: number): string {
+        return `allprojects {
+    tasks.withType(Test) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'
+    }
+}`;
     }
 }
