@@ -595,12 +595,23 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     /**
      * Some legacy Gradle (e.g. v6) uses "1.9" and "1.10" to represent Java 9 and 10.
      * We do a conversion here to make it compatible with Eclipse.
+     *
+     * Meanwhile, Gradle allows to set java version to 7, 8, etc...
+     * We also need to convert them to Eclipse compatible version.
      */
     private String getEclipseCompatibleVersion(String javaVersion) {
-        if ("1.9".equals(javaVersion)) {
-            return "9";
+        if ("5".equals(javaVersion)) {
+            return JavaCore.VERSION_1_5;
+        } else if ("6".equals(javaVersion)) {
+            return JavaCore.VERSION_1_6;
+        } else if ("7".equals(javaVersion)) {
+            return JavaCore.VERSION_1_7;
+        } else if ("8".equals(javaVersion)) {
+            return JavaCore.VERSION_1_8;
+        } else if ("1.9".equals(javaVersion)) {
+            return JavaCore.VERSION_9;
         } else if ("1.10".equals(javaVersion)) {
-            return "10";
+            return JavaCore.VERSION_10;
         }
 
         return javaVersion;
