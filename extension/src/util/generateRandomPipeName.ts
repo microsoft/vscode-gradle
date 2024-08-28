@@ -19,13 +19,16 @@ function generateRandomPipeName(): string {
 
     let randomLength = 32;
     const fixedLength = ".sock".length;
-    const tmpDir: string = fs.realpathSync(XDG_RUNTIME_DIR ?? os.tmpdir());
+    let tmpDir: string = fs.realpathSync(XDG_RUNTIME_DIR ?? os.tmpdir());
     const limit = safeIpcPathLengths.get(process.platform);
     if (limit !== undefined) {
         randomLength = Math.min(limit - tmpDir.length - fixedLength, randomLength);
     }
     if (randomLength < 16) {
-        throw new Error(`Unable to generate a random pipe name with ${randomLength} characters.`);
+        sendInfo("", {
+            kind: "tempDirTooLongWhenGenerateRandomPipeName",
+        });
+        tmpDir = "/tmp/";
     }
 
     const randomSuffix = randomBytes(Math.floor(randomLength / 2)).toString("hex");

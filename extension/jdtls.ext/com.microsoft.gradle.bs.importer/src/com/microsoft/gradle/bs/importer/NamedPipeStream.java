@@ -128,7 +128,8 @@ public class NamedPipeStream {
                 randomLength = Math.min(limit - tmpDir.length() - fixedLength, randomLength);
             }
             if (randomLength < 16) {
-                throw new NamedPipeConnectionException("Unable to generate a random pipe name with character length less than 16");
+                tmpDir = "/tmp/";
+                JavaLanguageServerPlugin.logInfo("length of random pipe name too long, using /tmp/ as tmpDir");
             }
 
             String randomSuffix = generateRandomHex(randomLength/2);
