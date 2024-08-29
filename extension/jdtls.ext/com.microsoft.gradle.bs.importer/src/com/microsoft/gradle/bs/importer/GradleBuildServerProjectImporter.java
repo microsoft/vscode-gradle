@@ -101,24 +101,6 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        for (java.nio.file.Path directory : directories) {
-            // we don't support android
-            BasicFileDetector androidDetector = new BasicFileDetector(directory, ANDROID_MANIFEST)
-                .includeNested(false)
-                .addExclusions("**/build") //default gradle build dir
-                .addExclusions("**/bin");
-            Collection<java.nio.file.Path> androidDirectories = androidDetector.scan(monitor);
-            if (!androidDirectories.isEmpty()) {
-                Telemetry telemetry = new Telemetry("hasAndroidManifest", "true");
-                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
-                        telemetry);
-                return false;
-            }
-        }
-
-        Telemetry telemetry = new Telemetry("hasAndroidManifest", "false");
-        Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
-                telemetry);
         return true;
     }
 

@@ -2,14 +2,21 @@ package com.microsoft.gradle.bs.importer;
 
 import static org.eclipse.jdt.ls.core.internal.handlers.MapFlattener.getString;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IProject;
@@ -214,4 +221,44 @@ public class Utils {
     client.sendNotification(new ExecuteCommandParams("_java.gradle.buildServer.sendTelemetry",
         Arrays.asList(message)));
   }
+
+  /**
+   * Extracts the jar file from the given artifact.
+  */
+  public static File getJarFile(File file) {
+
+    String filepath = file.getAbsolutePath();
+
+    if (filepath.endsWith(".aar")) {
+
+      // Extracting classes.jar from AAR files
+      try(ZipInputStream is = new ZipInputStream(new FileInputStream(file))) {
+
+        ZipEntry entry;
+        while ((entry = is.getNextEntry()) != null) {
+          if (entry.getName().equals("classes.jar")) {
+            String fileName = file.getName();
+            fileName = fileName.substring(0, fileName.length() - 4);
+            fileName = fileName + ".jar";
+            File outputFile = Path.of(file.getParentFile().getAbsolutePath(), fileName).toFile();
+            try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+              byte[] buffer = new byte[1024];
+              int len;
+              while((len = is.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, len);
+              }
+              return outputFile;
+            }
+          }
+        }
+
+      } catch(IOException e) {
+      }
+
+    }
+
+    return file;
+
+  }
+
 }

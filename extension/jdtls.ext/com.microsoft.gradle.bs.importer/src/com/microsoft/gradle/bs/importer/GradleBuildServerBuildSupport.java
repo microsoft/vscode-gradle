@@ -641,7 +641,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                     }
                     String classifier = artifactData.getClassifier();
                     try {
-                        File jarFile = new File(new URI(uri));
+                        File artifactFile = new File(new URI(uri));
+                        File jarFile = Utils.getJarFile(artifactFile);
                         if (classifier == null) {
                             artifact = jarFile;
                         } else if ("sources".equals(classifier)) {
