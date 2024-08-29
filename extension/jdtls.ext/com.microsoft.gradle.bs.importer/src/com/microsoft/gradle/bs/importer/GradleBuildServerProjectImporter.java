@@ -2,12 +2,15 @@ package com.microsoft.gradle.bs.importer;
 
 import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -401,7 +404,24 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         pref.setGradleArguments(jdtlsPreferences.getGradleArguments());
         pref.setGradleHome(jdtlsPreferences.getGradleHome());
         pref.setGradleJavaHome(jdtlsPreferences.getGradleJavaHome());
-        pref.setGradleJvmArguments(jdtlsPreferences.getGradleJvmArguments());
+        Set<String> jvmArgs = jdtlsPreferences.getGradleJvmArguments().stream()
+                .map(String::trim)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        String[] defaultJvmArgs = {
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+            "--add-opens=java.base/java.net=ALL-UNNAMED",
+            "--add-opens=java.base/java.nio.charset=ALL-UNNAMED",
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+            "--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED",
+        };
+        for (String arg : defaultJvmArgs) {
+            if (!jvmArgs.contains(arg)) {
+                jvmArgs.add(arg);
+            }
+        }
+        pref.setGradleJvmArguments(new ArrayList<>(jvmArgs));
         pref.setGradleUserHome(jdtlsPreferences.getGradleUserHome());
         pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
         pref.setJdks(EclipseVmUtil.getAllVmInstalls());
