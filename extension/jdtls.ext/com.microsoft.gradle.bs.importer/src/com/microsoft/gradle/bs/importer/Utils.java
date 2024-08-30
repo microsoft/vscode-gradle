@@ -29,6 +29,7 @@ import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.URIUtil;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.ls.core.internal.JavaClientConnection.JavaLanguageClient;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 import org.eclipse.jdt.ls.core.internal.ProjectUtils;
 import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
 import org.eclipse.lsp4j.ExecuteCommandParams;
@@ -223,7 +224,8 @@ public class Utils {
   }
 
   /**
-   * Extracts the jar file from the given artifact.
+   * Extracts the jar file from the aar file, since JDT.LS is not able to understand
+   * the structure of aar files.
   */
   public static File getJarFile(File file) {
 
@@ -253,6 +255,7 @@ public class Utils {
         }
 
       } catch(IOException e) {
+        JavaLanguageServerPlugin.logException(e);
       }
 
     }
