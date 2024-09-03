@@ -513,30 +513,32 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
         }
 
-        String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
-        try {
-            IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(
-                targetCompatibility, // expectedVersion
-                sourceCompatibility, // lowestVersion
-                highestJavaVersion,
-                new File(new URI(jvmBuildTarget.getJavaHome())) // fallback jdk
-            );
+        if (!StringUtils.isEmpty(jvmBuildTarget.getJavaHome())) {
+            String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
+            try {
+                IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(
+                    targetCompatibility, // expectedVersion
+                    sourceCompatibility, // lowestVersion
+                    highestJavaVersion,
+                    new File(new URI(jvmBuildTarget.getJavaHome())) // fallback jdk
+                );
 
-            List<IClasspathAttribute> classpathAttributes = new LinkedList<>();
-            if (isModular) {
-                classpathAttributes.add(modularAttribute);
+                List<IClasspathAttribute> classpathAttributes = new LinkedList<>();
+                if (isModular) {
+                    classpathAttributes.add(modularAttribute);
+                }
+                classpathAttributes.add(buildServerAttribute);
+                IClasspathEntry jdkEntry = JavaCore.newContainerEntry(
+                    JavaRuntime.newJREContainerPath(vm),
+                    ClasspathEntry.NO_ACCESS_RULES,
+                    classpathAttributes.toArray(new IClasspathAttribute[0]),
+                    false /*isExported*/
+                );
+                classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
+            } catch (URISyntaxException e) {
+                throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
+                        "Invalid Java home: " + jvmBuildTarget.getJavaHome(), e));
             }
-            classpathAttributes.add(buildServerAttribute);
-            IClasspathEntry jdkEntry = JavaCore.newContainerEntry(
-                JavaRuntime.newJREContainerPath(vm),
-                ClasspathEntry.NO_ACCESS_RULES,
-                classpathAttributes.toArray(new IClasspathAttribute[0]),
-                false /*isExported*/
-            );
-            classpathMap.putIfAbsent(jdkEntry.getPath(), jdkEntry);
-        } catch (URISyntaxException e) {
-            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
-                    "Invalid Java home: " + jvmBuildTarget.getJavaHome(), e));
         }
     }
 
@@ -585,8 +587,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         if (StringUtils.isBlank(jvmTarget.getJavaHome()) || StringUtils.isBlank(jvmTarget.getGradleVersion())) {
-            throw new CoreException(new Status(IStatus.ERROR, ImporterPlugin.PLUGIN_ID,
-                    "Invalid JVM build target: " + jvmTarget.toString()));
+            JavaLanguageServerPlugin.logException(
+                new CoreException(new Status(IStatus.WARNING, ImporterPlugin.PLUGIN_ID,
+                    "Invalid JVM build target: Missing JavaHome or GradleVersion."))
+            );
         }
 
         return jvmTarget;
