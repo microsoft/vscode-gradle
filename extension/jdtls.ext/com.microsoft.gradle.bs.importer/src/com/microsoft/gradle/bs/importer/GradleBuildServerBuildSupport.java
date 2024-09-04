@@ -513,7 +513,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
         }
 
-        if (!StringUtils.isEmpty(jvmBuildTarget.getJavaHome())) {
+        if (!StringUtils.isEmpty(jvmBuildTarget.getJavaHome())
+            && !StringUtils.isEmpty(jvmBuildTarget.getGradleVersion())) {
             String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
             try {
                 IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(
@@ -589,7 +590,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         if (StringUtils.isBlank(jvmTarget.getJavaHome()) || StringUtils.isBlank(jvmTarget.getGradleVersion())) {
             JavaLanguageServerPlugin.logException(
                 new CoreException(new Status(IStatus.WARNING, ImporterPlugin.PLUGIN_ID,
-                    "Invalid JVM build target: Missing JavaHome or GradleVersion."))
+                    "Empty Java Home or Gradle Version in JVM target."))
             );
         }
 
