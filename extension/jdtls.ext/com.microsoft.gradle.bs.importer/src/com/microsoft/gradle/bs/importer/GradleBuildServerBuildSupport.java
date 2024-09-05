@@ -513,8 +513,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
         }
 
-        if (!StringUtils.isEmpty(jvmBuildTarget.getJavaHome())
-            && !StringUtils.isEmpty(jvmBuildTarget.getGradleVersion())) {
+        if (StringUtils.isNotBlank(jvmBuildTarget.getJavaHome())
+            && StringUtils.isNotBlank(jvmBuildTarget.getGradleVersion())) {
             String highestJavaVersion = getHighestCompatibleJavaVersion(jvmBuildTarget.getGradleVersion());
             try {
                 IVMInstall vm = EclipseVmUtil.findOrRegisterStandardVM(
