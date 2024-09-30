@@ -213,11 +213,11 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
 
     public async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
         const projectTaskItem = new ProjectTaskTreeItem("Tasks", vscode.TreeItemCollapsibleState.Collapsed, element);
-        projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        projectTaskItem.setChildren([...element.tasks, ...element.groups]);
         const results: vscode.TreeItem[] = [projectTaskItem];
         const resourceUri = element.resourceUri;
         if (!resourceUri) {
-            return results;
+            return [...results, ...element.subprojects];
         }
         const projectDependencyTreeItem: ProjectDependencyTreeItem = new ProjectDependencyTreeItem(
             "Dependencies",
@@ -226,7 +226,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             path.dirname(resourceUri.fsPath),
             typeof element.label === "string" ? element.label : resourceUri.fsPath
         );
-        return [...results, projectDependencyTreeItem];
+        return [...results, projectDependencyTreeItem, ...element.subprojects];
     }
 
     public static buildItemsTreeFromTasks(
@@ -253,15 +253,25 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     gradleProjectTreeItemMap.set(definition.projectFolder, gradleProjectTreeItem);
                 }
 
-                let projectTreeItem = projectTreeItemMap.get(definition.buildFile);
+                const projectPath = definition.script.split(":").slice(0, -1);
+                let projectTreeItem = projectTreeItemMap.get(projectPath.join(":"));
                 if (!projectTreeItem) {
+                    const parentProjectPath = projectPath.length == 0 ? null : projectPath.slice(0, -1);
+                    const parentProject =
+                        parentProjectPath === null
+                            ? gradleProjectTreeItem
+                            : projectTreeItemMap.get(parentProjectPath.join(":"));
                     projectTreeItem = new ProjectTreeItem(
                         definition.project,
-                        gradleProjectTreeItem,
+                        parentProject,
                         vscode.Uri.file(definition.buildFile)
                     );
-                    gradleProjectTreeItem.addProject(projectTreeItem);
-                    projectTreeItemMap.set(definition.buildFile, projectTreeItem);
+                    if (parentProject instanceof ProjectTreeItem) {
+                        parentProject.addSubproject(projectTreeItem);
+                    } else {
+                        gradleProjectTreeItem.addProject(projectTreeItem);
+                    }
+                    projectTreeItemMap.set(projectPath.join(":"), projectTreeItem);
                 }
 
                 const taskName = definition.script.slice(definition.script.lastIndexOf(":") + 1);

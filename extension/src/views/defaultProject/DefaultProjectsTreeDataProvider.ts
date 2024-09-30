@@ -55,7 +55,7 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
 
     private async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
         const projectTaskItem = new ProjectTaskTreeItem("Tasks", vscode.TreeItemCollapsibleState.Collapsed, element);
-        projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        projectTaskItem.setChildren([...element.tasks, ...element.groups]);
         const results: vscode.TreeItem[] = [projectTaskItem];
         const resourceUri = element.resourceUri;
         if (!resourceUri) {
@@ -68,6 +68,6 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
             path.dirname(resourceUri.fsPath),
             typeof element.label === "string" ? element.label : resourceUri.fsPath
         );
-        return [...results, projectDependencyTreeItem];
+        return [projectDependencyTreeItem, ...results];
     }
 }
