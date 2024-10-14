@@ -254,13 +254,14 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                 }
 
                 const projectPath = definition.script.split(":").slice(0, -1);
-                let projectTreeItem = projectTreeItemMap.get(projectPath.join(":"));
+                const projectMapKey = definition.projectFolder + "_" + projectPath.join(":");
+                let projectTreeItem = projectTreeItemMap.get(projectMapKey);
                 if (!projectTreeItem) {
                     const parentProjectPath = projectPath.length == 0 ? null : projectPath.slice(0, -1);
                     const parentProject =
                         parentProjectPath === null
                             ? gradleProjectTreeItem
-                            : projectTreeItemMap.get(parentProjectPath.join(":"));
+                            : projectTreeItemMap.get(definition.projectFolder + "_" + parentProjectPath.join(":"));
                     projectTreeItem = new ProjectTreeItem(
                         definition.project,
                         parentProject,
@@ -271,7 +272,7 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     } else {
                         gradleProjectTreeItem.addProject(projectTreeItem);
                     }
-                    projectTreeItemMap.set(projectPath.join(":"), projectTreeItem);
+                    projectTreeItemMap.set(projectMapKey, projectTreeItem);
                 }
 
                 const taskName = definition.script.slice(definition.script.lastIndexOf(":") + 1);
