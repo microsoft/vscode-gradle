@@ -57,8 +57,8 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
 
 export function isGradleRootProject(rootProject: RootProject): boolean {
     return (
-        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "gradlew")) ||
-        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "gradlew.bat"))
+        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "settings.gradle")) ||
+        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "settings.gradle.kts"))
     );
 }
 

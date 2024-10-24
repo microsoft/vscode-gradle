@@ -86,13 +86,13 @@ export function stubWorkspaceFolders(workspaceFolders: vscode.WorkspaceFolder[])
     const getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
     const dirnameStub = sinon.stub(path, "dirname");
     workspaceFolders.forEach((workspaceFolder) => {
-        existsSyncStub.withArgs(path.join(workspaceFolder.uri.fsPath, "gradlew")).returns(true);
+        existsSyncStub.withArgs(path.join(workspaceFolder.uri.fsPath, "settings.gradle")).returns(true);
         getWorkspaceFolderStub.withArgs(sinon.match.has("fsPath", workspaceFolder.uri.fsPath)).returns(workspaceFolder);
         dirnameStub.withArgs(workspaceFolder.uri.fsPath).returns(workspaceFolder.uri.fsPath);
     });
     sinon
         .stub(vscode.workspace, "findFiles")
-        .withArgs("**/{gradlew,gradlew.bat}")
+        .withArgs("**/{settings.gradle,settings.gradle.kts}")
         .returns(Promise.resolve(workspaceFolders.map((folder) => folder.uri)));
 }
 

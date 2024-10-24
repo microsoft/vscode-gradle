@@ -7,7 +7,7 @@ import { RootProject } from "../rootProject/RootProject";
 import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
 async function getNestedRootProjectFolders(): Promise<string[]> {
-    const matchingNestedWrapperFiles = await vscode.workspace.findFiles("**/{gradlew,gradlew.bat}");
+    const matchingNestedWrapperFiles = await vscode.workspace.findFiles("**/{settings.gradle,settings.gradle.kts}");
     return [...new Set(matchingNestedWrapperFiles.map((uri) => path.dirname(uri.fsPath)))];
 }
 
