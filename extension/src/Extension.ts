@@ -389,8 +389,9 @@ export class Extension {
 
     private async registerGradleTestRunner(): Promise<void> {
         // To register the Gradle test runner, we need to wait for the Test Runner extension to be activated.
-        // The Test Runner extension is dependent on the Java extension, VS Code has an issue that it doesn't
-        // activate the Java extension before the Test Runner extension if we call testExtension.activate().
+        // The Test Runner extension depends on the Java extension, VS Code has an issue that it doesn't
+        // activate the Java extension before the Test Runner extension if we call activate() for the test extension.
+        // Thus here we need to activate the Java extension first.
         const javaLsExtension = vscode.extensions.getExtension("redhat.java");
         if (!javaLsExtension) {
             return;
