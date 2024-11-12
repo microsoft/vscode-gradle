@@ -4,6 +4,29 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.17.0
+## What's Changed
+* enhancement - Support onBuildShowMessage for BSP client by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1583
+* enhancement - Extract classes.jar from *.aar by @Tanish-Ranjan in https://github.com/microsoft/vscode-gradle/pull/1594
+* enhancement - Gradle project view keeps project hierarchy by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1612
+* fix - java generate Random pipe path by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1582
+* fix - Gradle test debug not working on version 8.5 and higher by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1586
+* fix - Correct the gradle java version to jdt parsing by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1590
+* fix - Fallback to /tmp/ when named pipe is too long by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1591
+* fix - Add root project folder to each key in projectTreeItemMap by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1617
+* fix - Discover Gradle builds by looking for setting.gradle(.kts) by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1618
+* fix - Cannot see Delegate Test to Gradle option in VS Code by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1622
+* docs - architecture image typo by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1599
+* gbs - Parallelize source set retrieval. by @Arthurm1 in https://github.com/microsoft/build-server-for-gradle/pull/168
+* gbs - Find compatible GradleJavaHome and notify client in case of incompatibility by @Tanish-Ranjan in https://github.com/microsoft/build-server-for-gradle/pull/165
+* gbs - Handle java source/target defined at extension level by @Arthurm1 in https://github.com/microsoft/build-server-for-gradle/pull/188
+
+## New Contributors
+* @Tanish-Ranjan made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1594
+* @jjohannes made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1612
+
+**Full Changelog**: https://github.com/microsoft/vscode-gradle/compare/3.16.4...3.17.0
+
 ## 3.16.4
 ## What's Changed
 * fix - closeConnection will fail if pipe server hasn't been started by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1579
