@@ -50,9 +50,9 @@ extends:
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
-                displayName: Install Node 18.x
+                displayName: Install Node 20.x
                 inputs:
-                  versionSpec: 18.x
+                  versionSpec: 20.x
               - task: DownloadBuildArtifacts@1
                 displayName: 'Download Build Server Artifacts'
                 inputs:
