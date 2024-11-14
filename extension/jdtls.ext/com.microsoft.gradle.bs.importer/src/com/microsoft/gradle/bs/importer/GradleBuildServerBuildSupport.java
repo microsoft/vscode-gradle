@@ -677,6 +677,16 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
                 attributes.add(buildServerAttribute);
 
+				String groupId = mavenDependencyModule.getOrganization();
+				String artifactId = mavenDependencyModule.getName();
+				String version = mavenDependencyModule.getVersion();
+                if (StringUtils.isNotBlank(groupId) && StringUtils.isNotBlank(artifactId)
+                    && StringUtils.isNotBlank(version)) {
+					attributes.add(JavaCore.newClasspathAttribute("groupId", groupId));
+					attributes.add(JavaCore.newClasspathAttribute("artifactId", artifactId));
+					attributes.add(JavaCore.newClasspathAttribute("version", version));
+                }
+
                 dependencyEntries.add(JavaCore.newLibraryEntry(
                         new Path(artifact.getAbsolutePath()),
                         sourceArtifact == null ? null : new Path(sourceArtifact.getAbsolutePath()),
