@@ -114,7 +114,7 @@ extends:
               - task: CmdLine@2
                 displayName: Sign jars
                 inputs:
-                  script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:extension/lib/gradle-server.jar /certs:100010171
+                  script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:gradle-server.jar /certs:100010171
                   workingDirectory: 'extension/lib'
               - bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
                 workingDirectory: $(Build.SourcesDirectory)/extension
