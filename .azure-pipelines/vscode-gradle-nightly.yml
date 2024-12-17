@@ -38,7 +38,7 @@ extends:
               outputs:
                 - output: pipelineArtifact
                   artifactName: extension
-                  targetPath: $(Build.ArtifactStagingDirectory)
+                  targetPath: '$(Build.ArtifactStagingDirectory)/extension'
                   displayName: "Publish Artifact: extension"
             steps:
               - checkout: self
@@ -175,4 +175,4 @@ extends:
                     extension/extension.vsix
                     extension/extension.manifest
                     extension/extension.signature.p7s
-                  TargetFolder: '$(Build.ArtifactStagingDirectory)'
+                  TargetFolder: '$(Build.ArtifactStagingDirectory)/extension'
