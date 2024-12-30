@@ -24,6 +24,7 @@ export interface RunBuildOpts {
     onOutput?: (output: Output) => void;
     showOutputColors: boolean;
     cancellationKey?: string;
+    additionalToolOptions?: string;
 }
 
 export interface CancelTaskOpts {
@@ -37,6 +38,12 @@ export interface CancelBuildOpts {
     args?: ReadonlyArray<string>;
     cancellationKey?: string;
 }
+
+export interface ToolOptionsProvider {
+    resolveToolOptions(): Promise<string>;
+}
+
+export let toolOptionsProviders: Array<ToolOptionsProvider> = [];
 
 export class Api {
     constructor(
@@ -69,7 +76,8 @@ export class Api {
             0,
             undefined,
             opts.onOutput,
-            opts.showOutputColors
+            opts.showOutputColors,
+            opts.additionalToolOptions ?? ""
         );
     }
 
@@ -116,5 +124,17 @@ export class Api {
 
     public getLogger(): Logger {
         return logger;
+    }
+
+    public registerToolOptionsProvider(provider: ToolOptionsProvider): vscode.Disposable {
+        toolOptionsProviders.push(provider);
+        return {
+            dispose: () => {
+                const index = toolOptionsProviders.indexOf(provider);
+                if (index !== -1) {
+                    toolOptionsProviders.splice(index, 1);
+                }
+            }
+        };
     }
 }

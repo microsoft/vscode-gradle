@@ -10,6 +10,7 @@ import { isTaskRunning } from "../tasks/taskUtil";
 import { COMMAND_CANCEL_BUILD } from "../commands";
 import { GradleTaskDefinition } from "../tasks";
 import { TaskServerClient } from "../client";
+import { toolOptionsProviders } from "../api";
 
 const NL = "\n";
 const CR = "\r";
@@ -88,11 +89,16 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
 
     private async runBuild(): Promise<void> {
         const javaDebugEnabled = this.task ? this.task.definition.javaDebug : false;
+
         try {
             const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
             if (javaDebugEnabled) {
                 this.startJavaDebug(javaDebugPort);
             }
+            const additionalToolOptions = (await Promise.all(
+                toolOptionsProviders.map(provider => provider.resolveToolOptions())
+            )).join(" ");
+
             const runTask = this.client.runBuild(
                 this.rootProject.getProjectUri().fsPath,
                 this.cancellationKey,
@@ -101,7 +107,8 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 javaDebugPort,
                 this.task,
                 this.handleOutput,
-                true
+                true,
+                additionalToolOptions
             );
             await runTask;
             this.closeEmitter.fire(0);

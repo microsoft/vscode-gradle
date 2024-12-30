@@ -76,6 +76,7 @@ message RunBuildRequest {
   string input = 6;
   bool show_output_colors = 7;
   bool java_debug_clean_output_cache = 8;
+  string additional_tool_options = 9;
 }
 
 message RunBuildResult {
