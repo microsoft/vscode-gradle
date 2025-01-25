@@ -51,7 +51,7 @@ A running task will be shown with an animated "spinner" icon in the tree views, 
 
 <img src="images/task-run.png" width="350" alt="Gradle Tasks Running" />
 
-A task will be run a vscode terminal where you can view the task output.
+A task will be run in a vscode terminal where you can view the task output.
 
 Send a SIGINT signal (ctrl/cmd + c) in the terminal to gracefully cancel it.
 
