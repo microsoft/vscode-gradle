@@ -53,9 +53,9 @@ extends:
                   packageType: 'sdk'
                   version: '3.1.x'
               - task: JavaToolInstaller@0
-                displayName: Install Java 17
+                displayName: Install Java 21
                 inputs:
-                  versionSpec: '17'
+                  versionSpec: '21'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
