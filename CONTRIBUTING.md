@@ -8,7 +8,7 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Prerequisites
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 17](https://adoptium.net/)
+2. Install [Java version >= 21](https://adoptium.net/)
 3. Select Node version: `nvm use`
 4. If using an Apple M1:
     - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
