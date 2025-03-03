@@ -47,6 +47,7 @@ import org.eclipse.jdt.internal.core.util.Messages;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
 
 import com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature;
+import com.microsoft.gradle.bs.importer.ImporterPlugin;
 import com.microsoft.java.builder.jdtbuilder.JavaBuilder;
 
 public class BuildStateManager implements ISaveParticipant {
@@ -70,7 +71,7 @@ public class BuildStateManager implements ISaveParticipant {
 
 	public void startup() {
 		try {
-			ResourcesPlugin.getWorkspace().addSaveParticipant(JavaCore.PLUGIN_ID, this);
+			ResourcesPlugin.getWorkspace().addSaveParticipant(ImporterPlugin.PLUGIN_ID, this);
 		} catch (CoreException e) {
 			JavaLanguageServerPlugin.logException("Failed to register save participant", e);
 		}
