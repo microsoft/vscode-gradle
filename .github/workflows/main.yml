@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Cache npm cache directory
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
@@ -85,7 +85,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
           architecture: x64
       - name: Cache vscode
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             extension/.vscode-test
