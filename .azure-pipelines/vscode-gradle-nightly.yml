@@ -59,9 +59,9 @@ extends:
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
-                displayName: Install Node 18.x
+                displayName: Install Node 20.x
                 inputs:
-                  versionSpec: 18.x
+                  versionSpec: 20.x
               - task: MicroBuildSigningPlugin@4
                 displayName: 'Install Signing Plugin'
                 inputs:

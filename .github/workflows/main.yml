@@ -18,10 +18,10 @@ jobs:
         with:
           java-version: "21"
           architecture: x64
-      - name: Use Node 18.20.4
+      - name: Use Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: 18.20.4
+          node-version: 20
           cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Cache npm cache directory
@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.20.4]
+        node-version: [20]
         java-version: ["21"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
