@@ -95,9 +95,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             if (javaDebugEnabled) {
                 this.startJavaDebug(javaDebugPort);
             }
-            const additionalToolOptions = (await Promise.all(
-                toolOptionsProviders.map(provider => provider.resolveToolOptions())
-            )).join(" ");
+            const additionalToolOptions = (
+                await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
+            ).join(" ");
 
             const runTask = this.client.runBuild(
                 this.rootProject.getProjectUri().fsPath,

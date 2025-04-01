@@ -43,7 +43,7 @@ export interface ToolOptionsProvider {
     resolveToolOptions(): Promise<string>;
 }
 
-export let toolOptionsProviders: Array<ToolOptionsProvider> = [];
+export const toolOptionsProviders: Array<ToolOptionsProvider> = [];
 
 export class Api {
     constructor(
@@ -134,7 +134,7 @@ export class Api {
                 if (index !== -1) {
                     toolOptionsProviders.splice(index, 1);
                 }
-            }
+            },
         };
     }
 }

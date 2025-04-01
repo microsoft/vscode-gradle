@@ -226,9 +226,9 @@ export class TaskServerClient implements vscode.Disposable {
         task?: vscode.Task,
         onOutput?: (output: Output) => void,
         showOutputColors = true,
-        additionalToolOptions: string = "",
+        additionalToolOptions = "",
         title?: string,
-        location?: vscode.ProgressLocation,
+        location?: vscode.ProgressLocation
     ): Promise<void> {
         await this.waitForConnect();
         this.statusBarItem.hide();
