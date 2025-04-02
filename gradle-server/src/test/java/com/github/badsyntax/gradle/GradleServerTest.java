@@ -357,6 +357,39 @@ public class GradleServerTest {
 	}
 
 	@Test
+	public void runBuild_shouldSetToolOptionsVar() throws IOException {
+		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
+
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.setAdditionalToolOptions("-agentpath:test").addAllArgs(mockBuildArgs)
+				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
+
+		stub.runBuild(req, mockResponseObserver);
+		verify(mockResponseObserver, never()).onError(any());
+		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
+		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
+	}
+
+	@Test
+	public void runBuild_shouldSetToolOptionsVarWithDebug() throws IOException {
+		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
+
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.setAdditionalToolOptions("-agentpath:test").setJavaDebugPort(1111).addAllArgs(mockBuildArgs)
+				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
+
+		stub.runBuild(req, mockResponseObserver);
+		verify(mockResponseObserver, never()).onError(any());
+		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
+		assertEquals("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:1111 -agentpath:test",
+				setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
+	}
+
+	@Test
 	public void runBuild_shouldSetStandardInput() throws IOException {
 		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
 

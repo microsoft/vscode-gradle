@@ -226,6 +226,7 @@ export class TaskServerClient implements vscode.Disposable {
         task?: vscode.Task,
         onOutput?: (output: Output) => void,
         showOutputColors = true,
+        additionalToolOptions = "",
         title?: string,
         location?: vscode.ProgressLocation
     ): Promise<void> {
@@ -256,6 +257,7 @@ export class TaskServerClient implements vscode.Disposable {
                 request.setShowOutputColors(showOutputColors);
                 request.setJavaDebugPort(javaDebugPort);
                 request.setInput(input);
+                request.setAdditionalToolOptions(additionalToolOptions);
 
                 if (javaDebugPort > 0) {
                     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
