@@ -38,9 +38,10 @@ public class GradleBuildRunner {
 	private InputStream standardInputStream;
 	private ProgressListener progressListener;
 	private Boolean javaDebugCleanOutputCache;
+	private String additionalToolOptions;
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
-			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache) {
+			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
 		this.projectDir = projectDir;
 		this.args = args;
 		this.gradleConfig = gradleConfig;
@@ -48,10 +49,11 @@ public class GradleBuildRunner {
 		this.colorOutput = colorOutput;
 		this.javaDebugPort = javaDebugPort;
 		this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
+		this.additionalToolOptions = additionalToolOptions;
 	}
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
-		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
+		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false, "");
 	}
 
 	public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -105,8 +107,11 @@ public class GradleBuildRunner {
 			build.setStandardInput(standardInputStream);
 		}
 
-		if (Boolean.TRUE.equals(isDebugging)) {
-			build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
+		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(Boolean.TRUE.equals(isDebugging), javaDebugPort,
+				additionalToolOptions);
+
+		if (envVars != null) {
+			build.setEnvironmentVariables(envVars);
 		}
 
 		if (!Strings.isNullOrEmpty(gradleConfig.getJvmArguments())) {
@@ -159,10 +164,24 @@ public class GradleBuildRunner {
 		return !argument.startsWith("-");
 	}
 
-	private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
+	private static Map<String, String> buildJavaEnvVarsWithToolOptions(boolean isDebugging, int javaDebugPort,
+			String additionalToolOptions) {
+		if (!isDebugging && (additionalToolOptions == null || additionalToolOptions.isEmpty())) {
+			return null;
+		}
 		HashMap<String, String> envVars = new HashMap<>(System.getenv());
-		envVars.put(JAVA_TOOL_OPTIONS_ENV, String
-				.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort));
+		StringBuilder toolOptions = new StringBuilder();
+		if (isDebugging) {
+			toolOptions.append(String.format(
+					"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort));
+		}
+		if (additionalToolOptions != null && !additionalToolOptions.isEmpty()) {
+			if (!toolOptions.isEmpty()) {
+				toolOptions.append(' ');
+			}
+			toolOptions.append(additionalToolOptions);
+		}
+		envVars.put(JAVA_TOOL_OPTIONS_ENV, toolOptions.toString());
 		return envVars;
 	}
 }

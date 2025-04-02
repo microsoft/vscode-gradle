@@ -143,6 +143,7 @@ export class CreateProjectCommand extends Command {
             undefined,
             undefined,
             true,
+            "",
             "Create Gradle project",
             vscode.ProgressLocation.Notification
         );

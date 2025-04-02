@@ -1,0 +1,23 @@
+{
+  "name": "tooloptionstest",
+  "publisher": "vscjava",
+  "displayName": "Tool options test",
+  "engines": {
+    "vscode": "^1.76.0"
+  },
+  "version": "1.0.0",
+  "main": "./out/extension.js",
+  "activationEvents": [
+     "*"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.76.0",
+    "typescript": "^5.6.3"
+  },
+  "extensionDependencies": [
+    "vscjava.vscode-gradle"
+  ]
+}

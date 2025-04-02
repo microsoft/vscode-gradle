@@ -62,7 +62,7 @@ public class RunBuildHandler {
 	public void run() {
 		GradleBuildRunner gradleRunner = new GradleBuildRunner(req.getProjectDir(), req.getArgsList(),
 				req.getGradleConfig(), req.getCancellationKey(), req.getShowOutputColors(), req.getJavaDebugPort(),
-				req.getJavaDebugCleanOutputCache());
+				req.getJavaDebugCleanOutputCache(), req.getAdditionalToolOptions());
 		gradleRunner.setProgressListener(progressListener).setStandardOutputStream(standardOutputListener)
 				.setStandardErrorStream(standardErrorListener);
 
