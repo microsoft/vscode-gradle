@@ -48,7 +48,7 @@
   "main": "./dist/index.js",
   "contributes": {
     "javaExtensions": [
-      "./server/com.microsoft.gradle.bs.importer-0.5.3.jar"
+      "./server/com.microsoft.gradle.bs.importer-0.5.4.jar"
     ],
     "languages": [
       {
