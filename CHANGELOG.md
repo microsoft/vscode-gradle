@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * enhancement - Support onBuildShowMessage for BSP client by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1583
 * enhancement - Extract classes.jar from *.aar by @Tanish-Ranjan in https://github.com/microsoft/vscode-gradle/pull/1594
 * enhancement - Gradle project view keeps project hierarchy by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1612
+* enhancement - add groupId, artifactId and version attributes by @mamilic in https://github.com/microsoft/vscode-gradle/pull/1620
+* enhancement - Add support for profiling Gradle tasks by @ingokegel in https://github.com/microsoft/vscode-gradle/pull/1639
 * fix - java generate Random pipe path by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1582
 * fix - Gradle test debug not working on version 8.5 and higher by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1586
 * fix - Correct the gradle java version to jdt parsing by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1590
@@ -16,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * fix - Add root project folder to each key in projectTreeItemMap by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1617
 * fix - Discover Gradle builds by looking for setting.gradle(.kts) by @jjohannes in https://github.com/microsoft/vscode-gradle/pull/1618
 * fix - Cannot see Delegate Test to Gradle option in VS Code by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1622
+* fix - Update the problem checker according to the upstream change by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1658
+* fix - Add save participant under its own ID to avoid conflicts. by @rgrunber in https://github.com/microsoft/vscode-gradle/pull/1649
 * docs - architecture image typo by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1599
 * gbs - Parallelize source set retrieval. by @Arthurm1 in https://github.com/microsoft/build-server-for-gradle/pull/168
 * gbs - Find compatible GradleJavaHome and notify client in case of incompatibility by @Tanish-Ranjan in https://github.com/microsoft/build-server-for-gradle/pull/165
@@ -24,6 +28,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## New Contributors
 * @Tanish-Ranjan made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1594
 * @jjohannes made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1612
+* @mamilic made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1620
+* @domainexpert made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1642
+* @rgrunber made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1649
+* @ingokegel made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1639
 
 **Full Changelog**: https://github.com/microsoft/vscode-gradle/compare/3.16.4...3.17.0
 
