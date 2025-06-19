@@ -2,9 +2,15 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Gradle Build Server Importer
 Bundle-SymbolicName: com.microsoft.gradle.bs.importer;singleton:=true
+<<<<<<< HEAD
 Bundle-Version: 0.5.4
 Bundle-Activator: com.microsoft.gradle.bs.importer.ImporterPlugin
 Bundle-RequiredExecutionEnvironment: JavaSE-21
+=======
+Bundle-Version: 0.5.3
+Bundle-Activator: com.microsoft.gradle.bs.importer.ImporterPlugin
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 Bundle-ActivationPolicy: lazy
 Import-Package: org.eclipse.jdt.core,
  org.eclipse.jdt.launching,
