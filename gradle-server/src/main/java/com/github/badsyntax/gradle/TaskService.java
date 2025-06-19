@@ -37,11 +37,14 @@ public class TaskService extends GradleGrpc.GradleImplBase {
 	public void executeCommand(ExecuteCommandRequest req, StreamObserver<ExecuteCommandReply> responseObserver) {
 		ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(req, responseObserver);
 		executeCommandHandler.run();
+<<<<<<< HEAD
 	}
 
 	@Override
 	public void executeCommand(ExecuteCommandRequest req, StreamObserver<ExecuteCommandReply> responseObserver) {
 		ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(req, responseObserver);
 		executeCommandHandler.run();
+=======
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 	}
 }

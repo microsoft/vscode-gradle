@@ -164,11 +164,15 @@ public class GradleBuildRunner {
 		return !argument.startsWith("-");
 	}
 
+<<<<<<< HEAD
 	private static Map<String, String> buildJavaEnvVarsWithToolOptions(boolean isDebugging, int javaDebugPort,
 			String additionalToolOptions) {
 		if (!isDebugging && (additionalToolOptions == null || additionalToolOptions.isEmpty())) {
 			return null;
 		}
+=======
+	private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 		HashMap<String, String> envVars = new HashMap<>(System.getenv());
 		StringBuilder toolOptions = new StringBuilder();
 		if (isDebugging) {

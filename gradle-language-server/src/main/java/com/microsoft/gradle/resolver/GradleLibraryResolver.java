@@ -74,9 +74,15 @@ public class GradleLibraryResolver {
     this.gradleUserHome = gradleUserHome;
   }
 
+<<<<<<< HEAD
   public void setWorkspacePath(Path workspacePath) {
     this.workspacePath = workspacePath;
   }
+=======
+	public void setGradleWrapperEnabled(Boolean gradleWrapperEnabled) {
+		this.gradleWrapperEnabled = gradleWrapperEnabled == null ? true : gradleWrapperEnabled;
+	}
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 
   public void setProjectGradleVersion(String version) {
     if (!version.equals(this.projectGradleVersion)) {
@@ -139,6 +145,7 @@ public class GradleLibraryResolver {
     }
   }
 
+<<<<<<< HEAD
   private File findCoreAPIWithWrapper(Path gradleUserHomePath) {
     if (this.workspacePath == null) {
       return null;
@@ -201,6 +208,114 @@ public class GradleLibraryResolver {
     }
     return null;
   }
+=======
+	public boolean resolveGradleAPI() {
+		return resolveGradleAPI(null);
+	}
+
+	public boolean resolveGradleAPI(URI gradleFilePath) {
+		this.needToLoadClasses = true;
+		// step 1: find "lib" folder
+		File libFolder = null;
+		if (this.gradleWrapperEnabled) {
+			DistInfo info = getWrapperPropertiesInfo(gradleFilePath);
+			if (info == null) {
+				return false;
+			}
+			libFolder = findLibFolder(info);
+		} else if (this.gradleVersion != null) {
+			Path distsPath = this.gradleUserHomePath.resolve(Paths.get("wrapper", "dists"));
+			String distName = "gradle-" + this.gradleVersion;
+			libFolder = findLibFolder(new DistInfo(distsPath, distName));
+		} else if (this.gradleHome != null) {
+			libFolder = Paths.get(this.gradleHome).resolve("lib").toFile();
+		}
+		if (!Utils.isValidFolder(libFolder)) {
+			return false;
+		}
+		File newAPI = findCoreAPI(libFolder);
+		if (!Utils.isValidFile(newAPI)) {
+			return false;
+		}
+		if (this.coreAPI != null && this.coreAPI.equals(newAPI)) {
+			// same gradle dist so reuse.
+			this.needToLoadClasses = false;
+			return false;
+		}
+
+		this.gradleFilesManager.setGradleLibraries(Utils.listAllFiles(libFolder));
+		// step 2: find core API jar file
+		this.coreAPI = newAPI;
+		// step 3: find plugin API jar file
+		this.pluginAPI = findPluginAPI(this.coreAPI.toPath().getParent().resolve(Paths.get("plugins")).toFile());
+		return Utils.isValidFile(this.pluginAPI);
+	}
+
+	public void loadGradleClasses(URI uri) {
+		boolean isAPIValid = Utils.isValidFile(this.coreAPI) && Utils.isValidFile(this.pluginAPI);
+		if (!this.needToLoadClasses || (!isAPIValid && !this.resolveGradleAPI(uri))) {
+			return;
+		}
+		try {
+			JarFile coreAPIJar = new JarFile(this.coreAPI);
+			loadClasses(this.coreAPI.toPath(), coreAPIJar);
+			JarFile pluginAPIJar = new JarFile(this.pluginAPI);
+			loadClasses(this.pluginAPI.toPath(), pluginAPIJar);
+			loadJavaConfigurations();
+			this.needToLoadClasses = false;
+		} catch (Exception e) {
+			// Do Nothing
+		}
+	}
+
+	private DistInfo getWrapperPropertiesInfo(URI gradleFilePath) {
+		if (this.workspacePath == null && gradleFilePath == null) {
+			return null;
+		}
+		Path propertiesRelativePath = Paths.get("gradle", "wrapper", "gradle-wrapper.properties");
+		Path propertiesPath = null;
+		if (gradleFilePath != null) {
+			propertiesPath = Paths.get(gradleFilePath).getParent().resolve(propertiesRelativePath);
+		} else {
+			propertiesPath = this.workspacePath.resolve(propertiesRelativePath);
+		}
+
+		File propertiesFile = propertiesPath.toFile();
+		if (!propertiesFile.exists()) {
+			return null;
+		}
+		Properties properties = new Properties();
+		try (FileInputStream stream = new FileInputStream(propertiesFile)) {
+			properties.load(stream);
+			String distributionBaseValue = properties.getProperty("distributionBase");
+			// We use default values if the properties are not specified
+			// See:
+			// https://docs.gradle.org/current/dsl/org.gradle.api.tasks.wrapper.Wrapper.html#N30F30
+			if (distributionBaseValue == null) {
+				distributionBaseValue = "GRADLE_USER_HOME";
+			}
+			Path distributionBase = getDistributionBase(distributionBaseValue);
+			if (distributionBase == null) {
+				return null;
+			}
+			String distributionPath = properties.getProperty("distributionPath");
+			if (distributionPath == null) {
+				distributionPath = "wrapper/dists";
+			}
+			Path distPath = distributionBase.resolve(distributionPath);
+			String distributionUrl = properties.getProperty("distributionUrl");
+			// if distributionUrl is not specified, the import process will not be
+			// successful
+			if (distributionUrl == null) {
+				return null;
+			}
+			Path fileName = Paths.get(new URL(distributionUrl).getPath()).getFileName();
+			return new DistInfo(distPath, Utils.getFileNameWithoutExtension(fileName));
+		} catch (IOException e) {
+			return null;
+		}
+	}
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 
   private File findCoreAPI(File folder) {
     for (File file : folder.listFiles()) {

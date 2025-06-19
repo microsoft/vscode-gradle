@@ -252,6 +252,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     return CompletableFuture.completedFuture(result);
   }
 
+<<<<<<< HEAD
   @Override
   public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
     URI uri = URI.create(params.getTextDocument().getUri());
@@ -301,6 +302,71 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
     return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCall,
         Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded)));
   }
+=======
+	@Override
+	public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+		URI uri = URI.create(params.getTextDocument().getUri());
+		GradleCompilationUnit unit = this.gradleFilesManager.getCompilationUnit(uri);
+		if (unit == null) {
+			return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+		}
+		this.completionVisitor.visitCompilationUnit(uri, unit);
+		List<DependencyItem> dependencies = this.completionVisitor.getDependencies(uri);
+		if (dependencies == null) {
+			return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+		}
+		for (DependencyItem dependency : dependencies) {
+			if (Ranges.containsPosition(dependency.getRange(), params.getPosition())) {
+				List<CompletionItem> results = new ArrayList<>();
+				// Add Maven Index results
+				results.addAll(this.mavenIndexCompletionHandler.getDependencyCompletionItems(dependency,
+						params.getPosition()));
+				// Add Maven Local Results
+				results.addAll(this.mavenLocalCompletionHandler.getDependencyCompletionItems(dependency,
+						params.getPosition()));
+				// Add Maven Central Results
+				results.addAll(this.mavenCentralCompletionHandler.getDependencyCompletionItems(dependency,
+						params.getPosition()));
+				// remove duplicate results
+				results = results.stream().filter(Utils.distinctByKey(CompletionItem::getLabel))
+						.collect(Collectors.toList());
+				return CompletableFuture.completedFuture(Either.forLeft(results));
+			}
+		}
+		// should return empty if in constants
+		List<Expression> constants = this.completionVisitor.getConstants(uri);
+		for (Expression constant : constants) {
+			Range range = LSPUtils.toRange(constant);
+			if (Ranges.containsPosition(range, params.getPosition())) {
+				return CompletableFuture.completedFuture(Either.forLeft(Collections.emptyList()));
+			}
+		}
+		Set<MethodCallExpression> methodCalls = this.completionVisitor.getMethodCalls(uri);
+		MethodCallExpression containingCall = null;
+		for (MethodCallExpression call : methodCalls) {
+			Expression expression = call.getArguments();
+			Range range = LSPUtils.toRange(expression);
+			if (Ranges.containsPosition(range, params.getPosition())
+					&& (containingCall == null || Ranges.containsRange(LSPUtils.toRange(containingCall.getArguments()),
+							LSPUtils.toRange(call.getArguments())))) {
+				// find inner containing call
+				containingCall = call;
+			}
+		}
+		this.libraryResolver.loadGradleClasses(uri);
+		boolean javaPluginsIncluded = this.libraryResolver.isJavaPluginsIncluded(uri,
+				this.completionVisitor.getPlugins(uri));
+		CompletionHandler handler = new CompletionHandler();
+		// check again
+		String projectPath = Utils.getFolderPath(uri);
+		if (containingCall == null && isGradleRoot(uri, params.getPosition())) {
+			return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(null,
+					Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
+		}
+		return CompletableFuture.completedFuture(Either.forLeft(handler.getCompletionItems(containingCall,
+				Paths.get(uri).getFileName().toString(), this.libraryResolver, javaPluginsIncluded, projectPath)));
+	}
+>>>>>>> upstream/users/merlinbot/1es-pt-auto-baselining-pr
 
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
