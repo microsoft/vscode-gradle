@@ -379,6 +379,29 @@ export class TaskServerClient implements vscode.Disposable {
         }
     }
 
+    public async getNormalizedPackageName(name: string): Promise<string | undefined> {
+        await this.waitForConnect();
+        const request = new ExecuteCommandRequest();
+        request.setCommand(SpecifySourcePackageNameStep.GET_NORMALIZED_PACKAGE_NAME);
+        request.addArguments(name);
+        try {
+            return await new Promise((resolve, reject) => {
+                this.grpcClient!.executeCommand(
+                    request,
+                    (err: grpc.ServiceError | null, executeCommandReply: ExecuteCommandReply | undefined) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(executeCommandReply?.getResult());
+                        }
+                    }
+                );
+            });
+        } catch (err) {
+            return undefined;
+        }
+    }
+
     private handleRunBuildCancelled = (args: ReadonlyArray<string>, cancelled: Cancelled, task?: vscode.Task): void => {
         logger.info(`Build cancelled: ${args.join(" ")}: ${cancelled.getMessage()}`);
         if (task) {

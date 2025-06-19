@@ -38,4 +38,10 @@ public class TaskService extends GradleGrpc.GradleImplBase {
 		ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(req, responseObserver);
 		executeCommandHandler.run();
 	}
+
+	@Override
+	public void executeCommand(ExecuteCommandRequest req, StreamObserver<ExecuteCommandReply> responseObserver) {
+		ExecuteCommandHandler executeCommandHandler = new ExecuteCommandHandler(req, responseObserver);
+		executeCommandHandler.run();
+	}
 }
