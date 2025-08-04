@@ -15,6 +15,8 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -192,31 +194,60 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		for (ExtensionSchema schema : extensionsSchema.getElements()) {
 			TypeOf<?> publicType = schema.getPublicType();
 			Class<?> concreteClass = publicType.getConcreteClass();
-			List<GradleMethod> methods = new ArrayList<>();
-			List<GradleField> fields = new ArrayList<>();
-			for (Method method : concreteClass.getMethods()) {
-				String name = method.getName();
-				List<String> parameterTypes = new ArrayList<>();
-				for (Class<?> parameterType : method.getParameterTypes()) {
-					parameterTypes.add(parameterType.getName());
-				}
-				methods.add(new DefaultGradleMethod(name, parameterTypes, isDeprecated(method)));
-				int modifiers = method.getModifiers();
-				// See:
-				// https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
-				// we offer managed properties for an abstract getter method
-				if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers)
-						&& Modifier.isAbstract(modifiers)) {
-					fields.add(new DefaultGradleField(name.substring(3, 4).toLowerCase() + name.substring(4),
-							isDeprecated(method)));
-				}
-			}
-			for (Field field : concreteClass.getFields()) {
-				fields.add(new DefaultGradleField(field.getName(), isDeprecated(field)));
-			}
-			DefaultGradleClosure closure = new DefaultGradleClosure(schema.getName(), methods, fields);
-			closures.add(closure);
+			closures.addAll(buildClosure(schema.getName(), concreteClass));
 		}
+		return closures;
+	}
+
+	/**
+	 * @param closureName
+	 * @param concreteClass
+	 * @return
+	 */
+	private List<DefaultGradleClosure> buildClosure(String closureName, Class<?> concreteClass) {
+		List<DefaultGradleClosure> closures = new ArrayList<>();
+		List<GradleMethod> methods = new ArrayList<>();
+		List<GradleField> fields = new ArrayList<>();
+		for (Method method : concreteClass.getMethods()) {
+			String name = method.getName();
+			List<String> parameterTypes = new ArrayList<>();
+			for (Class<?> parameterType : method.getParameterTypes()) {
+				parameterTypes.add(parameterType.getName());
+			}
+
+			// check for nested closure methods and include them in the final closure list
+			// for completions.
+			if (method.getGenericParameterTypes().length == 1) {
+				Type parameterType = method.getGenericParameterTypes()[0];
+				if (parameterType.getTypeName().startsWith("org.gradle.api.Action<")
+						&& (parameterType instanceof ParameterizedType)) {
+					Type[] actualTypeArguments = ((ParameterizedType) parameterType).getActualTypeArguments();
+					if (actualTypeArguments.length == 1) {
+						try {
+							closures.addAll(buildClosure(closureName.concat(".").concat(name),
+									concreteClass.getClassLoader().loadClass(actualTypeArguments[0].getTypeName())));
+						} catch (ClassNotFoundException e) {
+							// continue if we cannot find the extension class.
+						}
+					}
+				}
+			}
+
+			methods.add(new DefaultGradleMethod(name, parameterTypes, isDeprecated(method)));
+			int modifiers = method.getModifiers();
+			// See:
+			// https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
+			// we offer managed properties for an abstract getter method
+			if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers)
+					&& Modifier.isAbstract(modifiers)) {
+				fields.add(new DefaultGradleField(name.substring(3, 4).toLowerCase() + name.substring(4),
+						isDeprecated(method)));
+			}
+		}
+		for (Field field : concreteClass.getFields()) {
+			fields.add(new DefaultGradleField(field.getName(), isDeprecated(field)));
+		}
+		closures.add(new DefaultGradleClosure(closureName, methods, fields));
 		return closures;
 	}
 
