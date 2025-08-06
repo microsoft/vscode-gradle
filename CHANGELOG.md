@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * fix - Cannot see Delegate Test to Gradle option in VS Code by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1622
 * fix - Update the problem checker according to the upstream change by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1658
 * fix - Add save participant under its own ID to avoid conflicts. by @rgrunber in https://github.com/microsoft/vscode-gradle/pull/1649
+* fix - Update SearchableEnvironment constructor calls for JDT Core 3.43. by @chagong in https://github.com/microsoft/vscode-gradle/pull/1685
+* fix - Fix a project's name if there are modules with the same name. by @snjeza in https://github.com/microsoft/vscode-gradle/pull/1687
+* fix - upgrade gradle tooling api to version 9.0.0. by @chagong in https://github.com/microsoft/vscode-gradle/pull/1688
 * docs - architecture image typo by @Jiaaming in https://github.com/microsoft/vscode-gradle/pull/1599
 * gbs - Parallelize source set retrieval. by @Arthurm1 in https://github.com/microsoft/build-server-for-gradle/pull/168
 * gbs - Find compatible GradleJavaHome and notify client in case of incompatibility by @Tanish-Ranjan in https://github.com/microsoft/build-server-for-gradle/pull/165
@@ -32,6 +35,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * @domainexpert made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1642
 * @rgrunber made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1649
 * @ingokegel made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1639
+* @chagong made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1685
+* @snjeza made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1687
 
 **Full Changelog**: https://github.com/microsoft/vscode-gradle/compare/3.16.4...3.17.0
 
