@@ -4,10 +4,12 @@ import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
@@ -320,12 +322,27 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
      */
     private List<IProject> importProjects(BuildServerConnection buildServer, IProgressMonitor monitor) throws CoreException {
         Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+        // https://github.com/microsoft/vscode-gradle/issues/1659
+        Set<String> duplicateProjectNames = new HashSet<>();
+        Set<String> projectNames = new HashSet<>();
+        for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
+            URI uri = entrySet.getKey();
+            String projectName = new File(uri).getName();
+            if (!projectNames.add(projectName)) {
+                duplicateProjectNames.add(projectName);
+            }
+        }
         List<IProject> projects = new LinkedList<>();
         for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
             URI uri = entrySet.getKey();
+            File file = new File(uri);
+            String projectName = file.getName();
+            if (file.getParentFile() != null && duplicateProjectNames.contains(projectName)) {
+                projectName = file.getParentFile().getName() + "-" + projectName;
+            }
             IProject project = ProjectUtils.getProjectFromUri(uri.toString());
             if (project == null) {
-                project = createProject(new File(uri), monitor);
+                project = createProject(file, projectName, monitor);
             } else if (!project.isAccessible() || !Utils.isGradleBuildServerProject(project)) {
                 // skip project already imported by other importers.
                 continue;
@@ -339,8 +356,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         return projects;
     }
 
-    private IProject createProject(File directory, IProgressMonitor monitor) throws CoreException {
-        String projectName = findFreeProjectName(directory.getName());
+    private IProject createProject(File directory, String projectName, IProgressMonitor monitor) throws CoreException {
+        if (projectName == null) {
+            projectName = directory.getName();
+        }
+        projectName = findFreeProjectName(projectName);
         IWorkspace workspace = ResourcesPlugin.getWorkspace();
         IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
         if (projectDescription instanceof ProjectDescription description) {
