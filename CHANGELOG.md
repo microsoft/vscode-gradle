@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * @rgrunber made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1649
 * @ingokegel made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1639
 * @chagong made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1685
+* @snjeza made their first contribution in https://github.com/microsoft/vscode-gradle/pull/1687
 
 **Full Changelog**: https://github.com/microsoft/vscode-gradle/compare/3.16.4...3.17.0
 
