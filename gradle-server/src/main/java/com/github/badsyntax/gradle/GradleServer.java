@@ -5,7 +5,9 @@ import com.google.common.base.Strings;
 import com.microsoft.gradle.GradleLanguageServer;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.netty.NettyServerBuilder;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -18,7 +20,7 @@ public class GradleServer {
 	private final Server taskServer;
 
 	public GradleServer(int port) {
-		this(ServerBuilder.forPort(port), port);
+		this(NettyServerBuilder.forAddress(new InetSocketAddress("127.0.0.1", port)), port);
 	}
 
 	public GradleServer(ServerBuilder<?> serverBuilder, int port) {
