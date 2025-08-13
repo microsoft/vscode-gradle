@@ -80,7 +80,7 @@ export class BuildServerController implements Disposable {
                 } else {
                     sendInfo("", {
                         kind: kind,
-                        data: JSON.stringify(rest),
+                        data3: JSON.stringify(rest),
                         ...(schemaVersion && { schemaVersion: schemaVersion }),
                     });
                 }
@@ -150,7 +150,7 @@ export class BuildServerController implements Disposable {
         machineStatus.hasProjectAtWorkspaceRoot = (await this.hasProjectAtWorkspaceRoot()).toString();
         sendInfo("", {
             kind: "machineStatus",
-            data: JSON.stringify(machineStatus),
+            data3: JSON.stringify(machineStatus),
         });
     }
 
