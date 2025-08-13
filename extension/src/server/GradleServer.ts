@@ -127,7 +127,7 @@ export class GradleServer {
         );
         sendInfo("", {
             kind: "serverProcessExitRestart",
-            data2: selection === OPT_RESTART ? "true" : "false",
+            data: selection === OPT_RESTART ? "true" : "false",
         });
         if (selection === OPT_RESTART) {
             await commands.executeCommand("workbench.action.restartExtensionHost");
@@ -169,7 +169,7 @@ export class GradleServer {
     private async handleServerStartError(code: number | null): Promise<void> {
         sendInfo("", {
             kind: "serverProcessExit",
-            data2: code ? code.toString() : "",
+            data: code ? code.toString() : "",
         });
         await this.showRestartMessage();
     }
