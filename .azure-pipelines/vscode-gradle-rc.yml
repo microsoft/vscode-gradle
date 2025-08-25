@@ -66,6 +66,7 @@ extends:
                 displayName: 'Install Signing Plugin'
                 inputs:
                   signType: real
+                  ConnectedPMEServiceName: 0e38ce24-f885-4c86-b997-5887b97a1899
                   azureSubscription: 'MicroBuild Signing Task (MSEng)'
                   feedSource: 'https://mseng.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
                 env:
