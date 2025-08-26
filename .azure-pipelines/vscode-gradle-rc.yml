@@ -117,6 +117,8 @@ extends:
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:gradle-server.jar /certs:100010171
                   workingDirectory: 'extension/lib'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Replace AI Key
@@ -150,6 +152,8 @@ extends:
                         dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:"$fileName" /certs:100010171
                     done
                   workingDirectory: 'extension/server'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - bash: npx @vscode/vsce@latest package -o extension.vsix
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
@@ -164,6 +168,8 @@ extends:
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:extension.signature.p7s /certs:4014052
                   workingDirectory: 'extension'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:
