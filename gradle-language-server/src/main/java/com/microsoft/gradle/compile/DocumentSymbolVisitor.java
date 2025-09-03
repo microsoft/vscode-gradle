@@ -205,21 +205,23 @@ public class DocumentSymbolVisitor {
 
 	private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
 		Expression argument = expression.getArguments();
-		if ("dependencies".equals(expression.getMethodAsString())) {
+		String name = expression.getMethodAsString();
+		if ("dependencies".equals(name)) {
 			return getDependencies((ArgumentListExpression) argument);
 		}
 		List<DocumentSymbol> results = new ArrayList<>();
-		DocumentSymbol symbol = new DocumentSymbol();
-		String name = expression.getMethodAsString();
-		symbol.setName(name);
-		String detail = getDetail(expression);
-		if (detail != null) {
-			symbol.setDetail(detail);
+		if (name != null) { // avoid NPE in case of dynamic method calls
+			DocumentSymbol symbol = new DocumentSymbol();
+			symbol.setName(name);
+			String detail = getDetail(expression);
+			if (detail != null) {
+				symbol.setDetail(detail);
+			}
+			symbol.setKind(SymbolKind.Constant);
+			symbol.setRange(LSPUtils.toRange(expression));
+			symbol.setSelectionRange(LSPUtils.toRange(expression));
+			results.add(symbol);
 		}
-		symbol.setKind(SymbolKind.Constant);
-		symbol.setRange(LSPUtils.toRange(expression));
-		symbol.setSelectionRange(LSPUtils.toRange(expression));
-		results.add(symbol);
 		return results;
 	}
 
