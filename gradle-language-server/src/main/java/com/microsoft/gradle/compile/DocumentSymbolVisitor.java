@@ -113,7 +113,7 @@ public class DocumentSymbolVisitor {
 		}
 		symbol.setSelectionRange(LSPUtils.toRange(expression));
 		symbol.setRange(LSPUtils.toRange(expression));
-		if (expression.getMethodAsString().equals("dependencies")) {
+		if ("dependencies".equals(expression.getMethodAsString())) {
 			List<DocumentSymbol> dependencySymbols = getDependencies(expression);
 			symbol.setChildren(dependencySymbols);
 			this.dependencies.get(currentUri).addAll(dependencySymbols);
@@ -205,7 +205,7 @@ public class DocumentSymbolVisitor {
 
 	private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
 		Expression argument = expression.getArguments();
-		if (expression.getMethodAsString().equals("dependencies")) {
+		if ("dependencies".equals(expression.getMethodAsString())) {
 			return getDependencies((ArgumentListExpression) argument);
 		}
 		List<DocumentSymbol> results = new ArrayList<>();
