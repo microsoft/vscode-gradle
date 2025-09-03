@@ -131,7 +131,7 @@ public class DocumentSymbolVisitor {
 				builder.append(objectText);
 				builder.append(".");
 			}
-			builder.append(expression.getMethodAsString());
+			builder.append(expression.getMethod().getText());
 			Expression arguments = expression.getArguments();
 			if (arguments instanceof ArgumentListExpression) {
 				List<Expression> expressions = ((ArgumentListExpression) arguments).getExpressions();
@@ -149,7 +149,7 @@ public class DocumentSymbolVisitor {
 			StringBuilder builder = new StringBuilder();
 			builder.append(getSymbolName((PropertyExpression) objectExpression));
 			builder.append(".");
-			builder.append(expression.getMethodAsString());
+			builder.append(expression.getMethod().getText());
 			return builder.toString();
 		}
 		return null;
@@ -205,23 +205,21 @@ public class DocumentSymbolVisitor {
 
 	private List<DocumentSymbol> getDependencies(MethodCallExpression expression) {
 		Expression argument = expression.getArguments();
-		String name = expression.getMethodAsString();
+		String name = expression.getMethod().getText();
 		if ("dependencies".equals(name)) {
 			return getDependencies((ArgumentListExpression) argument);
 		}
 		List<DocumentSymbol> results = new ArrayList<>();
-		if (name != null) { // avoid NPE in case of dynamic method calls
-			DocumentSymbol symbol = new DocumentSymbol();
-			symbol.setName(name);
-			String detail = getDetail(expression);
-			if (detail != null) {
-				symbol.setDetail(detail);
-			}
-			symbol.setKind(SymbolKind.Constant);
-			symbol.setRange(LSPUtils.toRange(expression));
-			symbol.setSelectionRange(LSPUtils.toRange(expression));
-			results.add(symbol);
+		DocumentSymbol symbol = new DocumentSymbol();
+		symbol.setName(name);
+		String detail = getDetail(expression);
+		if (detail != null) {
+			symbol.setDetail(detail);
 		}
+		symbol.setKind(SymbolKind.Constant);
+		symbol.setRange(LSPUtils.toRange(expression));
+		symbol.setSelectionRange(LSPUtils.toRange(expression));
+		results.add(symbol);
 		return results;
 	}
 
