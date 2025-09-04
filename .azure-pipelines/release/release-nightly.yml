@@ -5,6 +5,7 @@ schedules:
     branches:
       include:
         - develop
+    always: false
 
 variables:
   - name: Codeql.Enabled
@@ -18,10 +19,7 @@ resources:
       type: git
       name: 1ESPipelineTemplates/1ESPipelineTemplates
       ref: refs/tags/release
-trigger:
-  branches:
-    include:
-      - develop
+trigger: none
 extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
   parameters:
