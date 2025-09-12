@@ -2,12 +2,15 @@ import { GradleExecution } from "./GradleExecution";
 import { execAsync } from "../../../util/execAsync";
 import { getConfigJavaImportGradleJavaHome } from "../../../util/config";
 import { logger } from "../../../logger";
+import * as path from "path";
 
 export class GradleLocalInstallation implements GradleExecution {
-    private gradleHomePath: string;
+    private gradleExecPath: string;
 
     constructor(gradleHomePath: string) {
-        this.gradleHomePath = `"${gradleHomePath}"`;
+        const exeName = process.platform === "win32" ? "gradle.bat" : "gradle";
+        // Resolve the executable inside the Gradle home "bin" directory.
+        this.gradleExecPath = `"${path.join(gradleHomePath, "bin", exeName)}"`;
     }
 
     public async exec(args: string[]): Promise<string> {
@@ -16,7 +19,7 @@ export class GradleLocalInstallation implements GradleExecution {
         }
 
         const quotedArgs = args.map((arg) => `"${arg}"`).join(" ");
-        const command = `${this.gradleHomePath} ${quotedArgs}`;
+        const command = `${this.gradleExecPath} ${quotedArgs}`;
 
         try {
             const jdkPath = getConfigJavaImportGradleJavaHome();
