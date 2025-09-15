@@ -52,6 +52,11 @@ extends:
                 inputs:
                   packageType: 'sdk'
                   version: '3.1.x'
+              - task: UseDotNet@2
+                displayName: 'Use .NET Core 8.0.x'
+                inputs:
+                  packageType: 'sdk'
+                  version: '8.0.x'
               - task: JavaToolInstaller@0
                 displayName: Install Java 21
                 inputs:
@@ -66,6 +71,7 @@ extends:
                 displayName: 'Install Signing Plugin'
                 inputs:
                   signType: real
+                  ConnectedPMEServiceName: 0e38ce24-f885-4c86-b997-5887b97a1899
                   azureSubscription: 'MicroBuild Signing Task (MSEng)'
                   feedSource: 'https://mseng.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
                 env:
@@ -116,6 +122,8 @@ extends:
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:gradle-server.jar /certs:100010171
                   workingDirectory: 'extension/lib'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Replace AI Key
@@ -149,6 +157,8 @@ extends:
                         dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:"$fileName" /certs:100010171
                     done
                   workingDirectory: 'extension/server'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - bash: npx @vscode/vsce@latest package -o extension.vsix
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
@@ -163,6 +173,8 @@ extends:
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:extension.signature.p7s /certs:4014052
                   workingDirectory: 'extension'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:

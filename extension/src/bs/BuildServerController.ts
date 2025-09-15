@@ -75,12 +75,12 @@ export class BuildServerController implements Disposable {
                         kind: "bsp-error",
                         operationName: jsonObj.operationName,
                         rootCauseMessage,
-                        trace,
+                        traceLog: jsonObj[trace],
                     });
                 } else {
                     sendInfo("", {
                         kind: kind,
-                        data2: JSON.stringify(rest),
+                        dataMsg: JSON.stringify(rest),
                         ...(schemaVersion && { schemaVersion: schemaVersion }),
                     });
                 }
@@ -150,7 +150,7 @@ export class BuildServerController implements Disposable {
         machineStatus.hasProjectAtWorkspaceRoot = (await this.hasProjectAtWorkspaceRoot()).toString();
         sendInfo("", {
             kind: "machineStatus",
-            data2: JSON.stringify(machineStatus),
+            dataMsg: JSON.stringify(machineStatus),
         });
     }
 

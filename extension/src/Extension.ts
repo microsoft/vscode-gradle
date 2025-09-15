@@ -307,7 +307,7 @@ export class Extension {
                 const selection = await this.showRestartWindow();
                 sendInfo("", {
                     kind: "wrapperPropertiesChangedReloadRequest",
-                    data2: selection === OPT_RESTART ? "true" : "false",
+                    dataMsg: selection === OPT_RESTART ? "true" : "false",
                 });
                 if (selection === OPT_RESTART) {
                     await this.restartServer();
@@ -345,7 +345,7 @@ export class Extension {
                     const selection = await this.showRestartWindow();
                     sendInfo("", {
                         kind: "javaHomeChangedReloadRequest",
-                        data2: selection === OPT_RESTART ? "true" : "false",
+                        dataMsg: selection === OPT_RESTART ? "true" : "false",
                     });
                     if (selection === OPT_RESTART) {
                         await this.restartServer();

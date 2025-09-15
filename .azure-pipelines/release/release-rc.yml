@@ -32,7 +32,7 @@ extends:
               - input: pipelineArtifact
                 buildType: specific
                 project: '$(ProjectId)'
-                definition: 13344
+                definition: 11745
                 artifactName: extension
                 downloadType: specific
                 targetPath: '$(Build.SourcesDirectory)'
