@@ -104,13 +104,14 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
 	@Override
 	public void visitMethodCallExpression(MethodCallExpression node) {
 		this.methodCalls.get(this.currentUri).add(node);
-		if (node.getMethodAsString().equals("dependencies")) {
+		String methodName = node.getMethodAsString();
+		if ("dependencies".equals(methodName)) {
 			this.dependencies.get(this.currentUri).addAll(getDependencies(node));
-		} else if (node.getMethodAsString().equals("plugins")) {
+		} else if ("plugins".equals(methodName)) {
 			// match plugins { id: ${id} }
 			List<String> plugins = getPluginFromPlugins(node);
 			this.plugins.get(this.currentUri).addAll(plugins);
-		} else if (node.getMethodAsString().equals("apply")) {
+		} else if ("apply".equals(methodName)) {
 			// match apply plugins: '${id}'
 			String plugin = getPluginFromApply(node);
 			if (plugin != null) {
@@ -203,7 +204,7 @@ public class CompletionVisitor extends ClassCodeVisitorSupport {
 		if (argument instanceof ArgumentListExpression) {
 			List<Expression> expressions = ((ArgumentListExpression) argument).getExpressions();
 			for (Expression expression : expressions) {
-				if (expression instanceof ConstantExpression && node.getMethodAsString().equals("id")) {
+				if (expression instanceof ConstantExpression && "id".equals(node.getMethodAsString())) {
 					results.add(expression.getText());
 				} else if (expression instanceof ClosureExpression) {
 					Statement code = ((ClosureExpression) expression).getCode();
