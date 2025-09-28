@@ -200,6 +200,7 @@ task prepareForBetaRelease() {
 
 task buildJdtlsPlugin(type: CrossPlatformExec) {
   workingDir file('./jdtls.ext')
+  environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=1000000 -Djdk.xml.maxGeneralEntitySizeLimit=1000000'
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
     commandLine 'mvnw', 'clean', 'package'
   } else {
