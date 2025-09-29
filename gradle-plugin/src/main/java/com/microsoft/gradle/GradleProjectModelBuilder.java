@@ -103,19 +103,9 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
+		// For isolated projects, sub-models will be built separately via individual buildAll calls
+		// Each project model is built in isolation, avoiding cross-project access
 		List<GradleProjectModel> subModels = new ArrayList<>();
-		for (DefaultGradleProject subDefaultGradleProject : gradleProject.getChildren()) {
-			// Query sub projects when both gradleProject and project contain them
-			Map<String, Project> childProjects = project.getChildProjects();
-			String projectName = subDefaultGradleProject.getName();
-			if (childProjects.keySet().contains(projectName)) {
-				GradleProjectModel subModel = buildModel(childProjects.get(projectName), rootProjectName,
-						subDefaultGradleProject);
-				if (subModel != null) {
-					subModels.add(subModel);
-				}
-			}
-		}
 		List<GradleTask> tasks = getGradleTasks(project, rootProjectName, gradleProject);
 		return new DefaultGradleProjectModel(project.getParent() == null, project.getProjectDir().getAbsolutePath(),
 				subModels, tasks, node, plugins, closures, scriptClasspaths);
