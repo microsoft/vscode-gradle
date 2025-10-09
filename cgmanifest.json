@@ -40,7 +40,7 @@
         "Maven": {
           "GroupId": "com.google.code.gson",
           "ArtifactId": "gson",
-          "Version": "2.8.9"
+          "Version": "2.9.0"
         }
       },
       "DevelopmentDependency": false
@@ -62,7 +62,7 @@
         "Maven": {
           "GroupId": "org.gradle",
           "ArtifactId": "gradle-tooling-api",
-          "Version": "8.0.2"
+          "Version": "9.0.0"
         }
       },
       "DevelopmentDependency": false
@@ -84,7 +84,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-protobuf",
-          "Version": "1.53.0"
+          "Version": "1.54.2"
         }
       },
       "DevelopmentDependency": false
@@ -95,7 +95,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-stub",
-          "Version": "1.53.0"
+          "Version": "1.54.2"
         }
       },
       "DevelopmentDependency": false
@@ -115,9 +115,20 @@
       "Component": {
         "Type": "maven",
         "Maven": {
+          "GroupId": "io.github.g00fy2",
+          "ArtifactId": "versioncompare",
+          "Version": "1.4.1"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "maven",
+        "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-netty",
-          "Version": "1.53.0"
+          "Version": "1.54.2"
         }
       },
       "DevelopmentDependency": false
@@ -139,7 +150,7 @@
         "Maven": {
           "GroupId": "io.grpc",
           "ArtifactId": "grpc-testing",
-          "Version": "1.53.0"
+          "Version": "1.54.2"
         }
       },
       "DevelopmentDependency": true
