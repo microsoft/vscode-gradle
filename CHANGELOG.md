@@ -4,6 +4,16 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.17.1
+## What's Changed
+* fix - Same project name issue by @snjeza in https://github.com/microsoft/vscode-gradle/pull/1687
+* fix - upgrade gradle tooling api to version 9.0.0 in https://github.com/microsoft/vscode-gradle/pull/1688
+* fix - bind gRPC server to 127.0.0.1 in https://github.com/microsoft/vscode-gradle/pull/1692
+* fix - update SearchableEnvironment constructor call for JDT Core 3.43.0 compatibility in https://github.com/microsoft/vscode-gradle/pull/1685
+* fix - fix various NPEs caused by dynamically computed method calls by @ljfa-ag in https://github.com/microsoft/vscode-gradle/pull/1704
+* fix - fic schema links to use schemastore.org by @hyperupcall in https://github.com/microsoft/vscode-gradle/pull/1674
+* fix - fix gradle local installation invoke and execute correct gradle script by @cnaples79 in https://github.com/microsoft/vscode-gradle/pull/1709
+
 ## 3.17.0
 ## What's Changed
 * enhancement - Support onBuildShowMessage for BSP client by @jdneo in https://github.com/microsoft/vscode-gradle/pull/1583
