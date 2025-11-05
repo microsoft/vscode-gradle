@@ -97,7 +97,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 workflow_id: 'triage-agent.yml',
-                ref: 'main',
+                ref: 'develop',
                 inputs: {
                   issue_number: issueNumber
                 }
