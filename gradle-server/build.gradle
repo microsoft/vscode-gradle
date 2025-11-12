@@ -34,7 +34,6 @@ def mainResourcesDir = 'src/main/resources';
 def libsDir = '../extension/lib';
 
 sourceSets {
-  libsDirName = file(libsDir)
   main {
     proto {
       srcDir file('../proto')

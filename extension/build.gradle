@@ -195,14 +195,14 @@ task prepareForRelease() {
 }
 
 task prepareForBetaRelease() {
-  dependsOn bundle, copyDocs, prepareBeta
+  mustRunAfter copyDocs
 }
 
-task buildJdtlsPlugin(type: CrossPlatformExec) {
+task buildJdtlsPlugin(type: Exec) {
   workingDir file('./jdtls.ext')
   environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
-    commandLine 'mvnw', 'clean', 'package'
+    commandLine 'cmd', '/c', 'mvnw.cmd', 'clean', 'package'
   } else {
     commandLine './mvnw', 'clean', 'package'
   }
@@ -217,10 +217,10 @@ task copyJdtlsPluginJar(type: Copy) {
   mustRunAfter copyDocs
 }
 
-task buildBuildServer(type: CrossPlatformExec) {
+task buildBuildServer(type: Exec) {
   workingDir file('./build-server-for-gradle')
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
-    commandLine 'gradlew', 'build', '-x', 'test'
+    commandLine 'cmd', '/c', 'gradlew.bat', 'build', '-x', 'test'
   } else {
     commandLine './gradlew', 'build', '-x', 'test'
   }
