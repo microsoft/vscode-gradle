@@ -54,7 +54,7 @@ describe(getSuiteName("Extension"), () => {
 
         it("should load gradle tasks", async () => {
             let tasks: vscode.Task[] = [];
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 8; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
                 if (tasks.length > 0) {
                     break;
