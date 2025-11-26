@@ -61,6 +61,11 @@ describe(getSuiteName("Extension"), () => {
                 }
                 await sleep(5 * 1000);
             }
+            console.log(
+                "Loaded tasks:",
+                tasks.map((t) => t.name)
+            );
+
             assert.ok(tasks);
             assert.strictEqual(tasks.length > 0, true);
             const helloTask = tasks.find(({ name }) => name === "hello");
