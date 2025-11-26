@@ -10,6 +10,13 @@ java {
   targetCompatibility = JavaVersion.VERSION_17
 }
 
+repositories {
+  mavenCentral()
+  maven {
+    url "https://groovy.jfrog.io/artifactory/plugins-release"
+  }
+}
+
 dependencies {
   implementation project(":gradle-plugin-api")
   implementation files('build/libs/server.jar')
@@ -21,7 +28,9 @@ dependencies {
   implementation "io.grpc:grpc-stub:${grpcVersion}"
   implementation "io.grpc:grpc-netty:${grpcVersion}"
   implementation 'io.github.g00fy2:versioncompare:1.4.1'
-  implementation files('build/libs/ls-fat-jar.jar')
+  implementation project(':gradle-language-server')
+  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.19.0"
+  implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.19.0"
   runtimeOnly 'org.slf4j:slf4j-simple:2.0.0-alpha6'
   testImplementation "io.grpc:grpc-testing:${grpcVersion}"
   testImplementation 'junit:junit:4.13.1'
@@ -128,7 +137,6 @@ task copyRuntimeLibs(type: Copy) {
   from configurations.runtimeClasspath
   into libsDir
   duplicatesStrategy = 'exclude'
-  mustRunAfter ':gradle-language-server:customFatJar'
   doFirst {
     delete libsDir
   }
@@ -148,5 +156,5 @@ test {
     '--add-opens=java.base/sun.nio.fs=ALL-UNNAMED'
 }
 
-compileJava.dependsOn 'generateProto', 'spotlessCheck', ':gradle-language-server:customFatJar'
+compileJava.dependsOn 'generateProto', 'spotlessCheck'
 assemble.dependsOn serverStartScripts
