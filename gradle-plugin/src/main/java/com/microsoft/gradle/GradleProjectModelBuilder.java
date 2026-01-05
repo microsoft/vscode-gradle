@@ -135,20 +135,24 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 			}
 			DefaultGradleDependencyNode configNode = new DefaultGradleDependencyNode(config.getName(),
 					GradleDependencyType.CONFIGURATION);
-			ResolvableDependencies incoming = config.getIncoming();
-			ResolutionResult resolutionResult = incoming.getResolutionResult();
-			ResolvedComponentResult rootResult = resolutionResult.getRoot();
-			Set<? extends DependencyResult> dependencies = rootResult.getDependencies();
-			Set<String> dependencySet = new HashSet<>();
-			for (DependencyResult dependency : dependencies) {
-				if (dependency instanceof ResolvedDependencyResult) {
-					DefaultGradleDependencyNode dependencyNode = resolveDependency(
-							(ResolvedDependencyResult) dependency, dependencySet);
-					configNode.addChildren(dependencyNode);
+			try {
+				ResolvableDependencies incoming = config.getIncoming();
+				ResolutionResult resolutionResult = incoming.getResolutionResult();
+				ResolvedComponentResult rootResult = resolutionResult.getRoot();
+				Set<? extends DependencyResult> dependencies = rootResult.getDependencies();
+				Set<String> dependencySet = new HashSet<>();
+				for (DependencyResult dependency : dependencies) {
+					if (dependency instanceof ResolvedDependencyResult) {
+						DefaultGradleDependencyNode dependencyNode = resolveDependency(
+								(ResolvedDependencyResult) dependency, dependencySet);
+						configNode.addChildren(dependencyNode);
+					}
 				}
-			}
-			if (!configNode.getChildren().isEmpty()) {
-				rootNode.addChildren(configNode);
+				if (!configNode.getChildren().isEmpty()) {
+					rootNode.addChildren(configNode);
+				}
+			} catch (Exception e) {
+				// ignore
 			}
 		}
 		return rootNode;
