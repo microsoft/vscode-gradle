@@ -973,7 +973,7 @@
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
     "google-protobuf": "^3.21.2",
-    "grpc-tools": "^1.12.4",
+    "grpc-tools": "^1.13.1",
     "mocha": "^10.2.0",
     "prettier": "^2.8.4",
     "sinon": "^15.0.1",
