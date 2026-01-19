@@ -37,7 +37,6 @@ protobuf {
     extractProto.enabled = false;
     extractIncludeProto.enabled = false;
     extractIncludeTestProto.enabled = false;
-    generateProto.finalizedBy copyProtoJs, copyProtoTs
     all().each { task ->
       task.plugins {
         grpc {
@@ -80,7 +79,7 @@ task copyProtoJs(type: Copy) {
   dependsOn ':extension:copyDocs'
   group 'copy'
   description 'Copies proto JavaScript files into src dir'
-  from "$protobuf.generatedFilesBaseDir/main/js"
+  from "out/generated/sources/proto/main/js"
   into protoLib
 }
 
@@ -88,11 +87,11 @@ task copyProtoTs(type: Copy) {
   dependsOn ':extension:generateProto'
   group 'copy'
   description 'Copies proto TypeScript definitions into src dir'
-  from "$protobuf.generatedFilesBaseDir/main/ts"
+  from "out/generated/sources/proto/main/ts"
   into protoLib
 }
 
-task npmInstall(type: CrossPlatformExec) {
+task npmInstall(type: Exec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
@@ -105,18 +104,18 @@ task npmInstall(type: CrossPlatformExec) {
   }
 }
 
-task lint(type: CrossPlatformExec) {
+task lint(type: Exec) {
   dependsOn npmInstall
   description 'Lints source files'
   commandLine 'npm', 'run', 'lint'
 }
 
-task format(type: CrossPlatformExec) {
+task format(type: Exec) {
   description 'Formats source files'
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildTest(type: CrossPlatformExec) {
+task buildTest(type: Exec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
@@ -128,7 +127,7 @@ task buildTest(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile:test'
 }
 
-task buildDev(type: CrossPlatformExec) {
+task buildDev(type: Exec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
@@ -142,7 +141,7 @@ task buildDev(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile'
 }
 
-task buildProd(type: CrossPlatformExec) {
+task buildProd(type: Exec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
@@ -162,12 +161,12 @@ task bundle() {
   description 'Bundles the extension files for release'
 }
 
-task installExtension(type: CrossPlatformExec) {
+task installExtension(type: Exec) {
   dependsOn bundle
   commandLine 'npm', 'run', 'install:ext'
 }
 
-task testVsCode(type: CrossPlatformExec) {
+task testVsCode(type: Exec) {
   group 'verification'
   description 'Tests the extension'
   commandLine 'npm', 'run', 'test'
@@ -184,7 +183,9 @@ task copyDocs(type: Copy) {
   into "$projectDir"
 }
 
-task prepareBeta(type: CrossPlatformExec) {
+processTestResources.dependsOn copyDocs
+
+task prepareBeta(type: Exec) {
   description 'Prepare the extesion for a BETA release'
   workingDir file('./beta')
   commandLine 'node', 'prepare.js'
@@ -198,7 +199,7 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
-task buildJdtlsPlugin(type: CrossPlatformExec) {
+task buildJdtlsPlugin(type: Exec) {
   workingDir file('./jdtls.ext')
   environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
@@ -217,7 +218,7 @@ task copyJdtlsPluginJar(type: Copy) {
   mustRunAfter copyDocs
 }
 
-task buildBuildServer(type: CrossPlatformExec) {
+task buildBuildServer(type: Exec) {
   workingDir file('./build-server-for-gradle')
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
     commandLine 'gradlew', 'build', '-x', 'test'

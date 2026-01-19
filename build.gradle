@@ -1,7 +1,6 @@
 plugins {
   id 'java'
-  id 'com.google.protobuf' version '0.8.13'
-  id 'com.github.jlouns.cpe' version '0.5.0'
+  id 'com.google.protobuf' version '0.9.6'
   alias(libs.plugins.spotless)
 }
 

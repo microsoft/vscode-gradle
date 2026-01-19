@@ -9,7 +9,8 @@ This VS Code extension provides a visual interface for your Gradle build. You ca
 ## Requirements
 
 - [VS Code >= 1.76.0](https://code.visualstudio.com/download)
-- [Java from 8 to 21](https://adoptium.net/)
+- [Java from 17 to 25](https://adoptium.net/)
+- Gradle 6.1 or later (4.0-6.0 may work but some features may not function correctly)
 
 ## Project Discovery
 

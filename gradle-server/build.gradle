@@ -43,7 +43,6 @@ def mainResourcesDir = 'src/main/resources';
 def libsDir = '../extension/lib';
 
 sourceSets {
-  libsDirName = file(libsDir)
   main {
     proto {
       srcDir file('../proto')
@@ -94,6 +93,7 @@ clean {
 jar {
   manifest {
     attributes(
+      "Main-Class": "com.github.badsyntax.gradle.GradleServer",
       "Class-Path": configurations.runtimeClasspath.collect { it.getName() }.join(' '))
   }
 }
@@ -120,6 +120,7 @@ spotless {
 task serverStartScripts(type: CreateStartScripts) {
   dependsOn jar
   dependsOn 'copyRuntimeLibs'
+  dependsOn 'copyServerJar'
   outputDir = file(libsDir)
   mainClass = 'com.github.badsyntax.gradle.GradleServer'
   applicationName = project.name
@@ -140,6 +141,13 @@ task copyRuntimeLibs(type: Copy) {
   doFirst {
     delete libsDir
   }
+}
+
+task copyServerJar(type: Copy) {
+  dependsOn jar
+  from jar.archiveFile
+  into libsDir
+  duplicatesStrategy = 'exclude'
 }
 
 project.tasks.named("processResources") {

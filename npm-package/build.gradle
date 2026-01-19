@@ -162,7 +162,7 @@ task copyPublicApi(type: Copy) {
   into 'lib'
 }
 
-task npmInstall(type: CrossPlatformExec) {
+task npmInstall(type: Exec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
@@ -175,7 +175,7 @@ task npmInstall(type: CrossPlatformExec) {
   }
 }
 
-task compileTypeScript(type: CrossPlatformExec) {
+task compileTypeScript(type: Exec) {
   dependsOn npmInstall, copyPublicApi
   description 'Compiles the TypeScript files'
   inputs.file('index.ts')
