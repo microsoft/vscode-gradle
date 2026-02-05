@@ -136,8 +136,7 @@ public class GradleBuildRunner {
 
 		// Add init script for debugging if present
 		if (debugInitScriptPath != null) {
-			newArgs.add(0, "--init-script");
-			newArgs.add(1, debugInitScriptPath.toAbsolutePath().toString());
+			newArgs.addAll(0, Arrays.asList("--init-script", debugInitScriptPath.toAbsolutePath().toString()));
 		}
 
 		if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
@@ -184,15 +183,17 @@ public class GradleBuildRunner {
 	 * This prevents the debug agent from being attached to compilation tasks and other Java processes.
 	 */
 	private static Path createDebugInitScript(int javaDebugPort) throws IOException {
+		String jdwpArgs = String.format(
+				"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort);
 		String initScriptContent = String.format(
 				"allprojects {\n" +
 				"    tasks.withType(JavaExec) {\n" +
-				"        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d'\n" +
+				"        jvmArgs '%s'\n" +
 				"    }\n" +
 				"    tasks.withType(Test) {\n" +
-				"        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d'\n" +
+				"        jvmArgs '%s'\n" +
 				"    }\n" +
-				"}", javaDebugPort, javaDebugPort);
+				"}", jdwpArgs, jdwpArgs);
 
 		Path initScriptPath = Files.createTempFile("gradle-debug-init", ".gradle");
 		Files.writeString(initScriptPath, initScriptContent);
