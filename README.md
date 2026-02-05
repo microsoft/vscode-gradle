@@ -388,6 +388,70 @@ You'll have `N` processes per Gradle version. Eventually Gradle will shut them d
 
 </details>
 
+<details><summary>"Cannot invoke 'org.gradle.api.file.FileCollection.getFiles()' because the return value of 'org.gradle.api.tasks.SourceSet.getCompileClasspath()' is null"</summary>
+
+This error occurs when the Gradle Build Server tries to import projects where some source sets have a null compile classpath. This typically happens in:
+
+- Large, complex multi-module Gradle projects
+- Projects with custom source set configurations
+- Projects using certain Gradle plugins that modify source set behavior
+- Projects where the Java plugin is not applied to all modules with source sets
+
+### Root Cause
+
+The Gradle Build Server queries source set information from all projects during import. If a source set's `compileClasspath` is `null` (which can happen in valid Gradle configurations), the Build Server fails to handle this edge case properly.
+
+### Workarounds
+
+1. **Disable the Gradle Build Server** (recommended if you're experiencing this issue):
+   
+   Add this to your VS Code settings:
+   ```json
+   {
+     "java.gradle.buildServer.enabled": "off"
+   }
+   ```
+   
+   This will use the traditional Gradle import method instead of the Build Server Protocol.
+
+2. **Ensure all modules apply the Java plugin**:
+   
+   For any subproject that defines source sets, make sure it applies either the `java` or `java-library` plugin:
+   ```groovy
+   apply plugin: 'java'
+   // or
+   apply plugin: 'java-library'
+   ```
+
+3. **Check dependency declarations**:
+   
+   In Gradle 8+, dependencies should not be declared directly on `compileClasspath`. Use `implementation`, `api`, or `compileOnly` instead:
+   ```groovy
+   dependencies {
+       implementation 'com.example:library:1.0'
+       compileOnly 'org.projectlombok:lombok:1.18.24'
+   }
+   ```
+
+4. **Clean and reimport**:
+   
+   - Run `Java: Clean Java Language Server Workspace` from the command palette
+   - Reload the VS Code window
+   - Let the Gradle project reimport
+
+### Reporting Issues
+
+If the workarounds don't help, please report the issue at:
+- [vscode-gradle issues](https://github.com/microsoft/vscode-gradle/issues) for VS Code extension problems
+- [build-server-for-gradle issues](https://github.com/microsoft/build-server-for-gradle/issues) for Build Server specific problems
+
+Include:
+- Your Gradle version
+- Whether the issue persists with Build Server disabled
+- A minimal reproducible example if possible
+
+</details>
+
 <details><summary>Incompatibility with other extensions</summary>
 
 This extension is incompatible with the following extensions:
