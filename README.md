@@ -425,7 +425,7 @@ The Gradle Build Server queries source set information from all projects during 
 
 3. **Check dependency declarations**:
    
-   In Gradle 8+, dependencies should not be declared directly on `compileClasspath`. Use `implementation`, `api`, or `compileOnly` instead:
+   Dependencies should not be declared directly on `compileClasspath`. Use `implementation`, `api`, or `compileOnly` instead:
    ```groovy
    dependencies {
        implementation 'com.example:library:1.0'
