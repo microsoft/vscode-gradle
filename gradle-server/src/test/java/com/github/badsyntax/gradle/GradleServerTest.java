@@ -361,7 +361,8 @@ public class GradleServerTest {
 		assertTrue("Init script path should contain gradle-debug-init",
 				capturedArgs.get(initScriptIndex + 1).contains("gradle-debug-init"));
 
-		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no additionalToolOptions)
+		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no
+		// additionalToolOptions)
 		verify(mockBuildLauncher, never()).setEnvironmentVariables(any());
 	}
 
@@ -400,7 +401,8 @@ public class GradleServerTest {
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
 
-		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions (not debug agent)
+		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions (not debug
+		// agent)
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
 		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
 	}
