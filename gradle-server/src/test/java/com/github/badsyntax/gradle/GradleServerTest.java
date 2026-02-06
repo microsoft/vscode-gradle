@@ -352,15 +352,15 @@ public class GradleServerTest {
 		stub.runBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
 		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
-		
+
 		// Verify init-script argument is added for debugging
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
 		int initScriptIndex = capturedArgs.indexOf("--init-script");
 		assertTrue("Expected argument after --init-script", capturedArgs.size() > initScriptIndex + 1);
-		assertTrue("Init script path should contain gradle-debug-init", 
+		assertTrue("Init script path should contain gradle-debug-init",
 				capturedArgs.get(initScriptIndex + 1).contains("gradle-debug-init"));
-		
+
 		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no additionalToolOptions)
 		verify(mockBuildLauncher, never()).setEnvironmentVariables(any());
 	}
@@ -394,12 +394,12 @@ public class GradleServerTest {
 
 		stub.runBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
-		
+
 		// Verify init-script argument is added for debugging
 		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
-		
+
 		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions (not debug agent)
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
 		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));

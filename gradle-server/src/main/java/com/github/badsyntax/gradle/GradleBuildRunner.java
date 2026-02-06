@@ -131,7 +131,8 @@ public class GradleBuildRunner {
 		build.run();
 	}
 
-	private List<String> buildArguments(Boolean isDebugging, Path debugInitScriptPath) throws GradleBuildRunnerException {
+	private List<String> buildArguments(Boolean isDebugging, Path debugInitScriptPath)
+			throws GradleBuildRunnerException {
 		List<String> newArgs = new ArrayList<>(args);
 
 		// Add init script for debugging if present
@@ -179,21 +180,17 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * Creates a Gradle init script that applies debug JVM arguments only to JavaExec and Test tasks.
-	 * This prevents the debug agent from being attached to compilation tasks and other Java processes.
+	 * Creates a Gradle init script that applies debug JVM arguments only to
+	 * JavaExec and Test tasks. This prevents the debug agent from being attached to
+	 * compilation tasks and other Java processes.
 	 */
 	private static Path createDebugInitScript(int javaDebugPort) throws IOException {
-		String jdwpArgs = String.format(
-				"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort);
+		String jdwpArgs = String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
+				javaDebugPort);
 		String initScriptContent = String.format(
-				"allprojects {\n" +
-				"    tasks.withType(JavaExec) {\n" +
-				"        jvmArgs '%s'\n" +
-				"    }\n" +
-				"    tasks.withType(Test) {\n" +
-				"        jvmArgs '%s'\n" +
-				"    }\n" +
-				"}", jdwpArgs, jdwpArgs);
+				"allprojects {\n" + "    tasks.withType(JavaExec) {\n" + "        jvmArgs '%s'\n" + "    }\n"
+						+ "    tasks.withType(Test) {\n" + "        jvmArgs '%s'\n" + "    }\n" + "}",
+				jdwpArgs, jdwpArgs);
 
 		Path initScriptPath = Files.createTempFile("gradle-debug-init", ".gradle");
 		Files.writeString(initScriptPath, initScriptContent);
@@ -204,10 +201,11 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * Builds environment variables with JAVA_TOOL_OPTIONS for additional tool options.
-	 * Note: Debug agent is no longer set via JAVA_TOOL_OPTIONS to prevent it from being
-	 * applied to all Java processes (e.g., compilation). Instead, debugging is configured
-	 * via Gradle init script to target only JavaExec and Test tasks.
+	 * Builds environment variables with JAVA_TOOL_OPTIONS for additional tool
+	 * options. Note: Debug agent is no longer set via JAVA_TOOL_OPTIONS to prevent
+	 * it from being applied to all Java processes (e.g., compilation). Instead,
+	 * debugging is configured via Gradle init script to target only JavaExec and
+	 * Test tasks.
 	 */
 	private static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions) {
 		if (additionalToolOptions == null || additionalToolOptions.isEmpty()) {
