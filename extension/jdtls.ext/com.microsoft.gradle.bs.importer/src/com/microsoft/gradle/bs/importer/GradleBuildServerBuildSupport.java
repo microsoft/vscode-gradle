@@ -246,7 +246,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             .stream()
             .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
         // TODO: find a way to get if the project is modular without setting the classpath.
-        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
+        IClasspathEntry[] newSourceEntries = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newSourceEntries)) {
+            javaProject.setRawClasspath(newSourceEntries, monitor);
+        }
         boolean isModular = javaProject.getOwnModuleDescription() != null;
 
         setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
@@ -261,7 +264,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
 
-        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
+        IClasspathEntry[] newEntriesWithDeps = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithDeps)) {
+            javaProject.setRawClasspath(newEntriesWithDeps, monitor);
+        }
 
         // process jpms arguments.
         JavacOptionsResult javacOptions = connection.buildTargetJavacOptions(new JavacOptionsParams(
@@ -276,7 +282,10 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             return;
         }
         JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
-        javaProject.setRawClasspath(classpathMap.values().toArray(new IClasspathEntry[0]), monitor);
+        IClasspathEntry[] newEntriesWithJpms = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithJpms)) {
+            javaProject.setRawClasspath(newEntriesWithJpms, monitor);
+        }
     }
 
     /**
@@ -295,9 +304,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             projectDependencies.addAll(buildTarget.getDependencies());
         }
         IJavaProject javaProject = JavaCore.create(project);
-        List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(javaProject.getRawClasspath()));
+        IClasspathEntry[] oldClasspath = javaProject.getRawClasspath();
+        List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(oldClasspath));
         classpath.addAll(getProjectDependencyEntries(project, projectDependencies));
-        javaProject.setRawClasspath(classpath.toArray(IClasspathEntry[]::new), javaProject.getOutputLocation(), monitor);
+        IClasspathEntry[] newClasspath = classpath.toArray(IClasspathEntry[]::new);
+        if (!Arrays.equals(oldClasspath, newClasspath)) {
+            javaProject.setRawClasspath(newClasspath, javaProject.getOutputLocation(), monitor);
+        }
     }
 
     private Collection<IClasspathEntry> getProjectDependencyEntries(IProject project, Set<BuildTargetIdentifier> projectDependencies) {
