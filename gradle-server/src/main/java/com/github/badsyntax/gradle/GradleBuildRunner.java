@@ -180,9 +180,13 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * Creates a Gradle init script that applies debug JVM arguments only to
-	 * JavaExec and Test tasks. This prevents the debug agent from being attached to
-	 * compilation tasks and other Java processes.
+	 * Creates or updates a Gradle init script that applies debug JVM arguments only
+	 * to JavaExec and Test tasks. This prevents the debug agent from being attached
+	 * to compilation tasks and other Java processes.
+	 *
+	 * Uses a stable file path to allow Gradle configuration cache to work properly.
+	 * The file is only rewritten if the content has changed (i.e., the debug port
+	 * changed).
 	 */
 	private static Path createDebugInitScript(int javaDebugPort) throws IOException {
 		String jdwpArgs = String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
@@ -192,11 +196,35 @@ public class GradleBuildRunner {
 						+ "    tasks.withType(Test) {\n" + "        jvmArgs '%s'\n" + "    }\n" + "}",
 				jdwpArgs, jdwpArgs);
 
-		Path initScriptPath = Files.createTempFile("gradle-debug-init", ".gradle");
-		Files.writeString(initScriptPath, initScriptContent);
-		initScriptPath.toFile().deleteOnExit();
+		// Use a stable path with port number to allow Gradle configuration cache reuse
+		// and prevent race conditions between concurrent builds with different ports
+		String tempDir = System.getProperty("java.io.tmpdir");
+		if (tempDir == null || tempDir.isEmpty()) {
+			tempDir = "/tmp";
+		}
+		String fileName = String.format("vscode-gradle-debug-init-%d.gradle", javaDebugPort);
+		Path initScriptPath = Path.of(tempDir, fileName);
 
-		logger.info("Created debug init script at: {}", initScriptPath);
+		// Only write the file if it doesn't exist or the content has changed
+		boolean needsWrite = true;
+		if (Files.exists(initScriptPath)) {
+			try {
+				String existingContent = Files.readString(initScriptPath);
+				needsWrite = !existingContent.equals(initScriptContent);
+			} catch (IOException e) {
+				// File may have been deleted between exists check and read, proceed with write
+				logger.debug("Could not read existing init script, will create new one: {}", e.getMessage());
+				needsWrite = true;
+			}
+		}
+
+		if (needsWrite) {
+			Files.writeString(initScriptPath, initScriptContent);
+			logger.info("Created/updated debug init script at: {}", initScriptPath);
+		} else {
+			logger.info("Reusing existing debug init script at: {}", initScriptPath);
+		}
+
 		return initScriptPath;
 	}
 

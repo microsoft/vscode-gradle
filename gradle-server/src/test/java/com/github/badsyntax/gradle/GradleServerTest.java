@@ -358,8 +358,8 @@ public class GradleServerTest {
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
 		int initScriptIndex = capturedArgs.indexOf("--init-script");
 		assertTrue("Expected argument after --init-script", capturedArgs.size() > initScriptIndex + 1);
-		assertTrue("Init script path should contain gradle-debug-init",
-				capturedArgs.get(initScriptIndex + 1).contains("gradle-debug-init"));
+		assertTrue("Init script path should contain vscode-gradle-debug-init",
+				capturedArgs.get(initScriptIndex + 1).contains("vscode-gradle-debug-init"));
 
 		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no
 		// additionalToolOptions)
