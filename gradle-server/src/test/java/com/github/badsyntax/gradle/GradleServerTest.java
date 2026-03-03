@@ -361,6 +361,9 @@ public class GradleServerTest {
 		assertTrue("Init script path should contain vscode-gradle-debug-init",
 				capturedArgs.get(initScriptIndex + 1).contains("vscode-gradle-debug-init"));
 
+		// Verify debug port is passed as a system property argument
+		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
+
 		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no
 		// additionalToolOptions)
 		verify(mockBuildLauncher, never()).setEnvironmentVariables(any());
@@ -396,13 +399,14 @@ public class GradleServerTest {
 		stub.runBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
 
-		// Verify init-script argument is added for debugging
+		// Verify init-script and debug port system property are added
 		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
+		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
 
-		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions (not debug
-		// agent)
+		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions
+		// (not debug agent)
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
 		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
 	}

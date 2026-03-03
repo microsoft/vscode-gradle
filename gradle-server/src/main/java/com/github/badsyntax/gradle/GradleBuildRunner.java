@@ -27,7 +27,45 @@ import org.slf4j.LoggerFactory;
 
 public class GradleBuildRunner {
 	private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+	private static final String DEBUG_PORT_PROPERTY = "vscode.debug.port";
 	private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
+
+	/**
+	 * Static init script content that defers debug port resolution to execution
+	 * time. The port is read from a system property set via {@code -D} in the
+	 * Gradle arguments, so the init script content never changes. This allows
+	 * Gradle's configuration cache to be reused across debug sessions with
+	 * different ports.
+	 *
+	 * <p>
+	 * {@code outputs.upToDateWhen { false }} ensures tasks always re-execute during
+	 * debug sessions, which is necessary because {@code doFirst} runs after
+	 * Gradle's up-to-date checks.
+	 * </p>
+	 */
+	// @formatter:off
+	private static final String DEBUG_INIT_SCRIPT_CONTENT =
+			"allprojects {\n"
+			+ "    tasks.withType(JavaExec) {\n"
+			+ "        outputs.upToDateWhen { false }\n"
+			+ "        doFirst {\n"
+			+ "            def port = System.getProperty('" + DEBUG_PORT_PROPERTY + "')\n"
+			+ "            if (port) {\n"
+			+ "                jvmArgs \"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:${port}\"\n"
+			+ "            }\n"
+			+ "        }\n"
+			+ "    }\n"
+			+ "    tasks.withType(Test) {\n"
+			+ "        outputs.upToDateWhen { false }\n"
+			+ "        doFirst {\n"
+			+ "            def port = System.getProperty('" + DEBUG_PORT_PROPERTY + "')\n"
+			+ "            if (port) {\n"
+			+ "                jvmArgs \"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:${port}\"\n"
+			+ "            }\n"
+			+ "        }\n"
+			+ "    }\n"
+			+ "}";
+	// @formatter:on
 
 	private String projectDir;
 	private List<String> args;
@@ -102,7 +140,7 @@ public class GradleBuildRunner {
 
 		Path debugInitScriptPath = null;
 		if (Boolean.TRUE.equals(isDebugging)) {
-			debugInitScriptPath = createDebugInitScript(javaDebugPort);
+			debugInitScriptPath = createDebugInitScript();
 		}
 
 		BuildLauncher build = connection.newBuild().withCancellationToken(cancellationToken)
@@ -135,17 +173,23 @@ public class GradleBuildRunner {
 			throws GradleBuildRunnerException {
 		List<String> newArgs = new ArrayList<>(args);
 
-		// Add init script for debugging if present
+		// Add init script and debug port system property for debugging.
+		// The port is passed as -D so the init script can read it at execution
+		// time via System.getProperty(), keeping it out of configuration cache
+		// inputs.
+		int debugArgsCount = 0;
 		if (debugInitScriptPath != null) {
-			newArgs.addAll(0, Arrays.asList("--init-script", debugInitScriptPath.toAbsolutePath().toString()));
+			newArgs.addAll(0, Arrays.asList("--init-script", debugInitScriptPath.toAbsolutePath().toString(),
+					String.format("-D%s=%d", DEBUG_PORT_PROPERTY, javaDebugPort)));
+			debugArgsCount = 3;
 		}
 
 		if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
 			return newArgs;
 		}
 		int taskIndex = -1;
-		// Account for the init-script args added above
-		int offset = debugInitScriptPath != null ? 2 : 0;
+		// Account for the debug args added above
+		int offset = debugArgsCount;
 		for (int i = offset; i < newArgs.size(); i++) {
 			if (isTask(newArgs.get(i))) {
 				if (taskIndex == -1) {
@@ -180,46 +224,38 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * Creates or updates a Gradle init script that applies debug JVM arguments only
-	 * to JavaExec and Test tasks. This prevents the debug agent from being attached
-	 * to compilation tasks and other Java processes.
+	 * Creates or reuses a Gradle init script that applies debug JVM arguments only
+	 * to JavaExec and Test tasks at execution time. This prevents the debug agent
+	 * from being attached to compilation tasks and other Java processes.
 	 *
-	 * Uses a stable file path to allow Gradle configuration cache to work properly.
-	 * The file is only rewritten if the content has changed (i.e., the debug port
-	 * changed).
+	 * <p>
+	 * The init script content is static (the debug port is read from a system
+	 * property at execution time via {@code doFirst}), so its fingerprint never
+	 * changes. Combined with a fixed file path, this allows Gradle's configuration
+	 * cache to be fully reused across debug sessions with different ports.
+	 * </p>
 	 */
-	private static Path createDebugInitScript(int javaDebugPort) throws IOException {
-		String jdwpArgs = String.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d",
-				javaDebugPort);
-		String initScriptContent = String.format(
-				"allprojects {\n" + "    tasks.withType(JavaExec) {\n" + "        jvmArgs '%s'\n" + "    }\n"
-						+ "    tasks.withType(Test) {\n" + "        jvmArgs '%s'\n" + "    }\n" + "}",
-				jdwpArgs, jdwpArgs);
-
-		// Use a stable path with port number to allow Gradle configuration cache reuse
-		// and prevent race conditions between concurrent builds with different ports
+	private static Path createDebugInitScript() throws IOException {
 		String tempDir = System.getProperty("java.io.tmpdir");
 		if (tempDir == null || tempDir.isEmpty()) {
 			tempDir = "/tmp";
 		}
-		String fileName = String.format("vscode-gradle-debug-init-%d.gradle", javaDebugPort);
-		Path initScriptPath = Path.of(tempDir, fileName);
+		Path initScriptPath = Path.of(tempDir, "vscode-gradle-debug-init.gradle");
 
 		// Only write the file if it doesn't exist or the content has changed
 		boolean needsWrite = true;
 		if (Files.exists(initScriptPath)) {
 			try {
 				String existingContent = Files.readString(initScriptPath);
-				needsWrite = !existingContent.equals(initScriptContent);
+				needsWrite = !existingContent.equals(DEBUG_INIT_SCRIPT_CONTENT);
 			} catch (IOException e) {
-				// File may have been deleted between exists check and read, proceed with write
 				logger.debug("Could not read existing init script, will create new one: {}", e.getMessage());
 				needsWrite = true;
 			}
 		}
 
 		if (needsWrite) {
-			Files.writeString(initScriptPath, initScriptContent);
+			Files.writeString(initScriptPath, DEBUG_INIT_SCRIPT_CONTENT);
 			logger.info("Created/updated debug init script at: {}", initScriptPath);
 		} else {
 			logger.info("Reusing existing debug init script at: {}", initScriptPath);
