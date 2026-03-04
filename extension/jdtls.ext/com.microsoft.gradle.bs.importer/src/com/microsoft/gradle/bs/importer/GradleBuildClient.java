@@ -86,7 +86,9 @@ public class GradleBuildClient implements BuildClient {
             Utils.sendTelemetry(this.lsClient, params.getMessage());
         } else {
             String command = CLIENT_BUILD_LOG_CMD;
-            if (type == MessageType.ERROR && failedTaskCache.contains(params.getTask().getId())) {
+            if (type == MessageType.ERROR
+                    && params.getTask() != null
+                    && failedTaskCache.contains(params.getTask().getId())) {
                 // append the compilation failure message to the build output channel.
                 command = CLIENT_APPEND_BUILD_LOG_CMD;
             }
