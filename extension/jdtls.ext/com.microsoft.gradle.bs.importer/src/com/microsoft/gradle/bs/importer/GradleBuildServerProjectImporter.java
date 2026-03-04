@@ -321,7 +321,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
      * @throws CoreException
      */
     private List<IProject> importProjects(BuildServerConnection buildServer, IProgressMonitor monitor) throws CoreException {
-        Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+        Map<URI, List<BuildTarget>> buildTargetMap;
+        try {
+            buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+        } catch (CompletionException e) {
+            JavaLanguageServerPlugin.logException(
+                    "Failed to get build targets from Gradle Build Server. "
+                    + "If another Gradle process is running, please stop it and retry.", e);
+            return new LinkedList<>();
+        }
         // https://github.com/microsoft/vscode-gradle/issues/1659
         Set<String> duplicateProjectNames = new HashSet<>();
         Set<String> projectNames = new HashSet<>();
