@@ -340,20 +340,33 @@ public class GradleServerTest {
 	}
 
 	@Test
-	public void runBuild_shouldSetJwdpEnvironmentVarIfDebug() throws IOException {
+	public void runBuild_shouldUseInitScriptForDebug() throws IOException {
 		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
 
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setJavaDebugPort(1111).addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
-		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
+		ArgumentCaptor<List<String>> argumentsCaptor = ArgumentCaptor.forClass(List.class);
 
 		stub.runBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
-		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
-		assertEquals("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:1111",
-				setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
+		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
+
+		// Verify init-script argument is added for debugging
+		List<String> capturedArgs = argumentsCaptor.getValue();
+		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
+		int initScriptIndex = capturedArgs.indexOf("--init-script");
+		assertTrue("Expected argument after --init-script", capturedArgs.size() > initScriptIndex + 1);
+		assertTrue("Init script path should contain vscode-gradle-debug-init",
+				capturedArgs.get(initScriptIndex + 1).contains("vscode-gradle-debug-init"));
+
+		// Verify debug port is passed as a system property argument
+		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
+
+		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no
+		// additionalToolOptions)
+		verify(mockBuildLauncher, never()).setEnvironmentVariables(any());
 	}
 
 	@Test
@@ -381,12 +394,21 @@ public class GradleServerTest {
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
 		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
+		ArgumentCaptor<List<String>> argumentsCaptor = ArgumentCaptor.forClass(List.class);
 
 		stub.runBuild(req, mockResponseObserver);
 		verify(mockResponseObserver, never()).onError(any());
+
+		// Verify init-script and debug port system property are added
+		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
+		List<String> capturedArgs = argumentsCaptor.getValue();
+		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
+		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
+
+		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions
+		// (not debug agent)
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
-		assertEquals("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:1111 -agentpath:test",
-				setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
+		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
 	}
 
 	@Test
