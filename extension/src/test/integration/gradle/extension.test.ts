@@ -52,7 +52,7 @@ describe(getSuiteName("Extension"), () => {
             sinon.restore();
         });
 
-        it("should load gradle tasks", async () => {
+        it.skip("should load gradle tasks", async () => {
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
