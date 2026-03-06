@@ -55,15 +55,24 @@ describe(getSuiteName("Extension"), () => {
         it("should load gradle tasks", async () => {
             const api = extension?.exports;
             if (api) {
-                const server = (api as any).client?.server;
+                const client = (api as any).client;
+                const server = client?.server;
                 console.log(
                     `[diag] server ready: ${server?.isReady?.()}, port: ${server?.getPort?.()}, pid: ${
                         server?.process?.pid
                     }`
                 );
-                server?.process?.stderr?.once("data", (d: Buffer) =>
-                    console.log(`[diag] server stderr: ${d.toString().slice(0, 500)}`)
+                console.log(
+                    `[diag] JAVA_HOME: ${process.env.JAVA_HOME}, VSCODE_JAVA_HOME: ${process.env.VSCODE_JAVA_HOME}`
                 );
+                console.log(`[diag] GRADLE_SERVER_OPTS set: ${!!process.env.GRADLE_SERVER_OPTS}`);
+                // Try to check if the server process object exists at all
+                console.log(
+                    `[diag] server.process exists: ${server?.process !== undefined}, type: ${typeof server?.process}`
+                );
+                // Check extension host process env keys related to Java
+                const javaKeys = Object.keys(process.env).filter((k) => k.toLowerCase().includes("java"));
+                console.log(`[diag] java env keys: ${javaKeys.join(", ")}`);
             }
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
