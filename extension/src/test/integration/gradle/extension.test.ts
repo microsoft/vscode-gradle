@@ -71,7 +71,9 @@ describe(getSuiteName("Extension"), () => {
 
                 // Check onReady - has the gRPC client connected?
                 let connected = false;
-                const disposable = api.onReady(() => { connected = true; });
+                const disposable = api.onReady(() => {
+                    connected = true;
+                });
                 await sleep(1000);
                 disposable.dispose();
                 console.log(`[diag] gRPC client connected: ${connected}`);
