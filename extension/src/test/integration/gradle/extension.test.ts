@@ -53,36 +53,9 @@ describe(getSuiteName("Extension"), () => {
         });
 
         it("should load gradle tasks", async () => {
-            const workspaceFolders = vscode.workspace.workspaceFolders;
-            console.log(`[diag] workspaceFolders: ${JSON.stringify(workspaceFolders?.map((f) => f.uri.fsPath))}`);
-            console.log(`[diag] platform: ${process.platform}`);
-            console.log(`[diag] extension active: ${extension?.isActive}`);
-
-            const api = extension?.exports;
-            if (api) {
-                // Check if task provider can find project roots
-                const taskProvider = api.getTaskProvider();
-                try {
-                    const directTasks = await taskProvider.loadTasks();
-                    console.log(`[diag] direct loadTasks returned ${directTasks.length} tasks`);
-                } catch (e) {
-                    console.log(`[diag] direct loadTasks threw: ${e.message}`);
-                }
-
-                // Check onReady - has the gRPC client connected?
-                let connected = false;
-                const disposable = api.onReady(() => {
-                    connected = true;
-                });
-                await sleep(1000);
-                disposable.dispose();
-                console.log(`[diag] gRPC client connected: ${connected}`);
-            }
-
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                console.log(`[diag] attempt ${i + 1}: fetched ${tasks.length} tasks`);
                 if (tasks.length > 0) {
                     break;
                 }
