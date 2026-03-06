@@ -65,14 +65,44 @@ describe(getSuiteName("Extension"), () => {
                 console.log(
                     `[diag] JAVA_HOME: ${process.env.JAVA_HOME}, VSCODE_JAVA_HOME: ${process.env.VSCODE_JAVA_HOME}`
                 );
-                console.log(`[diag] GRADLE_SERVER_OPTS set: ${!!process.env.GRADLE_SERVER_OPTS}`);
-                // Try to check if the server process object exists at all
-                console.log(
-                    `[diag] server.process exists: ${server?.process !== undefined}, type: ${typeof server?.process}`
-                );
-                // Check extension host process env keys related to Java
-                const javaKeys = Object.keys(process.env).filter((k) => k.toLowerCase().includes("java"));
-                console.log(`[diag] java env keys: ${javaKeys.join(", ")}`);
+                // Test java availability directly
+                try {
+                    const { execSync } = require("child_process");
+                    const javaVer = execSync("java -version 2>&1", { timeout: 5000 }).toString().trim();
+                    console.log(`[diag] java -version: ${javaVer.split("\n")[0]}`);
+                } catch (e) {
+                    console.log(`[diag] java -version FAILED: ${e.message}`);
+                }
+                // Test if JAVA_HOME/bin/java exists
+                if (process.env.JAVA_HOME) {
+                    const javaPath = require("path").join(process.env.JAVA_HOME, "bin", "java");
+                    const exists = require("fs").existsSync(javaPath);
+                    console.log(`[diag] ${javaPath} exists: ${exists}`);
+                }
+                // Check PATH for java
+                const pathDirs = (process.env.PATH || "").split(":");
+                const javaDirs = pathDirs.filter((d) => d.toLowerCase().includes("java"));
+                console.log(`[diag] PATH java dirs: ${javaDirs.join(", ") || "NONE"}`);
+                // Try calling findValidJavaHome directly
+                try {
+                    const { findValidJavaHome } = require("../../../util/config");
+                    const jh = await findValidJavaHome();
+                    console.log(`[diag] findValidJavaHome: ${jh}`);
+                } catch (e) {
+                    console.log(`[diag] findValidJavaHome FAILED: ${e.message}`);
+                }
+                // Try getGradleServerEnv
+                try {
+                    const { getGradleServerEnv } = require("../../../server/serverUtil");
+                    const env = await getGradleServerEnv();
+                    console.log(
+                        `[diag] getGradleServerEnv: ${env ? "returned env" : "returned undefined"}, VSCODE_JAVA_HOME=${
+                            env?.VSCODE_JAVA_HOME
+                        }, GRADLE_SERVER_OPTS set=${!!env?.GRADLE_SERVER_OPTS}`
+                    );
+                } catch (e) {
+                    console.log(`[diag] getGradleServerEnv FAILED: ${e.message}`);
+                }
             }
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
