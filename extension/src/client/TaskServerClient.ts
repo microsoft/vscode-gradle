@@ -100,7 +100,7 @@ export class TaskServerClient implements vscode.Disposable {
 
     private connectToServer(): void {
         try {
-            this.grpcClient = new GrpcClient(`localhost:${this.server.getPort()}`, grpc.credentials.createInsecure(), {
+            this.grpcClient = new GrpcClient(`127.0.0.1:${this.server.getPort()}`, grpc.credentials.createInsecure(), {
                 "grpc.enable_http_proxy": 0,
                 "grpc.max_receive_message_length": -1,
             });

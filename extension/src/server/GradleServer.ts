@@ -78,23 +78,30 @@ export class GradleServer {
             return;
         }
         const args = [
-            quoteArg(`--port=${this.taskServerPort}`),
-            quoteArg(`--startBuildServer=${startBuildServer}`),
-            quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
+            `--port=${this.taskServerPort}`,
+            `--startBuildServer=${startBuildServer}`,
+            `--languageServerPipePath=${this.languageServerPipePath}`,
         ];
         if (startBuildServer) {
             const buildServerPipeName = this.bspProxy.getBuildServerPipeName();
             const bundleDirectory = this.context.asAbsolutePath("server");
-            args.push(quoteArg(`--pipeName=${buildServerPipeName}`));
-            args.push(quoteArg(`--bundleDir=${bundleDirectory}`));
+            args.push(`--pipeName=${buildServerPipeName}`);
+            args.push(`--bundleDir=${bundleDirectory}`);
         }
         this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
 
-        this.process = cp.spawn(`"${cmd}"`, args, {
-            cwd,
-            env,
-            shell: true,
-        });
+        if (process.platform === "win32") {
+            this.process = cp.spawn(`"${cmd}"`, args.map(quoteArg), {
+                cwd,
+                env,
+                shell: true,
+            });
+        } else {
+            this.process = cp.spawn(cmd, args, {
+                cwd,
+                env,
+            });
+        }
         this.process.stdout.on("data", this.logOutput);
         this.process.stderr.on("data", this.logOutput);
         this.process
