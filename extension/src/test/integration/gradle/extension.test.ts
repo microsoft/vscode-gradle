@@ -67,6 +67,7 @@ describe(getSuiteName("Extension"), () => {
                 );
                 // Test java availability directly
                 try {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
                     const { execSync } = require("child_process");
                     const javaVer = execSync("java -version 2>&1", { timeout: 5000 }).toString().trim();
                     console.log(`[diag] java -version: ${javaVer.split("\n")[0]}`);
@@ -75,7 +76,9 @@ describe(getSuiteName("Extension"), () => {
                 }
                 // Test if JAVA_HOME/bin/java exists
                 if (process.env.JAVA_HOME) {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
                     const javaPath = require("path").join(process.env.JAVA_HOME, "bin", "java");
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
                     const exists = require("fs").existsSync(javaPath);
                     console.log(`[diag] ${javaPath} exists: ${exists}`);
                 }
@@ -85,6 +88,7 @@ describe(getSuiteName("Extension"), () => {
                 console.log(`[diag] PATH java dirs: ${javaDirs.join(", ") || "NONE"}`);
                 // Try calling findValidJavaHome directly
                 try {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
                     const { findValidJavaHome } = require("../../../util/config");
                     const jh = await findValidJavaHome();
                     console.log(`[diag] findValidJavaHome: ${jh}`);
@@ -93,6 +97,7 @@ describe(getSuiteName("Extension"), () => {
                 }
                 // Try getGradleServerEnv
                 try {
+                    // eslint-disable-next-line @typescript-eslint/no-var-requires
                     const { getGradleServerEnv } = require("../../../server/serverUtil");
                     const env = await getGradleServerEnv();
                     console.log(
