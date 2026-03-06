@@ -52,10 +52,25 @@ describe(getSuiteName("Extension"), () => {
             sinon.restore();
         });
 
-        it.skip("should load gradle tasks", async () => {
+        it("should load gradle tasks", async () => {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            console.log(`[diag] workspaceFolders: ${JSON.stringify(workspaceFolders?.map((f) => f.uri.fsPath))}`);
+            console.log(`[diag] fixtureName: ${fixtureName}`);
+            console.log(`[diag] fixturePath: ${fixturePath.fsPath}`);
+            console.log(`[diag] platform: ${process.platform}`);
+            console.log(`[diag] extension active: ${extension?.isActive}`);
+
+            const api = extension?.exports;
+            if (api) {
+                const serverReady =
+                    (api as any).getTaskServerClient?.()?.server?.isReady?.() ?? "getTaskServerClient not available";
+                console.log(`[diag] server ready: ${serverReady}`);
+            }
+
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                console.log(`[diag] attempt ${i + 1}: fetched ${tasks.length} tasks`);
                 if (tasks.length > 0) {
                     break;
                 }
