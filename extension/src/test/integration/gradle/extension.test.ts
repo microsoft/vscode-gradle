@@ -53,66 +53,9 @@ describe(getSuiteName("Extension"), () => {
         });
 
         it("should load gradle tasks", async () => {
-            const api = extension?.exports;
-            if (api) {
-                const client = (api as any).client;
-                const server = client?.server;
-                console.log(
-                    `[diag] server ready: ${server?.isReady?.()}, port: ${server?.getPort?.()}, pid: ${
-                        server?.process?.pid
-                    }`
-                );
-                console.log(
-                    `[diag] JAVA_HOME: ${process.env.JAVA_HOME}, VSCODE_JAVA_HOME: ${process.env.VSCODE_JAVA_HOME}`
-                );
-                // Test java availability directly
-                try {
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const { execSync } = require("child_process");
-                    const javaVer = execSync("java -version 2>&1", { timeout: 5000 }).toString().trim();
-                    console.log(`[diag] java -version: ${javaVer.split("\n")[0]}`);
-                } catch (e) {
-                    console.log(`[diag] java -version FAILED: ${e.message}`);
-                }
-                // Test if JAVA_HOME/bin/java exists
-                if (process.env.JAVA_HOME) {
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const javaPath = require("path").join(process.env.JAVA_HOME, "bin", "java");
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const exists = require("fs").existsSync(javaPath);
-                    console.log(`[diag] ${javaPath} exists: ${exists}`);
-                }
-                // Check PATH for java
-                const pathDirs = (process.env.PATH || "").split(":");
-                const javaDirs = pathDirs.filter((d) => d.toLowerCase().includes("java"));
-                console.log(`[diag] PATH java dirs: ${javaDirs.join(", ") || "NONE"}`);
-                // Try calling findValidJavaHome directly
-                try {
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const { findValidJavaHome } = require("../../../util/config");
-                    const jh = await findValidJavaHome();
-                    console.log(`[diag] findValidJavaHome: ${jh}`);
-                } catch (e) {
-                    console.log(`[diag] findValidJavaHome FAILED: ${e.message}`);
-                }
-                // Try getGradleServerEnv
-                try {
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const { getGradleServerEnv } = require("../../../server/serverUtil");
-                    const env = await getGradleServerEnv();
-                    console.log(
-                        `[diag] getGradleServerEnv: ${env ? "returned env" : "returned undefined"}, VSCODE_JAVA_HOME=${
-                            env?.VSCODE_JAVA_HOME
-                        }, GRADLE_SERVER_OPTS set=${!!env?.GRADLE_SERVER_OPTS}`
-                    );
-                } catch (e) {
-                    console.log(`[diag] getGradleServerEnv FAILED: ${e.message}`);
-                }
-            }
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                console.log(`[diag] attempt ${i + 1}: fetched ${tasks.length} tasks`);
                 if (tasks.length > 0) {
                     break;
                 }
