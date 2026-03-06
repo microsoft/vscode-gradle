@@ -53,9 +53,22 @@ describe(getSuiteName("Extension"), () => {
         });
 
         it("should load gradle tasks", async () => {
+            const api = extension?.exports;
+            if (api) {
+                const server = (api as any).client?.server;
+                console.log(
+                    `[diag] server ready: ${server?.isReady?.()}, port: ${server?.getPort?.()}, pid: ${
+                        server?.process?.pid
+                    }`
+                );
+                server?.process?.stderr?.once("data", (d: Buffer) =>
+                    console.log(`[diag] server stderr: ${d.toString().slice(0, 500)}`)
+                );
+            }
             let tasks: vscode.Task[] = [];
             for (let i = 0; i < 5; i++) {
                 tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                console.log(`[diag] attempt ${i + 1}: fetched ${tasks.length} tasks`);
                 if (tasks.length > 0) {
                     break;
                 }
