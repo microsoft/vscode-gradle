@@ -1,5 +1,12 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
 
+schedules:
+  - cron: 0 3 * * *
+    branches:
+      include:
+        - develop
+    always: false
+
 variables:
   - name: Codeql.Enabled
     value: true
