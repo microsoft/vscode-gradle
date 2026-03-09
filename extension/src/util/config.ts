@@ -48,6 +48,15 @@ export async function findValidJavaHome(): Promise<string | undefined> {
         }
     }
 
+    // Prefer JAVA_HOME from environment before scanning system JDKs
+    const envJavaHome = process.env.JAVA_HOME;
+    if (envJavaHome) {
+        javaVersion = await getMajorVersion(envJavaHome);
+        if (javaVersion >= REQUIRED_JDK_VERSION) {
+            return envJavaHome;
+        }
+    }
+
     // Search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, common directories
     const javaRuntimes = await listJdks();
     const validJdks = javaRuntimes.find((r) => r.version!.major >= REQUIRED_JDK_VERSION);
