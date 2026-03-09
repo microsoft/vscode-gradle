@@ -18,6 +18,7 @@ repositories {
 }
 
 dependencies {
+  implementation enforcedPlatform('io.netty:netty-bom:4.1.130.Final')
   implementation project(":gradle-plugin-api")
   implementation files('build/libs/server.jar')
   implementation fileTree(dir: 'build/libs/runtime', include: ['*.jar'], exclude: ['gradle-tooling-api-*.jar',
