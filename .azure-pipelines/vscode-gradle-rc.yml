@@ -4,6 +4,8 @@ schedules:
     branches:
       include:
         - develop
+variables:
+  system.debug: true
 resources:
   repositories:
     - repository: self
@@ -137,6 +139,8 @@ extends:
                 displayName: 'NOTICE File Generator'
                 inputs:
                   outputformat: 'text'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: DownloadPipelineArtifact@2
                 displayName: Download NOTICE file
                 inputs:
