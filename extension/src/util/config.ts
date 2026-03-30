@@ -6,7 +6,16 @@ import { RootProject } from "../rootProject/RootProject";
 import * as fse from "fs-extra";
 import * as path from "path";
 import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
+const vscodeVariables = require('vscode-variables');
 type AutoDetect = "on" | "off";
+
+export function resolvePathVariables(pathStr: string | null): string | null {
+    if (!pathStr) {
+        return pathStr;
+    }
+    return vscodeVariables(pathStr);
+}
+
 export const REQUIRED_JDK_VERSION = 17;
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
@@ -26,7 +35,7 @@ export function getJdtlsConfigJavaHome(): string | null {
 }
 
 export function getConfigJavaImportGradleJavaHome(): string | null {
-    return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
+    return resolvePathVariables(vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null));
 }
 
 export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
@@ -105,7 +114,7 @@ export function checkEnvJavaExecutable(): boolean {
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {
-    return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.user.home", null);
+    return resolvePathVariables(vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.user.home", null));
 }
 
 export function getConfigJavaImportGradleJvmArguments(): string | null {
@@ -121,7 +130,7 @@ export function getConfigJavaImportGradleVersion(): string | null {
 }
 
 export function getConfigJavaImportGradleHome(): string | null {
-    return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.home", null);
+    return resolvePathVariables(vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.home", null));
 }
 
 export function getConfigIsDebugEnabled(): boolean {
