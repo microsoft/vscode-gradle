@@ -75,7 +75,7 @@ public class Utils {
 
     public static List<BuildTarget> getBuildTargetsByProjectUri(BuildServerConnection serverConnection, URI projectUri) {
         if (projectUri == null) {
-            throw new IllegalArgumentException("projectPath cannot be null.");
+            throw new IllegalArgumentException("projectUri cannot be null.");
         }
 
         WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
@@ -87,7 +87,7 @@ public class Utils {
      */
     public static List<BuildTarget> getBuildTargetsByProjectUri(WorkspaceBuildTargetsResult result, URI projectUri) {
         if (projectUri == null) {
-            throw new IllegalArgumentException("projectPath cannot be null.");
+            throw new IllegalArgumentException("projectUri cannot be null.");
         }
 
         List<BuildTarget> buildTargets = result.getTargets();

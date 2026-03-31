@@ -304,11 +304,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
      */
     public void updateAllClasspaths(BuildServerConnection connection, List<IProject> projects,
             WorkspaceBuildTargetsResult cachedTargets, IProgressMonitor monitor) throws CoreException {
-        // Collect all build targets across all projects
+        // Group all build targets by project URI once (O(T)) instead of
+        // filtering per-project (O(P*T)) for large workspaces.
+        Map<URI, List<BuildTarget>> targetsByProjectUri = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
         Map<IProject, List<BuildTarget>> projectBuildTargetsMap = new LinkedHashMap<>();
         List<BuildTargetIdentifier> allTargetIds = new ArrayList<>();
         for (IProject project : projects) {
-            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(cachedTargets, project.getLocationURI());
+            List<BuildTarget> buildTargets = targetsByProjectUri.getOrDefault(
+                    Utils.getUriWithoutQuery(project.getLocationURI().toString()), Collections.emptyList());
             moveTestTargetsToEnd(buildTargets);
             projectBuildTargetsMap.put(project, buildTargets);
             for (BuildTarget bt : buildTargets) {

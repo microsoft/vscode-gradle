@@ -4,6 +4,7 @@ import java.io.File;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -230,7 +231,16 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // Previously, importProjects(), updateClasspath(), and updateProjectDependencies()
         // each independently called workspaceBuildTargets(), resulting in ~2N+1 calls
         // for N projects. Now we fetch once and pass the cached result everywhere.
-        WorkspaceBuildTargetsResult cachedTargets = buildServer.workspaceBuildTargets().join();
+        WorkspaceBuildTargetsResult cachedTargets;
+        try {
+            cachedTargets = buildServer.workspaceBuildTargets().join();
+        } catch (CompletionException e) {
+            JavaLanguageServerPlugin.logException(
+                    "Failed to get build targets from Gradle Build Server. "
+                    + "If another Gradle process is running, please stop it and retry.", e);
+            this.isResolved = false;
+            return;
+        }
 
         List<IProject> projects = importProjects(cachedTargets, monitor);
         if (projects.isEmpty()) {
@@ -245,9 +255,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
         // We need to add the project dependencies after the Java nature is set to all
         // the projects, which is done in 'updateAllClasspaths()',
-        // otherwise JDT will thrown exception when adding projects as dependencies.
+        // otherwise JDT will throw an exception when adding projects as dependencies.
+        Map<URI, List<BuildTarget>> targetsByProjectUri = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
         for (IProject project : projects) {
-            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(cachedTargets, project.getLocationURI());
+            List<BuildTarget> buildTargets = targetsByProjectUri.getOrDefault(
+                    Utils.getUriWithoutQuery(project.getLocationURI().toString()), Collections.emptyList());
             buildSupport.updateProjectDependencies(project, buildTargets, monitor);
         }
 
