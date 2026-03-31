@@ -310,8 +310,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         Map<IProject, List<BuildTarget>> projectBuildTargetsMap = new LinkedHashMap<>();
         List<BuildTargetIdentifier> allTargetIds = new ArrayList<>();
         for (IProject project : projects) {
-            List<BuildTarget> buildTargets = targetsByProjectUri.getOrDefault(
-                    Utils.getUriWithoutQuery(project.getLocationURI().toString()), Collections.emptyList());
+            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(targetsByProjectUri, project.getLocationURI());
             moveTestTargetsToEnd(buildTargets);
             projectBuildTargetsMap.put(project, buildTargets);
             for (BuildTarget bt : buildTargets) {
@@ -500,6 +499,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             projectDependencies.addAll(buildTarget.getDependencies());
         }
         IJavaProject javaProject = JavaCore.create(project);
+        if (!javaProject.exists()) {
+            return;
+        }
         IClasspathEntry[] oldClasspath = javaProject.getRawClasspath();
         List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(oldClasspath));
         classpath.addAll(getProjectDependencyEntries(project, projectDependencies));

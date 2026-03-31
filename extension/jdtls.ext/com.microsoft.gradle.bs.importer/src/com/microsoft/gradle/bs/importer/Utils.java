@@ -64,6 +64,29 @@ public class Utils {
         return buildTargets.stream().collect(Collectors.groupingBy(target -> getUriWithoutQuery(target.getId().getUri())));
     }
 
+    /**
+     * Get build targets for a specific project URI from a pre-grouped map.
+     *
+     * <p>The fast path uses exact URI equality, but we fall back to URIUtil.sameURI
+     * to preserve the previous matching behavior for equivalent file URIs on Windows
+     * such as different drive-letter casing.
+     */
+    public static List<BuildTarget> getBuildTargetsByProjectUri(Map<URI, List<BuildTarget>> targetsByProjectUri, URI projectUri) {
+      if (projectUri == null) {
+        throw new IllegalArgumentException("projectUri cannot be null.");
+      }
+
+      List<BuildTarget> exactMatch = targetsByProjectUri.get(projectUri);
+      if (exactMatch != null) {
+        return exactMatch;
+      }
+
+      return targetsByProjectUri.entrySet().stream()
+          .filter(entry -> URIUtil.sameURI(projectUri, entry.getKey()))
+          .flatMap(entry -> entry.getValue().stream())
+          .collect(Collectors.toList());
+    }
+
     public static URI getUriWithoutQuery(String uriString) {
         try {
             URI uri = new URI(uriString);
@@ -90,11 +113,7 @@ public class Utils {
             throw new IllegalArgumentException("projectUri cannot be null.");
         }
 
-        List<BuildTarget> buildTargets = result.getTargets();
-
-        return buildTargets.stream().filter(target ->
-                URIUtil.sameURI(projectUri, getUriWithoutQuery(target.getId().getUri()))
-        ).collect(Collectors.toList());
+      return getBuildTargetsByProjectUri(getBuildTargetsMappedByProjectPath(result), projectUri);
     }
 
     /**

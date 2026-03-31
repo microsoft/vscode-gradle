@@ -258,8 +258,7 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // otherwise JDT will throw an exception when adding projects as dependencies.
         Map<URI, List<BuildTarget>> targetsByProjectUri = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
         for (IProject project : projects) {
-            List<BuildTarget> buildTargets = targetsByProjectUri.getOrDefault(
-                    Utils.getUriWithoutQuery(project.getLocationURI().toString()), Collections.emptyList());
+            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(targetsByProjectUri, project.getLocationURI());
             buildSupport.updateProjectDependencies(project, buildTargets, monitor);
         }
 
