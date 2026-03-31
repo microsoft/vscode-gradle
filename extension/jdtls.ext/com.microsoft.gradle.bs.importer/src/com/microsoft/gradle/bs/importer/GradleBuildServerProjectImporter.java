@@ -46,6 +46,7 @@ import ch.epfl.scala.bsp4j.BuildClientCapabilities;
 import ch.epfl.scala.bsp4j.BuildTarget;
 import ch.epfl.scala.bsp4j.InitializeBuildParams;
 import ch.epfl.scala.bsp4j.InitializeBuildResult;
+import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 
 public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
@@ -225,21 +226,29 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return;
         }
 
-        List<IProject> projects = importProjects(buildServer, monitor);
+        // Cache the workspace build targets result to avoid redundant BSP calls.
+        // Previously, importProjects(), updateClasspath(), and updateProjectDependencies()
+        // each independently called workspaceBuildTargets(), resulting in ~2N+1 calls
+        // for N projects. Now we fetch once and pass the cached result everywhere.
+        WorkspaceBuildTargetsResult cachedTargets = buildServer.workspaceBuildTargets().join();
+
+        List<IProject> projects = importProjects(cachedTargets, monitor);
         if (projects.isEmpty()) {
             return;
         }
 
         GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
-        for (IProject project : projects) {
-            buildSupport.updateClasspath(buildServer, project, monitor);
-        }
+
+        // Use batched BSP calls: instead of making per-target calls (4N round-trips
+        // for N build targets), batch all target IDs into single calls (4 total).
+        buildSupport.updateAllClasspaths(buildServer, projects, cachedTargets, monitor);
 
         // We need to add the project dependencies after the Java nature is set to all
-        // the projects, which is done in 'updateClasspath(IProject, IProgressMonitor)',
+        // the projects, which is done in 'updateAllClasspaths()',
         // otherwise JDT will thrown exception when adding projects as dependencies.
         for (IProject project : projects) {
-            buildSupport.updateProjectDependencies(buildServer, project, monitor);
+            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(cachedTargets, project.getLocationURI());
+            buildSupport.updateProjectDependencies(project, buildTargets, monitor);
         }
 
         for (IProject project : projects) {
@@ -320,10 +329,10 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
      *
      * @throws CoreException
      */
-    private List<IProject> importProjects(BuildServerConnection buildServer, IProgressMonitor monitor) throws CoreException {
+    private List<IProject> importProjects(WorkspaceBuildTargetsResult cachedTargets, IProgressMonitor monitor) throws CoreException {
         Map<URI, List<BuildTarget>> buildTargetMap;
         try {
-            buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(buildServer);
+            buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
         } catch (CompletionException e) {
             JavaLanguageServerPlugin.logException(
                     "Failed to get build targets from Gradle Build Server. "
