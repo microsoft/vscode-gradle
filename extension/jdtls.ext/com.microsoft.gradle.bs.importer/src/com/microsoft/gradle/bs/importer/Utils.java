@@ -53,8 +53,38 @@ public class Utils {
      */
     public static Map<URI, List<BuildTarget>> getBuildTargetsMappedByProjectPath(BuildServerConnection serverConnection) {
         WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
-        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
+        return getBuildTargetsMappedByProjectPath(workspaceBuildTargetsResult);
+    }
+
+    /**
+     * Get build targets mapped by their paths from a pre-fetched result.
+     */
+    public static Map<URI, List<BuildTarget>> getBuildTargetsMappedByProjectPath(WorkspaceBuildTargetsResult result) {
+        List<BuildTarget> buildTargets = result.getTargets();
         return buildTargets.stream().collect(Collectors.groupingBy(target -> getUriWithoutQuery(target.getId().getUri())));
+    }
+
+    /**
+     * Get build targets for a specific project URI from a pre-grouped map.
+     *
+     * <p>The fast path uses exact URI equality, but we fall back to URIUtil.sameURI
+     * to preserve the previous matching behavior for equivalent file URIs on Windows
+     * such as different drive-letter casing.
+     */
+    public static List<BuildTarget> getBuildTargetsByProjectUri(Map<URI, List<BuildTarget>> targetsByProjectUri, URI projectUri) {
+      if (projectUri == null) {
+        throw new IllegalArgumentException("projectUri cannot be null.");
+      }
+
+      List<BuildTarget> exactMatch = targetsByProjectUri.get(projectUri);
+      if (exactMatch != null) {
+        return exactMatch;
+      }
+
+      return targetsByProjectUri.entrySet().stream()
+          .filter(entry -> URIUtil.sameURI(projectUri, entry.getKey()))
+          .flatMap(entry -> entry.getValue().stream())
+          .collect(Collectors.toList());
     }
 
     public static URI getUriWithoutQuery(String uriString) {
@@ -68,15 +98,22 @@ public class Utils {
 
     public static List<BuildTarget> getBuildTargetsByProjectUri(BuildServerConnection serverConnection, URI projectUri) {
         if (projectUri == null) {
-            throw new IllegalArgumentException("projectPath cannot be null.");
+            throw new IllegalArgumentException("projectUri cannot be null.");
         }
 
         WorkspaceBuildTargetsResult workspaceBuildTargetsResult = serverConnection.workspaceBuildTargets().join();
-        List<BuildTarget> buildTargets = workspaceBuildTargetsResult.getTargets();
+        return getBuildTargetsByProjectUri(workspaceBuildTargetsResult, projectUri);
+    }
 
-        return buildTargets.stream().filter(target ->
-                URIUtil.sameURI(projectUri, getUriWithoutQuery(target.getId().getUri()))
-        ).collect(Collectors.toList());
+    /**
+     * Get build targets for a specific project URI from a pre-fetched result.
+     */
+    public static List<BuildTarget> getBuildTargetsByProjectUri(WorkspaceBuildTargetsResult result, URI projectUri) {
+        if (projectUri == null) {
+            throw new IllegalArgumentException("projectUri cannot be null.");
+        }
+
+      return getBuildTargetsByProjectUri(getBuildTargetsMappedByProjectPath(result), projectUri);
     }
 
     /**

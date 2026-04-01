@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -71,6 +72,7 @@ import ch.epfl.scala.bsp4j.SourceItem;
 import ch.epfl.scala.bsp4j.SourcesItem;
 import ch.epfl.scala.bsp4j.SourcesParams;
 import ch.epfl.scala.bsp4j.SourcesResult;
+import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
 import ch.epfl.scala.bsp4j.extended.JvmBuildTargetEx;
 
 public class GradleBuildServerBuildSupport implements IBuildSupport {
@@ -289,21 +291,233 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     }
 
     /**
-     * Update the project dependencies of the project.
+     * Update the classpaths of all projects using batched BSP calls. Instead of making
+     * per-target BSP calls (4N calls for N build targets), this method collects all build
+     * target IDs and makes only 4 batched calls total, then distributes the results back
+     * to per-project processing.
+     *
+     * @param connection the build server connection.
+     * @param projects the list of projects to update.
+     * @param cachedTargets the pre-fetched workspace build targets result.
+     * @param monitor the progress monitor.
      * @throws CoreException
      */
-    public void updateProjectDependencies(BuildServerConnection connection, IProject project, IProgressMonitor monitor) throws CoreException {
+    public void updateAllClasspaths(BuildServerConnection connection, List<IProject> projects,
+            WorkspaceBuildTargetsResult cachedTargets, IProgressMonitor monitor) throws CoreException {
+        // Group all build targets by project URI once (O(T)) instead of
+        // filtering per-project (O(P*T)) for large workspaces.
+        Map<URI, List<BuildTarget>> targetsByProjectUri = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
+        Map<IProject, List<BuildTarget>> projectBuildTargetsMap = new LinkedHashMap<>();
+        List<BuildTargetIdentifier> allTargetIds = new ArrayList<>();
+        for (IProject project : projects) {
+            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(targetsByProjectUri, project.getLocationURI());
+            moveTestTargetsToEnd(buildTargets);
+            projectBuildTargetsMap.put(project, buildTargets);
+            for (BuildTarget bt : buildTargets) {
+                allTargetIds.add(bt.getId());
+            }
+        }
+
+        if (allTargetIds.isEmpty()) {
+            return;
+        }
+
+        JavaLanguageServerPlugin.logInfo(String.format(
+            "Updating classpaths for %d projects (%d build targets) using batched BSP calls.",
+            projects.size(), allTargetIds.size()));
+
+        OutputPathsResult allOutputPaths;
+        SourcesResult allSources;
+        ResourcesResult allResources;
+        DependencyModulesResult allDependencyModules;
+        JavacOptionsResult allJavacOptions;
+        try {
+            // Make batched BSP calls for all targets at once.
+            allOutputPaths = connection.buildTargetOutputPaths(
+                new OutputPathsParams(allTargetIds)).join();
+            allSources = connection.buildTargetSources(
+                new SourcesParams(allTargetIds)).join();
+            allResources = connection.buildTargetResources(
+                new ResourcesParams(allTargetIds)).join();
+            allDependencyModules = connection.buildTargetDependencyModules(
+                new DependencyModulesParams(allTargetIds)).join();
+            allJavacOptions = connection.buildTargetJavacOptions(
+                new JavacOptionsParams(allTargetIds)).join();
+        } catch (RuntimeException e) {
+            JavaLanguageServerPlugin.logException(String.format(
+                "Failed batched BSP classpath update for %d projects (%d build targets).",
+                projects.size(), allTargetIds.size()), e);
+            throw e;
+        }
+
+        // Index results by build target identifier for fast lookup
+        Map<String, List<OutputPathsItem>> outputPathsByTarget = new HashMap<>();
+        for (OutputPathsItem item : allOutputPaths.getItems()) {
+            outputPathsByTarget.computeIfAbsent(item.getTarget().getUri(), k -> new ArrayList<>()).add(item);
+        }
+        Map<String, List<SourcesItem>> sourcesByTarget = new HashMap<>();
+        for (SourcesItem item : allSources.getItems()) {
+            sourcesByTarget.computeIfAbsent(item.getTarget().getUri(), k -> new ArrayList<>()).add(item);
+        }
+        Map<String, List<ResourcesItem>> resourcesByTarget = new HashMap<>();
+        for (ResourcesItem item : allResources.getItems()) {
+            resourcesByTarget.computeIfAbsent(item.getTarget().getUri(), k -> new ArrayList<>()).add(item);
+        }
+        Map<String, List<DependencyModulesItem>> depModulesByTarget = new HashMap<>();
+        for (DependencyModulesItem item : allDependencyModules.getItems()) {
+            depModulesByTarget.computeIfAbsent(item.getTarget().getUri(), k -> new ArrayList<>()).add(item);
+        }
+        Map<String, List<JavacOptionsItem>> javacOptionsByTarget = new HashMap<>();
+        for (JavacOptionsItem item : allJavacOptions.getItems()) {
+            javacOptionsByTarget.computeIfAbsent(item.getTarget().getUri(), k -> new ArrayList<>()).add(item);
+        }
+
+        // Process each project using the pre-fetched, indexed results
+        for (IProject project : projects) {
+            List<BuildTarget> buildTargets = projectBuildTargetsMap.get(project);
+            if (buildTargets == null || buildTargets.isEmpty()) {
+                continue;
+            }
+            updateClasspathFromBatchedResults(project, buildTargets, outputPathsByTarget,
+                    sourcesByTarget, resourcesByTarget, depModulesByTarget, javacOptionsByTarget, monitor);
+        }
+    }
+
+    /**
+     * Update the classpath of a single project using pre-fetched batched BSP results.
+     */
+    private void updateClasspathFromBatchedResults(IProject project, List<BuildTarget> buildTargets,
+            Map<String, List<OutputPathsItem>> outputPathsByTarget,
+            Map<String, List<SourcesItem>> sourcesByTarget,
+            Map<String, List<ResourcesItem>> resourcesByTarget,
+            Map<String, List<DependencyModulesItem>> depModulesByTarget,
+            Map<String, List<JavacOptionsItem>> javacOptionsByTarget,
+            IProgressMonitor monitor) throws CoreException {
         IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
         if (rootPath == null) {
             JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
             return;
         }
+        Map<IPath, IClasspathEntry> classpathMap = new LinkedHashMap<>();
+
+        for (BuildTarget buildTarget : buildTargets) {
+            boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
+            String targetUri = buildTarget.getId().getUri();
+
+            // Use pre-fetched output paths
+            List<OutputPathsItem> outputItems = outputPathsByTarget.getOrDefault(targetUri, Collections.emptyList());
+            String sourceOutputUri = getOutputUriByKind(outputItems, OUTPUT_KIND_SOURCE);
+            IPath sourceOutputFullPath = getOutputFullPath(sourceOutputUri, project);
+            if (sourceOutputFullPath == null) {
+                JavaLanguageServerPlugin.logError("Cannot find source output path for build target: " + buildTarget.getId());
+            } else {
+                // Use pre-fetched sources
+                List<SourcesItem> sourcesItems = sourcesByTarget.getOrDefault(targetUri, Collections.emptyList());
+                SourcesResult sourcesResult = new SourcesResult(sourcesItems);
+                List<IClasspathEntry> sourceEntries = getSourceEntries(rootPath, project, sourcesResult, sourceOutputFullPath, isTest, monitor);
+                for (IClasspathEntry entry : sourceEntries) {
+                    classpathMap.putIfAbsent(entry.getPath(), entry);
+                }
+            }
+
+            String resourceOutputUri = getOutputUriByKind(outputItems, OUTPUT_KIND_RESOURCE);
+            IPath resourceOutputFullPath = getOutputFullPath(resourceOutputUri, project);
+            if (resourceOutputFullPath != null) {
+                // Use pre-fetched resources
+                List<ResourcesItem> resourceItems = resourcesByTarget.getOrDefault(targetUri, Collections.emptyList());
+                ResourcesResult resourcesResult = new ResourcesResult(resourceItems);
+                List<IClasspathEntry> resourceEntries = getResourceEntries(rootPath, project, resourcesResult, resourceOutputFullPath, isTest, monitor);
+                for (IClasspathEntry entry : resourceEntries) {
+                    classpathMap.putIfAbsent(entry.getPath(), entry);
+                }
+            }
+        }
+
+        if (classpathMap.isEmpty()) {
+            return;
+        }
+
+        Utils.addNature(project, JavaCore.NATURE_ID, monitor);
+        IJavaProject javaProject = JavaCore.create(project);
+        javaProject.setOption(JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore");
+
+        classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
+            .stream()
+            .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
+        IClasspathEntry[] newSourceEntries = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newSourceEntries)) {
+            javaProject.setRawClasspath(newSourceEntries, monitor);
+        }
+        boolean isModular = javaProject.getOwnModuleDescription() != null;
+
+        setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
+
+        for (BuildTarget buildTarget : buildTargets) {
+            boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
+            String targetUri = buildTarget.getId().getUri();
+
+            // Use pre-fetched dependency modules
+            List<DependencyModulesItem> depItems = depModulesByTarget.getOrDefault(targetUri, Collections.emptyList());
+            DependencyModulesResult dependencyModuleResult = new DependencyModulesResult(depItems);
+            List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest, isModular);
+            for (IClasspathEntry entry : dependencyEntries) {
+                classpathMap.putIfAbsent(entry.getPath(), entry);
+            }
+        }
+
+        IClasspathEntry[] newEntriesWithDeps = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithDeps)) {
+            javaProject.setRawClasspath(newEntriesWithDeps, monitor);
+        }
+
+        // Process JPMS arguments from pre-fetched javac options
+        List<String> compilerArgs = new LinkedList<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            List<JavacOptionsItem> javacItems = javacOptionsByTarget.getOrDefault(
+                    buildTarget.getId().getUri(), Collections.emptyList());
+            for (JavacOptionsItem item : javacItems) {
+                compilerArgs.addAll(item.getOptions());
+            }
+        }
+
+        JpmsArguments jpmsArgs = JpmsUtils.categorizeJpmsArguments(compilerArgs);
+        if (jpmsArgs.isEmpty()) {
+            return;
+        }
+        JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
+        IClasspathEntry[] newEntriesWithJpms = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithJpms)) {
+            javaProject.setRawClasspath(newEntriesWithJpms, monitor);
+        }
+    }
+
+    /**
+     * Update the project dependencies of the project.
+     * @throws CoreException
+     */
+    public void updateProjectDependencies(BuildServerConnection connection, IProject project, IProgressMonitor monitor) throws CoreException {
         List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(connection, project.getLocationURI());
+        updateProjectDependencies(project, buildTargets, monitor);
+    }
+
+    /**
+     * Update the project dependencies of the project using pre-fetched build targets.
+     * @throws CoreException
+     */
+    public void updateProjectDependencies(IProject project, List<BuildTarget> buildTargets, IProgressMonitor monitor) throws CoreException {
+        IPath rootPath = ProjectUtils.findBelongedWorkspaceRoot(project.getLocation());
+        if (rootPath == null) {
+            JavaLanguageServerPlugin.logError("Cannot find workspace root for project: " + project.getName());
+            return;
+        }
         Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
         for (BuildTarget buildTarget : buildTargets) {
             projectDependencies.addAll(buildTarget.getDependencies());
         }
         IJavaProject javaProject = JavaCore.create(project);
+        if (!javaProject.exists()) {
+            return;
+        }
         IClasspathEntry[] oldClasspath = javaProject.getRawClasspath();
         List<IClasspathEntry> classpath = new LinkedList<>(Arrays.asList(oldClasspath));
         classpath.addAll(getProjectDependencyEntries(project, projectDependencies));
