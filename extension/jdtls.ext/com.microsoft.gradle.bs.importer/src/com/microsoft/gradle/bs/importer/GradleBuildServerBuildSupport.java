@@ -322,17 +322,33 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             return;
         }
 
-        // Make batched BSP calls for all targets at once
-        OutputPathsResult allOutputPaths = connection.buildTargetOutputPaths(
+        JavaLanguageServerPlugin.logInfo(String.format(
+            "Updating classpaths for %d projects (%d build targets) using batched BSP calls.",
+            projects.size(), allTargetIds.size()));
+
+        OutputPathsResult allOutputPaths;
+        SourcesResult allSources;
+        ResourcesResult allResources;
+        DependencyModulesResult allDependencyModules;
+        JavacOptionsResult allJavacOptions;
+        try {
+            // Make batched BSP calls for all targets at once.
+            allOutputPaths = connection.buildTargetOutputPaths(
                 new OutputPathsParams(allTargetIds)).join();
-        SourcesResult allSources = connection.buildTargetSources(
+            allSources = connection.buildTargetSources(
                 new SourcesParams(allTargetIds)).join();
-        ResourcesResult allResources = connection.buildTargetResources(
+            allResources = connection.buildTargetResources(
                 new ResourcesParams(allTargetIds)).join();
-        DependencyModulesResult allDependencyModules = connection.buildTargetDependencyModules(
+            allDependencyModules = connection.buildTargetDependencyModules(
                 new DependencyModulesParams(allTargetIds)).join();
-        JavacOptionsResult allJavacOptions = connection.buildTargetJavacOptions(
+            allJavacOptions = connection.buildTargetJavacOptions(
                 new JavacOptionsParams(allTargetIds)).join();
+        } catch (RuntimeException e) {
+            JavaLanguageServerPlugin.logException(String.format(
+                "Failed batched BSP classpath update for %d projects (%d build targets).",
+                projects.size(), allTargetIds.size()), e);
+            throw e;
+        }
 
         // Index results by build target identifier for fast lookup
         Map<String, List<OutputPathsItem>> outputPathsByTarget = new HashMap<>();
