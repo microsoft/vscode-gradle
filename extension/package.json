@@ -994,5 +994,8 @@
     "tree-kill": "^1.2.2",
     "vscode-extension-telemetry-wrapper": "0.14.0",
     "vscode-languageclient": "7.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.3"
   }
 }
