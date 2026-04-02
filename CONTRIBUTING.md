@@ -8,7 +8,7 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Prerequisites
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 21](https://adoptium.net/)
+2. Install [Java version 21](https://adoptium.net/)
 3. Select Node version: `nvm use`
 4. If using an Apple M1:
     - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
@@ -25,8 +25,9 @@ Start by opening an issue using one of the issue templates, or propose a change 
 Before proceeding with the build steps for Build Task Server & Language Server, you need to build the Gradle Build Server and its client (Gradle Project Importer) first.
 
 1. `cd extension`
-2. `git clone https://github.com/microsoft/build-server-for-gradle.git `
+2. `git clone https://github.com/microsoft/build-server-for-gradle.git`
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
+  - If using Windows, run  `../gradlew.bat buildJars` instead
 
 ### Build Task Server & Language Server
 After building the Gradle Build Server and its client, proceed with the following steps.
@@ -34,6 +35,7 @@ After building the Gradle Build Server and its client, proceed with the followin
 1. Change directory to the root of the project
 
 2. Build project files: `./gradlew build`
+  - If using Windows, run  `../gradlew.bat build` instead
 
 Running the build for the first time can take a bit of time, but subsequent builds should be fast.
 
