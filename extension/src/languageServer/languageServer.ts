@@ -48,7 +48,8 @@ export async function startLanguageClientAndWaitForConnection(
                     resolve();
                 },
                 (e) => {
-                    void vscode.window.showErrorMessage(e);
+                    const errorMessage = e instanceof Error ? e.message : String(e);
+                    void vscode.window.showErrorMessage(errorMessage);
                     resolve();
                 }
             );
