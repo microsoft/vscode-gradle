@@ -15,6 +15,9 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRunnable;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
@@ -51,6 +54,13 @@ import ch.epfl.scala.bsp4j.extended.TestName;
 import ch.epfl.scala.bsp4j.extended.TestStartEx;
 
 public class GradleBuildClient implements BuildClient {
+
+    /**
+     * Guard flag to prevent re-entrant didChange → update → auto-build →
+     * compile → didChange loops. When true, incoming didChange notifications
+     * are ignored because a previous update cycle is still in progress.
+     */
+    private static volatile boolean isUpdating = false;
 
     /**
      * The task name for the build server.
@@ -117,6 +127,13 @@ public class GradleBuildClient implements BuildClient {
 
     @Override
     public void onBuildTargetDidChange(DidChangeBuildTarget params) {
+        // Skip if an update cycle is already in progress to prevent re-entrant loops:
+        // didChange → update → auto-build → compile → reloadWorkspace → didChange → ...
+        if (isUpdating) {
+            JavaLanguageServerPlugin.logInfo("Skipping didChange notification: update already in progress.");
+            return;
+        }
+
         Set<IProject> projects = new HashSet<>();
         for (BuildTargetEvent event : params.getChanges()) {
             BuildTargetIdentifier id = event.getTarget();
@@ -134,13 +151,29 @@ public class GradleBuildClient implements BuildClient {
         // Update projects in a new thread to avoid blocking the IO queue,
         // since some BSP requests will be sent during project updates.
         CompletableFuture.runAsync(() -> {
-            GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
-            for (IProject project : projects) {
-                try {
-                    buildSupport.update(project, true, new NullProgressMonitor());
-                } catch (CoreException e) {
-                    JavaLanguageServerPlugin.log(e);
-                }
+            isUpdating = true;
+            try {
+                // Wrap all classpath updates in a single workspace operation to prevent
+                // intermediate setRawClasspath() calls from each triggering auto-build.
+                // With workspace.run(), all changes are batched into one operation and
+                // endTopLevel() is called only once at the end, triggering at most one auto-build.
+                JavaLanguageServerPlugin.logInfo("Batching classpath updates for "
+                        + projects.size() + " project(s) in a single workspace operation.");
+                ResourcesPlugin.getWorkspace().run((IWorkspaceRunnable) monitor -> {
+                    GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
+                    for (IProject project : projects) {
+                        try {
+                            JavaLanguageServerPlugin.logInfo("Updating classpath for project: " + project.getName());
+                            buildSupport.update(project, true, monitor);
+                        } catch (CoreException e) {
+                            JavaLanguageServerPlugin.log(e);
+                        }
+                    }
+                }, null, IWorkspace.AVOID_UPDATE, new NullProgressMonitor());
+            } catch (CoreException e) {
+                JavaLanguageServerPlugin.logException("Failed to batch classpath updates", e);
+            } finally {
+                isUpdating = false;
             }
         });
     }
