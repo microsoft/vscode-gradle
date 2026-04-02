@@ -166,17 +166,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 JavaLanguageServerPlugin.logError("Cannot find build server connection for root: " + rootPath);
                 return;
             }
-            Map<URI, List<BuildTarget>> buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(connection);
-            for (URI uri : buildTargetMap.keySet()) {
-                IProject projectFromUri = ProjectUtils.getProjectFromUri(uri.toString());
-                if (projectFromUri == null || !Utils.isGradleBuildServerProject(projectFromUri)) {
-                    continue;
-                }
-                updateClasspath(connection, projectFromUri, monitor);
-                updateProjectDependencies(connection, projectFromUri, monitor);
-                // TODO: in case that the projects/build targets are created or removed,
-                // we can use the server->client notification: 'buildTarget/didChange' to support this case.
-            }
+            // updateClasspath now includes project dependencies in the same
+            // setRawClasspath() call, so no separate updateProjectDependencies needed.
+            updateClasspath(connection, project, monitor);
         }
     }
 
@@ -242,16 +234,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         // In Gradle, output of a source set may be overlapping with the source dir of another source set.
         javaProject.setOption(JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore" );
 
-        // set all the source roots to the project first, then the information
-        // of whether the project is modular will be available.
         classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
             .stream()
             .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
-        // TODO: find a way to get if the project is modular without setting the classpath.
-        IClasspathEntry[] newSourceEntries = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newSourceEntries)) {
-            javaProject.setRawClasspath(newSourceEntries, monitor);
-        }
+
+        // Detect modularity using the existing classpath state. The current classpath
+        // already contains the source roots from the previous import/update, so
+        // getOwnModuleDescription() will correctly find module-info.java without
+        // needing to set a source-only classpath first.
         boolean isModular = javaProject.getOwnModuleDescription() != null;
 
         setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
@@ -266,11 +256,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
 
-        IClasspathEntry[] newEntriesWithDeps = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithDeps)) {
-            javaProject.setRawClasspath(newEntriesWithDeps, monitor);
-        }
-
         // process jpms arguments.
         JavacOptionsResult javacOptions = connection.buildTargetJavacOptions(new JavacOptionsParams(
                 buildTargets.stream().map(BuildTarget::getId).collect(Collectors.toList()))).join();
@@ -280,13 +265,26 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         JpmsArguments jpmsArgs = JpmsUtils.categorizeJpmsArguments(compilerArgs);
-        if (jpmsArgs.isEmpty()) {
-            return;
+        if (!jpmsArgs.isEmpty()) {
+            JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
         }
-        JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
-        IClasspathEntry[] newEntriesWithJpms = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithJpms)) {
-            javaProject.setRawClasspath(newEntriesWithJpms, monitor);
+
+        // Add project dependency entries into the same classpathMap so that
+        // everything is written in a single setRawClasspath() call.
+        Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            projectDependencies.addAll(buildTarget.getDependencies());
+        }
+        for (IClasspathEntry entry : getProjectDependencyEntries(project, projectDependencies)) {
+            classpathMap.putIfAbsent(entry.getPath(), entry);
+        }
+
+        // Set classpath only once with the fully assembled entries (source + JDK +
+        // deps + JPMS + project deps). This avoids intermediate states that would
+        // always trigger .classpath writes and auto-build even when nothing changed.
+        IClasspathEntry[] finalClasspath = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), finalClasspath)) {
+            javaProject.setRawClasspath(finalClasspath, javaProject.getOutputLocation(), monitor);
         }
     }
 
@@ -444,10 +442,8 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
             .stream()
             .collect(Collectors.toMap(IClasspathEntry::getPath, Function.identity(), (e1, e2) -> e1, LinkedHashMap::new));
-        IClasspathEntry[] newSourceEntries = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newSourceEntries)) {
-            javaProject.setRawClasspath(newSourceEntries, monitor);
-        }
+
+        // Detect modularity using the existing classpath state (same rationale as updateClasspath).
         boolean isModular = javaProject.getOwnModuleDescription() != null;
 
         setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
@@ -465,11 +461,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
         }
 
-        IClasspathEntry[] newEntriesWithDeps = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithDeps)) {
-            javaProject.setRawClasspath(newEntriesWithDeps, monitor);
-        }
-
         // Process JPMS arguments from pre-fetched javac options
         List<String> compilerArgs = new LinkedList<>();
         for (BuildTarget buildTarget : buildTargets) {
@@ -481,13 +472,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         JpmsArguments jpmsArgs = JpmsUtils.categorizeJpmsArguments(compilerArgs);
-        if (jpmsArgs.isEmpty()) {
-            return;
+        if (!jpmsArgs.isEmpty()) {
+            JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
         }
-        JpmsUtils.appendJpmsAttributesToEntries(javaProject, classpathMap, jpmsArgs);
-        IClasspathEntry[] newEntriesWithJpms = classpathMap.values().toArray(new IClasspathEntry[0]);
-        if (!Arrays.equals(javaProject.getRawClasspath(), newEntriesWithJpms)) {
-            javaProject.setRawClasspath(newEntriesWithJpms, monitor);
+
+        // Set classpath only once with the fully assembled entries.
+        IClasspathEntry[] finalClasspath = classpathMap.values().toArray(new IClasspathEntry[0]);
+        if (!Arrays.equals(javaProject.getRawClasspath(), finalClasspath)) {
+            javaProject.setRawClasspath(finalClasspath, monitor);
         }
     }
 
