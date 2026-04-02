@@ -232,7 +232,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         Utils.addNature(project, JavaCore.NATURE_ID, monitor);
         IJavaProject javaProject = JavaCore.create(project);
         // In Gradle, output of a source set may be overlapping with the source dir of another source set.
-        javaProject.setOption(JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore" );
+        setOptionIfChanged(javaProject, JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore");
 
         classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
             .stream()
@@ -437,7 +437,7 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         Utils.addNature(project, JavaCore.NATURE_ID, monitor);
         IJavaProject javaProject = JavaCore.create(project);
-        javaProject.setOption(JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore");
+        setOptionIfChanged(javaProject, JavaCore.CORE_OUTPUT_LOCATION_OVERLAPPING_ANOTHER_SOURCE, "ignore");
 
         classpathMap = getSourceCpeWithExclusions(new LinkedList<>(classpathMap.values()))
             .stream()
@@ -685,12 +685,18 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         IPath sourceOutputPath = ResourceUtils.filePathFromURI(Utils.getUriWithoutQuery(outputUri).toString());
         File outputDirectory = sourceOutputPath.toFile();
+        boolean created = false;
         if (!outputDirectory.exists()) {
-            outputDirectory.mkdirs();
+            created = outputDirectory.mkdirs();
         }
         IPath relativeSourceOutputPath = sourceOutputPath.makeRelativeTo(project.getLocation());
         IFolder outputFolder = project.getFolder(relativeSourceOutputPath);
-        outputFolder.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
+        // Only refresh if the directory was just created or doesn't exist in the
+        // workspace yet. Unconditional refreshLocal() modifies the resource tree
+        // and triggers auto-build even when nothing changed on disk.
+        if (created || !outputFolder.exists()) {
+            outputFolder.refreshLocal(IResource.DEPTH_ZERO, new NullProgressMonitor());
+        }
         return outputFolder.getFullPath();
     }
 
@@ -716,20 +722,32 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         return Arrays.stream(sourceFullPath.segments()).anyMatch(segment -> segment.equals("build"));
     }
 
+    /**
+     * Set a JDT project option only if the current value differs from the new value.
+     * This avoids writing to .settings/org.eclipse.jdt.core.prefs when nothing changed,
+     * which would modify the resource tree and trigger unnecessary auto-builds.
+     */
+    private void setOptionIfChanged(IJavaProject javaProject, String optionName, String newValue) {
+        String currentValue = javaProject.getOption(optionName, false);
+        if (!Objects.equals(currentValue, newValue)) {
+            javaProject.setOption(optionName, newValue);
+        }
+    }
+
     private void setProjectJdk(Map<IPath, IClasspathEntry> classpathMap, List<BuildTarget> buildTargets,
             IJavaProject javaProject, boolean isModular) throws CoreException {
         JvmBuildTargetEx jvmBuildTarget = getJvmTarget(buildTargets);
         String sourceCompatibility = jvmBuildTarget.getSourceCompatibility();
         if (StringUtils.isNotBlank(sourceCompatibility)) {
-            javaProject.setOption(JavaCore.COMPILER_SOURCE, sourceCompatibility);
+            setOptionIfChanged(javaProject, JavaCore.COMPILER_SOURCE, sourceCompatibility);
         }
 
         String targetCompatibility = jvmBuildTarget.getTargetCompatibility();
         if (StringUtils.isNotBlank(targetCompatibility)) {
-            javaProject.setOption(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
+            setOptionIfChanged(javaProject, JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, targetCompatibility);
             // source compatibility will be equal to or lower than the target compatibility.
             // See: https://discuss.gradle.org/t/why-cant-i-use-different-sourcecompatibility-targetcompatibility-with-hello-world/11958/2
-            javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
+            setOptionIfChanged(javaProject, JavaCore.COMPILER_COMPLIANCE, targetCompatibility);
         }
 
         if (StringUtils.isNotBlank(jvmBuildTarget.getJavaHome())
