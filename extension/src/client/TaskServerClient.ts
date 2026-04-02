@@ -50,7 +50,7 @@ export class TaskServerClient implements vscode.Disposable {
     public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
     public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail.event;
 
-    private readonly waitForConnect = new EventWaiter(this.onDidConnect).wait;
+    private readonly connectWaiter = new EventWaiter(this.onDidConnect);
 
     public constructor(
         private readonly server: GradleServer,
@@ -66,6 +66,7 @@ export class TaskServerClient implements vscode.Disposable {
     };
 
     public handleServerStart = (): Thenable<void> => {
+        this.connectWaiter.reset();
         return vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Window,
@@ -111,6 +112,7 @@ export class TaskServerClient implements vscode.Disposable {
         } catch (err) {
             logger.error("Unable to construct the gRPC client:", err.message);
             this.statusBarItem.hide();
+            this._onDidConnectFail.fire(null);
         }
     }
 
@@ -119,7 +121,7 @@ export class TaskServerClient implements vscode.Disposable {
         gradleConfig: GradleConfig,
         showOutputColors = false
     ): Promise<GradleBuild | undefined> {
-        await this.waitForConnect();
+        await this.connectWaiter.wait();
         this.statusBarItem.hide();
         return vscode.window.withProgress(
             {
@@ -230,7 +232,7 @@ export class TaskServerClient implements vscode.Disposable {
         title?: string,
         location?: vscode.ProgressLocation
     ): Promise<void> {
-        await this.waitForConnect();
+        await this.connectWaiter.wait();
         this.statusBarItem.hide();
         return vscode.window.withProgress(
             {
@@ -303,7 +305,7 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     public async cancelBuild(cancellationKey: string, task?: vscode.Task): Promise<void> {
-        await this.waitForConnect();
+        await this.connectWaiter.wait();
         this.statusBarItem.hide();
         const request = new CancelBuildRequest();
         request.setCancellationKey(cancellationKey);
@@ -357,7 +359,7 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     public async getNormalizedPackageName(name: string): Promise<string | undefined> {
-        await this.waitForConnect();
+        await this.connectWaiter.wait();
         const request = new ExecuteCommandRequest();
         request.setCommand(SpecifySourcePackageNameStep.GET_NORMALIZED_PACKAGE_NAME);
         request.addArguments(name);
@@ -430,5 +432,6 @@ export class TaskServerClient implements vscode.Disposable {
     public dispose(): void {
         this.close();
         this._onDidConnect.dispose();
+        this._onDidConnectFail.dispose();
     }
 }

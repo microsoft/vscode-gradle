@@ -158,9 +158,11 @@ export class GradleServer {
 
     private async killProcess(): Promise<void> {
         if (this.process) {
-            return new Promise((resolve, _reject) => {
+            return new Promise((resolve) => {
                 if (this.process?.pid) {
-                    kill(this.process.pid, () => resolve);
+                    kill(this.process.pid, () => resolve());
+                } else {
+                    resolve();
                 }
             });
         }

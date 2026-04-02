@@ -48,7 +48,9 @@ export async function startLanguageClientAndWaitForConnection(
                     resolve();
                 },
                 (e) => {
-                    void vscode.window.showErrorMessage(e);
+                    const errorMessage = e instanceof Error ? e.message : String(e);
+                    void vscode.window.showErrorMessage(errorMessage);
+                    resolve();
                 }
             );
             const disposable = languageClient.start();
@@ -133,7 +135,7 @@ async function syncProject(project: GradleProject): Promise<void> {
 export async function syncGradleBuild(gradleBuild: GradleBuild): Promise<void> {
     const rootProject = gradleBuild.getProject();
     if (rootProject && rootProject.getIsRoot()) {
-        syncProject(rootProject);
+        await syncProject(rootProject);
     }
 }
 
