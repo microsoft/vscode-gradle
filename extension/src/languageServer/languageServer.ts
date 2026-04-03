@@ -138,6 +138,7 @@ export async function syncGradleBuild(gradleBuild: GradleBuild): Promise<void> {
     if (rootProject && rootProject.getIsRoot()) {
         try {
             await syncProject(rootProject);
+            await vscode.commands.executeCommand("gradle.recompile");
         } catch (e) {
             // Log but don't propagate - sync failures should not block task discovery
             const message = e instanceof Error ? e.message : String(e);

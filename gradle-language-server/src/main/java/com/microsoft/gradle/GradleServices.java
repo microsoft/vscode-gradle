@@ -80,7 +80,8 @@ import org.eclipse.lsp4j.util.Ranges;
 public class GradleServices implements TextDocumentService, WorkspaceService, LanguageClientAware {
 
 	public static final List<String> supportedCommands = Arrays.asList("gradle.getDependencies",
-			"gradle.distributionChanged", "gradle.setPlugins", "gradle.setClosures", "gradle.setScriptClasspaths");
+			"gradle.distributionChanged", "gradle.setPlugins", "gradle.setClosures", "gradle.setScriptClasspaths",
+			"gradle.recompile");
 
 	private LanguageClient client;
 	private GradleFilesManager gradleFilesManager;
@@ -376,6 +377,7 @@ public class GradleServices implements TextDocumentService, WorkspaceService, La
 			String projectPath = new Gson().fromJson((JsonElement) arguments.get(0), String.class);
 			String[] scriptClasspaths = new Gson().fromJson((JsonElement) arguments.get(1), String[].class);
 			this.gradleFilesManager.setScriptClasspaths(projectPath, Arrays.asList(scriptClasspaths));
+		} else if (command.equals("gradle.recompile")) {
 			this.recompileAll();
 		}
 		return CompletableFuture.completedFuture(null);
