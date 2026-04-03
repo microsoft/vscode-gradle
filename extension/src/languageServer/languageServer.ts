@@ -128,9 +128,7 @@ async function syncSingleProject(project: GradleProject): Promise<void> {
 
 async function syncProject(project: GradleProject): Promise<void> {
     await syncSingleProject(project);
-    for (const subProject of project.getProjectsList()) {
-        await syncProject(subProject);
-    }
+    await Promise.all(project.getProjectsList().map((subProject) => syncProject(subProject)));
 }
 
 export async function syncGradleBuild(gradleBuild: GradleBuild): Promise<void> {
