@@ -96,7 +96,6 @@ function getGradleSettings(): unknown {
 async function syncSingleProject(project: GradleProject): Promise<void> {
     if (isLanguageServerStarted) {
         const projectPath = vscode.Uri.file(project.getProjectpath()).fsPath;
-        await vscode.commands.executeCommand("gradle.setPlugins", project.getProjectpath(), project.getPluginsList());
         const closures = project.getPluginclosuresList().map((value) => {
             const JSONMethod = value.getMethodsList().map((method) => {
                 return {
@@ -117,12 +116,15 @@ async function syncSingleProject(project: GradleProject): Promise<void> {
                 fields: JSONField,
             };
         });
-        await vscode.commands.executeCommand("gradle.setClosures", projectPath, closures);
-        await vscode.commands.executeCommand(
-            "gradle.setScriptClasspaths",
-            projectPath,
-            project.getScriptclasspathsList()
-        );
+        await Promise.all([
+            vscode.commands.executeCommand("gradle.setPlugins", project.getProjectpath(), project.getPluginsList()),
+            vscode.commands.executeCommand("gradle.setClosures", projectPath, closures),
+            vscode.commands.executeCommand(
+                "gradle.setScriptClasspaths",
+                projectPath,
+                project.getScriptclasspathsList()
+            ),
+        ]);
     }
 }
 
@@ -159,11 +161,9 @@ async function handleLanguageServerStart(
                 return;
             }
             // when language server starts, it knows nothing about the project
-            // here to asynchronously sync the project content (plugins, closures) with language server
-            const gradleBuild = await contentProvider.getGradleBuild(rootProject);
-            if (gradleBuild) {
-                await syncGradleBuild(gradleBuild);
-            }
+            // getGradleBuild internally calls syncGradleBuild to sync plugins, closures
+            // and classpaths with the language server on first fetch
+            await contentProvider.getGradleBuild(rootProject);
         }
     }
 }
