@@ -7,6 +7,7 @@ import { DidChangeConfigurationNotification, LanguageClientOptions } from "vscod
 import { LanguageClient, StreamInfo } from "vscode-languageclient/node";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 import { GradleBuild, GradleProject } from "../proto/gradle_pb";
+import { logger } from "../logger";
 import { RootProjectsStore } from "../stores";
 import {
     getConfigJavaImportGradleHome,
@@ -135,7 +136,13 @@ async function syncProject(project: GradleProject): Promise<void> {
 export async function syncGradleBuild(gradleBuild: GradleBuild): Promise<void> {
     const rootProject = gradleBuild.getProject();
     if (rootProject && rootProject.getIsRoot()) {
-        await syncProject(rootProject);
+        try {
+            await syncProject(rootProject);
+        } catch (e) {
+            // Log but don't propagate - sync failures should not block task discovery
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error("Failed to sync Gradle project with language server:", message);
+        }
     }
 }
 
