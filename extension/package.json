@@ -18,7 +18,7 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "vscode": "^1.76.0",
-    "node": "^18.20.4",
+    "node": ">=20.0.0",
     "npm": "^10.7.0"
   },
   "categories": [
