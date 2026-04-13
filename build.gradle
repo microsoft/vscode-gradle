@@ -6,8 +6,11 @@ plugins {
 }
 
 project.ext.set('grpcVersion', '1.54.2')
-project.ext.set('protobufVersion', '3.12.0')
-project.ext.set('protocVersion', project.protobufVersion)
+project.ext.set('protobufVersion', '3.25.5')
+// protoc compiler stays at 3.12.0 because the extension subproject uses
+// the built-in --js_out, which was removed in protoc 3.21+.
+// The runtime library is forced to 3.25.5 via resolutionStrategy below.
+project.ext.set('protocVersion', '3.12.0')
 project.ext.set('toolingAPIVersion', '9.2.0')
 
 allprojects {
@@ -27,6 +30,12 @@ subprojects {
     }
     maven {
       url 'https://repo.gradle.org/gradle/libs-releases'
+    }
+  }
+
+  configurations.all {
+    resolutionStrategy {
+      force "com.google.protobuf:protobuf-java:${protobufVersion}"
     }
   }
 
