@@ -3,9 +3,12 @@ import {
     TestRunner,
     TestItemStatusChangeEvent,
     TestFinishEvent,
+    TestResultState,
     IRunTestContext,
     TestIdParts,
 } from "../java-test-runner.api";
+import { TaskServerClient } from "../client";
+import { parseTestResults, TestCaseResult } from "./testResultParser";
 import * as getPort from "get-port";
 import { waitOnTcp } from "../util";
 import * as os from "os";
@@ -21,33 +24,54 @@ export class GradleTestRunner implements TestRunner {
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
 
-    constructor(testRunnerApi: any) {
+    constructor(testRunnerApi: any, private readonly client: TaskServerClient) {
         this.testRunnerApi = testRunnerApi;
         this.testInitScriptPath = path.join(os.tmpdir(), "testInitScript.gradle");
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
         this.context = context;
-        const tests: Map<string, string[]> = new Map();
+
+        // Build --tests filter arguments from test items
+        const testFilters: string[] = [];
         context.testItems.forEach((testItem) => {
             const id = testItem.id;
             const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
             if (!parts.class) {
                 return;
             }
-            const testMethods = tests.get(parts.class) || [];
             if (parts.invocations?.length) {
                 let methodId = parts.invocations[0];
                 if (methodId.includes("(")) {
-                    methodId = methodId.slice(0, methodId.indexOf("(")); // gradle test task doesn't support method with parameters
+                    methodId = methodId.slice(0, methodId.indexOf("("));
                 }
-                testMethods.push(methodId);
+                testFilters.push(`${parts.class}.${methodId}`);
+            } else {
+                testFilters.push(parts.class);
             }
-            tests.set(parts.class, testMethods);
         });
 
-        const agrs = context.testConfig?.args ?? [];
+        if (testFilters.length === 0) {
+            this.finishTestRun(0);
+            return;
+        }
+
+        // Build gradle args: test --tests "filter1" --tests "filter2" ...
+        const gradleArgs: string[] = ["test"];
+        for (const filter of testFilters) {
+            gradleArgs.push("--tests", filter);
+        }
+
+        const userArgs = context.testConfig?.args ?? [];
+        gradleArgs.push(...userArgs);
+
         const vmArgs = context.testConfig?.vmArgs;
+        if (vmArgs?.length) {
+            for (const vmArg of vmArgs) {
+                gradleArgs.push(`-Dorg.gradle.jvmargs=${vmArg}`);
+            }
+        }
+
         const isDebug = context.isDebug && !!vscode.extensions.getExtension("vscjava.vscode-java-debug");
         let debugPort = -1;
         if (isDebug) {
@@ -57,49 +81,80 @@ export class GradleTestRunner implements TestRunner {
                 vscode.Uri.file(this.testInitScriptPath),
                 Buffer.from(initScriptContent)
             );
-            agrs.unshift("--init-script", this.testInitScriptPath);
+            gradleArgs.unshift("--init-script", this.testInitScriptPath);
         }
-        const env = context.testConfig?.env;
+
+        const projectFolder = context.workspaceFolder.uri.fsPath;
+
+        // Mark all test items as running
+        context.testItems.forEach((testItem) => {
+            const id = testItem.id;
+            const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
+            if (parts.class) {
+                const testId = this.testRunnerApi.parseTestIdFromParts({
+                    project: context.projectName,
+                    class: parts.class,
+                    invocations: parts.invocations,
+                });
+                this._onDidChangeTestItemStatus.fire({
+                    testId,
+                    state: TestResultState.Running,
+                });
+            }
+        });
+
         try {
-            await vscode.commands.executeCommand(
-                "java.execute.workspaceCommand",
-                "java.gradle.delegateTest",
-                context.projectName,
-                JSON.stringify([...tests]),
-                agrs,
-                vmArgs,
-                env
+            await this.client.runBuild(
+                projectFolder,
+                `gradleTestRun-${Date.now()}`,
+                gradleArgs,
+                "",
+                isDebug ? debugPort : 0,
             );
+
             if (isDebug) {
                 this.startJavaDebug(debugPort);
             }
+
+            // Parse JUnit XML results and emit status events
+            const results = await parseTestResults(context.workspaceFolder.uri);
+            this.emitTestResults(results);
+            this.finishTestRun(0);
         } catch (error) {
-            this.finishTestRun(-1, error.message);
+            // Gradle exits with non-zero when tests fail — still parse results
+            try {
+                const results = await parseTestResults(context.workspaceFolder.uri);
+                if (results.length > 0) {
+                    this.emitTestResults(results);
+                    this.finishTestRun(0);
+                } else {
+                    this.finishTestRun(1, error.message || "Gradle test execution failed");
+                }
+            } catch {
+                this.finishTestRun(1, error.message || "Gradle test execution failed");
+            }
         }
     }
 
-    public updateTestItem(
-        testParts: string[],
-        state: number,
-        displayName?: string,
-        message?: string,
-        duration?: number
-    ): void {
-        if (message) {
-            message = this.filterStackTrace(message);
+    private emitTestResults(results: TestCaseResult[]): void {
+        for (const result of results) {
+            let message = result.message;
+            if (message) {
+                message = this.filterStackTrace(message);
+            }
+            const testId = this.testRunnerApi.parseTestIdFromParts({
+                project: this.context.projectName,
+                class: result.className,
+                invocations: [result.methodName],
+            });
+            this._onDidChangeTestItemStatus.fire({
+                testId,
+                state: result.state,
+                displayName: result.displayName,
+                message,
+                duration: result.duration,
+            });
         }
-        const testId = this.testRunnerApi.parseTestIdFromParts({
-            project: this.context.projectName,
-            class: testParts[0],
-            invocations: testParts.slice(1),
-        });
-        this._onDidChangeTestItemStatus.fire({
-            testId,
-            state,
-            displayName,
-            message,
-            duration,
-        });
     }
 
     public finishTestRun(statusCode: number, message?: string): void {

@@ -407,7 +407,7 @@ export class Extension {
         if (testExtension) {
             const testRunnerApi = await testExtension.activate();
             if (testRunnerApi) {
-                const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(testRunnerApi);
+                const testRunner = new GradleTestRunner(testRunnerApi, this.taskServerClient);
                 testRunnerApi.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
                 testRunnerApi.registerTestProfile(
                     "Delegate Test to Gradle (Debug)",
