@@ -103,6 +103,13 @@ export class GradleTestRunner implements TestRunner {
             }
         });
 
+        // Start debug attachment concurrently — the init script sets suspend=y,
+        // so the test JVM blocks until the debugger connects. We must start
+        // waiting for the debug port BEFORE runBuild, otherwise it's a deadlock.
+        if (isDebug) {
+            this.startJavaDebug(debugPort);
+        }
+
         try {
             await this.client.runBuild(
                 projectFolder,
@@ -111,10 +118,6 @@ export class GradleTestRunner implements TestRunner {
                 "",
                 isDebug ? debugPort : 0,
             );
-
-            if (isDebug) {
-                this.startJavaDebug(debugPort);
-            }
 
             // Parse JUnit XML results and emit status events
             const results = await parseTestResults(context.workspaceFolder.uri);
