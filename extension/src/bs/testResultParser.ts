@@ -14,7 +14,7 @@ export interface TestCaseResult {
  * Parses JUnit XML test result files from the Gradle build output directory.
  * Gradle writes standard JUnit XML to `build/test-results/<taskName>/`.
  */
-export async function parseTestResults(projectDir: vscode.Uri, taskName: string = "test"): Promise<TestCaseResult[]> {
+export async function parseTestResults(projectDir: vscode.Uri, taskName = "test"): Promise<TestCaseResult[]> {
     const resultsDir = vscode.Uri.joinPath(projectDir, "build", "test-results", taskName);
     const results: TestCaseResult[] = [];
 
