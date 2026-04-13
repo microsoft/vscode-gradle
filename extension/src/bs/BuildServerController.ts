@@ -86,14 +86,12 @@ export class BuildServerController implements Disposable {
             // BSP test result callbacks are no longer used — test execution now goes
             // through Gradle's runBuild API directly. These commands are kept as no-ops
             // for backward compatibility with older JDT LS importer plugins.
-            commands.registerCommand(
-                "java.gradle.buildServer.onDidFinishTestRun",
-                () => { /* no-op: test results are now parsed from JUnit XML */ }
-            ),
-            commands.registerCommand(
-                "java.gradle.buildServer.onDidChangeTestItemStatus",
-                () => { /* no-op: test results are now parsed from JUnit XML */ }
-            ),
+            commands.registerCommand("java.gradle.buildServer.onDidFinishTestRun", () => {
+                /* no-op: test results are now parsed from JUnit XML */
+            }),
+            commands.registerCommand("java.gradle.buildServer.onDidChangeTestItemStatus", () => {
+                /* no-op: test results are now parsed from JUnit XML */
+            }),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;

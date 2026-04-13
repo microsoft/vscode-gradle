@@ -116,7 +116,7 @@ export class GradleTestRunner implements TestRunner {
                 `gradleTestRun-${Date.now()}`,
                 gradleArgs,
                 "",
-                isDebug ? debugPort : 0,
+                isDebug ? debugPort : 0
             );
 
             // Parse JUnit XML results and emit status events
