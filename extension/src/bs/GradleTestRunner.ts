@@ -68,18 +68,24 @@ export class GradleTestRunner implements TestRunner {
         const userArgs = context.testConfig?.args ?? [];
         gradleArgs.push(...userArgs);
 
-        const vmArgs = context.testConfig?.vmArgs;
-        if (vmArgs?.length) {
-            for (const vmArg of vmArgs) {
-                gradleArgs.push(`-Dorg.gradle.jvmargs=${vmArg}`);
-            }
-        }
+        // Collect test JVM args and env vars. These cannot be passed on the
+        // Gradle command line (that would affect the Gradle daemon, not the
+        // forked test JVM), so we inject them into every Test task via an
+        // init script.
+        const vmArgs: string[] = (context.testConfig?.vmArgs ?? [])
+            .map((a) => (typeof a === "string" ? a : String(a)))
+            .filter((a) => a.length > 0);
+        const envVars: Record<string, string> = context.testConfig?.env ?? {};
 
         const isDebug = context.isDebug && !!vscode.extensions.getExtension("vscjava.vscode-java-debug");
         let debugPort = -1;
         if (isDebug) {
             debugPort = await getPort();
-            const initScriptContent = this.getInitScriptContent(debugPort);
+        }
+
+        const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0;
+        if (needsInitScript) {
+            const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
             await vscode.workspace.fs.writeFile(
                 vscode.Uri.file(this.testInitScriptPath),
                 Buffer.from(initScriptContent)
@@ -239,21 +245,41 @@ export class GradleTestRunner implements TestRunner {
     }
 
     /**
-     * See: https://docs.gradle.org/current/javadoc/org/gradle/tooling/TestLauncher.html#debugTestsOn(int)
-     * since the gradle tooling api does not support debug tests in server=y mode, so we use the init script
-     * as a workaround.
+     * Builds the Gradle init script that configures every Test task in the
+     * build with the user's JVM args, environment variables, and (optionally)
+     * the debug agent.
      *
-     * We directly set the jvmArgs here because the debugOptions in the init script does not work for Gradle > 8.4.
+     * We use an init script (rather than command-line flags) because:
+     *  - `-Dorg.gradle.jvmargs=...` only configures the Gradle daemon, not the
+     *    forked test JVM.
+     *  - Gradle Tooling API's `TestLauncher.debugTestsOn()` does not support
+     *    `server=y` mode, which we need so the test JVM waits for the debugger.
+     *    See: https://docs.gradle.org/current/javadoc/org/gradle/tooling/TestLauncher.html#debugTestsOn(int)
      *
-     * Note that this approach may have problem that multiple test tasks are executed in one build invocation.
-     * In that case, there's a race between tasks that first uses the specified debug port. To resolve this issue,
-     * we may consider checking the project root path in the init script as well.
+     * Note: when multiple test tasks are executed in one build invocation with
+     * debug enabled, there is a race for the debug port. If this becomes a
+     * problem, we could scope the debug agent by project root path.
      */
-    private getInitScriptContent(debugPort: number): string {
-        return `allprojects {
-    tasks.withType(Test) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'
+    private getInitScriptContent(debugPort: number, vmArgs: string[], envVars: Record<string, string>): string {
+        const lines: string[] = ["allprojects {", "    tasks.withType(Test).configureEach {"];
+        for (const arg of vmArgs) {
+            lines.push(`        jvmArgs '${escapeGroovySingleQuoted(arg)}'`);
+        }
+        for (const [key, value] of Object.entries(envVars)) {
+            lines.push(`        environment '${escapeGroovySingleQuoted(key)}', '${escapeGroovySingleQuoted(value)}'`);
+        }
+        if (debugPort > 0) {
+            lines.push(`        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'`);
+        }
+        lines.push("    }", "}");
+        return lines.join("\n");
     }
-}`;
-    }
+}
+
+/**
+ * Escape a string so it can be embedded inside a Groovy single-quoted literal.
+ * Only backslashes and single quotes need escaping.
+ */
+function escapeGroovySingleQuoted(s: string): string {
+    return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
