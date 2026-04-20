@@ -32,14 +32,17 @@ export class GradleTestRunner implements TestRunner {
     public async launch(context: IRunTestContext): Promise<void> {
         this.context = context;
 
-        // Build --tests filter arguments from test items
+        // Build --tests filter arguments from test items, and collect the set of
+        // classes under test so we can later match their result XML files.
         const testFilters: string[] = [];
+        const classNames = new Set<string>();
         context.testItems.forEach((testItem) => {
             const id = testItem.id;
             const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
             if (!parts.class) {
                 return;
             }
+            classNames.add(parts.class);
             if (parts.invocations?.length) {
                 let methodId = parts.invocations[0];
                 if (methodId.includes("(")) {
@@ -110,6 +113,11 @@ export class GradleTestRunner implements TestRunner {
             this.startJavaDebug(debugPort);
         }
 
+        // Captured just before runBuild so we can later ignore result XML files
+        // left over from previous runs. Subtract a small slack to tolerate clock
+        // skew between this process and the filesystem.
+        const runStartTime = Date.now() - 2000;
+
         try {
             await this.client.runBuild(
                 projectFolder,
@@ -120,13 +128,19 @@ export class GradleTestRunner implements TestRunner {
             );
 
             // Parse JUnit XML results and emit status events
-            const results = await parseTestResults(context.workspaceFolder.uri);
+            const results = await parseTestResults(context.workspaceFolder, {
+                classNames,
+                minMtime: runStartTime,
+            });
             this.emitTestResults(results);
             this.finishTestRun(0);
         } catch (error) {
             // Gradle exits with non-zero when tests fail — still parse results
             try {
-                const results = await parseTestResults(context.workspaceFolder.uri);
+                const results = await parseTestResults(context.workspaceFolder, {
+                    classNames,
+                    minMtime: runStartTime,
+                });
                 if (results.length > 0) {
                     this.emitTestResults(results);
                     this.finishTestRun(0);

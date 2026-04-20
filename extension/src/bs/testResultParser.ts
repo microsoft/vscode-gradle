@@ -10,26 +10,72 @@ export interface TestCaseResult {
     message?: string;
 }
 
+export interface ParseTestResultsOptions {
+    /**
+     * Fully-qualified class names that were requested in this run. Only result
+     * files for these classes (and their nested classes) will be parsed. Leave
+     * undefined / empty to parse all result files.
+     */
+    classNames?: ReadonlySet<string>;
+
+    /**
+     * Epoch millis; only result files with mtime >= this value will be parsed.
+     * Guards against stale XML files left over from previous test runs.
+     */
+    minMtime?: number;
+
+    /**
+     * Gradle task directory under `build/test-results/` to scan. Defaults to `"test"`.
+     */
+    taskName?: string;
+}
+
 /**
  * Parses JUnit XML test result files from the Gradle build output directory.
- * Gradle writes standard JUnit XML to `build/test-results/<taskName>/`.
+ *
+ * Gradle writes standard JUnit XML per test class to
+ * `<projectDir>/build/test-results/<taskName>/TEST-<fqcn>.xml` — and for
+ * multi-project builds, to the equivalent path inside each sub-project. This
+ * function recursively scans the workspace to find all such files.
+ *
+ * The optional `classNames` / `minMtime` in `options` narrow the file set to
+ * only those produced by the current run, which prevents stale results from
+ * previous runs being reported as fresh.
  */
-export async function parseTestResults(projectDir: vscode.Uri, taskName = "test"): Promise<TestCaseResult[]> {
-    const resultsDir = vscode.Uri.joinPath(projectDir, "build", "test-results", taskName);
+export async function parseTestResults(
+    workspaceFolder: vscode.WorkspaceFolder,
+    options: ParseTestResultsOptions = {}
+): Promise<TestCaseResult[]> {
+    const taskName = options.taskName ?? "test";
+    const classNames = options.classNames;
+    const minMtime = options.minMtime;
+
+    const pattern = new vscode.RelativePattern(workspaceFolder, `**/build/test-results/${taskName}/TEST-*.xml`);
+    // Pass `null` for exclude so default search.exclude / files.exclude (which
+    // typically hide build/ output) do not cause us to miss result files.
+    const fileUris = await vscode.workspace.findFiles(pattern, null);
+
     const results: TestCaseResult[] = [];
-
-    let files: [string, vscode.FileType][];
-    try {
-        files = await vscode.workspace.fs.readDirectory(resultsDir);
-    } catch {
-        return results;
-    }
-
-    for (const [fileName, fileType] of files) {
-        if (fileType !== vscode.FileType.File || !fileName.endsWith(".xml")) {
-            continue;
+    for (const fileUri of fileUris) {
+        const fileName = basename(fileUri.path);
+        if (classNames && classNames.size > 0) {
+            const fileClass = classFromResultFileName(fileName);
+            if (!fileClass || !matchesAnyClass(fileClass, classNames)) {
+                continue;
+            }
         }
-        const fileUri = vscode.Uri.joinPath(resultsDir, fileName);
+
+        if (minMtime !== undefined) {
+            try {
+                const stat = await vscode.workspace.fs.stat(fileUri);
+                if (stat.mtime < minMtime) {
+                    continue;
+                }
+            } catch {
+                continue;
+            }
+        }
+
         try {
             const content = Buffer.from(await vscode.workspace.fs.readFile(fileUri)).toString("utf-8");
             results.push(...parseJUnitXml(content));
@@ -39,6 +85,38 @@ export async function parseTestResults(projectDir: vscode.Uri, taskName = "test"
     }
 
     return results;
+}
+
+function basename(p: string): string {
+    const i = p.lastIndexOf("/");
+    return i >= 0 ? p.substring(i + 1) : p;
+}
+
+/**
+ * Extracts the fully-qualified class name from a Gradle JUnit result filename
+ * of the form `TEST-<fqcn>.xml`. Returns undefined for files that don't match.
+ */
+function classFromResultFileName(fileName: string): string | undefined {
+    if (!fileName.startsWith("TEST-") || !fileName.endsWith(".xml")) {
+        return undefined;
+    }
+    return fileName.substring("TEST-".length, fileName.length - ".xml".length);
+}
+
+/**
+ * A file class matches a requested class if it equals the requested name or
+ * if it is a nested class of it (e.g. `com.foo.Bar$Inner` matches `com.foo.Bar`).
+ */
+function matchesAnyClass(fileClass: string, requested: ReadonlySet<string>): boolean {
+    if (requested.has(fileClass)) {
+        return true;
+    }
+    for (const cls of requested) {
+        if (fileClass.startsWith(cls + "$")) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
