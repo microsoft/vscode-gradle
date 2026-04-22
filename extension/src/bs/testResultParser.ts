@@ -122,6 +122,9 @@ function matchesAnyClass(fileClass: string, requested: ReadonlySet<string>): boo
 /**
  * Parses a single JUnit XML file content into test case results.
  *
+ * Exported for unit testing — prefer {@link parseTestResults} for the full
+ * file-discovery + mtime-filtering flow.
+ *
  * JUnit XML format:
  * <testsuite name="com.example.MyTest" tests="2" failures="1" errors="0" skipped="0" time="0.123">
  *   <testcase name="testMethod" classname="com.example.MyTest" time="0.05">
@@ -130,7 +133,7 @@ function matchesAnyClass(fileClass: string, requested: ReadonlySet<string>): boo
  *   <testcase name="testOther" classname="com.example.MyTest" time="0.01"/>
  * </testsuite>
  */
-function parseJUnitXml(xml: string): TestCaseResult[] {
+export function parseJUnitXml(xml: string): TestCaseResult[] {
     const results: TestCaseResult[] = [];
     const testCaseRegex = /<testcase\s+([^>]*)(?:\/>|>([\s\S]*?)<\/testcase>)/g;
     let match: RegExpExecArray | null;
@@ -186,7 +189,10 @@ function parseJUnitXml(xml: string): TestCaseResult[] {
 }
 
 function getAttr(attrs: string, name: string): string | undefined {
-    const regex = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, "i");
+    // Require a word boundary before the attribute name so querying "name" does
+    // not accidentally match "classname". Anchored with a leading whitespace /
+    // start-of-string to avoid matching suffixes of unrelated attribute names.
+    const regex = new RegExp(`(?:^|\\s)${name}\\s*=\\s*"([^"]*)"`, "i");
     const match = regex.exec(attrs);
     return match ? decodeXmlEntities(match[1]) : undefined;
 }
