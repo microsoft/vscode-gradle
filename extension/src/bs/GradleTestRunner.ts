@@ -26,7 +26,12 @@ export class GradleTestRunner implements TestRunner {
 
     constructor(testRunnerApi: any, private readonly client: TaskServerClient) {
         this.testRunnerApi = testRunnerApi;
-        this.testInitScriptPath = path.join(os.tmpdir(), "testInitScript.gradle");
+        // Unique per-process, per-run suffix so concurrent runs / lingering files
+        // from a previous VS Code session cannot collide or be picked up.
+        this.testInitScriptPath = path.join(
+            os.tmpdir(),
+            `gradle-test-init-${process.pid}-${Date.now()}.gradle`
+        );
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
@@ -59,8 +64,12 @@ export class GradleTestRunner implements TestRunner {
             return;
         }
 
-        // Build gradle args: test --tests "filter1" --tests "filter2" ...
-        const gradleArgs: string[] = ["test"];
+        // Always run `cleanTest` before `test`. Gradle marks a Test task as
+        // UP-TO-DATE when inputs haven't changed, which would skip execution and
+        // NOT regenerate the JUnit XML report — we'd then parse stale or absent
+        // XML and report nothing. `cleanTest` forces a fresh run; it's cheap
+        // (just deletes the previous task outputs) and is the conventional fix.
+        const gradleArgs: string[] = ["cleanTest", "test"];
         for (const filter of testFilters) {
             gradleArgs.push("--tests", filter);
         }
@@ -84,18 +93,23 @@ export class GradleTestRunner implements TestRunner {
         }
 
         const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0;
+        let initScriptWritten = false;
         if (needsInitScript) {
             const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
             await vscode.workspace.fs.writeFile(
                 vscode.Uri.file(this.testInitScriptPath),
                 Buffer.from(initScriptContent)
             );
+            initScriptWritten = true;
             gradleArgs.unshift("--init-script", this.testInitScriptPath);
         }
 
         const projectFolder = context.workspaceFolder.uri.fsPath;
 
-        // Mark all test items as running
+        // Track the test ids we put into Running state so we can finalize them
+        // if the run aborts before results come back (e.g. build crash, debug
+        // attach failure). Without this, items are stuck as Running forever.
+        const runningTestIds = new Set<string>();
         context.testItems.forEach((testItem) => {
             const id = testItem.id;
             const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
@@ -105,6 +119,7 @@ export class GradleTestRunner implements TestRunner {
                     class: parts.class,
                     invocations: parts.invocations,
                 });
+                runningTestIds.add(testId);
                 this._onDidChangeTestItemStatus.fire({
                     testId,
                     state: TestResultState.Running,
@@ -112,11 +127,24 @@ export class GradleTestRunner implements TestRunner {
             }
         });
 
+        // Share a cancellation key between runBuild and the debug-attach path
+        // so a failed attach can actively cancel the Gradle build (otherwise
+        // the test JVM stays suspended waiting for a debugger that never comes).
+        const cancellationKey = `gradleTestRun-${process.pid}-${Date.now()}`;
+
         // Start debug attachment concurrently — the init script sets suspend=y,
         // so the test JVM blocks until the debugger connects. We must start
         // waiting for the debug port BEFORE runBuild, otherwise it's a deadlock.
         if (isDebug) {
-            this.startJavaDebug(debugPort);
+            this.startJavaDebug(debugPort).catch((err) => {
+                // Fire-and-forget is not safe here: if the attach fails, the
+                // test JVM will sit suspended forever, holding the build open.
+                // Cancel the build so we surface a finite error to the user.
+                this.client.cancelBuild(cancellationKey).catch(() => {
+                    /* best-effort; runBuild will reject below */
+                });
+                console.error("[gradle-test] Failed to attach debugger:", err);
+            });
         }
 
         // Captured just before runBuild so we can later ignore result XML files
@@ -125,41 +153,65 @@ export class GradleTestRunner implements TestRunner {
         const runStartTime = Date.now() - 2000;
 
         try {
-            await this.client.runBuild(
-                projectFolder,
-                `gradleTestRun-${Date.now()}`,
-                gradleArgs,
-                "",
-                isDebug ? debugPort : 0
-            );
-
-            // Parse JUnit XML results and emit status events
-            const results = await parseTestResults(context.workspaceFolder, {
-                classNames,
-                minMtime: runStartTime,
-            });
-            this.emitTestResults(results);
-            this.finishTestRun(0);
-        } catch (error) {
-            // Gradle exits with non-zero when tests fail — still parse results
             try {
+                await this.client.runBuild(
+                    projectFolder,
+                    cancellationKey,
+                    gradleArgs,
+                    "",
+                    isDebug ? debugPort : 0
+                );
+
+                // Parse JUnit XML results and emit status events
                 const results = await parseTestResults(context.workspaceFolder, {
                     classNames,
                     minMtime: runStartTime,
                 });
-                if (results.length > 0) {
-                    this.emitTestResults(results);
+                this.emitTestResults(results, runningTestIds);
+                this.finalizePendingItems(runningTestIds);
+                this.finishTestRun(0);
+            } catch (error) {
+                // Gradle exits with non-zero when tests fail — still parse results
+                let parsedAny = false;
+                try {
+                    const results = await parseTestResults(context.workspaceFolder, {
+                        classNames,
+                        minMtime: runStartTime,
+                    });
+                    if (results.length > 0) {
+                        this.emitTestResults(results, runningTestIds);
+                        parsedAny = true;
+                    }
+                } catch {
+                    // fall through to error path
+                }
+                // Finalize any items that never got a result so they don't
+                // remain stuck in Running.
+                this.finalizePendingItems(runningTestIds);
+                if (parsedAny) {
                     this.finishTestRun(0);
                 } else {
                     this.finishTestRun(1, error.message || "Gradle test execution failed");
                 }
-            } catch {
-                this.finishTestRun(1, error.message || "Gradle test execution failed");
+            }
+        } finally {
+            // Best-effort cleanup of the per-run init script. Safe if it was
+            // never written (the fs call will just reject and we swallow it).
+            if (initScriptWritten) {
+                try {
+                    await vscode.workspace.fs.delete(vscode.Uri.file(this.testInitScriptPath));
+                } catch {
+                    /* best-effort */
+                }
             }
         }
     }
 
-    private emitTestResults(results: TestCaseResult[]): void {
+    /**
+     * Emit results for tests we have XML for, and remove those ids from the
+     * pending set so {@link finalizePendingItems} knows what's still unresolved.
+     */
+    private emitTestResults(results: TestCaseResult[], pending?: Set<string>): void {
         for (const result of results) {
             let message = result.message;
             if (message) {
@@ -170,6 +222,7 @@ export class GradleTestRunner implements TestRunner {
                 class: result.className,
                 invocations: [result.methodName],
             });
+            pending?.delete(testId);
             this._onDidChangeTestItemStatus.fire({
                 testId,
                 state: result.state,
@@ -178,6 +231,23 @@ export class GradleTestRunner implements TestRunner {
                 duration: result.duration,
             });
         }
+    }
+
+    /**
+     * Any test id that we marked Running but never received a result for is
+     * transitioned to Errored with an explanatory message. Without this, test
+     * items would be stuck with a spinner indefinitely whenever the build
+     * fails before producing reports (compile error, cancellation, crash).
+     */
+    private finalizePendingItems(pending: Set<string>): void {
+        for (const testId of pending) {
+            this._onDidChangeTestItemStatus.fire({
+                testId,
+                state: TestResultState.Errored,
+                message: "No test result was reported for this item (build may have failed before tests ran).",
+            });
+        }
+        pending.clear();
     }
 
     public finishTestRun(statusCode: number, message?: string): void {

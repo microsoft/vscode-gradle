@@ -146,21 +146,28 @@ function parseJUnitXml(xml: string): TestCaseResult[] {
         }
 
         const timeStr = getAttr(attrs, "time");
-        const duration = timeStr ? Math.round(parseFloat(timeStr) * 1000) : undefined;
+        let duration: number | undefined;
+        if (timeStr) {
+            const seconds = parseFloat(timeStr);
+            if (Number.isFinite(seconds)) {
+                duration = Math.round(seconds * 1000);
+            }
+        }
 
         let state: TestResultState = TestResultState.Passed;
         let message: string | undefined;
 
-        const failureMatch = /<failure\b[^>]*>([\s\S]*?)<\/failure>/i.exec(body);
-        const errorMatch = /<error\b[^>]*>([\s\S]*?)<\/error>/i.exec(body);
+        // Capture the opening tag's attributes (may be self-closing `/>` or a full tag followed by body).
+        const failureMatch = /<failure\b([^>]*?)(?:\/>|>([\s\S]*?)<\/failure>)/i.exec(body);
+        const errorMatch = /<error\b([^>]*?)(?:\/>|>([\s\S]*?)<\/error>)/i.exec(body);
         const skippedMatch = /<skipped\b/i.exec(body);
 
         if (failureMatch) {
             state = TestResultState.Failed;
-            message = failureMatch[1]?.trim();
+            message = resolveFailureMessage(failureMatch[1], failureMatch[2]);
         } else if (errorMatch) {
             state = TestResultState.Errored;
-            message = errorMatch[1]?.trim();
+            message = resolveFailureMessage(errorMatch[1], errorMatch[2]);
         } else if (skippedMatch) {
             state = TestResultState.Skipped;
         }
@@ -182,6 +189,30 @@ function getAttr(attrs: string, name: string): string | undefined {
     const regex = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, "i");
     const match = regex.exec(attrs);
     return match ? decodeXmlEntities(match[1]) : undefined;
+}
+
+/**
+ * Resolve a human-readable failure/error message from a `<failure>` or `<error>` element.
+ *
+ * Standard Gradle-produced JUnit XML looks like:
+ *   <failure message="expected 1 but was 2" type="AssertionError">stacktrace...</failure>
+ * but the body can also be empty (self-closing `<failure .../>` or `<failure ...></failure>`),
+ * in which case we must fall back to the `message` attribute — otherwise the test shows up
+ * as failed with no diagnostic at all.
+ *
+ * When both are present we prefer `message\nbody` so the short summary stays visible even
+ * if the stacktrace is long.
+ */
+function resolveFailureMessage(rawAttrs: string | undefined, rawBody: string | undefined): string | undefined {
+    const body = rawBody?.trim();
+    const msgAttr = rawAttrs ? getAttr(rawAttrs, "message") : undefined;
+    if (body && msgAttr && !body.startsWith(msgAttr)) {
+        return `${msgAttr}\n${body}`;
+    }
+    if (body) {
+        return body;
+    }
+    return msgAttr;
 }
 
 function decodeXmlEntities(str: string): string {
