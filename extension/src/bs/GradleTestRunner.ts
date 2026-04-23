@@ -28,10 +28,7 @@ export class GradleTestRunner implements TestRunner {
         this.testRunnerApi = testRunnerApi;
         // Unique per-process, per-run suffix so concurrent runs / lingering files
         // from a previous VS Code session cannot collide or be picked up.
-        this.testInitScriptPath = path.join(
-            os.tmpdir(),
-            `gradle-test-init-${process.pid}-${Date.now()}.gradle`
-        );
+        this.testInitScriptPath = path.join(os.tmpdir(), `gradle-test-init-${process.pid}-${Date.now()}.gradle`);
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
@@ -154,13 +151,7 @@ export class GradleTestRunner implements TestRunner {
 
         try {
             try {
-                await this.client.runBuild(
-                    projectFolder,
-                    cancellationKey,
-                    gradleArgs,
-                    "",
-                    isDebug ? debugPort : 0
-                );
+                await this.client.runBuild(projectFolder, cancellationKey, gradleArgs, "", isDebug ? debugPort : 0);
 
                 // Parse JUnit XML results and emit status events
                 const results = await parseTestResults(context.workspaceFolder, {
