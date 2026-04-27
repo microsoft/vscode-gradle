@@ -985,14 +985,14 @@
   },
   "dependencies": {
     "await-lock": "^2.2.2",
-    "jdk-utils": "^0.4.4",
     "fs-extra": "^11.1.0",
     "get-port": "^5.1.1",
+    "jdk-utils": "^0.4.4",
     "lodash": "^4.17.23",
     "minimatch": "^5.1.9",
     "string-argv": "^0.3.1",
     "tree-kill": "^1.2.2",
-    "vscode-extension-telemetry-wrapper": "0.14.0",
+    "vscode-extension-telemetry-wrapper": "0.15.2",
     "vscode-languageclient": "7.0.0"
   },
   "overrides": {
