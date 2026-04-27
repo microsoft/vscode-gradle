@@ -11,6 +11,7 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
     });
 
     it("maps parameterized XML result names back to the originally requested test id", async () => {
+        stubBspUnavailable();
         const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
             fileUri,
@@ -59,6 +60,7 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
     });
 
     it("finalizes a requested class item from child XML results", async () => {
+        stubBspUnavailable();
         const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
             fileUri,
@@ -94,6 +96,7 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
     });
 
     it("uses a unique init script path for each launch", async () => {
+        stubBspUnavailable();
         const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
             fileUri,
@@ -132,7 +135,66 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         assert.strictEqual(secondArgs[0], "--init-script");
         assert.notStrictEqual(firstArgs[1], secondArgs[1]);
     });
+
+    it("uses BSP first when the BSP delegate command succeeds", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const client = buildClient();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+
+        await runner.launch(
+            buildRunContext(testRunnerApi, [
+                {
+                    id: "method",
+                    parts: {
+                        project: "demo",
+                        class: "com.example.AppTest",
+                        invocations: ["shouldPass(String)"],
+                    },
+                },
+            ])
+        );
+
+        assert.strictEqual(client.runBuild.called, false);
+        assert.strictEqual(executeCommand.firstCall.args[0], "java.execute.workspaceCommand");
+        assert.strictEqual(executeCommand.firstCall.args[1], "java.gradle.delegateTest");
+        assert.strictEqual(executeCommand.firstCall.args[2], "demo");
+        assert.strictEqual(executeCommand.firstCall.args[3], JSON.stringify([["com.example.AppTest", ["shouldPass"]]]));
+    });
+
+    it("does not XML fallback for non-BSP delegate errors", async () => {
+        sinon.stub(vscode.commands, "executeCommand").rejects(new Error("Gradle test execution failed"));
+        const client = buildClient();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+        let finishStatus: number | undefined;
+        runner.onDidFinishTestRun((event) => {
+            finishStatus = event.statusCode;
+        });
+
+        await runner.launch(
+            buildRunContext(testRunnerApi, [
+                {
+                    id: "method",
+                    parts: {
+                        project: "demo",
+                        class: "com.example.AppTest",
+                        invocations: ["shouldPass"],
+                    },
+                },
+            ])
+        );
+
+        assert.strictEqual(client.runBuild.called, false);
+        assert.strictEqual(finishStatus, -1);
+    });
 });
+
+function stubBspUnavailable(): void {
+    sinon
+        .stub(vscode.commands, "executeCommand")
+        .rejects(new Error("Project is not a Gradle build server project: demo"));
+}
 
 function stubTestResultFiles(fileUri: vscode.Uri, xml: string): void {
     sinon.stub(vscode.workspace, "findFiles").resolves([fileUri]);

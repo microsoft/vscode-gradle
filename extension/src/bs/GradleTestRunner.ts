@@ -18,6 +18,7 @@ export class GradleTestRunner implements TestRunner {
     private readonly _onDidChangeTestItemStatus = new vscode.EventEmitter<TestItemStatusChangeEvent>();
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
     private testRunnerApi: any;
+    private bspContext: IRunTestContext | undefined;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
@@ -27,6 +28,101 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
+        try {
+            await this.launchWithBsp(context);
+        } catch (error) {
+            if (!isBspUnavailableError(error)) {
+                this.finishTestRun(-1, getErrorMessage(error));
+                return;
+            }
+            await this.launchXmlFallback(context);
+        }
+    }
+
+    public updateTestItem(
+        testParts: string[],
+        state: number,
+        displayName?: string,
+        message?: string,
+        duration?: number
+    ): void {
+        if (!this.bspContext) {
+            return;
+        }
+        if (message) {
+            message = this.filterStackTrace(message);
+        }
+        const testId = this.testRunnerApi.parseTestIdFromParts({
+            project: this.bspContext.projectName,
+            class: testParts[0],
+            invocations: testParts.slice(1),
+        });
+        this._onDidChangeTestItemStatus.fire({
+            testId,
+            state,
+            displayName,
+            message,
+            duration,
+        });
+    }
+
+    private async launchWithBsp(context: IRunTestContext): Promise<void> {
+        this.bspContext = context;
+        const tests: Map<string, string[]> = new Map();
+        context.testItems.forEach((testItem) => {
+            const id = testItem.id;
+            const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
+            if (!parts.class) {
+                return;
+            }
+            const testMethods = tests.get(parts.class) || [];
+            if (parts.invocations?.length) {
+                testMethods.push(normalizeTestMethodName(parts.invocations[0]));
+            }
+            tests.set(parts.class, testMethods);
+        });
+
+        const args = [...(context.testConfig?.args ?? [])];
+        const vmArgs = context.testConfig?.vmArgs;
+        const env = context.testConfig?.env;
+        const isDebug = context.isDebug && !!vscode.extensions.getExtension("vscjava.vscode-java-debug");
+        let debugPort = -1;
+        let testInitScriptPath: string | undefined;
+        if (isDebug) {
+            debugPort = await getPort();
+            testInitScriptPath = createInitScriptPath();
+            const initScriptContent = this.getInitScriptContent(debugPort, [], {});
+            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
+            args.unshift("--init-script", testInitScriptPath);
+        }
+
+        try {
+            await vscode.commands.executeCommand(
+                "java.execute.workspaceCommand",
+                "java.gradle.delegateTest",
+                context.projectName,
+                JSON.stringify([...tests]),
+                args,
+                vmArgs,
+                env
+            );
+            if (isDebug) {
+                this.startJavaDebug(context, debugPort).catch((err) => {
+                    console.error("[gradle-test] Failed to attach debugger:", err);
+                });
+            }
+        } finally {
+            if (testInitScriptPath) {
+                try {
+                    await vscode.workspace.fs.delete(vscode.Uri.file(testInitScriptPath));
+                } catch {
+                    /* best-effort */
+                }
+            }
+        }
+    }
+
+    private async launchXmlFallback(context: IRunTestContext): Promise<void> {
         // Build --tests filter arguments from test items, and collect the set of
         // classes under test so we can later match their result XML files.
         const testFilters: string[] = [];
@@ -96,10 +192,7 @@ export class GradleTestRunner implements TestRunner {
         let initScriptWritten = false;
         // Unique per launch so overlapping run/debug sessions never share the
         // same init script contents or cleanup target.
-        const testInitScriptPath = path.join(
-            os.tmpdir(),
-            `gradle-test-init-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.gradle`
-        );
+        const testInitScriptPath = createInitScriptPath();
         if (needsInitScript) {
             const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
@@ -439,6 +532,23 @@ function findMatchingRequestedClassTestId(
 
 function getErrorMessage(error: unknown): string {
     return error instanceof Error && error.message ? error.message : "Gradle test execution failed";
+}
+
+function isBspUnavailableError(error: unknown): boolean {
+    const message = getErrorMessage(error);
+    return (
+        message.includes("Project is not a Gradle build server project") ||
+        message.includes("GradleBuildServerProjectNature") ||
+        (message.includes("java.gradle.delegateTest") &&
+            (message.includes("not found") || message.includes("Unknown command") || message.includes("unsupported")))
+    );
+}
+
+function createInitScriptPath(): string {
+    return path.join(
+        os.tmpdir(),
+        `gradle-test-init-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.gradle`
+    );
 }
 
 function mergeTestResultState(current: TestResultState | undefined, next: TestResultState): TestResultState {

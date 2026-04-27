@@ -16,6 +16,8 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
+import { GradleTestRunner } from "./GradleTestRunner";
+import { TaskServerClient } from "../client";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -25,6 +27,7 @@ export class BuildServerController implements Disposable {
     private disposable: Disposable;
     private buildOutputChannel: OutputChannel;
     private logOutputChannel: OutputChannel;
+    private gradleTestRunner: GradleTestRunner | undefined;
 
     public constructor(readonly context: ExtensionContext) {
         this.buildOutputChannel = window.createOutputChannel("Build Server for Gradle (Build)", "gradle-build");
@@ -83,15 +86,18 @@ export class BuildServerController implements Disposable {
                     });
                 }
             }),
-            // BSP test result callbacks are no longer used — test execution now goes
-            // through Gradle's runBuild API directly. These commands are kept as no-ops
-            // for backward compatibility with older JDT LS importer plugins.
-            commands.registerCommand("java.gradle.buildServer.onDidFinishTestRun", () => {
-                /* no-op: test results are now parsed from JUnit XML */
-            }),
-            commands.registerCommand("java.gradle.buildServer.onDidChangeTestItemStatus", () => {
-                /* no-op: test results are now parsed from JUnit XML */
-            }),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidFinishTestRun",
+                (status: number, message?: string) => {
+                    this.gradleTestRunner?.finishTestRun(status, message);
+                }
+            ),
+            commands.registerCommand(
+                "java.gradle.buildServer.onDidChangeTestItemStatus",
+                (testParts: string[], state: number, displayName?: string, message?: string, duration?: number) => {
+                    this.gradleTestRunner?.updateTestItem(testParts, state, displayName, message, duration);
+                }
+            ),
             workspace.onDidChangeConfiguration((e: ConfigurationChangeEvent) => {
                 if (e.affectsConfiguration("java.gradle.buildServer.enabled")) {
                     const storagePath = context.storageUri?.fsPath;
@@ -121,6 +127,13 @@ export class BuildServerController implements Disposable {
 
     public dispose() {
         this.disposable.dispose();
+    }
+
+    public getGradleTestRunner(testRunnerApi: any, client: TaskServerClient): GradleTestRunner {
+        if (!this.gradleTestRunner) {
+            this.gradleTestRunner = new GradleTestRunner(testRunnerApi, client);
+        }
+        return this.gradleTestRunner;
     }
 
     private async checkMachineStatus() {
