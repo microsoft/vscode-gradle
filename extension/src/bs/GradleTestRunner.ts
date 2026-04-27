@@ -17,27 +17,22 @@ import * as path from "path";
 export class GradleTestRunner implements TestRunner {
     private readonly _onDidChangeTestItemStatus = new vscode.EventEmitter<TestItemStatusChangeEvent>();
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
-    private context: IRunTestContext;
     private testRunnerApi: any;
-    private testInitScriptPath: string;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
 
     constructor(testRunnerApi: any, private readonly client: TaskServerClient) {
         this.testRunnerApi = testRunnerApi;
-        // Unique per-process, per-run suffix so concurrent runs / lingering files
-        // from a previous VS Code session cannot collide or be picked up.
-        this.testInitScriptPath = path.join(os.tmpdir(), `gradle-test-init-${process.pid}-${Date.now()}.gradle`);
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
-        this.context = context;
-
         // Build --tests filter arguments from test items, and collect the set of
         // classes under test so we can later match their result XML files.
         const testFilters: string[] = [];
         const classNames = new Set<string>();
+        const requestedTestIdsByResultKey = new Map<string, string>();
+        const requestedClassTestIds = new Map<string, string>();
         context.testItems.forEach((testItem) => {
             const id = testItem.id;
             const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
@@ -46,12 +41,20 @@ export class GradleTestRunner implements TestRunner {
             }
             classNames.add(parts.class);
             if (parts.invocations?.length) {
-                let methodId = parts.invocations[0];
-                if (methodId.includes("(")) {
-                    methodId = methodId.slice(0, methodId.indexOf("("));
-                }
+                const methodId = normalizeTestMethodName(parts.invocations[0]);
+                const testId = this.testRunnerApi.parseTestIdFromParts({
+                    project: context.projectName,
+                    class: parts.class,
+                    invocations: parts.invocations,
+                });
+                requestedTestIdsByResultKey.set(resultKey(parts.class, methodId), testId);
                 testFilters.push(`${parts.class}.${methodId}`);
             } else {
+                const testId = this.testRunnerApi.parseTestIdFromParts({
+                    project: context.projectName,
+                    class: parts.class,
+                });
+                requestedClassTestIds.set(parts.class, testId);
                 testFilters.push(parts.class);
             }
         });
@@ -91,14 +94,17 @@ export class GradleTestRunner implements TestRunner {
 
         const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0;
         let initScriptWritten = false;
+        // Unique per launch so overlapping run/debug sessions never share the
+        // same init script contents or cleanup target.
+        const testInitScriptPath = path.join(
+            os.tmpdir(),
+            `gradle-test-init-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.gradle`
+        );
         if (needsInitScript) {
             const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
-            await vscode.workspace.fs.writeFile(
-                vscode.Uri.file(this.testInitScriptPath),
-                Buffer.from(initScriptContent)
-            );
+            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
             initScriptWritten = true;
-            gradleArgs.unshift("--init-script", this.testInitScriptPath);
+            gradleArgs.unshift("--init-script", testInitScriptPath);
         }
 
         const projectFolder = context.workspaceFolder.uri.fsPath;
@@ -133,7 +139,7 @@ export class GradleTestRunner implements TestRunner {
         // so the test JVM blocks until the debugger connects. We must start
         // waiting for the debug port BEFORE runBuild, otherwise it's a deadlock.
         if (isDebug) {
-            this.startJavaDebug(debugPort).catch((err) => {
+            this.startJavaDebug(context, debugPort).catch((err) => {
                 // Fire-and-forget is not safe here: if the attach fails, the
                 // test JVM will sit suspended forever, holding the build open.
                 // Cancel the build so we surface a finite error to the user.
@@ -158,7 +164,13 @@ export class GradleTestRunner implements TestRunner {
                     classNames,
                     minMtime: runStartTime,
                 });
-                this.emitTestResults(results, runningTestIds);
+                this.emitTestResults(
+                    context,
+                    results,
+                    runningTestIds,
+                    requestedTestIdsByResultKey,
+                    requestedClassTestIds
+                );
                 this.finalizePendingItems(runningTestIds);
                 this.finishTestRun(0);
             } catch (error) {
@@ -170,7 +182,13 @@ export class GradleTestRunner implements TestRunner {
                         minMtime: runStartTime,
                     });
                     if (results.length > 0) {
-                        this.emitTestResults(results, runningTestIds);
+                        this.emitTestResults(
+                            context,
+                            results,
+                            runningTestIds,
+                            requestedTestIdsByResultKey,
+                            requestedClassTestIds
+                        );
                         parsedAny = true;
                     }
                 } catch {
@@ -182,7 +200,7 @@ export class GradleTestRunner implements TestRunner {
                 if (parsedAny) {
                     this.finishTestRun(0);
                 } else {
-                    this.finishTestRun(1, error.message || "Gradle test execution failed");
+                    this.finishTestRun(1, getErrorMessage(error));
                 }
             }
         } finally {
@@ -190,7 +208,7 @@ export class GradleTestRunner implements TestRunner {
             // never written (the fs call will just reject and we swallow it).
             if (initScriptWritten) {
                 try {
-                    await vscode.workspace.fs.delete(vscode.Uri.file(this.testInitScriptPath));
+                    await vscode.workspace.fs.delete(vscode.Uri.file(testInitScriptPath));
                 } catch {
                     /* best-effort */
                 }
@@ -202,24 +220,48 @@ export class GradleTestRunner implements TestRunner {
      * Emit results for tests we have XML for, and remove those ids from the
      * pending set so {@link finalizePendingItems} knows what's still unresolved.
      */
-    private emitTestResults(results: TestCaseResult[], pending?: Set<string>): void {
+    private emitTestResults(
+        context: IRunTestContext,
+        results: TestCaseResult[],
+        pending: Set<string> | undefined,
+        requestedTestIdsByResultKey: ReadonlyMap<string, string>,
+        requestedClassTestIds: ReadonlyMap<string, string>
+    ): void {
+        const requestedClassStates = new Map<string, TestResultState>();
         for (const result of results) {
             let message = result.message;
             if (message) {
                 message = this.filterStackTrace(message);
             }
-            const testId = this.testRunnerApi.parseTestIdFromParts({
-                project: this.context.projectName,
-                class: result.className,
-                invocations: [result.methodName],
-            });
+            const normalizedMethodName = normalizeTestMethodName(result.methodName);
+            const testId =
+                requestedTestIdsByResultKey.get(resultKey(result.className, normalizedMethodName)) ??
+                this.testRunnerApi.parseTestIdFromParts({
+                    project: context.projectName,
+                    class: result.className,
+                    invocations: [result.methodName],
+                });
             pending?.delete(testId);
+            const classTestId = findMatchingRequestedClassTestId(result.className, requestedClassTestIds);
+            if (classTestId) {
+                pending?.delete(classTestId);
+                requestedClassStates.set(
+                    classTestId,
+                    mergeTestResultState(requestedClassStates.get(classTestId), result.state)
+                );
+            }
             this._onDidChangeTestItemStatus.fire({
                 testId,
                 state: result.state,
                 displayName: result.displayName,
                 message,
                 duration: result.duration,
+            });
+        }
+        for (const [testId, state] of requestedClassStates) {
+            this._onDidChangeTestItemStatus.fire({
+                testId,
+                state,
             });
         }
     }
@@ -285,7 +327,7 @@ export class GradleTestRunner implements TestRunner {
         ];
     }
 
-    private async startJavaDebug(javaDebugPort: number): Promise<void> {
+    private async startJavaDebug(context: IRunTestContext, javaDebugPort: number): Promise<void> {
         if (javaDebugPort < 0) {
             return;
         }
@@ -297,9 +339,9 @@ export class GradleTestRunner implements TestRunner {
             request: "attach",
             hostName: "localhost",
             port: javaDebugPort,
-            projectName: this.context.projectName,
+            projectName: context.projectName,
         };
-        const startedDebugging = await vscode.debug.startDebugging(this.context.workspaceFolder, debugConfig);
+        const startedDebugging = await vscode.debug.startDebugging(context.workspaceFolder, debugConfig);
         if (!startedDebugging) {
             throw new Error("The debugger was not started");
         }
@@ -317,12 +359,19 @@ export class GradleTestRunner implements TestRunner {
      *    `server=y` mode, which we need so the test JVM waits for the debugger.
      *    See: https://docs.gradle.org/current/javadoc/org/gradle/tooling/TestLauncher.html#debugTestsOn(int)
      *
-     * Note: when multiple test tasks are executed in one build invocation with
-     * debug enabled, there is a race for the debug port. If this becomes a
-     * problem, we could scope the debug agent by project root path.
+     * Debug is intentionally serialized: every forked test JVM would otherwise
+     * try to bind the same JDWP port. We allow the first Test task to run and
+     * fail fast if the same Gradle invocation reaches another Test task.
      */
     private getInitScriptContent(debugPort: number, vmArgs: string[], envVars: Record<string, string>): string {
-        const lines: string[] = ["allprojects {", "    tasks.withType(Test).configureEach {"];
+        const lines: string[] = [];
+        if (debugPort > 0) {
+            lines.push(
+                "gradle.startParameter.parallelProjectExecutionEnabled = false",
+                "gradle.ext.vscodeGradleDebugTestTaskPath = null"
+            );
+        }
+        lines.push("allprojects {", "    tasks.withType(Test).configureEach {");
         for (const arg of vmArgs) {
             lines.push(`        jvmArgs '${escapeGroovySingleQuoted(arg)}'`);
         }
@@ -330,6 +379,16 @@ export class GradleTestRunner implements TestRunner {
             lines.push(`        environment '${escapeGroovySingleQuoted(key)}', '${escapeGroovySingleQuoted(value)}'`);
         }
         if (debugPort > 0) {
+            lines.push("        maxParallelForks = 1");
+            lines.push("        doFirst {");
+            lines.push("            if (gradle.ext.vscodeGradleDebugTestTaskPath == null) {");
+            lines.push("                gradle.ext.vscodeGradleDebugTestTaskPath = path");
+            lines.push("            } else if (gradle.ext.vscodeGradleDebugTestTaskPath != path) {");
+            lines.push(
+                "                throw new GradleException('Debugging multiple Gradle Test tasks in one delegated run is not supported. Please debug a single test class or method.')"
+            );
+            lines.push("            }");
+            lines.push("        }");
             lines.push(`        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'`);
         }
         lines.push("    }", "}");
@@ -343,4 +402,57 @@ export class GradleTestRunner implements TestRunner {
  */
 function escapeGroovySingleQuoted(s: string): string {
     return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function normalizeTestMethodName(methodName: string): string {
+    const trimmed = methodName.trim();
+    const signatureStart = trimmed.indexOf("(");
+    if (signatureStart > 0) {
+        return trimmed.slice(0, signatureStart);
+    }
+    const parameterizedSuffixStart = trimmed.indexOf("[");
+    if (parameterizedSuffixStart > 0) {
+        return trimmed.slice(0, parameterizedSuffixStart);
+    }
+    return trimmed;
+}
+
+function resultKey(className: string, methodName: string): string {
+    return `${className}#${methodName}`;
+}
+
+function findMatchingRequestedClassTestId(
+    resultClassName: string,
+    requestedClassTestIds: ReadonlyMap<string, string>
+): string | undefined {
+    const exactMatch = requestedClassTestIds.get(resultClassName);
+    if (exactMatch) {
+        return exactMatch;
+    }
+    for (const [requestedClassName, testId] of requestedClassTestIds) {
+        if (resultClassName.startsWith(requestedClassName + "$")) {
+            return testId;
+        }
+    }
+    return undefined;
+}
+
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error && error.message ? error.message : "Gradle test execution failed";
+}
+
+function mergeTestResultState(current: TestResultState | undefined, next: TestResultState): TestResultState {
+    if (!current) {
+        return next;
+    }
+    if (current === TestResultState.Errored || next === TestResultState.Errored) {
+        return TestResultState.Errored;
+    }
+    if (current === TestResultState.Failed || next === TestResultState.Failed) {
+        return TestResultState.Failed;
+    }
+    if (current === TestResultState.Passed || next === TestResultState.Passed) {
+        return TestResultState.Passed;
+    }
+    return TestResultState.Skipped;
 }

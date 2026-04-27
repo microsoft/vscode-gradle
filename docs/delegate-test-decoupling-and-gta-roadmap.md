@@ -2,30 +2,32 @@
 
 > 面向 reviewers / 维护者的背景与架构说明。记录 PR #1810 的动机、当前选型（JUnit XML）、与 BSP / GTA 两种方案的对比，以及后续演进路线。
 
-## 1. 背景：两个长期未解的 issue
+## 1. 背景：XML fallback/unblocker 的定位
 
-| Issue | 标题（摘要） | 现状 | 实际反映的问题 |
-|---|---|---|---|
-| [microsoft/vscode-java-test#1045](https://github.com/microsoft/vscode-java-test/issues/1045) | "Delegate test to Gradle" 在非 BSP 导入下不可用 | closed（以"非 supported 组合"关闭） | 用户把 Buildship 当作合法导入路径，却被告知必须换 BSP 才能启用 `java.test.config.testKind=gradle`。功能与导入方式耦合，用户体验断层 |
-| [microsoft/vscode-java-test#1771](https://github.com/microsoft/vscode-java-test/issues/1771) | 同上，跨多 project 的回归报告 | closed（建议切换到 BSP） | 与 #1045 同源；关闭理由回避了用户诉求，评论区明显反弹 |
+| Issue                                                                                        | 与本 PR 的关系 | 标题（摘要）                                                                  | 实际反映的问题                                                                |
+| -------------------------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [microsoft/vscode-gradle#1802](https://github.com/microsoft/vscode-gradle/issues/1802)       | Fixes          | "Project is not a Gradle build server project" 导致 Delegate to Gradle 不可用 | 直接暴露 BSP nature 依赖，非 BSP/未成功 BSP 导入时测试委托失败                |
+| [microsoft/vscode-java-test#1726](https://github.com/microsoft/vscode-java-test/issues/1726) | Addresses      | Buildship 导入项目需要明确提示才能用 test delegation                          | 实际诉求不只是提示，而是测试委托不应与导入器强耦合                            |
+| [microsoft/vscode-java-test#1771](https://github.com/microsoft/vscode-java-test/issues/1771) | Addresses      | "Delegate to Gradle" 无测试结果                                               | 与 #1726 同源；用户只看到测试委托无反馈 / 无结果                              |
+| [microsoft/vscode-java-test#1045](https://github.com/microsoft/vscode-java-test/issues/1045) | Related        | 原始 Gradle test delegation feature request                                   | 已由初版 delegation 关闭；本 PR 修的是后续的 BSP 耦合缺陷，不应作为直接 Fixes |
 
-**被 close 的真实原因**：责任边界争议。vscode-java-test 把 BSP 作为唯一事件源，Buildship 用户被留在未实现分支里；issue 被当作"配置问题"而不是"功能缺失"关闭。但用户视角只有一个——"我选择的导入方式和跑测试这件事不应该强绑"。
+**当前 PR 定位**：这是一个面向非 BSP / BSP 导入失败场景的 **XML fallback / unblocker**。它把用户从"必须重新以 BSP 导入才能跑 Gradle tests"的断点里解放出来，但不把 JUnit XML 回读包装成最终架构；长期统一方案仍应走 Gradle Tooling API test event stream。
 
 ## 2. PR #1810：把"Delegate Test"从 BSP 解耦
 
 - **PR**：[microsoft/vscode-gradle#1810](https://github.com/microsoft/vscode-gradle/pull/1810)
 - **分支**：`wenyt/decouple-test-runner-from-bsp`
 - **核心改动**：`GradleTestRunner` 不再依赖 BSP 的测试事件流；改为由 vscode-gradle 亲自 invoke Gradle，用 **JUnit XML 报告**回读结果并桥接到 vscode-java-test 的 `TestRunner` API。
-- **效果**：不管项目是 Buildship 还是 BSP 导入，`Delegate Test to Gradle` 都能工作，彻底关掉 #1045 / #1771 的门。
+- **效果**：不管项目是 Buildship 还是 BSP 导入，`Delegate Test to Gradle` 都有可用路径；这 unblock 了 #1802 / #1726 / #1771 这类 BSP nature 缺失问题。
 
 ### 2.1 为什么选 XML 作为第一步？
 
-| 维度 | 说明 |
-|---|---|
-| 兼容性 | JUnit XML 从 Gradle 1.x 就稳定存在，对 Gradle 版本无下限 |
+| 维度     | 说明                                                      |
+| -------- | --------------------------------------------------------- |
+| 兼容性   | JUnit XML 从 Gradle 1.x 就稳定存在，对 Gradle 版本无下限  |
 | 实现成本 | 一个 init script + 读文件，无需引入新的 RPC / daemon 机制 |
-| 风险可控 | 与现有 BSP 路径并存，不影响已经依赖 BSP 导入的用户 |
-| 诊断友好 | XML 是落盘文件，失败时人工可查 |
+| 风险可控 | 与现有 BSP 路径并存，不影响已经依赖 BSP 导入的用户        |
+| 诊断友好 | XML 是落盘文件，失败时人工可查                            |
 
 ### 2.2 XML 方案的已知代价
 
@@ -43,16 +45,16 @@
 
 bot 在 `c2ab060` 上给了 8 条 inline review，质量较高。结论：
 
-| # | 要点 | 采纳 |
-|---|---|---|
-| C1 | `<failure message="">` 属性缺失时 fallback 到正文 | ✅ |
-| C2 | 参数化测试 id 规范化 | 延后（单独 issue） |
-| C3 | 缺少单元测试 | ✅（PR B） |
-| C4 | `startJavaDebug` fire-and-forget，失败时 build 不会取消 | ✅ |
-| C5 | test items 被置 Running 后在异常分支无人 finalize | ✅ |
-| C6 | init script 路径需要 pid + timestamp + 清理 | ✅ |
-| C7 | **UP-TO-DATE 导致 XML 不刷新 → 空结果**（最严重） | ✅ |
-| C8 | `time` 属性 `Number.isFinite` 守卫 | ✅ |
+| #   | 要点                                                    | 采纳       |
+| --- | ------------------------------------------------------- | ---------- |
+| C1  | `<failure message="">` 属性缺失时 fallback 到正文       | ✅         |
+| C2  | 参数化测试 id 规范化                                    | ✅         |
+| C3  | 缺少单元测试                                            | ✅（PR B） |
+| C4  | `startJavaDebug` fire-and-forget，失败时 build 不会取消 | ✅         |
+| C5  | test items 被置 Running 后在异常分支无人 finalize       | ✅         |
+| C6  | init script 路径需要 pid + timestamp + 清理             | ✅         |
+| C7  | **UP-TO-DATE 导致 XML 不刷新 → 空结果**（最严重）       | ✅         |
+| C8  | `time` 属性 `Number.isFinite` 守卫                      | ✅         |
 
 根因并非代码质量差，而是 migration 本身的复杂度：**事件流协议（BSP）→ 批量文件协议（XML）**，同时还要喂回一个事件驱动的上层 API（`TestRunner`）。阻抗不匹配必然产生这些边角。
 
@@ -80,39 +82,40 @@ IDE (vscode-java-test)
 
 ### 3.2 Gradle 版本对特性的约束（GTA 与 BSP 同时吃这条线）
 
-| 特性 | 最低 Gradle 版本 | 含义 |
-|---|---|---|
-| `TestProgressListener` 基本 started/finished 事件 | **2.6**（2015） | 几乎所有现役项目都支持 |
-| `TestOutputEvent`（per-test stdout/stderr 归属） | **6.0**（2019） | 决定能否按测试用例区分输出 |
-| `TestFailureResult`（结构化失败 + cause chain） | **7.6**（2022） | 决定能否区分断言失败 / 异常 |
+| 特性                                              | 最低 Gradle 版本 | 含义                        |
+| ------------------------------------------------- | ---------------- | --------------------------- |
+| `TestProgressListener` 基本 started/finished 事件 | **2.6**（2015）  | 几乎所有现役项目都支持      |
+| `TestOutputEvent`（per-test stdout/stderr 归属）  | **6.0**（2019）  | 决定能否按测试用例区分输出  |
+| `TestFailureResult`（结构化失败 + cause chain）   | **7.6**（2022）  | 决定能否区分断言失败 / 异常 |
 
 ### 3.3 BSP 协议自身的额外截断
 
 除了 Gradle 版本线，BSP 协议作为"跨 build tool 通用抽象"本身也压扁了一部分信息：
 
-| 信息 | GTA 原生 | BSP 承载能力 |
-|---|---|---|
-| 测试父子层级（`@Nested` / `@ParameterizedTest` 子树） | ✅ `TestOperationDescriptor.getParent()` | ⚠ 部分，常被扁平化 |
-| Failure cause chain | ✅ 可递归 | ❌ 压扁为 message + stacktrace |
-| 测试级 stdout/stderr 流 | ✅ `TestOutputEvent` | ❌ 无 test-scoped channel |
-| 实时取消 | ✅ | ✅ |
-| ns 精度时间 | ✅ | ⚠ 毫秒 |
+| 信息                                                  | GTA 原生                                 | BSP 承载能力                   |
+| ----------------------------------------------------- | ---------------------------------------- | ------------------------------ |
+| 测试父子层级（`@Nested` / `@ParameterizedTest` 子树） | ✅ `TestOperationDescriptor.getParent()` | ⚠ 部分，常被扁平化             |
+| Failure cause chain                                   | ✅ 可递归                                | ❌ 压扁为 message + stacktrace |
+| 测试级 stdout/stderr 流                               | ✅ `TestOutputEvent`                     | ❌ 无 test-scoped channel      |
+| 实时取消                                              | ✅                                       | ✅                             |
+| ns 精度时间                                           | ✅                                       | ⚠ 毫秒                         |
 
 ### 3.4 三方案能力矩阵
 
-| 维度 | XML（PR #1810） | 当前 BSP | GTA 直连（长期） |
-|---|---|---|---|
-| 导入方式无关 | ✅ | ❌（仅 BSP 导入） | ✅ |
-| 实时进度 | ❌（批量） | ✅ | ✅ |
-| UP-TO-DATE 免疫 | ❌（需 cleanTest） | ✅ | ✅ |
-| per-test 输出（Gradle ≥ 6.0） | ❌ suite 粒度 | ❌ 协议不承载 | ✅ |
-| 结构化 failure（Gradle ≥ 7.6） | ❌ | ❌ 协议扁平化 | ✅ |
-| 层级测试名 | ⚠ 需解析 | ⚠ 部分 | ✅ |
-| 取消 | ⚠ 粗粒度 | ✅ | ✅ |
-| 对老 Gradle 的兼容 | ✅（最好） | ≥ 2.6 | ≥ 2.6 |
-| 实现 / 维护成本 | 低 | 外部依赖 | 中（需扩 gradle-server 消息） |
+| 维度                           | XML（PR #1810）    | 当前 BSP          | GTA 直连（长期）              |
+| ------------------------------ | ------------------ | ----------------- | ----------------------------- |
+| 导入方式无关                   | ✅                 | ❌（仅 BSP 导入） | ✅                            |
+| 实时进度                       | ❌（批量）         | ✅                | ✅                            |
+| UP-TO-DATE 免疫                | ❌（需 cleanTest） | ✅                | ✅                            |
+| per-test 输出（Gradle ≥ 6.0）  | ❌ suite 粒度      | ❌ 协议不承载     | ✅                            |
+| 结构化 failure（Gradle ≥ 7.6） | ❌                 | ❌ 协议扁平化     | ✅                            |
+| 层级测试名                     | ⚠ 需解析           | ⚠ 部分            | ✅                            |
+| 取消                           | ⚠ 粗粒度           | ✅                | ✅                            |
+| 对老 Gradle 的兼容             | ✅（最好）         | ≥ 2.6             | ≥ 2.6                         |
+| 实现 / 维护成本                | 低                 | 外部依赖          | 中（需扩 gradle-server 消息） |
 
 结论：
+
 - **GTA 直连在所有"新 Gradle"情境下严格优于当前 BSP**，并且在"老 Gradle"下打平。
 - **XML 是过渡**：解决掉 #1045 / #1771 的可用性断点，对用户体验是"多了能用"，不是"换了更差"。
 
@@ -128,13 +131,13 @@ IDE (vscode-java-test)
 
 ## 4. 路线图
 
-| 阶段 | 交付物 | 状态 |
-|---|---|---|
-| PR #1810（本次） | `GradleTestRunner` 解耦 BSP，XML 路径可用；修掉 C1 / C3–C8 | 进行中 |
-| PR A | javaext-autotest 框架扩展 + `gradle-delegate-buildship.yaml` E2E plan | 分支已推送，待开 PR |
-| PR B | `testResultParser` 单元测试 + fixture 纳入版本管理 + CI workflow | 待 #1810 / PR A 合入后启动 |
-| 跟进 issue | 参数化测试 id 规范化（C2） | 待创建 |
-| 长期（GTA 迁移） | 扩 `gradle-server` 新消息：订阅 GTA `TestProgressListener` / `TestOutputEvent` / `TestFailureResult`，直连 `TestRunner` API；XML 留作 Gradle < 2.6 的 fallback（实际上几乎不会触发） | 规划中 |
+| 阶段             | 交付物                                                                                                                                                                               | 状态                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| PR #1810（本次） | `GradleTestRunner` 解耦 BSP，XML 路径可用；修掉 C1 / C3–C8                                                                                                                           | 进行中                     |
+| PR A             | javaext-autotest 框架扩展 + `gradle-delegate-buildship.yaml` E2E plan                                                                                                                | 分支已推送，待开 PR        |
+| PR B             | `testResultParser` 单元测试 + fixture 纳入版本管理 + CI workflow                                                                                                                     | 待 #1810 / PR A 合入后启动 |
+| 跟进 issue       | 参数化测试 id 规范化（C2）                                                                                                                                                           | 待创建                     |
+| 长期（GTA 迁移） | 扩 `gradle-server` 新消息：订阅 GTA `TestProgressListener` / `TestOutputEvent` / `TestFailureResult`，直连 `TestRunner` API；XML 留作 Gradle < 2.6 的 fallback（实际上几乎不会触发） | 规划中                     |
 
 ## 5. 开发硬规则：触碰 `testResultParser` 前先写失败的 UT
 
