@@ -1,4 +1,7 @@
 import * as assert from "assert";
+import * as fs from "fs-extra";
+import * as os from "os";
+import * as path from "path";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { GradleTestRunner } from "../../bs/GradleTestRunner";
@@ -6,15 +9,19 @@ import { IRunTestContext, TestIdParts, TestResultState } from "../../java-test-r
 import { getSuiteName } from "../testUtil";
 
 describe(getSuiteName("Gradle test runner XML fallback"), () => {
+    const tempDirs: string[] = [];
+
     afterEach(() => {
         sinon.restore();
+        for (const dir of tempDirs.splice(0)) {
+            fs.removeSync(dir);
+        }
     });
 
     it("maps parameterized XML result names back to the originally requested test id", async () => {
         stubBspUnavailable();
-        const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
-            fileUri,
+            tempDirs,
             `<testsuite>
   <testcase name="shouldPass[1]" classname="com.example.AppTest" time="0.01"/>
 </testsuite>`
@@ -61,9 +68,8 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
 
     it("finalizes a requested class item from child XML results", async () => {
         stubBspUnavailable();
-        const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
-            fileUri,
+            tempDirs,
             `<testsuite>
   <testcase name="passes" classname="com.example.AppTest" time="0.01"/>
   <testcase name="fails" classname="com.example.AppTest" time="0.02">
@@ -97,15 +103,12 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
 
     it("uses a unique init script path for each launch", async () => {
         stubBspUnavailable();
-        const fileUri = vscode.Uri.file("C:\\workspace\\build\\test-results\\test\\TEST-com.example.AppTest.xml");
         stubTestResultFiles(
-            fileUri,
+            tempDirs,
             `<testsuite>
   <testcase name="passes" classname="com.example.AppTest" time="0.01"/>
 </testsuite>`
         );
-        sinon.stub(vscode.workspace.fs, "writeFile").resolves();
-        sinon.stub(vscode.workspace.fs, "delete").resolves();
 
         const client = buildClient();
         const testRunnerApi = buildTestRunnerApi();
@@ -196,15 +199,14 @@ function stubBspUnavailable(): void {
         .rejects(new Error("Project is not a Gradle build server project: demo"));
 }
 
-function stubTestResultFiles(fileUri: vscode.Uri, xml: string): void {
+function stubTestResultFiles(tempDirs: string[], xml: string): void {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "gradle-runner-test-"));
+    tempDirs.push(tempDir);
+    const resultFile = path.join(tempDir, "build", "test-results", "test", "TEST-com.example.AppTest.xml");
+    fs.ensureDirSync(path.dirname(resultFile));
+    fs.writeFileSync(resultFile, xml);
+    const fileUri = vscode.Uri.file(resultFile);
     sinon.stub(vscode.workspace, "findFiles").resolves([fileUri]);
-    sinon.stub(vscode.workspace.fs, "stat").resolves({
-        type: vscode.FileType.File,
-        ctime: Date.now(),
-        mtime: Date.now() + 60_000,
-        size: xml.length,
-    });
-    sinon.stub(vscode.workspace.fs, "readFile").resolves(Buffer.from(xml));
 }
 
 function buildClient(): any {
