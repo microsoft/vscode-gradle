@@ -37,7 +37,6 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
-import { GradleTestRunner } from "./bs/GradleTestRunner";
 
 export class Extension {
     private readonly taskServerClient: TaskServerClient;
@@ -407,7 +406,7 @@ export class Extension {
         if (testExtension) {
             const testRunnerApi = await testExtension.activate();
             if (testRunnerApi) {
-                const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(testRunnerApi);
+                const testRunner = this.buildServerController.getGradleTestRunner(testRunnerApi, this.taskServerClient);
                 testRunnerApi.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
                 testRunnerApi.registerTestProfile(
                     "Delegate Test to Gradle (Debug)",
