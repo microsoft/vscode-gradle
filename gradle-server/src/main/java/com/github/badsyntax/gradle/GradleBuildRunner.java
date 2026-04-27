@@ -79,9 +79,11 @@ public class GradleBuildRunner {
 	private ProgressListener progressListener;
 	private Boolean javaDebugCleanOutputCache;
 	private String additionalToolOptions;
+	private Boolean streamTestEvents;
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
-			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
+			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions,
+			Boolean streamTestEvents) {
 		this.projectDir = projectDir;
 		this.args = args;
 		this.gradleConfig = gradleConfig;
@@ -90,6 +92,13 @@ public class GradleBuildRunner {
 		this.javaDebugPort = javaDebugPort;
 		this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
 		this.additionalToolOptions = additionalToolOptions;
+		this.streamTestEvents = streamTestEvents;
+	}
+
+	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
+			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
+		this(projectDir, args, gradleConfig, cancellationKey, colorOutput, javaDebugPort, javaDebugCleanOutputCache,
+				additionalToolOptions, false);
 	}
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
@@ -133,6 +142,9 @@ public class GradleBuildRunner {
 		progressEvents.add(OperationType.PROJECT_CONFIGURATION);
 		progressEvents.add(OperationType.TASK);
 		progressEvents.add(OperationType.TRANSFORM);
+		if (Boolean.TRUE.equals(streamTestEvents)) {
+			progressEvents.add(OperationType.TEST);
+		}
 
 		CancellationToken cancellationToken = GradleBuildCancellation.buildToken(cancellationKey);
 
