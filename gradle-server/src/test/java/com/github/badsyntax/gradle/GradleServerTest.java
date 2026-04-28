@@ -25,10 +25,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import org.gradle.tooling.Failure;
 import org.gradle.tooling.events.OperationDescriptor;
 import org.gradle.tooling.events.OperationType;
 import org.gradle.tooling.events.ProgressListener;
 import org.gradle.tooling.events.test.JvmTestOperationDescriptor;
+import org.gradle.tooling.events.test.TestFailureResult;
+import org.gradle.tooling.events.test.TestFinishEvent;
 import org.gradle.tooling.events.test.TestStartEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -534,5 +537,51 @@ public class GradleServerTest {
 		assertEquals("test", testEventReply.getTestEvent().getParentId());
 		assertEquals("com.example.FooTest", testEventReply.getTestEvent().getClassName());
 		assertEquals("testMethod", testEventReply.getTestEvent().getMethodName());
+	}
+
+	@Test
+	public void runBuild_shouldIncludeFailureMessageInFailedTestEvent() throws IOException {
+		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
+
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.setStreamTestEvents(true).build();
+
+		JvmTestOperationDescriptor descriptor = mock(JvmTestOperationDescriptor.class);
+		when(descriptor.getName()).thenReturn("testMethod");
+		when(descriptor.getDisplayName()).thenReturn("testMethod()");
+		when(descriptor.getTestDisplayName()).thenReturn("testMethod()");
+
+		Failure failure = mock(Failure.class);
+		when(failure.getMessage()).thenReturn("expected:<1> but was:<2>");
+		when(failure.getDescription()).thenReturn("java.lang.AssertionError: expected:<1> but was:<2>");
+		when(failure.getCauses()).thenReturn(List.of());
+
+		TestFailureResult failureResult = mock(TestFailureResult.class);
+		doReturn(List.of(failure)).when(failureResult).getFailures();
+
+		TestFinishEvent event = mock(TestFinishEvent.class);
+		when(event.getEventTime()).thenReturn(123L);
+		when(event.getDisplayName()).thenReturn("testMethod() failed");
+		when(event.getDescriptor()).thenReturn(descriptor);
+		when(event.getResult()).thenReturn(failureResult);
+
+		when(mockBuildLauncher.addProgressListener(any(ProgressListener.class),
+				ArgumentMatchers.<Set<OperationType>>any())).thenAnswer(invocation -> {
+					ProgressListener listener = invocation.getArgument(0);
+					listener.statusChanged(event);
+					return mockBuildLauncher;
+				});
+
+		stub.runBuild(req, mockResponseObserver);
+		verify(mockResponseObserver, never()).onError(any());
+
+		ArgumentCaptor<RunBuildReply> replyCaptor = ArgumentCaptor.forClass(RunBuildReply.class);
+		verify(mockResponseObserver, times(2)).onNext(replyCaptor.capture());
+		RunBuildReply testEventReply = replyCaptor.getAllValues().get(0);
+		assertEquals(RunBuildReply.KindCase.TEST_EVENT, testEventReply.getKindCase());
+		assertEquals(GradleTestEvent.EventType.FAILED, testEventReply.getTestEvent().getEventType());
+		assertEquals("expected:<1> but was:<2>\n---\njava.lang.AssertionError: expected:<1> but was:<2>",
+				testEventReply.getTestEvent().getMessage());
 	}
 }

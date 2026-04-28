@@ -16,8 +16,12 @@ import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
+import org.gradle.tooling.Failure;
 import org.gradle.tooling.UnsupportedVersionException;
 import org.gradle.tooling.events.ProgressEvent;
 import org.gradle.tooling.events.ProgressListener;
@@ -43,33 +47,28 @@ public class RunBuildHandler {
 	private ProgressListener progressListener;
 	private ByteBufferOutputStream standardOutputListener;
 	private ByteBufferOutputStream standardErrorListener;
+	private final Object responseLock = new Object();
 
 	public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
 		this.req = req;
 		this.responseObserver = responseObserver;
 		this.progressListener = (ProgressEvent event) -> {
-			synchronized (RunBuildHandler.class) {
-				if (req.getStreamTestEvents() && isTestEvent(event)) {
-					replyWithTestEvent(event);
-				} else {
-					replyWithProgress(event);
-				}
+			if (req.getStreamTestEvents() && isTestEvent(event)) {
+				replyWithTestEvent(event);
+			} else {
+				replyWithProgress(event);
 			}
 		};
 		this.standardOutputListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
-					replyWithStandardOutput(bytes);
-				}
+				replyWithStandardOutput(bytes);
 			}
 		};
 		this.standardErrorListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
-					replyWithStandardError(bytes);
-				}
+				replyWithStandardError(bytes);
 			}
 		};
 	}
@@ -88,10 +87,10 @@ public class RunBuildHandler {
 		try {
 			gradleRunner.run();
 			replyWithSuccess();
-			responseObserver.onCompleted();
+			completeResponse();
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
-			responseObserver.onCompleted();
+			completeResponse();
 		} catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
 				| IllegalStateException | IOException | GradleBuildRunnerException e) {
 			logger.error(e.getMessage());
@@ -100,27 +99,41 @@ public class RunBuildHandler {
 	}
 
 	public void replyWithCancelled(BuildCancelledException e) {
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		sendReply(RunBuildReply.newBuilder()
 				.setCancelled(Cancelled.newBuilder().setMessage(e.getMessage()).setProjectDir(req.getProjectDir()))
 				.build());
 	}
 
 	public void replyWithError(Exception e) {
-		responseObserver.onError(ErrorMessageBuilder.build(e));
+		synchronized (responseLock) {
+			responseObserver.onError(ErrorMessageBuilder.build(e));
+		}
 	}
 
 	public void replyWithSuccess() {
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		sendReply(RunBuildReply.newBuilder()
 				.setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build")).build());
 	}
 
 	private void replyWithProgress(ProgressEvent progressEvent) {
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		sendReply(RunBuildReply.newBuilder()
 				.setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName())).build());
 	}
 
 	private void replyWithTestEvent(ProgressEvent progressEvent) {
-		responseObserver.onNext(RunBuildReply.newBuilder().setTestEvent(convertTestEvent(progressEvent)).build());
+		sendReply(RunBuildReply.newBuilder().setTestEvent(convertTestEvent(progressEvent)).build());
+	}
+
+	private void sendReply(RunBuildReply reply) {
+		synchronized (responseLock) {
+			responseObserver.onNext(reply);
+		}
+	}
+
+	private void completeResponse() {
+		synchronized (responseLock) {
+			responseObserver.onCompleted();
+		}
 	}
 
 	private static boolean isTestEvent(ProgressEvent event) {
@@ -153,6 +166,10 @@ public class RunBuildHandler {
 				builder.setEventType(GradleTestEvent.EventType.SKIPPED);
 			} else if (finishEvent.getResult() instanceof TestFailureResult) {
 				builder.setEventType(GradleTestEvent.EventType.FAILED);
+				String failureMessage = failureMessage((TestFailureResult) finishEvent.getResult());
+				if (!failureMessage.isEmpty()) {
+					builder.setMessage(failureMessage);
+				}
 			}
 		}
 
@@ -185,23 +202,49 @@ public class RunBuildHandler {
 	}
 
 	private static String descriptorPath(org.gradle.tooling.events.OperationDescriptor descriptor) {
-		if (descriptor.getParent() == null) {
-			return descriptor.getName();
+		List<String> names = new ArrayList<>();
+		org.gradle.tooling.events.OperationDescriptor current = descriptor;
+		while (current != null) {
+			names.add(current.getName());
+			current = current.getParent();
 		}
-		return descriptorPath(descriptor.getParent()) + "/" + descriptor.getName();
+		Collections.reverse(names);
+		return String.join("/", names);
 	}
 
 	private void replyWithStandardOutput(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		sendReply(RunBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setOutputBytes(byteString))
 				.build());
 	}
 
 	private void replyWithStandardError(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		sendReply(RunBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDERR).setOutputBytes(byteString))
 				.build());
+	}
+
+	private static String failureMessage(TestFailureResult failureResult) {
+		List<String> messages = new ArrayList<>();
+		for (Failure failure : failureResult.getFailures()) {
+			collectFailureMessages(failure, messages);
+		}
+		return String.join("\n---\n", messages);
+	}
+
+	private static void collectFailureMessages(Failure failure, List<String> messages) {
+		String message = failure.getMessage();
+		String description = failure.getDescription();
+		if (!Strings.isNullOrEmpty(message)) {
+			messages.add(message);
+		}
+		if (!Strings.isNullOrEmpty(description) && !description.equals(message)) {
+			messages.add(description);
+		}
+		for (Failure cause : failure.getCauses()) {
+			collectFailureMessages(cause, messages);
+		}
 	}
 }
