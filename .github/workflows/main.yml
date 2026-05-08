@@ -4,6 +4,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   build-and-analyse:
@@ -58,6 +59,36 @@ jobs:
             extension/lib
             extension/dist
             extension/out
+
+      - name: Prepare extension for packaging (copy docs + bundle)
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: :extension:prepareForRelease
+        env:
+          JAVA_HOME: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Read extension version
+        id: ext_version
+        working-directory: extension
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Extension version: $v"
+
+      - name: Package VSIX
+        working-directory: extension
+        run: |
+          npx --no-install vsce package --no-dependencies --out "../vscode-gradle-${{ steps.ext_version.outputs.version }}.vsix"
+          ls -lh ../vscode-gradle-*.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-gradle-${{ steps.ext_version.outputs.version }}-vsix
+          path: vscode-gradle-*.vsix
+          if-no-files-found: error
+          retention-days: 30
 
   # Although the gradle build can run in all environments, we use the Java
   # lib generated in the previous step for a better real-world test.
