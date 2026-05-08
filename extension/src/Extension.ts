@@ -37,6 +37,7 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
+import { activeBuildCount, activeBuildSnapshot, diagWarn, shortStack } from "./util/Diagnostics";
 
 export class Extension {
     private readonly taskServerClient: TaskServerClient;
@@ -234,6 +235,9 @@ export class Extension {
     }
 
     public async stop() {
+        diagWarn(
+            `Extension.stop() activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()} stack=${shortStack()}`
+        );
         await this.server.asyncDispose();
     }
 
@@ -319,6 +323,7 @@ export class Extension {
     }
 
     private async restartServer(): Promise<void> {
+        diagWarn(`Extension.restartServer triggered stack=${shortStack()}`);
         await this.taskServerClient.cancelBuilds();
         await commands.executeCommand("workbench.action.restartExtensionHost");
     }

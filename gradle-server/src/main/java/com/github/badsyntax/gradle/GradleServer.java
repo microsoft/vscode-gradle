@@ -60,6 +60,21 @@ public class GradleServer {
 	}
 
 	public static void main(String[] args) throws Exception {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			logger.error("[diag] uncaught exception in thread {}: {}", t.getName(), e.getMessage(), e);
+		});
+		try {
+			Runtime r = Runtime.getRuntime();
+			long mb = 1024 * 1024;
+			logger.info(
+					"[diag] gradle-server jvm pid={} java={} vendor={} os={} arch={} maxHeapMB={} availableProcessors={}",
+					ProcessHandle.current().pid(), System.getProperty("java.version"),
+					System.getProperty("java.vendor"), System.getProperty("os.name"), System.getProperty("os.arch"),
+					r.maxMemory() / mb, r.availableProcessors());
+			logger.info("[diag] gradle-server args: {}", String.join(" ", args));
+		} catch (Throwable t) {
+			logger.warn("[diag] failed to log JVM info: {}", t.getMessage());
+		}
 		Map<String, String> params = Utils.parseArgs(args);
 
 		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));

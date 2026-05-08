@@ -12,6 +12,7 @@ import com.github.badsyntax.gradle.RunBuildResult;
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
+import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -59,7 +60,31 @@ public class RunBuildHandler {
 		};
 	}
 
+	private static String heapInfo() {
+		Runtime r = Runtime.getRuntime();
+		long mb = 1024 * 1024;
+		return String.format("heapUsedMB=%d totalMB=%d maxMB=%d freeMB=%d", (r.totalMemory() - r.freeMemory()) / mb,
+				r.totalMemory() / mb, r.maxMemory() / mb, r.freeMemory() / mb);
+	}
+
 	public void run() {
+		String key = req.getCancellationKey();
+		String args = String.join(" ", req.getArgsList());
+		long startNs = System.nanoTime();
+		logger.info("[diag] runBuild start key={} args=\"{}\" {}", key, args, heapInfo());
+
+		// Detect when the gRPC client closes the stream from its side. Distinguishes
+		// "client gave up / channel died" from "server-side BuildCancelledException".
+		if (responseObserver instanceof ServerCallStreamObserver) {
+			@SuppressWarnings("unchecked")
+			ServerCallStreamObserver<RunBuildReply> serverObserver = (ServerCallStreamObserver<RunBuildReply>) responseObserver;
+			serverObserver.setOnCancelHandler(() -> {
+				long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+				logger.warn("[diag] runBuild stream CANCELLED by client key={} args=\"{}\" elapsedMs={} {}", key, args,
+						elapsedMs, heapInfo());
+			});
+		}
+
 		GradleBuildRunner gradleRunner = new GradleBuildRunner(req.getProjectDir(), req.getArgsList(),
 				req.getGradleConfig(), req.getCancellationKey(), req.getShowOutputColors(), req.getJavaDebugPort(),
 				req.getJavaDebugCleanOutputCache(), req.getAdditionalToolOptions());
@@ -74,13 +99,22 @@ public class RunBuildHandler {
 			gradleRunner.run();
 			replyWithSuccess();
 			responseObserver.onCompleted();
+			logger.info("[diag] runBuild success key={} elapsedMs={} {}", key,
+					(System.nanoTime() - startNs) / 1_000_000L, heapInfo());
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
 			responseObserver.onCompleted();
+			logger.info("[diag] runBuild BuildCancelledException key={} elapsedMs={} message=\"{}\"", key,
+					(System.nanoTime() - startNs) / 1_000_000L, e.getMessage());
 		} catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
 				| IllegalStateException | IOException | GradleBuildRunnerException e) {
-			logger.error(e.getMessage());
+			logger.error("[diag] runBuild error key={} elapsedMs={} type={} message=\"{}\"", key,
+					(System.nanoTime() - startNs) / 1_000_000L, e.getClass().getSimpleName(), e.getMessage());
 			replyWithError(e);
+		} catch (RuntimeException e) {
+			logger.error("[diag] runBuild unexpected error key={} elapsedMs={} type={} message=\"{}\"", key,
+					(System.nanoTime() - startNs) / 1_000_000L, e.getClass().getSimpleName(), e.getMessage(), e);
+			throw e;
 		}
 	}
 

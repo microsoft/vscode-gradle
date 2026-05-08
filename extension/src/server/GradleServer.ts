@@ -11,6 +11,7 @@ import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
 import { extensionInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
+import { activeBuildCount, activeBuildSnapshot, diagError, diagInfo, diagWarn } from "../util/Diagnostics";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 
@@ -27,6 +28,9 @@ export class GradleServer {
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
+    private processStartedAt = 0;
+    private stderrTail: string[] = [];
+    private static readonly STDERR_TAIL_LINES = 40;
     private languageServerPipePath: string;
     private bspProxy: BspProxy;
 
@@ -95,11 +99,29 @@ export class GradleServer {
             env,
             shell: true,
         });
+        this.processStartedAt = Date.now();
+        diagInfo(
+            `gradle-server spawn pid=${this.process.pid} port=${this.taskServerPort} startBuildServer=${startBuildServer} cmd="${cmd}" node=${process.version} platform=${process.platform}`
+        );
         this.process.stdout.on("data", this.logOutput);
         this.process.stderr.on("data", this.logOutput);
+        this.process.stderr.on("data", this.captureStderrTail);
         this.process
-            .on("error", (err: Error) => this.logger.error(err.message))
-            .on("exit", async (code) => {
+            .on("error", (err: Error) => {
+                diagError(`gradle-server process error pid=${this.process?.pid} message=${err.message} stack=${err.stack}`);
+                this.logger.error(err.message);
+            })
+            .on("exit", async (code, signal) => {
+                const duration = Date.now() - this.processStartedAt;
+                const inFlight = activeBuildCount();
+                diagWarn(
+                    `gradle-server exit pid=${this.process?.pid} code=${code} signal=${signal} durationMs=${duration} activeBuilds=${inFlight} :: ${activeBuildSnapshot()}`
+                );
+                if (this.stderrTail.length > 0) {
+                    diagWarn(
+                        `gradle-server stderr tail (last ${this.stderrTail.length} lines):\n${this.stderrTail.join("\n")}`
+                    );
+                }
                 this.logger.warn("Gradle server stopped");
                 this._onDidStop.fire(null);
                 this.ready = false;
@@ -153,6 +175,17 @@ export class GradleServer {
             this.logger[logLevel](serverLogMessage.trim());
         } else {
             this.logger.info(str);
+        }
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private captureStderrTail = (data: any): void => {
+        const lines = data.toString().split(/\r?\n/).filter((l: string) => l.length > 0);
+        for (const line of lines) {
+            this.stderrTail.push(line);
+        }
+        while (this.stderrTail.length > GradleServer.STDERR_TAIL_LINES) {
+            this.stderrTail.shift();
         }
     };
 

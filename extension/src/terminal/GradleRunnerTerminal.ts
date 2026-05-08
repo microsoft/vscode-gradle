@@ -11,6 +11,7 @@ import { COMMAND_CANCEL_BUILD } from "../commands";
 import { GradleTaskDefinition } from "../tasks";
 import { TaskServerClient } from "../client";
 import { toolOptionsProviders } from "../api";
+import { diagWarn, shortStack } from "../util/Diagnostics";
 
 const NL = "\n";
 const CR = "\r";
@@ -46,6 +47,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
 
     public async close(): Promise<void> {
         if (this.task && isTaskRunning(this.task)) {
+            diagWarn(
+                `terminal.close() will cancel running task name="${this.task.name}" key=${this.cancellationKey} stack=${shortStack()}`
+            );
             await this.cancelCommand();
         }
     }
@@ -148,6 +152,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     public async handleInput(data: string): Promise<void> {
         // sigint eg cmd/ctrl+C
         if (data === "\x03") {
+            diagWarn(
+                `terminal SIGINT received task="${this.task?.name}" key=${this.cancellationKey}`
+            );
             await this.cancelCommand();
         }
     }

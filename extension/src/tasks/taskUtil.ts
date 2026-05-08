@@ -21,6 +21,7 @@ import { TaskServerClient } from "../client";
 import { RootProjectsStore } from "../stores";
 import { getConfigIsAutoDetectionEnabled, getConfigReuseTerminals, getAllowParallelRun } from "../util/config";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
+import { diagWarn, shortStack } from "../util/Diagnostics";
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -55,6 +56,9 @@ export async function cancelBuild(
     cancellationKey: string,
     task?: vscode.Task
 ): Promise<void> {
+    diagWarn(
+        `cancelBuild() entry key=${cancellationKey} task="${task?.name}" stack=${shortStack()}`
+    );
     if (task && isTaskRunning(task)) {
         cancellingTasks.set(task.definition.id, task);
         await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
