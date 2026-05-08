@@ -46,9 +46,9 @@ export function activeBuildSnapshot(): string {
     return [...activeBuilds.values()]
         .map(
             (b) =>
-                `bid=${b.bid} key=${b.cancellationKey} args="${b.args}" elapsedMs=${
-                    Date.now() - b.startedAt
-                } bytesIn=${b.bytesIn} progress=${b.progressEvents} output=${b.outputEvents}`
+                `bid=${b.bid} key=${b.cancellationKey} args="${b.args}" elapsedMs=${Date.now() - b.startedAt} bytesIn=${
+                    b.bytesIn
+                } progress=${b.progressEvents} output=${b.outputEvents}`
         )
         .join(" || ");
 }

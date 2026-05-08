@@ -14,19 +14,13 @@ function installProcessHooks(): void {
     }
     processHooksInstalled = true;
     process.on("beforeExit", (code) => {
-        diagWarn(
-            `process beforeExit code=${code} activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`
-        );
+        diagWarn(`process beforeExit code=${code} activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`);
     });
     process.on("exit", (code) => {
-        diagWarn(
-            `process exit code=${code} activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`
-        );
+        diagWarn(`process exit code=${code} activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`);
     });
     process.on("SIGTERM", () => {
-        diagWarn(
-            `process SIGTERM activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`
-        );
+        diagWarn(`process SIGTERM activeBuilds=${activeBuildCount()} :: ${activeBuildSnapshot()}`);
     });
     process.on("uncaughtException", (err) => {
         diagWarn(`uncaughtException ${err.message} stack=${err.stack}`);
@@ -42,7 +36,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
         replacementOptions: [TelemetryFilter.hideUrlOption],
     });
     diagInfo(
-        `extension activate version=${context.extension?.packageJSON?.version ?? "?"} vscode=${vscode.version} node=${process.version} platform=${process.platform} pid=${process.pid}`
+        `extension activate version=${context.extension?.packageJSON?.version ?? "?"} vscode=${vscode.version} node=${
+            process.version
+        } platform=${process.platform} pid=${process.pid}`
     );
     installProcessHooks();
     return instrumentOperation("activation", activateExtension)(context);

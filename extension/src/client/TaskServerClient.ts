@@ -91,9 +91,7 @@ export class TaskServerClient implements vscode.Disposable {
         const inFlight = activeBuildCount();
         if (inFlight > 0) {
             this.serverStoppedDuringBuild = true;
-            diagError(
-                `gradle-server stopped while ${inFlight} build(s) in flight :: ${activeBuildSnapshot()}`
-            );
+            diagError(`gradle-server stopped while ${inFlight} build(s) in flight :: ${activeBuildSnapshot()}`);
         } else {
             diagInfo("gradle-server stopped (no builds in flight)");
         }
@@ -210,9 +208,7 @@ export class TaskServerClient implements vscode.Disposable {
                 const cancellationKey = getBuildCancellationKey(rootProject.getProjectUri().fsPath);
 
                 token.onCancellationRequested(() => {
-                    diagWarn(
-                        `getBuild progress-token cancelled key=${cancellationKey} stack=${shortStack()}`
-                    );
+                    diagWarn(`getBuild progress-token cancelled key=${cancellationKey} stack=${shortStack()}`);
                     this.cancelBuild(cancellationKey);
                 });
 
@@ -329,7 +325,9 @@ export class TaskServerClient implements vscode.Disposable {
             outputEvents: 0,
         });
         diagInfo(
-            `runBuild start bid=${bid} key=${cancellationKey} args="${argsStr}" project=${projectFolder} javaDebug=${javaDebugPort > 0} channel=${channelStateName(this.getChannelState())} ${heapSnapshot()} activeBuilds=${activeBuildCount()}`
+            `runBuild start bid=${bid} key=${cancellationKey} args="${argsStr}" project=${projectFolder} javaDebug=${
+                javaDebugPort > 0
+            } channel=${channelStateName(this.getChannelState())} ${heapSnapshot()} activeBuilds=${activeBuildCount()}`
         );
         return vscode.window.withProgress(
             {
@@ -407,7 +405,9 @@ export class TaskServerClient implements vscode.Disposable {
                     });
                     const info = getActiveBuild(bid);
                     diagInfo(
-                        `runBuild end bid=${bid} key=${cancellationKey} elapsedMs=${Date.now() - startedAt} bytesIn=${info?.bytesIn ?? 0} progress=${info?.progressEvents ?? 0} output=${info?.outputEvents ?? 0}`
+                        `runBuild end bid=${bid} key=${cancellationKey} elapsedMs=${Date.now() - startedAt} bytesIn=${
+                            info?.bytesIn ?? 0
+                        } progress=${info?.progressEvents ?? 0} output=${info?.outputEvents ?? 0}`
                     );
                     logger.info("Completed build:", args.join(" "));
                 } catch (err) {
@@ -417,7 +417,11 @@ export class TaskServerClient implements vscode.Disposable {
                     diagError(
                         `runBuild error bid=${bid} key=${cancellationKey} elapsedMs=${
                             Date.now() - startedAt
-                        } code=${grpcCode} channel=${channel} serverReady=${this.server.isReady()} serverStoppedDuringBuild=${this.serverStoppedDuringBuild} bytesIn=${info?.bytesIn ?? 0} progress=${info?.progressEvents ?? 0} output=${info?.outputEvents ?? 0} details="${err.details || err.message}"`
+                        } code=${grpcCode} channel=${channel} serverReady=${this.server.isReady()} serverStoppedDuringBuild=${
+                            this.serverStoppedDuringBuild
+                        } bytesIn=${info?.bytesIn ?? 0} progress=${info?.progressEvents ?? 0} output=${
+                            info?.outputEvents ?? 0
+                        } details="${err.details || err.message}"`
                     );
                     logger.error("Error running build:", `${args.join(" ")}:`, err.details || err.message);
                     throw err;
@@ -436,7 +440,9 @@ export class TaskServerClient implements vscode.Disposable {
         await this.connectWaiter.wait();
         this.statusBarItem.hide();
         diagWarn(
-            `cancelBuild RPC requested key=${cancellationKey} channel=${channelStateName(this.getChannelState())} activeBuilds=${activeBuildCount()} stack=${shortStack()}`
+            `cancelBuild RPC requested key=${cancellationKey} channel=${channelStateName(
+                this.getChannelState()
+            )} activeBuilds=${activeBuildCount()} stack=${shortStack()}`
         );
         const request = new CancelBuildRequest();
         request.setCancellationKey(cancellationKey);
@@ -468,7 +474,9 @@ export class TaskServerClient implements vscode.Disposable {
     public async cancelBuilds(): Promise<void> {
         this.statusBarItem.hide();
         diagWarn(
-            `cancelBuilds RPC requested channel=${channelStateName(this.getChannelState())} activeBuilds=${activeBuildCount()} stack=${shortStack()}`
+            `cancelBuilds RPC requested channel=${channelStateName(
+                this.getChannelState()
+            )} activeBuilds=${activeBuildCount()} stack=${shortStack()}`
         );
         const request = new CancelBuildsRequest();
         try {
@@ -535,7 +543,9 @@ export class TaskServerClient implements vscode.Disposable {
      */
     private handleConnectError = async (e: Error): Promise<void> => {
         diagError(
-            `connectError ${e.message} channel=${channelStateName(this.getChannelState())} serverReady=${this.server.isReady()} activeBuilds=${activeBuildCount()}`
+            `connectError ${e.message} channel=${channelStateName(
+                this.getChannelState()
+            )} serverReady=${this.server.isReady()} activeBuilds=${activeBuildCount()}`
         );
         logger.error("Error connecting to gradle server:", e.message);
         this.close();

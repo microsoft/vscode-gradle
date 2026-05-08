@@ -108,18 +108,24 @@ export class GradleServer {
         this.process.stderr.on("data", this.captureStderrTail);
         this.process
             .on("error", (err: Error) => {
-                diagError(`gradle-server process error pid=${this.process?.pid} message=${err.message} stack=${err.stack}`);
+                diagError(
+                    `gradle-server process error pid=${this.process?.pid} message=${err.message} stack=${err.stack}`
+                );
                 this.logger.error(err.message);
             })
             .on("exit", async (code, signal) => {
                 const duration = Date.now() - this.processStartedAt;
                 const inFlight = activeBuildCount();
                 diagWarn(
-                    `gradle-server exit pid=${this.process?.pid} code=${code} signal=${signal} durationMs=${duration} activeBuilds=${inFlight} :: ${activeBuildSnapshot()}`
+                    `gradle-server exit pid=${
+                        this.process?.pid
+                    } code=${code} signal=${signal} durationMs=${duration} activeBuilds=${inFlight} :: ${activeBuildSnapshot()}`
                 );
                 if (this.stderrTail.length > 0) {
                     diagWarn(
-                        `gradle-server stderr tail (last ${this.stderrTail.length} lines):\n${this.stderrTail.join("\n")}`
+                        `gradle-server stderr tail (last ${this.stderrTail.length} lines):\n${this.stderrTail.join(
+                            "\n"
+                        )}`
                     );
                 }
                 this.logger.warn("Gradle server stopped");
@@ -180,7 +186,10 @@ export class GradleServer {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private captureStderrTail = (data: any): void => {
-        const lines = data.toString().split(/\r?\n/).filter((l: string) => l.length > 0);
+        const lines = data
+            .toString()
+            .split(/\r?\n/)
+            .filter((l: string) => l.length > 0);
         for (const line of lines) {
             this.stderrTail.push(line);
         }

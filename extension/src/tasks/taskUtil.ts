@@ -56,9 +56,7 @@ export async function cancelBuild(
     cancellationKey: string,
     task?: vscode.Task
 ): Promise<void> {
-    diagWarn(
-        `cancelBuild() entry key=${cancellationKey} task="${task?.name}" stack=${shortStack()}`
-    );
+    diagWarn(`cancelBuild() entry key=${cancellationKey} task="${task?.name}" stack=${shortStack()}`);
     if (task && isTaskRunning(task)) {
         cancellingTasks.set(task.definition.id, task);
         await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
