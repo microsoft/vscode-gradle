@@ -1,0 +1,79 @@
+name: Build Diagnostic VSIX
+
+# Builds a private .vsix on diag/** branches (and on demand) so we can
+# share a diagnostic build with users for issue triage. The VSIX is
+# uploaded as a workflow artifact - it is NOT published to the Marketplace.
+
+on:
+  push:
+    branches:
+      - "diag/**"
+  workflow_dispatch:
+
+jobs:
+  build-vsix:
+    name: Build VSIX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache-dependency-path: extension/package-lock.json
+          cache: npm
+
+      - name: Cache npm cache directory
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Checkout microsoft/build-server-for-gradle
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/build-server-for-gradle
+          path: extension/build-server-for-gradle
+
+      - name: Build Jars (jdtls plugin + build-server)
+        run: ../gradlew buildJars
+        working-directory: extension/
+
+      - name: Bundle extension + gradle-server (prepareForRelease)
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: :extension:prepareForRelease
+        env:
+          JAVA_HOME: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Read extension version
+        id: version
+        working-directory: extension
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Extension version: $v"
+
+      - name: Package VSIX
+        working-directory: extension
+        run: |
+          npx --no-install vsce package --no-dependencies --out "../vscode-gradle-${{ steps.version.outputs.version }}.vsix"
+          ls -lh ../vscode-gradle-*.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-gradle-${{ steps.version.outputs.version }}-vsix
+          path: vscode-gradle-*.vsix
+          if-no-files-found: error
+          retention-days: 30
