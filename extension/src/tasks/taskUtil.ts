@@ -139,13 +139,16 @@ export function createTaskFromDefinition(
     const taskName = buildTaskName(definition);
     const cancellationKey = getRunTaskCommandCancellationKey(rootProject.getProjectUri().fsPath, definition.script);
 
-    const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, client);
     const task = new vscode.Task(
         definition,
         rootProject.getWorkspaceFolder(),
         taskName,
         "gradle",
-        new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => terminal),
+        new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => {
+            const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, client);
+            terminal.setTask(task);
+            return terminal;
+        }),
         ["$gradle"]
     );
 
@@ -164,7 +167,6 @@ export function createTaskFromDefinition(
         panel: panelKind,
         reveal: vscode.TaskRevealKind.Always,
     };
-    terminal.setTask(task);
     return task;
 }
 
