@@ -87,15 +87,33 @@ export function heapSnapshot(): string {
 }
 
 export function diagInfo(message: string): void {
-    logger.info(`${DIAG_TAG} ${message}`);
+    const line = `${DIAG_TAG} ${message}`;
+    if (logger.getChannel()) {
+        logger.info(line);
+    } else {
+        // OutputChannel not created yet (very early activate / after dispose).
+        // Falling back to console keeps the message in the Extension Host log
+        // so we never lose data and never break activation by throwing.
+        console.log(`[gradle-for-java] ${line}`);
+    }
 }
 
 export function diagWarn(message: string): void {
-    logger.warn(`${DIAG_TAG} ${message}`);
+    const line = `${DIAG_TAG} ${message}`;
+    if (logger.getChannel()) {
+        logger.warn(line);
+    } else {
+        console.warn(`[gradle-for-java] ${line}`);
+    }
 }
 
 export function diagError(message: string): void {
-    logger.error(`${DIAG_TAG} ${message}`);
+    const line = `${DIAG_TAG} ${message}`;
+    if (logger.getChannel()) {
+        logger.error(line);
+    } else {
+        console.error(`[gradle-for-java] ${line}`);
+    }
 }
 
 // Heartbeat — only ticks while builds are in flight so it doesn't pollute logs

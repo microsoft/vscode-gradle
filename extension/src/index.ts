@@ -46,6 +46,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
 
 function activateExtension(_operationId: string, context: vscode.ExtensionContext): Api {
     extension = new Extension(context);
+    // Re-emit the activate banner now that the "Gradle for Java" OutputChannel
+    // exists, so it shows up in the channel the user is asked to share.
+    diagInfo(
+        `extension constructed version=${context.extension?.packageJSON?.version ?? "?"} vscode=${
+            vscode.version
+        } node=${process.version} platform=${process.platform} pid=${process.pid}`
+    );
     return extension.getApi();
 }
 
