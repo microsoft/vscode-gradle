@@ -13,6 +13,9 @@ import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
+const STDERR_TAIL_LINES = 40;
+const STDERR_TAIL_PREVIEW_LINES = 3;
+const VIEW_LOG_ACTION = "View Log";
 
 export interface ServerOptions {
     host: string;
@@ -29,6 +32,8 @@ export class GradleServer {
     private process?: cp.ChildProcessWithoutNullStreams;
     private languageServerPipePath: string;
     private bspProxy: BspProxy;
+    private processStartedAt = 0;
+    private stderrTail: string[] = [];
 
     constructor(
         private readonly opts: ServerOptions,
@@ -90,6 +95,8 @@ export class GradleServer {
         }
         this.logger.debug(`Gradle Server cmd: ${cmd} ${args.join(" ")}`);
 
+        this.processStartedAt = Date.now();
+        this.stderrTail = [];
         this.process = cp.spawn(`"${cmd}"`, args, {
             cwd,
             env,
@@ -97,10 +104,22 @@ export class GradleServer {
         });
         this.process.stdout.on("data", this.logOutput);
         this.process.stderr.on("data", this.logOutput);
+        this.process.stderr.on("data", this.captureStderrTail);
         this.process
             .on("error", (err: Error) => this.logger.error(err.message))
-            .on("exit", async (code) => {
-                this.logger.warn("Gradle server stopped");
+            .on("exit", async (code, signal) => {
+                const durationMs = Date.now() - this.processStartedAt;
+                this.logger.warn(
+                    `Gradle server stopped (exitCode=${code ?? "null"}, signal=${
+                        signal ?? "none"
+                    }, durationMs=${durationMs})`
+                );
+                if (this.stderrTail.length > 0) {
+                    this.logger.warn("Gradle server stderr tail:");
+                    for (const line of this.stderrTail) {
+                        this.logger.warn(`  ${line}`);
+                    }
+                }
                 this._onDidStop.fire(null);
                 this.ready = false;
                 this.process?.removeAllListeners();
@@ -108,8 +127,10 @@ export class GradleServer {
                 if (this.restarting) {
                     this.restarting = false;
                     await this.start();
-                } else if (code !== 0) {
-                    await this.handleServerStartError(code);
+                    return;
+                }
+                if (code !== 0 || signal !== null) {
+                    await this.handleUnexpectedExit(code, signal);
                 }
             });
 
@@ -140,6 +161,20 @@ export class GradleServer {
         this.killProcess();
     }
 
+    private captureStderrTail = (data: Buffer | string): void => {
+        const text = typeof data === "string" ? data : data.toString();
+        for (const rawLine of text.split(/\r?\n/)) {
+            const line = rawLine.trim();
+            if (!line) {
+                continue;
+            }
+            this.stderrTail.push(line);
+            if (this.stderrTail.length > STDERR_TAIL_LINES) {
+                this.stderrTail.shift();
+            }
+        }
+    };
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private logOutput = (data: any): void => {
         const str = data.toString().trim();
@@ -168,12 +203,29 @@ export class GradleServer {
         }
     }
 
-    private async handleServerStartError(code: number | null): Promise<void> {
+    private async handleUnexpectedExit(code: number | null, signal: NodeJS.Signals | null): Promise<void> {
         sendInfo("", {
             kind: "serverProcessExit",
-            data3: code ? code.toString() : "",
+            data3: code !== null ? code.toString() : "",
+            dataMsg: signal ?? "",
         });
-        await this.showRestartMessage();
+        const reason = signal
+            ? `was terminated by signal ${signal}`
+            : `exited unexpectedly with code ${code ?? "null"}`;
+        const tailPreview = this.stderrTail.slice(-STDERR_TAIL_PREVIEW_LINES).join(" | ");
+        const message = tailPreview
+            ? `Gradle server ${reason}. Last output: ${tailPreview}`
+            : `Gradle server ${reason}. See the "Gradle for Java" output channel for details.`;
+        const selection = await vscode.window.showWarningMessage(message, VIEW_LOG_ACTION, OPT_RESTART);
+        sendInfo("", {
+            kind: "serverProcessExitRestart",
+            data3: selection === OPT_RESTART ? "true" : "false",
+        });
+        if (selection === VIEW_LOG_ACTION) {
+            this.logger.getChannel()?.show(true);
+        } else if (selection === OPT_RESTART) {
+            await commands.executeCommand("workbench.action.restartExtensionHost");
+        }
     }
 
     private fireOnStart(): void {
