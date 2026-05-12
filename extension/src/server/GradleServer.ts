@@ -34,6 +34,7 @@ export class GradleServer {
     private bspProxy: BspProxy;
     private processStartedAt = 0;
     private stderrTail: string[] = [];
+    private pendingStderrLine = "";
 
     constructor(
         private readonly opts: ServerOptions,
@@ -97,6 +98,7 @@ export class GradleServer {
 
         this.processStartedAt = Date.now();
         this.stderrTail = [];
+        this.pendingStderrLine = "";
         this.process = cp.spawn(`"${cmd}"`, args, {
             cwd,
             env,
@@ -108,6 +110,7 @@ export class GradleServer {
         this.process
             .on("error", (err: Error) => this.logger.error(err.message))
             .on("exit", async (code, signal) => {
+                this.flushPendingStderrLine();
                 const durationMs = Date.now() - this.processStartedAt;
                 this.logger.warn(
                     `Gradle server stopped (exitCode=${code ?? "null"}, signal=${
@@ -129,7 +132,7 @@ export class GradleServer {
                     await this.start();
                     return;
                 }
-                if (code !== 0 || signal !== null) {
+                if ((code !== null && code !== 0) || signal !== null) {
                     await this.handleUnexpectedExit(code, signal);
                 }
             });
@@ -162,8 +165,13 @@ export class GradleServer {
     }
 
     private captureStderrTail = (data: Buffer | string): void => {
-        const text = typeof data === "string" ? data : data.toString();
-        for (const rawLine of text.split(/\r?\n/)) {
+        const text = this.pendingStderrLine + (typeof data === "string" ? data : data.toString());
+        const lines = text.split(/\r?\n/);
+        // The last element is either an incomplete line (no trailing newline)
+        // or an empty string (chunk ended on a newline). Either way it cannot
+        // be pushed yet; keep it for the next chunk.
+        this.pendingStderrLine = lines.pop() ?? "";
+        for (const rawLine of lines) {
             const line = rawLine.trim();
             if (!line) {
                 continue;
@@ -174,6 +182,18 @@ export class GradleServer {
             }
         }
     };
+
+    private flushPendingStderrLine(): void {
+        const line = this.pendingStderrLine.trim();
+        this.pendingStderrLine = "";
+        if (!line) {
+            return;
+        }
+        this.stderrTail.push(line);
+        if (this.stderrTail.length > STDERR_TAIL_LINES) {
+            this.stderrTail.shift();
+        }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private logOutput = (data: any): void => {
