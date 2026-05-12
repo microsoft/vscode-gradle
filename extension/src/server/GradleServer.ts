@@ -16,6 +16,7 @@ const DOWNLOAD_PROGRESS_CHAR = ".";
 const STDERR_TAIL_LINES = 40;
 const STDERR_TAIL_PREVIEW_LINES = 3;
 const VIEW_LOG_ACTION = "View Log";
+const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
 
 export interface ServerOptions {
     host: string;
@@ -233,18 +234,13 @@ export class GradleServer {
             ? `was terminated by signal ${signal}`
             : `exited unexpectedly with code ${code ?? "null"}`;
         const tailPreview = this.stderrTail.slice(-STDERR_TAIL_PREVIEW_LINES).join(" | ");
-        const message = tailPreview
-            ? `Gradle server ${reason}. Last output: ${tailPreview}`
-            : `Gradle server ${reason}. See the "Gradle for Java" output channel for details.`;
-        const selection = await vscode.window.showWarningMessage(message, VIEW_LOG_ACTION, OPT_RESTART);
-        sendInfo("", {
-            kind: "serverProcessExitRestart",
-            data3: selection === OPT_RESTART ? "true" : "false",
-        });
+        const detail = tailPreview
+            ? `Last output: ${tailPreview}`
+            : `See the "Gradle for Java" output channel for details.`;
+        const message = `Gradle server ${reason}. ${detail} ${RELOAD_HINT}`;
+        const selection = await vscode.window.showWarningMessage(message, VIEW_LOG_ACTION);
         if (selection === VIEW_LOG_ACTION) {
             this.logger.getChannel()?.show(true);
-        } else if (selection === OPT_RESTART) {
-            await commands.executeCommand("workbench.action.restartExtensionHost");
         }
     }
 
