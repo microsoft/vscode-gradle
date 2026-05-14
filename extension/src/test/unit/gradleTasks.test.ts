@@ -16,6 +16,7 @@ import {
     stubWorkspaceFolders,
 } from "../testUtil";
 import { GradleBuild, GradleProject } from "../../proto/gradle_pb";
+import { RootProject } from "../../rootProject";
 import {
     GradleTasksTreeDataProvider,
     GradleTaskTreeItem,
@@ -24,6 +25,7 @@ import {
     NoGradleTasksTreeItem,
     RootProjectTreeItem,
 } from "../../views";
+import { ProjectDependencyTreeItem } from "../../views/gradleTasks/ProjectDependencyTreeItem";
 import { GradleTaskProvider } from "../../tasks";
 import { IconPath, Icons } from "../../icons";
 import {
@@ -92,6 +94,34 @@ const mockGradleProjectWithoutTasks = new GradleProject();
 mockGradleProjectWithoutTasks.setIsRoot(true);
 const mockGradleBuildWithoutTasks = new GradleBuild();
 mockGradleBuildWithoutTasks.setProject(mockGradleProjectWithoutTasks);
+
+function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reject: (reason?: unknown) => void } {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((promiseResolve, promiseReject) => {
+        resolve = promiseResolve;
+        reject = promiseReject;
+    });
+    return { promise, resolve, reject };
+}
+
+function waitForDependencyRefresh(provider: GradleDependencyProvider): Promise<void> {
+    let refreshCount = 0;
+    return new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            subscription.dispose();
+            reject(new Error("Timed out waiting for dependency refresh"));
+        }, 1000);
+        const subscription = provider.onDidChangeDependencyTreeItem(() => {
+            refreshCount++;
+            if (refreshCount === 2) {
+                clearTimeout(timeout);
+                subscription.dispose();
+                resolve();
+            }
+        });
+    });
+}
 
 describe(getSuiteName("Gradle tasks"), () => {
     let gradleTasksTreeDataProvider: GradleTasksTreeDataProvider;
@@ -222,6 +252,87 @@ describe(getSuiteName("Gradle tasks"), () => {
                     assert.strictEqual(iconPath.dark, path.join("resources", "dark", ICON_GRADLE_TASK));
                     assert.strictEqual(iconPath.light, path.join("resources", "light", ICON_GRADLE_TASK));
                     assert.strictEqual(taskItem.parentTreeItem, groupItem);
+                });
+
+                it("should normalize leading-colon root task paths for dependency requests", async () => {
+                    const taskDefinition = buildMockTaskDefinition(mockWorkspaceFolder1, "::assemble", "Description");
+                    const task = buildMockGradleTask(taskDefinition);
+                    const project = new GradleProject();
+                    project.setIsRoot(true);
+                    project.setTasksList([task]);
+                    const build = new GradleBuild();
+                    build.setProject(project);
+                    client.getBuild.resolves(build);
+
+                    const projects = await gradleTasksTreeDataProvider.getChildren();
+                    const projectItem = projects[0] as ProjectTreeItem;
+                    const projectChildren = await gradleTasksTreeDataProvider.getChildrenForProjectTreeItem(
+                        projectItem
+                    );
+                    const dependencyItem = projectChildren.find(
+                        (child) => child instanceof ProjectDependencyTreeItem
+                    ) as ProjectDependencyTreeItem;
+
+                    assert.ok(dependencyItem instanceof ProjectDependencyTreeItem);
+                    assert.strictEqual(dependencyItem.getGradleProjectPath(), ":");
+                });
+
+                it("should show no dependencies when lazy dependency loading returns no dependency item", async () => {
+                    const dependencyRefresh = waitForDependencyRefresh(gradleDependencyProvider);
+                    client.getProjectDependencies.resolves(undefined);
+                    const rootProject = (await rootProjectsStore.getProjectRoots())[0];
+                    const projectItem = gradleProjects[0] as ProjectTreeItem;
+                    const dependencyItem = new ProjectDependencyTreeItem(
+                        "Dependencies",
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        projectItem,
+                        mockWorkspaceFolder1.uri.fsPath,
+                        "folder1",
+                        ":"
+                    );
+
+                    const loadingItems = await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    assert.strictEqual(loadingItems[0].label, "Loading dependencies");
+
+                    await dependencyRefresh;
+                    const dependencyItems = await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    assert.strictEqual(dependencyItems[0].description, "No dependencies");
+                });
+
+                it("should allow dependencies to reload after cancellation", async () => {
+                    const firstDependencyLoad = createDeferred<undefined>();
+                    client.getProjectDependencies.onFirstCall().returns(firstDependencyLoad.promise);
+                    client.getProjectDependencies.onSecondCall().resolves(undefined);
+                    const firstDependencyRefresh = waitForDependencyRefresh(gradleDependencyProvider);
+                    const rootProject = (await rootProjectsStore.getProjectRoots())[0] as RootProject;
+                    const projectItem = gradleProjects[0] as ProjectTreeItem;
+                    const dependencyItem = new ProjectDependencyTreeItem(
+                        "Dependencies",
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        projectItem,
+                        mockWorkspaceFolder1.uri.fsPath,
+                        "folder1",
+                        ":"
+                    );
+
+                    await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    await gradleDependencyProvider.cancelDependencies(dependencyItem);
+                    firstDependencyLoad.resolve(undefined);
+                    await firstDependencyRefresh;
+
+                    const cancelledItems = await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    assert.strictEqual(cancelledItems[0].label, "Loading cancelled");
+                    assert.strictEqual(client.cancelProjectDependencies.callCount, 1);
+
+                    const secondDependencyRefresh = waitForDependencyRefresh(gradleDependencyProvider);
+                    gradleDependencyProvider.reloadDependencies(dependencyItem);
+                    const reloadingItems = await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    assert.strictEqual(reloadingItems[0].label, "Loading dependencies");
+
+                    await secondDependencyRefresh;
+                    const dependencyItems = await gradleDependencyProvider.getDependencies(dependencyItem, rootProject);
+                    assert.strictEqual(dependencyItems[0].description, "No dependencies");
+                    assert.strictEqual(client.getProjectDependencies.callCount, 2);
                 });
             });
 

@@ -4,8 +4,11 @@ import { connectivityState as ConnectivityState } from "@grpc/grpc-js";
 
 import {
     Output,
+    DependencyItem,
     GetBuildRequest,
     GetBuildReply,
+    GetProjectDependenciesRequest,
+    GetProjectDependenciesReply,
     Cancelled,
     GradleBuild,
     Environment,
@@ -27,9 +30,10 @@ import { ProgressHandler } from "../progress";
 import { removeCancellingTask, restartQueuedTask } from "../tasks/taskUtil";
 import { COMMAND_REFRESH_DAEMON_STATUS, COMMAND_SHOW_LOGS, COMMAND_CANCEL_BUILD } from "../commands";
 import { RootProject } from "../rootProject/RootProject";
-import { getBuildCancellationKey } from "./CancellationKeys";
+import { getBuildCancellationKey, getProjectDependenciesCancellationKey } from "./CancellationKeys";
 import { EventWaiter } from "../util/EventWaiter";
 import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
+import { normalizeGradleProjectPath } from "../util/gradlePath";
 import { setDefault, unsetDefault } from "../views/defaultProject/DefaultProjectUtils";
 import { SpecifySourcePackageNameStep } from "../createProject/SpecifySourcePackageNameStep";
 import { retryOnSpuriousCancel } from "./retryOnSpuriousCancel";
@@ -46,6 +50,7 @@ function logBuildEnvironment(environment: Environment): void {
 export class TaskServerClient implements vscode.Disposable {
     private readonly connectDeadline = 30; // seconds
     private grpcClient: GrpcClient | null = null;
+    private readonly cancelledProjectDependencies: Set<string> = new Set();
     private readonly _onDidConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
@@ -267,6 +272,62 @@ export class TaskServerClient implements vscode.Disposable {
                 })
                 .on("end", () => resolve(build));
         });
+    }
+
+    public async getProjectDependencies(
+        rootProject: RootProject,
+        projectPath: string,
+        gradleConfig: GradleConfig,
+        showOutputColors = false
+    ): Promise<DependencyItem | undefined> {
+        await this.connectWaiter.wait();
+        this.statusBarItem.hide();
+        const normalizedProjectPath = normalizeGradleProjectPath(projectPath);
+        const cancellationKey = getProjectDependenciesCancellationKey(
+            rootProject.getProjectUri().fsPath,
+            normalizedProjectPath
+        );
+        const request = new GetProjectDependenciesRequest();
+        request.setProjectDir(rootProject.getProjectUri().fsPath);
+        request.setProjectPath(normalizedProjectPath);
+        request.setCancellationKey(cancellationKey);
+        request.setGradleConfig(gradleConfig);
+        request.setShowOutputColors(showOutputColors);
+
+        return new Promise((resolve) => {
+            this.grpcClient!.getProjectDependencies(
+                request,
+                (err: grpc.ServiceError | null, reply: GetProjectDependenciesReply | undefined) => {
+                    if (err) {
+                        if (this.cancelledProjectDependencies.delete(cancellationKey)) {
+                            logger.info(`Getting dependencies for ${normalizedProjectPath} was cancelled.`);
+                            resolve(undefined);
+                            return;
+                        }
+                        if (err.code === grpc.status.NOT_FOUND) {
+                            logger.info(`No Gradle project found for dependency path ${normalizedProjectPath}.`);
+                            resolve(undefined);
+                            return;
+                        }
+                        logger.error(
+                            `Error getting dependencies for ${normalizedProjectPath}: ${err.details || err.message}`
+                        );
+                        this.statusBarItem.command = COMMAND_SHOW_LOGS;
+                        this.statusBarItem.text = "$(warning) Gradle: Dependency Error";
+                        this.statusBarItem.show();
+                        resolve(undefined);
+                        return;
+                    }
+                    this.cancelledProjectDependencies.delete(cancellationKey);
+                    resolve(reply?.getDependencyItem());
+                }
+            );
+        });
+    }
+
+    public async cancelProjectDependencies(cancellationKey: string): Promise<void> {
+        this.cancelledProjectDependencies.add(cancellationKey);
+        await this.cancelBuild(cancellationKey);
     }
 
     public async runBuild(
