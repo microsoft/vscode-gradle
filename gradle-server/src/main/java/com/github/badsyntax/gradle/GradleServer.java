@@ -5,11 +5,14 @@ import com.google.common.base.Strings;
 import com.microsoft.gradle.GradleLanguageServer;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.NettyServerBuilder;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Filter;
+import java.util.logging.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +63,8 @@ public class GradleServer {
 	}
 
 	public static void main(String[] args) throws Exception {
+		installNettyMidFrameWarningFilter();
+
 		Map<String, String> params = Utils.parseArgs(args);
 
 		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
@@ -76,6 +81,36 @@ public class GradleServer {
 			String bundleDirectory = Utils.validateRequiredParam(params, "bundleDir");
 			startBuildServerThread(buildServerPipeName, bundleDirectory);
 		}
+	}
+
+	/**
+	 * The client retries once on the known Node.js http2 race that produces a
+	 * truncated DATA + END_STREAM frame when reusing an HTTP/2 session (tracked
+	 * upstream as grpc/grpc-node#2872; maintainers attribute the root cause to Node
+	 * and recommend application-level retry). When this happens, grpc-netty logs an
+	 * INTERNAL "Encountered end-of-stream mid-frame" WARNING with a long stack
+	 * trace to stderr, which surfaces in the extension output channel as a scary
+	 * error even though the retried call succeeded. Filter that single record out
+	 * of every JUL handler attached to the root logger; all other Netty warnings
+	 * (TLS, protocol violations, etc.) pass through unchanged.
+	 */
+	private static void installNettyMidFrameWarningFilter() {
+		Filter filter = buildNettyMidFrameWarningFilter();
+		java.util.logging.Logger root = java.util.logging.Logger.getLogger("");
+		for (Handler h : root.getHandlers()) {
+			h.setFilter(filter);
+		}
+	}
+
+	// Package-private for testing.
+	static Filter buildNettyMidFrameWarningFilter() {
+		return record -> {
+			Throwable t = record.getThrown();
+			String name = record.getLoggerName();
+			return !(name != null && name.startsWith("io.grpc.netty.NettyServerStream")
+					&& t instanceof StatusRuntimeException && t.getMessage() != null
+					&& t.getMessage().contains("Encountered end-of-stream mid-frame"));
+		};
 	}
 
 	private static void startTaskServerThread(int port) {
