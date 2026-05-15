@@ -167,6 +167,13 @@ export function getAllowParallelRun(): boolean {
     return vscode.workspace.getConfiguration("gradle").get<boolean>("allowParallelRun", false);
 }
 
+export type TaskExecutionMode = "server" | "direct";
+
+export function getConfigTaskExecutionMode(): TaskExecutionMode {
+    const value = vscode.workspace.getConfiguration("gradle").get<string>("taskExecution", "server");
+    return value === "direct" ? "direct" : "server";
+}
+
 export function getOpenBuildOutput(): OpenBuildOutputValue {
     return vscode.workspace
         .getConfiguration("java.gradle.buildServer")

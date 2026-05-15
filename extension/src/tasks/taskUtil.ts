@@ -21,6 +21,7 @@ import { TaskServerClient } from "../client";
 import { RootProjectsStore } from "../stores";
 import { getConfigIsAutoDetectionEnabled, getConfigReuseTerminals, getAllowParallelRun } from "../util/config";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
+import { cancelDirectBuild } from "./DirectTaskExecutor";
 
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
@@ -58,6 +59,15 @@ export async function cancelBuild(
     if (task && isTaskRunning(task)) {
         cancellingTasks.set(task.definition.id, task);
         await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
+    }
+    // Phase 1 direct task execution: if the build is running through a
+    // spawned wrapper instead of the gRPC server, signal the child process
+    // here and skip the gRPC cancel RPC. See docs/local-task-execution.md.
+    if (cancelDirectBuild(cancellationKey)) {
+        if (task) {
+            removeCancellingTask(task);
+        }
+        return;
     }
     await client.cancelBuild(cancellationKey, task);
 }

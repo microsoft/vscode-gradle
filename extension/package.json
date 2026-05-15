@@ -835,6 +835,20 @@
           "scope": "window",
           "markdownDescription": "Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task."
         },
+        "gradle.taskExecution": {
+          "type": "string",
+          "enum": [
+            "server",
+            "direct"
+          ],
+          "enumDescriptions": [
+            "Run Gradle tasks through the bundled Gradle server (default).",
+            "Run Gradle tasks by spawning the project's Gradle wrapper as a child process. Use this as a workaround when the Gradle server's gRPC channel is intercepted by enterprise security software (see issue #1815)."
+          ],
+          "default": "server",
+          "scope": "window",
+          "markdownDescription": "How user-driven Gradle tasks (task tree, command palette, `gradle.runBuild`) are executed. `direct` mode bypasses the embedded Gradle server's gRPC channel by spawning `gradlew` as a child process. Requires a Gradle wrapper at the project root. Falls back to `server` mode when no wrapper is found."
+        },
         "gradle.projectOpenBehaviour": {
           "default": "Interactive",
           "type": "string",

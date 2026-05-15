@@ -11,6 +11,13 @@ import { COMMAND_CANCEL_BUILD } from "../commands";
 import { GradleTaskDefinition } from "../tasks";
 import { TaskServerClient } from "../client";
 import { toolOptionsProviders } from "../api";
+import { getConfigTaskExecutionMode } from "../util/config";
+import {
+    DirectBuildCancelledError,
+    DirectBuildError,
+    findGradleWrapper,
+    runDirectBuild,
+} from "../tasks/DirectTaskExecutor";
 
 const NL = "\n";
 const CR = "\r";
@@ -99,23 +106,90 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
             ).join(" ");
 
-            const runTask = this.client.runBuild(
-                this.rootProject.getProjectUri().fsPath,
-                this.cancellationKey,
-                this.args,
-                "",
-                javaDebugPort,
-                this.task,
-                this.handleOutput,
-                true,
-                additionalToolOptions
-            );
-            await runTask;
+            const useDirect = await this.shouldUseDirectExecution();
+            if (useDirect) {
+                await this.runDirect(javaDebugPort, additionalToolOptions);
+            } else {
+                const runTask = this.client.runBuild(
+                    this.rootProject.getProjectUri().fsPath,
+                    this.cancellationKey,
+                    this.args,
+                    "",
+                    javaDebugPort,
+                    this.task,
+                    this.handleOutput,
+                    true,
+                    additionalToolOptions
+                );
+                await runTask;
+            }
             this.closeEmitter.fire(0);
         } catch (e) {
             this.handleError(e);
             this.closeEmitter.fire(1);
         }
+    }
+
+    private async shouldUseDirectExecution(): Promise<boolean> {
+        if (getConfigTaskExecutionMode() !== "direct") {
+            return false;
+        }
+        const wrapperPath = await findGradleWrapper(this.rootProject.getProjectUri().fsPath);
+        if (!wrapperPath) {
+            this.write(
+                `> "gradle.taskExecution" is set to "direct" but no Gradle wrapper was found at ${
+                    this.rootProject.getProjectUri().fsPath
+                }; falling back to the Gradle server.\n`
+            );
+            logger.warn(
+                `[direct] no wrapper at ${this.rootProject.getProjectUri().fsPath}; falling back to gRPC runBuild`
+            );
+            return false;
+        }
+        return true;
+    }
+
+    private async runDirect(javaDebugPort: number, additionalToolOptions: string): Promise<void> {
+        const projectFolder = this.rootProject.getProjectUri().fsPath;
+        return vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Window,
+                title: "Gradle",
+                cancellable: true,
+            },
+            async (_progress, token: vscode.CancellationToken) => {
+                const tokenSub = token.onCancellationRequested(() =>
+                    vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task)
+                );
+                try {
+                    logger.info(`[direct] start: ${this.args.join(" ")} (cwd=${projectFolder})`);
+                    await runDirectBuild({
+                        rootProject: this.rootProject,
+                        cancellationKey: this.cancellationKey,
+                        args: this.args,
+                        javaDebugPort,
+                        additionalToolOptions,
+                        showOutputColors: true,
+                        task: this.task,
+                        onOutput: (text: string) => this.handleDirectOutput(text),
+                        onQueued: () => this.write(`> Waiting for a direct Gradle execution slot…\n`),
+                    });
+                    logger.info(`[direct] complete: ${this.args.join(" ")}`);
+                } finally {
+                    tokenSub.dispose();
+                }
+            }
+        );
+    }
+
+    private handleDirectOutput(text: string): void {
+        if (!text) {
+            return;
+        }
+        if (isTest() && this.stdOutLoggerStream) {
+            this.stdOutLoggerStream.write(Buffer.from(text, "utf8"));
+        }
+        this.write(text);
     }
 
     private async cancelCommand(): Promise<void> {
@@ -132,8 +206,17 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         }
     };
 
-    private handleError(err: ServiceError): void {
-        if (err.code === status.UNKNOWN) {
+    private handleError(err: ServiceError | DirectBuildError | DirectBuildCancelledError | Error): void {
+        if (err instanceof DirectBuildCancelledError) {
+            this.write(`Build cancelled\n`);
+            return;
+        }
+        if (err instanceof DirectBuildError) {
+            this.write(`${err.message}\n`);
+            return;
+        }
+        const serviceErr = err as ServiceError;
+        if (typeof serviceErr.code === "number" && serviceErr.code === status.UNKNOWN) {
             const outputChannel = logger.getChannel();
             if (outputChannel) {
                 this.write(
@@ -141,7 +224,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 );
             }
         } else {
-            this.write(err.details || err.message);
+            this.write(serviceErr.details || err.message);
         }
     }
 
