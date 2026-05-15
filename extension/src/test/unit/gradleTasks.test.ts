@@ -561,4 +561,31 @@ describe(getSuiteName("Gradle tasks"), () => {
             });
         });
     });
+
+    describe("onDidLoadTasks subscription", () => {
+        // The tree data provider subscribes to GradleTaskProvider.onDidLoadTasks
+        // so the view recovers after a transient gRPC failure where the immediate
+        // retry succeeded but nothing else drove a re-render. These tests pin the
+        // subscription contract: non-empty load fires the tree's change event,
+        // empty load does not.
+        it("emits onDidChangeTreeData when the load yielded tasks", () => {
+            const spy = sinon.spy();
+            gradleTasksTreeDataProvider.onDidChangeTreeData(spy);
+
+            // The event emitter is private but we want to test the subscription
+            // contract directly without going through the full mocked client load.
+            (gradleTaskProvider as any)._onDidLoadTasks.fire([mockGradleTask1, mockGradleTask2]);
+
+            assert.ok(spy.called, "non-empty task list should trigger a tree refresh");
+        });
+
+        it("does not emit onDidChangeTreeData when the load yielded no tasks", () => {
+            const spy = sinon.spy();
+            gradleTasksTreeDataProvider.onDidChangeTreeData(spy);
+
+            (gradleTaskProvider as any)._onDidLoadTasks.fire([]);
+
+            assert.ok(!spy.called, "empty task list should not trigger a refresh");
+        });
+    });
 });

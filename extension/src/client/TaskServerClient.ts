@@ -32,6 +32,7 @@ import { EventWaiter } from "../util/EventWaiter";
 import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
 import { setDefault, unsetDefault } from "../views/defaultProject/DefaultProjectUtils";
 import { SpecifySourcePackageNameStep } from "../createProject/SpecifySourcePackageNameStep";
+import { retryOnSpuriousCancel } from "./retryOnSpuriousCancel";
 
 function logBuildEnvironment(environment: Environment): void {
     const javaEnv = environment.getJavaEnvironment()!;
@@ -135,88 +136,137 @@ export class TaskServerClient implements vscode.Disposable {
 
                 token.onCancellationRequested(() => this.cancelBuild(cancellationKey));
 
-                const stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
-                const stdErrLoggerStream = new LoggerStream(logger, LogVerbosity.ERROR);
-
-                const request = new GetBuildRequest();
-                request.setProjectDir(rootProject.getProjectUri().fsPath);
-                request.setCancellationKey(cancellationKey);
-                request.setGradleConfig(gradleConfig);
-                request.setShowOutputColors(showOutputColors);
-                const getBuildStream = this.grpcClient!.getBuild(request);
                 try {
-                    return await new Promise((resolve, reject) => {
-                        let build: GradleBuild | undefined;
-                        getBuildStream
-                            .on("data", async (getBuildReply: GetBuildReply) => {
-                                switch (getBuildReply.getKindCase()) {
-                                    case GetBuildReply.KindCase.PROGRESS:
-                                        progressHandler.report(getBuildReply.getProgress()!.getMessage().trim());
-                                        break;
-                                    case GetBuildReply.KindCase.OUTPUT:
-                                        switch (getBuildReply.getOutput()!.getOutputType()) {
-                                            case Output.OutputType.STDOUT:
-                                                stdOutLoggerStream.write(
-                                                    getBuildReply.getOutput()!.getOutputBytes_asU8()
-                                                );
-                                                break;
-                                            case Output.OutputType.STDERR:
-                                                stdErrLoggerStream.write(
-                                                    getBuildReply.getOutput()!.getOutputBytes_asU8()
-                                                );
-                                                break;
-                                        }
-                                        break;
-                                    case GetBuildReply.KindCase.CANCELLED:
-                                        this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
-                                        break;
-                                    case GetBuildReply.KindCase.GET_BUILD_RESULT:
-                                        void unsetDefault();
-                                        build = getBuildReply.getGetBuildResult()!.getBuild();
-                                        break;
-                                    case GetBuildReply.KindCase.ENVIRONMENT:
-                                        const environment = getBuildReply.getEnvironment()!;
-                                        rootProject.setEnvironment(environment);
-                                        logBuildEnvironment(environment);
-                                        await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-                                        break;
-                                    case GetBuildReply.KindCase.COMPATIBILITY_CHECK_ERROR:
-                                        const message = getBuildReply.getCompatibilityCheckError()!;
-                                        const options = ["Open Gradle Settings", "Learn More"];
-                                        await vscode.window.showErrorMessage(message, ...options).then((choice) => {
-                                            if (choice === "Open Gradle Settings") {
-                                                void vscode.commands.executeCommand(
-                                                    "workbench.action.openSettings",
-                                                    "java.import.gradle"
-                                                );
-                                            } else if (choice === "Learn More") {
-                                                void vscode.env.openExternal(
-                                                    vscode.Uri.parse(
-                                                        "https://docs.gradle.org/current/userguide/compatibility.html"
-                                                    )
-                                                );
-                                            }
-                                        });
-                                        break;
-                                }
-                            })
-                            .on("error", reject)
-                            .on("end", () => resolve(build));
-                    });
+                    // Workaround for a Node.js http2 race when reusing an HTTP/2 session
+                    // after a large server-streaming response: the first DATA frame on a
+                    // new stream can arrive truncated with END_STREAM, causing the server
+                    // to reset the stream and grpc-js to surface a synthetic CANCELLED.
+                    // grpc-node maintainers track this as Node-side behavior and the
+                    // recommended fix is application-level retry (see grpc/grpc-node#2872).
+                    // Only retry once when there is no risk of duplicate side-effects:
+                    // CANCELLED, no data observed, finished in < 2s, and the user did not
+                    // cancel.
+                    return await retryOnSpuriousCancel(
+                        "GetBuild",
+                        () =>
+                            this.runGetBuildStream(
+                                rootProject,
+                                cancellationKey,
+                                gradleConfig,
+                                showOutputColors,
+                                progressHandler
+                            ),
+                        (err) => {
+                            const tagged = err as grpc.ServiceError & {
+                                __receivedAnyData?: boolean;
+                                __durationMs?: number;
+                            };
+                            return (
+                                tagged?.code === grpc.status.CANCELLED &&
+                                !tagged.__receivedAnyData &&
+                                (tagged.__durationMs ?? Number.MAX_SAFE_INTEGER) < 2000 &&
+                                !token.isCancellationRequested
+                            );
+                        },
+                        { logger }
+                    );
                 } catch (err) {
                     void setDefault();
+                    const e = err as grpc.ServiceError;
                     logger.error(
-                        `Error getting build for ${rootProject.getProjectUri().fsPath}: ${err.details || err.message}`
+                        `Error getting build for ${rootProject.getProjectUri().fsPath}: ${e?.details || e?.message}`
                     );
                     this.statusBarItem.command = COMMAND_SHOW_LOGS;
                     this.statusBarItem.text = "$(warning) Gradle: Build Error";
                     this.statusBarItem.show();
+                    return undefined;
                 } finally {
                     process.nextTick(() => vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS));
                 }
-                return undefined;
             }
         );
+    }
+
+    private runGetBuildStream(
+        rootProject: RootProject,
+        cancellationKey: string,
+        gradleConfig: GradleConfig,
+        showOutputColors: boolean,
+        progressHandler: ProgressHandler
+    ): Promise<GradleBuild | undefined> {
+        const stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
+        const stdErrLoggerStream = new LoggerStream(logger, LogVerbosity.ERROR);
+
+        const request = new GetBuildRequest();
+        request.setProjectDir(rootProject.getProjectUri().fsPath);
+        request.setCancellationKey(cancellationKey);
+        request.setGradleConfig(gradleConfig);
+        request.setShowOutputColors(showOutputColors);
+        const getBuildStream = this.grpcClient!.getBuild(request);
+        const attemptStartTs = Date.now();
+        let receivedAnyData = false;
+        return new Promise((resolve, reject) => {
+            let build: GradleBuild | undefined;
+            getBuildStream
+                .on("data", async (getBuildReply: GetBuildReply) => {
+                    receivedAnyData = true;
+                    switch (getBuildReply.getKindCase()) {
+                        case GetBuildReply.KindCase.PROGRESS:
+                            progressHandler.report(getBuildReply.getProgress()!.getMessage().trim());
+                            break;
+                        case GetBuildReply.KindCase.OUTPUT:
+                            switch (getBuildReply.getOutput()!.getOutputType()) {
+                                case Output.OutputType.STDOUT:
+                                    stdOutLoggerStream.write(getBuildReply.getOutput()!.getOutputBytes_asU8());
+                                    break;
+                                case Output.OutputType.STDERR:
+                                    stdErrLoggerStream.write(getBuildReply.getOutput()!.getOutputBytes_asU8());
+                                    break;
+                            }
+                            break;
+                        case GetBuildReply.KindCase.CANCELLED:
+                            this.handleGetBuildCancelled(getBuildReply.getCancelled()!);
+                            break;
+                        case GetBuildReply.KindCase.GET_BUILD_RESULT:
+                            void unsetDefault();
+                            build = getBuildReply.getGetBuildResult()!.getBuild();
+                            break;
+                        case GetBuildReply.KindCase.ENVIRONMENT:
+                            const environment = getBuildReply.getEnvironment()!;
+                            rootProject.setEnvironment(environment);
+                            logBuildEnvironment(environment);
+                            await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+                            break;
+                        case GetBuildReply.KindCase.COMPATIBILITY_CHECK_ERROR:
+                            const message = getBuildReply.getCompatibilityCheckError()!;
+                            const options = ["Open Gradle Settings", "Learn More"];
+                            await vscode.window.showErrorMessage(message, ...options).then((choice) => {
+                                if (choice === "Open Gradle Settings") {
+                                    void vscode.commands.executeCommand(
+                                        "workbench.action.openSettings",
+                                        "java.import.gradle"
+                                    );
+                                } else if (choice === "Learn More") {
+                                    void vscode.env.openExternal(
+                                        vscode.Uri.parse("https://docs.gradle.org/current/userguide/compatibility.html")
+                                    );
+                                }
+                            });
+                            break;
+                    }
+                })
+                .on("error", (err: grpc.ServiceError) => {
+                    // Attach signals consumed by the retry-eligibility check in getBuild().
+                    const tagged = err as grpc.ServiceError & {
+                        __receivedAnyData?: boolean;
+                        __durationMs?: number;
+                    };
+                    tagged.__receivedAnyData = receivedAnyData;
+                    tagged.__durationMs = Date.now() - attemptStartTs;
+                    reject(err);
+                })
+                .on("end", () => resolve(build));
+        });
     }
 
     public async runBuild(
@@ -310,18 +360,24 @@ export class TaskServerClient implements vscode.Disposable {
         const request = new CancelBuildRequest();
         request.setCancellationKey(cancellationKey);
         try {
-            const reply: CancelBuildReply | undefined = await new Promise((resolve, reject) => {
-                this.grpcClient!.cancelBuild(
-                    request,
-                    (err: grpc.ServiceError | null, cancelRunBuildReply: CancelBuildReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(cancelRunBuildReply);
-                        }
-                    }
-                );
-            });
+            const reply: CancelBuildReply | undefined = await retryOnSpuriousCancel(
+                "CancelBuild",
+                () =>
+                    new Promise((resolve, reject) => {
+                        this.grpcClient!.cancelBuild(
+                            request,
+                            (err: grpc.ServiceError | null, cancelRunBuildReply: CancelBuildReply | undefined) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(cancelRunBuildReply);
+                                }
+                            }
+                        );
+                    }),
+                undefined,
+                { logger }
+            );
             if (reply) {
                 logger.info("Cancel build:", reply.getMessage());
 
@@ -338,18 +394,24 @@ export class TaskServerClient implements vscode.Disposable {
         this.statusBarItem.hide();
         const request = new CancelBuildsRequest();
         try {
-            const reply: CancelBuildsReply | undefined = await new Promise((resolve, reject) => {
-                this.grpcClient!.cancelBuilds(
-                    request,
-                    (err: grpc.ServiceError | null, cancelRunBuildsReply: CancelBuildsReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(cancelRunBuildsReply);
-                        }
-                    }
-                );
-            });
+            const reply: CancelBuildsReply | undefined = await retryOnSpuriousCancel(
+                "CancelBuilds",
+                () =>
+                    new Promise((resolve, reject) => {
+                        this.grpcClient!.cancelBuilds(
+                            request,
+                            (err: grpc.ServiceError | null, cancelRunBuildsReply: CancelBuildsReply | undefined) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(cancelRunBuildsReply);
+                                }
+                            }
+                        );
+                    }),
+                undefined,
+                { logger }
+            );
             if (reply) {
                 logger.info("Cancel builds:", reply.getMessage());
             }
@@ -364,18 +426,24 @@ export class TaskServerClient implements vscode.Disposable {
         request.setCommand(SpecifySourcePackageNameStep.GET_NORMALIZED_PACKAGE_NAME);
         request.addArguments(name);
         try {
-            return await new Promise((resolve, reject) => {
-                this.grpcClient!.executeCommand(
-                    request,
-                    (err: grpc.ServiceError | null, executeCommandReply: ExecuteCommandReply | undefined) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(executeCommandReply?.getResult());
-                        }
-                    }
-                );
-            });
+            return await retryOnSpuriousCancel(
+                "ExecuteCommand:getNormalizedPackageName",
+                () =>
+                    new Promise<string | undefined>((resolve, reject) => {
+                        this.grpcClient!.executeCommand(
+                            request,
+                            (err: grpc.ServiceError | null, executeCommandReply: ExecuteCommandReply | undefined) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve(executeCommandReply?.getResult());
+                                }
+                            }
+                        );
+                    }),
+                undefined,
+                { logger }
+            );
         } catch (err) {
             return undefined;
         }
