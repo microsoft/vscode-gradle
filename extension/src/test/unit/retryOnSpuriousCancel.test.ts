@@ -50,7 +50,7 @@ describe("retryOnSpuriousCancel", () => {
         sinon.assert.calledTwice(op);
         sinon.assert.calledOnce(logger.debug);
         assert.ok(
-            (logger.debug.firstCall.args[0] as string).includes("Op: spurious CANCELLED on attempt 1/2"),
+            (logger.debug.firstCall.args[0] as string).includes("Op: spurious CANCELLED on attempt 1/2, retrying"),
             "retry log should identify the operation and attempt index"
         );
     });
@@ -134,5 +134,29 @@ describe("retryOnSpuriousCancel", () => {
         sinon.assert.calledThrice(op);
         sinon.assert.calledTwice(logger.debug); // retry log between attempts 1->2 and 2->3
         assert.ok(thrown);
+    });
+
+    it("clamps maxAttempts < 1 so the operation still runs once and its error is thrown", async () => {
+        const err = cancelledError({ details: "real-error" });
+        const op = sinon.stub().rejects(err);
+
+        const thrown = await retryOnSpuriousCancel("Op", op, undefined, { logger, maxAttempts: 0 }).then(
+            () => undefined,
+            (e) => e as grpc.ServiceError
+        );
+
+        sinon.assert.calledOnce(op);
+        sinon.assert.notCalled(logger.debug);
+        assert.ok(thrown, "should throw the operation's error, never undefined");
+        assert.strictEqual(thrown!.details, "real-error");
+    });
+
+    it("clamps a negative maxAttempts the same as 0", async () => {
+        const op = sinon.stub().resolves("ok");
+
+        const result = await retryOnSpuriousCancel("Op", op, undefined, { logger, maxAttempts: -5 });
+
+        assert.strictEqual(result, "ok");
+        sinon.assert.calledOnce(op);
     });
 });

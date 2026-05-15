@@ -27,7 +27,11 @@ public class GradleServerFilterTest {
 	private final Filter filter = GradleServer.buildNettyMidFrameWarningFilter();
 
 	private LogRecord record(String loggerName, Throwable thrown) {
-		LogRecord r = new LogRecord(Level.WARNING, "Exception processing message");
+		return record(loggerName, thrown, Level.WARNING);
+	}
+
+	private LogRecord record(String loggerName, Throwable thrown, Level level) {
+		LogRecord r = new LogRecord(level, "Exception processing message");
 		r.setLoggerName(loggerName);
 		r.setThrown(thrown);
 		return r;
@@ -86,5 +90,58 @@ public class GradleServerFilterTest {
 		LogRecord r = record("io.grpc.netty.NettyServerStream$TransportState",
 				new StatusRuntimeException(Status.INTERNAL));
 		assertTrue("a StatusRuntimeException without message text must surface", filter.isLoggable(r));
+	}
+
+	@Test
+	public void allowsSevereRecordsEvenWhenTheyMatchTheMidFrameSignature() {
+		// A higher-severity record carrying the same signature is escalated by the
+		// JVM or the underlying library and should never be silently dropped.
+		LogRecord r = record("io.grpc.netty.NettyServerStream$TransportState",
+				new StatusRuntimeException(Status.INTERNAL.withDescription(MID_FRAME)), Level.SEVERE);
+		assertTrue("SEVERE records matching the signature must still surface", filter.isLoggable(r));
+	}
+
+	@Test
+	public void allowsInfoRecordsEvenWhenTheyMatchTheMidFrameSignature() {
+		LogRecord r = record("io.grpc.netty.NettyServerStream$TransportState",
+				new StatusRuntimeException(Status.INTERNAL.withDescription(MID_FRAME)), Level.INFO);
+		assertTrue("INFO records matching the signature must still surface", filter.isLoggable(r));
+	}
+
+	@Test
+	public void composeFiltersWithNullPreviousReturnsTheNewFilter() {
+		Filter midFrame = GradleServer.buildNettyMidFrameWarningFilter();
+		Filter composed = GradleServer.composeFilters(null, midFrame);
+		LogRecord r = record("io.grpc.netty.NettyServerStream$TransportState",
+				new StatusRuntimeException(Status.INTERNAL.withDescription(MID_FRAME)));
+		assertFalse(composed.isLoggable(r));
+	}
+
+	@Test
+	public void composeFiltersDelegatesToPreviousFilter() {
+		// An existing logging policy that already blocks records from a third-party
+		// logger must keep blocking after our filter is layered on top.
+		Filter blockExternal = record -> !"third.party.logger".equals(record.getLoggerName());
+		Filter midFrame = GradleServer.buildNettyMidFrameWarningFilter();
+		Filter composed = GradleServer.composeFilters(blockExternal, midFrame);
+
+		LogRecord externalRecord = record("third.party.logger", null);
+		assertFalse("composed filter must honor previous policy", composed.isLoggable(externalRecord));
+
+		LogRecord unrelatedNetty = record("io.grpc.netty.NettyServerStream$TransportState",
+				new StatusRuntimeException(Status.RESOURCE_EXHAUSTED.withDescription("too many streams")));
+		assertTrue("composed filter must still allow other Netty warnings", composed.isLoggable(unrelatedNetty));
+	}
+
+	@Test
+	public void composeFiltersAppliesBothPredicatesWithAndSemantics() {
+		// previous blocks everything; result must block regardless of our filter.
+		Filter blockAll = record -> false;
+		Filter midFrame = GradleServer.buildNettyMidFrameWarningFilter();
+		Filter composed = GradleServer.composeFilters(blockAll, midFrame);
+
+		LogRecord allowedByOurs = record("io.grpc.netty.NettyServerStream$TransportState",
+				new StatusRuntimeException(Status.RESOURCE_EXHAUSTED.withDescription("too many streams")));
+		assertFalse("AND-composition: previous=false must dominate", composed.isLoggable(allowedByOurs));
 	}
 }

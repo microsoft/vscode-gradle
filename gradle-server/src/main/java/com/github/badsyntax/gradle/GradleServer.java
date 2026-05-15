@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Filter;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,26 +92,42 @@ public class GradleServer {
 	 * INTERNAL "Encountered end-of-stream mid-frame" WARNING with a long stack
 	 * trace to stderr, which surfaces in the extension output channel as a scary
 	 * error even though the retried call succeeded. Filter that single record out
-	 * of every JUL handler attached to the root logger; all other Netty warnings
-	 * (TLS, protocol violations, etc.) pass through unchanged.
+	 * of every JUL handler attached to the root logger; the filter checks the log
+	 * level, the logger name, the throwable type and the message text, so all other
+	 * Netty warnings (TLS, protocol violations, etc.) and any record at a different
+	 * level (e.g. SEVERE) pass through unchanged. If a handler already had a filter
+	 * configured, the existing filter is preserved and chained so we never silently
+	 * bypass other logging policies.
 	 */
 	private static void installNettyMidFrameWarningFilter() {
-		Filter filter = buildNettyMidFrameWarningFilter();
+		Filter suppression = buildNettyMidFrameWarningFilter();
 		java.util.logging.Logger root = java.util.logging.Logger.getLogger("");
 		for (Handler h : root.getHandlers()) {
-			h.setFilter(filter);
+			Filter previous = h.getFilter();
+			h.setFilter(composeFilters(previous, suppression));
 		}
 	}
 
 	// Package-private for testing.
 	static Filter buildNettyMidFrameWarningFilter() {
 		return record -> {
+			if (!Level.WARNING.equals(record.getLevel())) {
+				return true;
+			}
 			Throwable t = record.getThrown();
 			String name = record.getLoggerName();
 			return !(name != null && name.startsWith("io.grpc.netty.NettyServerStream")
 					&& t instanceof StatusRuntimeException && t.getMessage() != null
 					&& t.getMessage().contains("Encountered end-of-stream mid-frame"));
 		};
+	}
+
+	// Package-private for testing.
+	static Filter composeFilters(Filter previous, Filter next) {
+		if (previous == null) {
+			return next;
+		}
+		return record -> previous.isLoggable(record) && next.isLoggable(record);
 	}
 
 	private static void startTaskServerThread(int port) {
