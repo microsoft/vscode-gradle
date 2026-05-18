@@ -141,7 +141,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 );
             }
         } else {
-            this.write(err.details || err.message);
+            if (!err.details?.startsWith("Could not execute build using connection to Gradle distribution")) {
+                this.write(err.details || err.message);
+            }
         }
     }
 
