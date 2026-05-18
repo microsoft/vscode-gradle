@@ -95,7 +95,7 @@ export class Extension {
             this.taskServerClient,
             this.gradleBuildContentProvider
         );
-        this.gradleDependencyProvider = new GradleDependencyProvider(this.gradleBuildContentProvider);
+        this.gradleDependencyProvider = new GradleDependencyProvider(this.taskServerClient);
         this.taskProvider = vscode.tasks.registerTaskProvider("gradle", this.gradleTaskProvider);
         this.icons = new Icons(context);
 
@@ -133,7 +133,8 @@ export class Extension {
             this.gradleTaskProvider,
             this.rootProjectsStore,
             this.taskServerClient,
-            this.icons
+            this.icons,
+            this.gradleDependencyProvider
         );
         this.defaultProjectsTreeView = vscode.window.createTreeView(GRADLE_DEFAULT_PROJECTS_VIEW, {
             treeDataProvider: this.defaultProjectsTreeDataProvider,
@@ -157,13 +158,20 @@ export class Extension {
             this.gradleBuildContentProvider,
             this.gradleTasksTreeDataProvider,
             this.recentTasksTreeDataProvider,
+            this.defaultProjectsTreeDataProvider,
             this.gradleDaemonsTreeDataProvider,
             this.taskServerClient,
+            this.gradleDependencyProvider,
             this.rootProjectsStore,
             this.taskTerminalsStore,
             this.recentTasksStore,
             this.gradleTasksTreeView
         );
+
+        this.gradleDependencyProvider.onDidChangeDependencyTreeItem((treeItem) => {
+            this.gradleTasksTreeDataProvider.refresh(treeItem);
+            this.defaultProjectsTreeDataProvider.refresh(treeItem);
+        });
 
         this.buildServerController = new BuildServerController(context);
 

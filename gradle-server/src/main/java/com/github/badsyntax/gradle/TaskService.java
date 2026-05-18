@@ -4,6 +4,7 @@ import com.github.badsyntax.gradle.handlers.CancelBuildHandler;
 import com.github.badsyntax.gradle.handlers.CancelBuildsHandler;
 import com.github.badsyntax.gradle.handlers.ExecuteCommandHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
+import com.github.badsyntax.gradle.handlers.GetProjectDependenciesHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import io.grpc.stub.StreamObserver;
 
@@ -13,6 +14,13 @@ public class TaskService extends GradleGrpc.GradleImplBase {
 	public void getBuild(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
 		GetBuildHandler getBuildHandler = new GetBuildHandler(req, responseObserver);
 		getBuildHandler.run();
+	}
+
+	@Override
+	public void getProjectDependencies(GetProjectDependenciesRequest req,
+			StreamObserver<GetProjectDependenciesReply> responseObserver) {
+		GetProjectDependenciesHandler handler = new GetProjectDependenciesHandler(req, responseObserver);
+		handler.run();
 	}
 
 	@Override

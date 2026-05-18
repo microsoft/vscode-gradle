@@ -4,6 +4,7 @@
 package com.microsoft.gradle;
 
 import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleDependencyModel;
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
 import com.microsoft.gradle.api.GradleField;
@@ -56,10 +57,14 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	}
 
 	public boolean canBuild(String modelName) {
-		return modelName.equals(GradleProjectModel.class.getName());
+		return modelName.equals(GradleProjectModel.class.getName())
+				|| modelName.equals(GradleDependencyModel.class.getName());
 	}
 
 	public Object buildAll(String modelName, Project project) {
+		if (modelName.equals(GradleDependencyModel.class.getName())) {
+			return new DefaultGradleDependencyModel(generateDefaultGradleDependencyNode(project));
+		}
 		cachedTasks.clear();
 		DefaultGradleProject gradleProject = (DefaultGradleProject) this.registry
 				.getBuilder("org.gradle.tooling.model.GradleProject").buildAll(modelName, project);
@@ -100,7 +105,7 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		classpath.getAsFiles().forEach((file) -> {
 			scriptClasspaths.add(file.getAbsolutePath());
 		});
-		GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
+		GradleDependencyNode node = new DefaultGradleDependencyNode(project.getName(), GradleDependencyType.PROJECT);
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
 		List<GradleProjectModel> subModels = new ArrayList<>();
