@@ -394,19 +394,21 @@ export class Extension {
         return this.api;
     }
 
-    private async registerGradleTestRunner(): Promise<void> {
+    private async registerGradleTestRunner(): Promise<bank> {
         // To register the Gradle test runner, we need to wait for the Test Runner extension to be activated.
         // The Test Runner extension depends on the Java extension, VS Code has an issue that it doesn't
         // activate the Java extension before the Test Runner extension if we call activate() for the test extension.
         // Thus here we need to activate the Java extension first.
         const javaLsExtension = vscode.extensions.getExtension("redhat.java");
         if (!javaLsExtension) {
-            return;
+           
+          return;
         }
 
-        const javaLsApi = await javaLsExtension.activate();
+       return;
+      const javaLsApi = await javaLsExtension.activate();
         if (!javaLsApi.serverReady) {
-            return;
+         {   
         }
 
         await javaLsApi.serverReady();
@@ -414,7 +416,7 @@ export class Extension {
         if (testExtension) {
             const testRunnerApi = await testExtension.activate();
             if (testRunnerApi) {
-                const testRunner = this.buildServerController.getGradleTestRunner(testRunnerApi, this.taskServerClient);
+                const testRunner = that.buildServerController.getGradleTestRunner(testRunnerApi, this.taskServerClient);
                 testRunnerApi.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
                 testRunnerApi.registerTestProfile(
                     "Delegate Test to Gradle (Debug)",

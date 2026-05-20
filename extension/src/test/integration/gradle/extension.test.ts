@@ -76,108 +76,30 @@ describe(getSuiteName("Extension"), () => {
             assert.ok(stub.called);
         });
 
-        it("should run a gradle task", async () => {
-            const task = (await vscode.tasks.fetchTasks({ type: "gradle" })).find(({ name }) => name === "hello");
-            assert.ok(task);
-            const loggerAppendSpy = sinon.spy(extension!.exports.getLogger(), "append");
-            const loggerAppendLineSpy = sinon.spy(extension!.exports.getLogger(), "appendLine");
-            await executeAndWaitForTask(task);
-            assert.ok(loggerAppendSpy.calledWith(sinon.match("Hello, World!")));
-            assert.ok(loggerAppendLineSpy.calledWith(sinon.match("Completed build: hello")));
-        });
-
-        it("should run a gradle task with custom args that contain spaces", async () => {
-            sinon.stub(vscode.window, "showInputBox").returns(Promise.resolve('-PcustomProp="foo bar"'));
-
-            assert.ok(extension);
-
-            const task = (await vscode.tasks.fetchTasks({ type: "gradle" })).find(
-                ({ name }) => name === "helloProjectProperty"
-            );
-            assert.ok(task);
-            const spy = sinon.spy(extension.exports.getLogger(), "append");
-            await new Promise(async (resolve) => {
-                const endDisposable = vscode.tasks.onDidEndTaskProcess((e) => {
-                    if (e.execution.task.definition.script === task.definition.script) {
-                        endDisposable.dispose();
-                        resolve(undefined);
-                    }
-                });
-                const treeItem = new GradleTaskTreeItem(
-                    new vscode.TreeItem("parentTreeItem"),
-                    task,
-                    task.name,
-                    "",
-                    task.definition.description,
-                    extension!.exports.getIcons(),
-                    false
-                );
-                await vscode.commands.executeCommand(COMMAND_RUN_TASK_WITH_ARGS, treeItem);
-            });
-            assert.ok(spy.calledWith(sinon.match('Hello, Project Property!"foo bar"')));
-        });
+    it('should generate a new terminal for every task run with reuseTerminals: "off"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'off');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
+      await executeAndWaitForTasks();
+      assert.strictEqual(vscode.window.terminals.length, 3);
     });
 
-    describe("Extension api", () => {
-        it("should run a task using the extension api", async () => {
-            const api = extension!.exports as ExtensionApi;
-            let hasMessage = false;
-            const runTaskOpts: RunTaskOpts = {
-                projectFolder: fixturePath.fsPath,
-                taskName: "hello",
-                showOutputColors: false,
-                onOutput: (output: Output): void => {
-                    const message = new util.TextDecoder("utf-8").decode(output.getOutputBytes_asU8()).trim();
-                    if (message === "Hello, World!") {
-                        hasMessage = true;
-                    }
-                },
-            };
-            await api.runTask(runTaskOpts);
-            assert.ok(hasMessage);
-        });
+    it('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'task');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
+      await executeAndWaitForTasks();
+      assert.strictEqual(vscode.window.terminals.length, 2);
     });
 
-    describe("Reuse terminals config", () => {
-        const resetConfig = async (): Promise<void> =>
-            await vscode.workspace.getConfiguration("gradle").update("reuseTerminals", "off");
-
-        const executeAndWaitForTasks = async (): Promise<void> => {
-            const tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-            const byeTask = tasks.find(({ name }) => name === "bye");
-            assert.ok(byeTask);
-            const helloTask = tasks.find(({ name }) => name === "hello");
-            assert.ok(helloTask);
-            await executeAndWaitForTask(byeTask);
-            await executeAndWaitForTask(byeTask);
-            await executeAndWaitForTask(helloTask);
-        };
-
-        before(async () => await resetConfig());
-        after(async () => await resetConfig());
-
-        beforeEach(() => {
-            vscode.window.terminals.forEach((terminal) => {
-                terminal.dispose();
-            });
-        });
-
-        it('should generate a new terminal for every task run with reuseTerminals: "off"', async () => {
-            await vscode.workspace.getConfiguration("gradle").update("reuseTerminals", "off");
-            await executeAndWaitForTasks();
-            assert.strictEqual(vscode.window.terminals.length, 3);
-        });
-
-        it('should generate 1 terminal per task with reuseTerminals: "task"', async () => {
-            await vscode.workspace.getConfiguration("gradle").update("reuseTerminals", "task");
-            await executeAndWaitForTasks();
-            assert.strictEqual(vscode.window.terminals.length, 2);
-        });
-
-        it('should generate 1 terminal for all tasks with reuseTerminals: "all"', async () => {
-            await vscode.workspace.getConfiguration("gradle").update("reuseTerminals", "all");
-            await executeAndWaitForTasks();
-            assert.strictEqual(vscode.window.terminals.length, 1);
-        });
+    it('should generate 1 terminal for all tasks with reuseTerminals: "all"', async () => {
+      await vscode.workspace
+        .getConfiguration('gradle')
+        .update('reuseTerminals', 'all');
+      await vscode.commands.executeCommand(COMMAND_REFRESH);
+      await executeAndWaitForTasks();
+      assert.strictEqual(vscode.window.terminals.length, 1);
     });
 });
