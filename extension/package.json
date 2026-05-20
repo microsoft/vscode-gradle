@@ -258,6 +258,19 @@
         }
       },
       {
+        "command": "gradle.cancelDependencyLoading",
+        "title": "Cancel Loading Dependencies",
+        "icon": {
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
+        }
+      },
+      {
+        "command": "gradle.reloadDependencies",
+        "title": "Reload Dependencies",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "gradle.explorerFlat",
         "title": "Show Flat Tasks",
         "icon": {
@@ -437,6 +450,14 @@
         },
         {
           "command": "gradle.cancelTreeItemTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "false"
+        },
+        {
+          "command": "gradle.reloadDependencies",
           "when": "false"
         },
         {
@@ -637,6 +658,11 @@
           "command": "gradle.cancellingTreeItemTask",
           "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^cancellingTask.*$/",
           "group": "inline@6"
+        },
+        {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "view =~ /^gradleTasksView$|^gradleDefaultProjectsView$/ && viewItem == dependenciesLoading",
+          "group": "inline@0"
         },
         {
           "command": "gradle.pinTask",

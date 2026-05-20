@@ -112,6 +112,8 @@ export function buildMockContext(): any {
 export function buildMockClient(): any {
     return {
         getBuild: sinon.stub(),
+        getProjectDependencies: sinon.stub(),
+        cancelProjectDependencies: sinon.stub(),
         getDaemonsStatus: sinon.stub(),
         stopDaemon: sinon.stub(),
         stopDaemons: sinon.stub(),

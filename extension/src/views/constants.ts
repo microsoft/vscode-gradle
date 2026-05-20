@@ -20,6 +20,8 @@ export const TREE_ITEM_STATE_TASK_DEBUG_IDLE = "debugTask";
 export const TREE_ITEM_STATE_TASK_PINNED_PREFIX = "pinned";
 export const TREE_ITEM_STATE_NO_TASKS = "notasks";
 export const TREE_ITEM_STATE_FOLDER = "folder";
+export const TREE_ITEM_STATE_DEPENDENCIES = "dependencies";
+export const TREE_ITEM_STATE_DEPENDENCIES_LOADING = "dependenciesLoading";
 
 export const TASK_STATE_RUNNING_REGEX = new RegExp(`^${TREE_ITEM_STATE_TASK_RUNNING}`);
 

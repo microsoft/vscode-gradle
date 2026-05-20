@@ -12,6 +12,7 @@ import {
 import { GradleTaskDefinition, GradleTaskProvider } from "../../tasks";
 import { isWorkspaceFolder } from "../../util";
 import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
+import { getGradleProjectPathFromTaskPath } from "../../util/gradlePath";
 import { PinnedTasksStore, RootProjectsStore } from "../../stores";
 import { Icons } from "../../icons";
 import { DependencyConfigurationTreeItem } from "./DependencyConfigurationTreeItem";
@@ -233,7 +234,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             vscode.TreeItemCollapsibleState.Collapsed,
             element,
             path.dirname(resourceUri.fsPath),
-            typeof element.label === "string" ? element.label : resourceUri.fsPath
+            typeof element.label === "string" ? element.label : resourceUri.fsPath,
+            element.gradleProjectPath
         );
         return [...results, projectDependencyTreeItem, ...element.subprojects];
     }
@@ -262,7 +264,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     gradleProjectTreeItemMap.set(definition.projectFolder, gradleProjectTreeItem);
                 }
 
-                const projectPath = definition.script.split(":").slice(0, -1);
+                const projectPath = definition.script.split(":").filter(Boolean).slice(0, -1);
+                const gradleProjectPath = getGradleProjectPathFromTaskPath(definition.script);
                 const projectMapKey = definition.projectFolder + "_" + projectPath.join(":");
                 let projectTreeItem = projectTreeItemMap.get(projectMapKey);
                 if (!projectTreeItem) {
@@ -274,7 +277,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     projectTreeItem = new ProjectTreeItem(
                         definition.project,
                         parentProject,
-                        vscode.Uri.file(definition.buildFile)
+                        vscode.Uri.file(definition.buildFile),
+                        gradleProjectPath
                     );
                     if (parentProject instanceof ProjectTreeItem) {
                         parentProject.addSubproject(projectTreeItem);
