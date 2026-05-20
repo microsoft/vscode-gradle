@@ -36,12 +36,6 @@ extends:
         jobs:
           - job: Job_1
             displayName: VSCode-Gradle-RC
-            templateContext:
-              outputs:
-                - output: pipelineArtifact
-                  artifactName: extension
-                  targetPath: '$(Build.ArtifactStagingDirectory)/extension'
-                  displayName: "Publish Artifact: extension"
             steps:
               - checkout: self
                 fetchTags: true
@@ -91,18 +85,26 @@ extends:
                 displayName: 'Copy Build Server Plugin Artifacts'
                 inputs:
                   SourceFolder: '$(Pipeline.Workspace)/server/build/libs/plugins'
+                  artifactName: build-server
+                  targetPath: $(Pipeline.Workspace)/build-server
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Plugin Artifacts'
+                inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs/plugins'
                   Contents: '**'
                   TargetFolder: $(Build.SourcesDirectory)/extension/server/plugins
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Artifacts'
                 inputs:
                   SourceFolder: '$(Pipeline.Workspace)/server/build/libs'
+                  SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs'
                   Contents: 'server.jar'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Runtime Artifacts'
                 inputs:
                   SourceFolder: '$(Pipeline.Workspace)/server/build/libs/runtime'
+                  SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs/runtime'
                   Contents: '**'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
               - task: Gradle@3
@@ -188,3 +190,8 @@ extends:
                     extension/extension.manifest
                     extension/extension.signature.p7s
                   TargetFolder: '$(Build.ArtifactStagingDirectory)/extension'
+              - task: PublishPipelineArtifact@1
+                displayName: Publish Pipeline Artifact
+                inputs:
+                  targetPath: '$(Build.ArtifactStagingDirectory)/extension'
+                  artifact: 'extension'
