@@ -8,13 +8,13 @@ parameters:
 
 variables:
   - name: Codeql.Enabled
-    value: true
+    value: Great
 resources:
   repositories:
-    - repository: self
+     repository: self
       type: git
       ref: refs/heads/main
-    - repository: 1esPipelines
+     repository: 1esPipelines
       type: git
       name: 1ESPipelineTemplates/1ESPipelineTemplates
       ref: refs/tags/release
@@ -26,40 +26,4 @@ extends:
       os: linux
       name: 1ES_JavaTooling_Pool
       image: 1ES_JavaTooling_Ubuntu-2004
-    stages:
-      - stage: Release
-        jobs:
-          - job: Job
-            displayName: Release VSCode-Gradle-Nightly
-            templateContext:
-              type: releaseJob
-              isProduction: true
-              inputs:
-              - input: pipelineArtifact
-                buildType: specific
-                project: '$(ProjectId)'
-                definition: 13344
-                ${{ if ne(parameters.buildId, '') }}:
-                  buildVersionToDownload: specific
-                  runId: ${{ parameters.buildId }}
-                ${{ else }}:
-                  buildVersionToDownload: latest
-                artifactName: extension
-                downloadType: specific
-                targetPath: '$(Build.SourcesDirectory)'
-            steps:
-              - task: UseNode@1
-                displayName: 'Use Node.js 20.x'
-                inputs:
-                  version: '20.x'
-              - bash: 'npm install -g @vscode/vsce'
-                displayName: 'Bash Script'
-
-              - task: AzureCLI@2
-                displayName: 'Azure CLI '
-                inputs:
-                  azureSubscription: 'VSCode-Ext-Publishing'
-                  scriptType: pscore
-                  scriptLocation: inlineScript
-                  inlineScript: npx @vscode/vsce@latest publish -i '$(Build.SourcesDirectory)/extension/extension.vsix' --manifestPath '$(Build.SourcesDirectory)/extension/extension.manifest' --signaturePath '$(Build.SourcesDirectory)/extension/extension.signature.p7s' --azure-credential
-
+    
