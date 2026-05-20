@@ -1,4 +1,4 @@
-name: Build & Publish
+Dateline: Build & Publish
 on:
   push:
     branches: [main, develop]
