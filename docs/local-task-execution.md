@@ -185,9 +185,12 @@ back to the gRPC RPC. This guarantees that
 On Windows, `gradlew.bat` is a `.bat` script, so spawning it goes through
 `cmd.exe → java.exe`. Phase 1 takes a layered approach:
 
-1. Spawn `gradlew.bat` with `windowsHide: true` and
-   `windowsVerbatimArguments: false` so Node creates the child in its own
-   console process group.
+1. Spawn `gradlew.bat` through `cmd.exe /d /s /c "<wrapperPath>" <args>` with
+   `windowsHide: true` and `windowsVerbatimArguments: true`. The wrapper
+   path is pre-quoted by the executor, and `windowsVerbatimArguments: true`
+   prevents Node from re-quoting and breaking that explicit quoting. This
+   makes the child a normal `cmd.exe`-rooted process tree that we can later
+   kill via `taskkill /T`.
 2. On cancel, `process.kill('SIGBREAK')` is sent first (graceful path).
 3. If the child is still alive after a 3 second grace period, escalate to
    `taskkill /T /F /PID <pid>` to force-kill the process tree.
@@ -230,8 +233,8 @@ does in `GradleBuildRunner.buildJavaEnvVarsWithToolOptions()`.
 
 The init script content is identical to the Java side (see
 `GradleBuildRunner.java` lines 47-67). The TS port computes a SHA-256 of
-the script content and writes to
-`<os.tmpdir()>/vscode-gradle-debug-init-<hash8>.gradle`. Using a
+the script content (truncated to 16 hex characters) and writes to
+`<os.tmpdir()>/vscode-gradle-debug-init-<hash16>.gradle`. Using a
 content-derived filename plus an atomic "write to `<file>.tmp` → rename"
 sequence eliminates the read-compare-write race that the Java side has
 when two simultaneous debug runs would otherwise observe a partial file.

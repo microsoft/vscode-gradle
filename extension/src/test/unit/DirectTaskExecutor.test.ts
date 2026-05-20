@@ -228,8 +228,24 @@ describe(getSuiteName("DirectTaskExecutor"), () => {
             const wrapperName = process.platform === "win32" ? "gradlew.bat" : "gradlew";
             const wrapperPath = path.join(tmpRoot, wrapperName);
             await fse.outputFile(wrapperPath, "");
+            if (process.platform !== "win32") {
+                await fse.chmod(wrapperPath, 0o755);
+            }
             const result = await findGradleWrapper(tmpRoot);
             assert.strictEqual(result, wrapperPath);
+        });
+
+        it("returns undefined on Unix when the wrapper script is not executable", async function () {
+            if (process.platform === "win32") {
+                this.skip();
+                return;
+            }
+            await fse.outputFile(path.join(tmpRoot, "gradle", "wrapper", "gradle-wrapper.properties"), "");
+            const wrapperPath = path.join(tmpRoot, "gradlew");
+            await fse.outputFile(wrapperPath, "");
+            await fse.chmod(wrapperPath, 0o644);
+            const result = await findGradleWrapper(tmpRoot);
+            assert.strictEqual(result, undefined);
         });
     });
 

@@ -49,17 +49,25 @@ class Semaphore {
                 /* ignore */
             }
         }
+        // The slot is handed to us directly by release() (it does NOT
+        // decrement `inFlight` when there is a waiter), so we MUST NOT
+        // increment here. Otherwise a fresh acquire() racing between
+        // release() and our continuation could observe a freed slot and
+        // push `inFlight` past `capacity`.
         await new Promise<void>((resolve) => this.waiters.push(resolve));
-        this.inFlight++;
         return () => this.release();
     }
 
     private release(): void {
-        this.inFlight--;
         const next = this.waiters.shift();
         if (next) {
+            // Hand the permit directly to the next waiter without going
+            // through inFlight-- / inFlight++ ; this preserves the
+            // concurrency cap in the face of interleaved acquire() calls.
             next();
+            return;
         }
+        this.inFlight--;
     }
 }
 
@@ -112,6 +120,11 @@ const WRAPPER_PROPERTIES = path.join("gradle", "wrapper", "gradle-wrapper.proper
 /**
  * Returns the absolute path of the wrapper script for `rootProjectDir`,
  * or `undefined` if no usable wrapper is present.
+ *
+ * On non-Windows platforms the wrapper must also be executable; otherwise
+ * `cp.spawn()` would fail later with EACCES and the caller would have no
+ * way to fall back to the gRPC path. Treating a non-executable wrapper as
+ * "missing" lets `shouldUseDirectExecution()` fall back gracefully.
  */
 export async function findGradleWrapper(rootProjectDir: string): Promise<string | undefined> {
     const propertiesPath = path.join(rootProjectDir, WRAPPER_PROPERTIES);
@@ -122,6 +135,13 @@ export async function findGradleWrapper(rootProjectDir: string): Promise<string 
     const wrapperPath = path.join(rootProjectDir, wrapperName);
     if (!(await fse.pathExists(wrapperPath))) {
         return undefined;
+    }
+    if (process.platform !== "win32") {
+        try {
+            await fse.access(wrapperPath, fse.constants.X_OK);
+        } catch {
+            return undefined;
+        }
     }
     return wrapperPath;
 }
