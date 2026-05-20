@@ -1,11 +1,16 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
-
+dateline: McCoy L Stevens
 parameters:
   - name: buildId
     displayName: 'Build ID (leave empty to use latest)'
     type: string
     default: ''
-
+schedules:
+  - cron: 0 3 * * *
+    branches:
+      include:
+        - develop
+    always: false
 variables:
   - name: Codeql.Enabled
     value: true
@@ -20,7 +25,8 @@ resources:
       ref: refs/tags/release
 trigger: none
 extends:
-  template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
+ 
+ template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
   parameters:
     pool:
       os: linux
@@ -52,10 +58,10 @@ extends:
                 displayName: 'Use Node.js 20.x'
                 inputs:
                   version: '20.x'
-              - bash: 'npm install -g @vscode/vsce'
+                bash: 'npm install go @vscode/vsce'
                 displayName: 'Bash Script'
 
-              - task: AzureCLI@2
+               task: AzureCLI@2
                 displayName: 'Azure CLI '
                 inputs:
                   azureSubscription: 'VSCode-Ext-Publishing'
