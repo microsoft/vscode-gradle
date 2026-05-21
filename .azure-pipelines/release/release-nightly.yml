@@ -34,20 +34,16 @@ extends:
             templateContext:
               type: releaseJob
               isProduction: true
-              inputs:
-              - input: pipelineArtifact
-                buildType: specific
-                project: '$(ProjectId)'
-                definition: 13344
-                ${{ if ne(parameters.buildId, '') }}:
-                  buildVersionToDownload: specific
-                  runId: ${{ parameters.buildId }}
-                ${{ else }}:
-                  buildVersionToDownload: latest
-                artifactName: extension
-                downloadType: specific
-                targetPath: '$(Build.SourcesDirectory)'
             steps:
+              - task: DownloadPipelineArtifact@1
+                displayName: Download Pipeline Artifact
+                inputs:
+                  buildType: specific
+                  project: '$(ProjectId)'
+                  pipeline: 13344
+                  runVersion: latest
+                  artifactName: extension
+                  targetPath: '$(Build.SourcesDirectory)'
               - task: UseNode@1
                 displayName: 'Use Node.js 20.x'
                 inputs:
