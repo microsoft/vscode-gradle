@@ -13,6 +13,7 @@ import {
     GradleBuild,
     Environment,
     GradleConfig,
+    GradleTestEvent,
     RunBuildRequest,
     RunBuildReply,
     CancelBuildRequest,
@@ -341,7 +342,8 @@ export class TaskServerClient implements vscode.Disposable {
         showOutputColors = true,
         additionalToolOptions = "",
         title?: string,
-        location?: vscode.ProgressLocation
+        location?: vscode.ProgressLocation,
+        onTestEvent?: (event: GradleTestEvent) => void
     ): Promise<void> {
         await this.connectWaiter.wait();
         this.statusBarItem.hide();
@@ -371,6 +373,7 @@ export class TaskServerClient implements vscode.Disposable {
                 request.setJavaDebugPort(javaDebugPort);
                 request.setInput(input);
                 request.setAdditionalToolOptions(additionalToolOptions);
+                request.setStreamTestEvents(Boolean(onTestEvent));
 
                 if (javaDebugPort > 0) {
                     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
@@ -395,6 +398,11 @@ export class TaskServerClient implements vscode.Disposable {
                                         break;
                                     case RunBuildReply.KindCase.CANCELLED:
                                         this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
+                                        break;
+                                    case RunBuildReply.KindCase.TEST_EVENT:
+                                        if (onTestEvent) {
+                                            onTestEvent(runBuildReply.getTestEvent()!);
+                                        }
                                         break;
                                 }
                             })

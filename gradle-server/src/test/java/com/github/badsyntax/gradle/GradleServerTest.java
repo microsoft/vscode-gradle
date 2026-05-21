@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.*;
 
@@ -24,7 +25,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import org.gradle.tooling.Failure;
+import org.gradle.tooling.events.OperationDescriptor;
 import org.gradle.tooling.events.OperationType;
+import org.gradle.tooling.events.ProgressListener;
+import org.gradle.tooling.events.test.JvmTestOperationDescriptor;
+import org.gradle.tooling.events.test.TestFailureResult;
+import org.gradle.tooling.events.test.TestFinishEvent;
+import org.gradle.tooling.events.test.TestStartEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -474,5 +482,106 @@ public class GradleServerTest {
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TRANSFORM));
+	}
+
+	@Test
+	public void runBuild_shouldStreamTestProgressEventsWhenRequested() throws IOException {
+		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
+
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.setStreamTestEvents(true).build();
+
+		ArgumentCaptor<Set<OperationType>> onAddProgressListener = ArgumentCaptor.forClass(Set.class);
+
+		OperationDescriptor parentDescriptor = mock(OperationDescriptor.class);
+		when(parentDescriptor.getName()).thenReturn("test");
+		when(parentDescriptor.getDisplayName()).thenReturn("test");
+
+		JvmTestOperationDescriptor descriptor = mock(JvmTestOperationDescriptor.class);
+		when(descriptor.getName()).thenReturn("testMethod");
+		when(descriptor.getDisplayName()).thenReturn("testMethod()");
+		when(descriptor.getTestDisplayName()).thenReturn("testMethod()");
+		when(descriptor.getClassName()).thenReturn("com.example.FooTest");
+		when(descriptor.getMethodName()).thenReturn("testMethod");
+		when(descriptor.getParent()).thenReturn(parentDescriptor);
+
+		TestStartEvent event = mock(TestStartEvent.class);
+		when(event.getEventTime()).thenReturn(123L);
+		when(event.getDisplayName()).thenReturn("testMethod() started");
+		when(event.getDescriptor()).thenReturn(descriptor);
+
+		when(mockBuildLauncher.addProgressListener(any(ProgressListener.class),
+				ArgumentMatchers.<Set<OperationType>>any())).thenAnswer(invocation -> {
+					ProgressListener listener = invocation.getArgument(0);
+					listener.statusChanged(event);
+					return mockBuildLauncher;
+				});
+
+		stub.runBuild(req, mockResponseObserver);
+		verify(mockResponseObserver, never()).onError(any());
+		verify(mockBuildLauncher).addProgressListener(any(ProgressListener.class), onAddProgressListener.capture());
+
+		assertEquals(4, onAddProgressListener.getValue().size());
+		assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
+		assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
+		assertTrue(onAddProgressListener.getValue().contains(OperationType.TRANSFORM));
+		assertTrue(onAddProgressListener.getValue().contains(OperationType.TEST));
+
+		ArgumentCaptor<RunBuildReply> replyCaptor = ArgumentCaptor.forClass(RunBuildReply.class);
+		verify(mockResponseObserver, times(2)).onNext(replyCaptor.capture());
+		RunBuildReply testEventReply = replyCaptor.getAllValues().get(0);
+		assertEquals(RunBuildReply.KindCase.TEST_EVENT, testEventReply.getKindCase());
+		assertEquals(GradleTestEvent.EventType.STARTED, testEventReply.getTestEvent().getEventType());
+		assertEquals("test/testMethod", testEventReply.getTestEvent().getId());
+		assertEquals("test", testEventReply.getTestEvent().getParentId());
+		assertEquals("com.example.FooTest", testEventReply.getTestEvent().getClassName());
+		assertEquals("testMethod", testEventReply.getTestEvent().getMethodName());
+	}
+
+	@Test
+	public void runBuild_shouldIncludeFailureMessageInFailedTestEvent() throws IOException {
+		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
+
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.setStreamTestEvents(true).build();
+
+		JvmTestOperationDescriptor descriptor = mock(JvmTestOperationDescriptor.class);
+		when(descriptor.getName()).thenReturn("testMethod");
+		when(descriptor.getDisplayName()).thenReturn("testMethod()");
+		when(descriptor.getTestDisplayName()).thenReturn("testMethod()");
+
+		Failure failure = mock(Failure.class);
+		when(failure.getMessage()).thenReturn("expected:<1> but was:<2>");
+		when(failure.getDescription()).thenReturn("java.lang.AssertionError: expected:<1> but was:<2>");
+		when(failure.getCauses()).thenReturn(List.of());
+
+		TestFailureResult failureResult = mock(TestFailureResult.class);
+		doReturn(List.of(failure)).when(failureResult).getFailures();
+
+		TestFinishEvent event = mock(TestFinishEvent.class);
+		when(event.getEventTime()).thenReturn(123L);
+		when(event.getDisplayName()).thenReturn("testMethod() failed");
+		when(event.getDescriptor()).thenReturn(descriptor);
+		when(event.getResult()).thenReturn(failureResult);
+
+		when(mockBuildLauncher.addProgressListener(any(ProgressListener.class),
+				ArgumentMatchers.<Set<OperationType>>any())).thenAnswer(invocation -> {
+					ProgressListener listener = invocation.getArgument(0);
+					listener.statusChanged(event);
+					return mockBuildLauncher;
+				});
+
+		stub.runBuild(req, mockResponseObserver);
+		verify(mockResponseObserver, never()).onError(any());
+
+		ArgumentCaptor<RunBuildReply> replyCaptor = ArgumentCaptor.forClass(RunBuildReply.class);
+		verify(mockResponseObserver, times(2)).onNext(replyCaptor.capture());
+		RunBuildReply testEventReply = replyCaptor.getAllValues().get(0);
+		assertEquals(RunBuildReply.KindCase.TEST_EVENT, testEventReply.getKindCase());
+		assertEquals(GradleTestEvent.EventType.FAILED, testEventReply.getTestEvent().getEventType());
+		assertEquals("expected:<1> but was:<2>\n---\njava.lang.AssertionError: expected:<1> but was:<2>",
+				testEventReply.getTestEvent().getMessage());
 	}
 }

@@ -90,6 +90,7 @@ message RunBuildRequest {
   bool show_output_colors = 7;
   bool java_debug_clean_output_cache = 8;
   string additional_tool_options = 9;
+  bool stream_test_events = 10;
 }
 
 message RunBuildResult {
@@ -102,7 +103,37 @@ message RunBuildReply {
     Progress progress = 2;
     Output output = 3;
     Cancelled cancelled = 4;
+    GradleTestEvent test_event = 5;
   }
+}
+
+message GradleTestEvent {
+  enum EventType {
+    UNKNOWN_EVENT_TYPE = 0;
+    STARTED = 1;
+    SUCCEEDED = 2;
+    FAILED = 3;
+    SKIPPED = 4;
+    OUTPUT = 5;
+  }
+
+  enum OutputDestination {
+    UNKNOWN = 0;
+    STDOUT = 1;
+    STDERR = 2;
+  }
+
+  EventType event_type = 1;
+  string id = 2;
+  string parent_id = 3;
+  string name = 4;
+  string display_name = 5;
+  string class_name = 6;
+  string method_name = 7;
+  string suite_name = 8;
+  int64 event_time = 9;
+  string message = 10;
+  OutputDestination output_destination = 11;
 }
 
 message CancelBuildRequest {
