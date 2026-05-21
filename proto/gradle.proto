@@ -8,6 +8,7 @@ package gradle;
 
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
+  rpc GetProjectDependencies(GetProjectDependenciesRequest) returns (GetProjectDependenciesReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
@@ -30,6 +31,18 @@ message GetBuildReply {
     Environment environment = 5;
     string compatibility_check_error = 6;
   }
+}
+
+message GetProjectDependenciesRequest {
+  string project_dir = 1;
+  string project_path = 2;
+  string cancellation_key = 3;
+  GradleConfig gradle_config = 4;
+  bool show_output_colors = 5;
+}
+
+message GetProjectDependenciesReply {
+  DependencyItem dependency_item = 1;
 }
 
 message GetBuildResult {

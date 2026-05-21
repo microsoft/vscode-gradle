@@ -258,6 +258,19 @@
         }
       },
       {
+        "command": "gradle.cancelDependencyLoading",
+        "title": "Cancel Loading Dependencies",
+        "icon": {
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
+        }
+      },
+      {
+        "command": "gradle.reloadDependencies",
+        "title": "Reload Dependencies",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "gradle.explorerFlat",
         "title": "Show Flat Tasks",
         "icon": {
@@ -279,6 +292,11 @@
       },
       {
         "command": "gradle.refresh",
+        "category": "Gradle",
+        "title": "Refresh Gradle Projects View"
+      },
+      {
+        "command": "gradle.refresh.external",
         "category": "Gradle",
         "title": "Refresh Gradle Projects View",
         "icon": {
@@ -341,11 +359,6 @@
         "command": "gradle.createProject",
         "category": "Gradle",
         "title": "Create a Gradle Java Project..."
-      },
-      {
-        "command": "gradle.createProjectAdvanced",
-        "category": "Gradle",
-        "title": "Create a Gradle Java Project... (Advanced)"
       },
       {
         "command": "gradle.runTasks",
@@ -440,6 +453,14 @@
           "when": "false"
         },
         {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "false"
+        },
+        {
+          "command": "gradle.reloadDependencies",
+          "when": "false"
+        },
+        {
           "command": "gradle.explorerFlat",
           "when": "false"
         },
@@ -488,8 +509,12 @@
           "when": "false"
         },
         {
-          "command": "gradle.refresh",
+          "command": "gradle.refresh.external",
           "when": "gradle:extensionActivated"
+        },
+        {
+          "command": "gradle.refresh",
+          "when": "false"
         },
         {
           "command": "gradle.runBuild",
@@ -542,7 +567,7 @@
           "group": "navigation@2"
         },
         {
-          "command": "gradle.refresh",
+          "command": "gradle.refresh.external",
           "when": "view == gradleTasksView || view == gradleDefaultProjectsView",
           "group": "overflow@3"
         },
@@ -637,6 +662,11 @@
           "command": "gradle.cancellingTreeItemTask",
           "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^cancellingTask.*$/",
           "group": "inline@6"
+        },
+        {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "view =~ /^gradleTasksView$|^gradleDefaultProjectsView$/ && viewItem == dependenciesLoading",
+          "group": "inline@0"
         },
         {
           "command": "gradle.pinTask",
@@ -956,7 +986,7 @@
     "update-tpn": "node scripts/update-third-party-notice.js"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.8.22",
+    "@grpc/grpc-js": "^1.14.3",
     "@types/fs-extra": "^11.0.1",
     "@types/glob": "^8.1.0",
     "@types/google-protobuf": "^3.15.6",
