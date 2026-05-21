@@ -100,8 +100,22 @@ extends:
                   cd $(Build.SourcesDirectory)/extension/lib
                   chmod +x gradle-server
                 displayName: Set permission
+              - bash: |
+                  mkdir -p "$(Pipeline.Workspace)/.m2/repository" "$(Pipeline.Workspace)/.m2/wrapper/dists"
+                displayName: Prepare Maven cache directories
+              - task: Cache@2
+                displayName: Cache Maven and Tycho artifacts
+                inputs:
+                  key: 'maven | "$(Agent.OS)" | extension/jdtls.ext/pom.xml | extension/jdtls.ext/com.microsoft.gradle.bs.importer.target/com.microsoft.gradle.bs.importer.tp.target | extension/jdtls.ext/com.microsoft.gradle.bs.importer/pom.xml | extension/jdtls.ext/.mvn/wrapper/maven-wrapper.properties'
+                  restoreKeys: |
+                    maven | "$(Agent.OS)"
+                  path: $(Pipeline.Workspace)/.m2
               - task: Gradle@3
                 displayName: Build Gradle Build Server Importer
+                timeoutInMinutes: 90
+                env:
+                  MAVEN_USER_HOME: $(Pipeline.Workspace)/.m2
+                  MAVEN_REPO_LOCAL: $(Pipeline.Workspace)/.m2/repository
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
