@@ -201,10 +201,16 @@ task prepareForBetaRelease() {
 task buildJdtlsPlugin(type: CrossPlatformExec) {
   workingDir file('./jdtls.ext')
   environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
+  def mavenArguments = ['-B', '-V', '-e', '-ntp']
+  def mavenRepoLocal = System.getenv('MAVEN_REPO_LOCAL')
+  if (mavenRepoLocal) {
+    mavenArguments << "-Dmaven.repo.local=${mavenRepoLocal}"
+  }
+  mavenArguments += ['clean', 'package']
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
-    commandLine 'mvnw', 'clean', 'package'
+    commandLine(['mvnw'] + mavenArguments)
   } else {
-    commandLine './mvnw', 'clean', 'package'
+    commandLine(['./mvnw'] + mavenArguments)
   }
 }
 
