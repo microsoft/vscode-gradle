@@ -25,6 +25,12 @@ beta/**
 ARCHITECTURE.md
 # Ignore output of code sign
 lib/*.md
+**/*.log
+
 scripts
 # for nightly build
 package.insiders.json
+jdtls.ext
+build-server-for-gradle
+#codesign
+**/CodeSignSummary-*.md

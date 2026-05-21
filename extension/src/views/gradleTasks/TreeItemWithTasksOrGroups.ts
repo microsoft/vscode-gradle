@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
-import { GradleTaskTreeItem } from ".";
+import { GradleTaskTreeItem, ProjectTreeItem } from ".";
 import { GroupTreeItem } from "..";
 import { treeItemSortCompareFunc, gradleTaskTreeItemSortCompareFunc } from "../viewUtil";
 
 export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
     private readonly _tasks: GradleTaskTreeItem[] = [];
     private readonly _groups: GroupTreeItem[] = [];
+    private readonly _subprojects: ProjectTreeItem[] = [];
     public readonly parentTreeItem?: vscode.TreeItem;
     public readonly iconPath = new vscode.ThemeIcon("file-submodule");
     public readonly contextValue = "folder";
@@ -34,5 +35,13 @@ export class TreeItemWithTasksOrGroups extends vscode.TreeItem {
 
     public get groups(): GroupTreeItem[] {
         return this._groups.sort(treeItemSortCompareFunc);
+    }
+
+    public get subprojects(): ProjectTreeItem[] {
+        return this._subprojects;
+    }
+
+    public addSubproject(subproject: ProjectTreeItem): void {
+        this._subprojects.push(subproject);
     }
 }

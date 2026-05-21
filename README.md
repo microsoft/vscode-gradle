@@ -9,7 +9,7 @@ This VS Code extension provides a visual interface for your Gradle build. You ca
 ## Requirements
 
 - [VS Code >= 1.76.0](https://code.visualstudio.com/download)
-- [Java from 8 to 19](https://adoptopenjdk.net/)
+- [Java from 8 to 21](https://adoptium.net/)
 
 ## Project Discovery
 
@@ -51,7 +51,7 @@ A running task will be shown with an animated "spinner" icon in the tree views, 
 
 <img src="images/task-run.png" width="350" alt="Gradle Tasks Running" />
 
-A task will be run a vscode terminal where you can view the task output.
+A task will be run in a vscode terminal where you can view the task output.
 
 Send a SIGINT signal (ctrl/cmd + c) in the terminal to gracefully cancel it.
 
@@ -224,6 +224,8 @@ This extension contributes the following settings:
 - `gradle.disableConfirmations`: Disable the warning confirm messages when performing batch actions (eg clear tasks, stop daemons etc) (boolean)
 - `gradle.allowParallelRun`: Allow to run tasks in parallel, each running will create a new terminal. This configuration will override `gradle.reuseTerminals` and always create new task terminals when running or debugging a task.
 - `gradle.projectOpenBehaviour`: Specify the default method of opening newly created project ("Interactive", "Open" or "Add to Workspace")
+- `java.gradle.buildServer.enabled`: Whether to use build server to synchronize Gradle project ("on" or "off")
+- `java.gradle.buildServer.openBuildOutput`: Controls when the build output should open ("neverOpen", "openOnBuildStart" or "openOnBuildFailure")
 
 ## Gradle & Java Settings
 

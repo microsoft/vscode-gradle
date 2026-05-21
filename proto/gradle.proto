@@ -8,12 +8,10 @@ package gradle;
 
 service Gradle {
   rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
+  rpc GetProjectDependencies(GetProjectDependenciesRequest) returns (GetProjectDependenciesReply) {}
   rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
   rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
   rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
-  rpc GetDaemonsStatus(GetDaemonsStatusRequest) returns (GetDaemonsStatusReply) {}
-  rpc StopDaemons(StopDaemonsRequest) returns (StopDaemonsReply) {}
-  rpc StopDaemon(StopDaemonRequest) returns (StopDaemonReply) {}
   rpc executeCommand(ExecuteCommandRequest) returns (ExecuteCommandReply) {}
 }
 
@@ -33,6 +31,18 @@ message GetBuildReply {
     Environment environment = 5;
     string compatibility_check_error = 6;
   }
+}
+
+message GetProjectDependenciesRequest {
+  string project_dir = 1;
+  string project_path = 2;
+  string cancellation_key = 3;
+  GradleConfig gradle_config = 4;
+  bool show_output_colors = 5;
+}
+
+message GetProjectDependenciesReply {
+  DependencyItem dependency_item = 1;
 }
 
 message GetBuildResult {
@@ -79,6 +89,7 @@ message RunBuildRequest {
   string input = 6;
   bool show_output_colors = 7;
   bool java_debug_clean_output_cache = 8;
+  string additional_tool_options = 9;
 }
 
 message RunBuildResult {
@@ -109,43 +120,6 @@ message CancelBuildsReply {
   string message = 1;
 }
 
-message GetDaemonsStatusRequest {
-  string project_dir = 1;
-}
-
-message GetDaemonsStatusReply {
-  repeated DaemonInfo daemon_info = 1;
-}
-
-message StopDaemonsRequest {
-  string project_dir = 1;
-}
-
-message StopDaemonsReply {
-  string message = 1;
-}
-
-message StopDaemonRequest {
-  string pid = 1;
-}
-
-message StopDaemonReply {
-  string message = 1;
-}
-
-message DaemonInfo {
-  enum DaemonStatus {
-    IDLE = 0;
-    BUSY = 1;
-    STOPPED = 2;
-    STOPPING = 3;
-    CANCELED = 4;
-  }
-  string pid = 1;
-  DaemonStatus status = 2;
-  string info = 3;
-}
-
 message GradleConfig {
   string gradle_home = 1;
   string user_home = 2;
@@ -153,6 +127,7 @@ message GradleConfig {
   bool wrapper_enabled = 4;
   string version = 5;
   string java_extension_version = 6;
+  string java_home = 7;
 }
 
 message GradleBuild { GradleProject project = 1; }

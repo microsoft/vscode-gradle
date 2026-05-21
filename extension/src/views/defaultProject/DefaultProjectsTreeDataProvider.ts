@@ -4,7 +4,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { GradleTasksTreeDataProvider, GroupTreeItem, ProjectTreeItem } from "..";
-import { GradleClient } from "../../client";
+import { TaskServerClient } from "../../client";
+import { findRootProject } from "../../client/utils";
+import { GradleDependencyProvider } from "../../dependencies/GradleDependencyProvider";
 import { RootProjectsStore } from "../../stores";
 import { GradleTaskProvider } from "../../tasks";
 import { DefaultProjectProvider } from "./DefaultProjectProvider";
@@ -14,14 +16,22 @@ import { ProjectTaskTreeItem } from "../gradleTasks/ProjectTaskTreeItem";
 
 export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
     private defaultProjectProvider: DefaultProjectProvider;
+    private readonly _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | null> =
+        new vscode.EventEmitter<vscode.TreeItem | null>();
+    public readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | null> = this._onDidChangeTreeData.event;
 
     constructor(
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly rootProjectStore: RootProjectsStore,
-        private readonly client: GradleClient,
-        private readonly icons: Icons
+        private readonly client: TaskServerClient,
+        private readonly icons: Icons,
+        private readonly gradleDependencyProvider: GradleDependencyProvider
     ) {
         this.defaultProjectProvider = new DefaultProjectProvider();
+    }
+
+    public refresh(treeItem: vscode.TreeItem | null = null): void {
+        this._onDidChangeTreeData.fire(treeItem);
     }
 
     public getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -44,7 +54,11 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
         } else if (element instanceof ProjectTreeItem) {
             return this.getChildrenForProjectTreeItem(element);
         } else if (element instanceof ProjectDependencyTreeItem) {
-            return this.defaultProjectProvider.getDefaultDependencyItems(element);
+            const rootProject = await findRootProject(this.rootProjectStore, element.projectPath);
+            if (!rootProject) {
+                return GradleDependencyProvider.getNoDependencies();
+            }
+            return this.gradleDependencyProvider.getDependencies(element, rootProject);
         } else if (element instanceof ProjectTaskTreeItem) {
             return element.getChildren() || [];
         } else if (element instanceof GroupTreeItem) {
@@ -55,7 +69,7 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
 
     private async getChildrenForProjectTreeItem(element: ProjectTreeItem): Promise<vscode.TreeItem[]> {
         const projectTaskItem = new ProjectTaskTreeItem("Tasks", vscode.TreeItemCollapsibleState.Collapsed, element);
-        projectTaskItem.setChildren([...element.groups, ...element.tasks]);
+        projectTaskItem.setChildren([...element.tasks, ...element.groups]);
         const results: vscode.TreeItem[] = [projectTaskItem];
         const resourceUri = element.resourceUri;
         if (!resourceUri) {
@@ -66,8 +80,9 @@ export class DefaultProjectsTreeDataProvider implements vscode.TreeDataProvider<
             vscode.TreeItemCollapsibleState.Collapsed,
             element,
             path.dirname(resourceUri.fsPath),
-            typeof element.label === "string" ? element.label : resourceUri.fsPath
+            typeof element.label === "string" ? element.label : resourceUri.fsPath,
+            element.gradleProjectPath
         );
-        return [...results, projectDependencyTreeItem];
+        return [projectDependencyTreeItem, ...results];
     }
 }

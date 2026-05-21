@@ -2,7 +2,6 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
-import com.github.badsyntax.gradle.DependencyItem;
 import com.github.badsyntax.gradle.Environment;
 import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
@@ -25,7 +24,6 @@ import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import com.microsoft.gradle.api.GradleClosure;
-import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleField;
 import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
@@ -38,7 +36,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
@@ -110,10 +107,7 @@ public class GetBuildHandler {
 				arguments.addAll(Arrays.asList("--init-script", initScript.getAbsolutePath()));
 			}
 			String jvmArguments = req.getGradleConfig().getJvmArguments();
-			if (!Strings.isNullOrEmpty(jvmArguments)) {
-				arguments.addAll(Arrays.stream(jvmArguments.split(" ")).filter(e -> e != null && !e.isEmpty())
-						.collect(Collectors.toList()));
-			}
+			arguments.addAll(GradleArguments.parseJvmArguments(jvmArguments));
 			action.withArguments(arguments);
 			CancellationToken cancellationToken = GradleBuildCancellation.buildToken(req.getCancellationKey());
 			Set<OperationType> progressEvents = new HashSet<>();
@@ -121,6 +115,9 @@ public class GetBuildHandler {
 			action.withCancellationToken(cancellationToken).addProgressListener(progressListener, progressEvents)
 					.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
 					.setColorOutput(req.getShowOutputColors());
+			if (!Strings.isNullOrEmpty(req.getGradleConfig().getJavaHome())) {
+				action.setJavaHome(new File(req.getGradleConfig().getJavaHome()));
+			}
 			GradleProjectModel gradleModel = action.run();
 			if (gradleModel == null) {
 				throw new Exception("Error occurs in querying custom model.");
@@ -184,22 +181,21 @@ public class GetBuildHandler {
 				.setStandardOutput(standardOutputListener).setStandardError(standardErrorListener)
 				.setColorOutput(req.getShowOutputColors());
 		String jvmArguments = req.getGradleConfig().getJvmArguments();
-		if (!Strings.isNullOrEmpty(jvmArguments)) {
-			buildEnvironment.setJvmArguments(Arrays.stream(jvmArguments.split(" "))
-					.filter(e -> e != null && !e.isEmpty()).toArray(String[]::new));
-		}
+		buildEnvironment.setJvmArguments(GradleArguments.parseJvmArguments(jvmArguments).toArray(new String[0]));
 
 		try {
 			BuildEnvironment environment = buildEnvironment.get();
 			org.gradle.tooling.model.build.GradleEnvironment gradleEnvironment = environment.getGradle();
 			org.gradle.tooling.model.build.JavaEnvironment javaEnvironment = environment.getJava();
+			String javaHome = Strings.isNullOrEmpty(req.getGradleConfig().getJavaHome())
+					? javaEnvironment.getJavaHome().getAbsolutePath()
+					: req.getGradleConfig().getJavaHome();
 			return Environment.newBuilder()
 					.setGradleEnvironment(GradleEnvironment.newBuilder()
 							.setGradleUserHome(gradleEnvironment.getGradleUserHome().getAbsolutePath())
 							.setGradleVersion(gradleEnvironment.getGradleVersion()))
-					.setJavaEnvironment(
-							JavaEnvironment.newBuilder().setJavaHome(javaEnvironment.getJavaHome().getAbsolutePath())
-									.addAllJvmArgs(javaEnvironment.getJvmArguments()))
+					.setJavaEnvironment(JavaEnvironment.newBuilder().setJavaHome(javaHome)
+							.addAllJvmArgs(javaEnvironment.getJvmArguments()))
 					.build();
 		} finally {
 			GradleBuildCancellation.clearToken(req.getCancellationKey());
@@ -216,7 +212,7 @@ public class GetBuildHandler {
 		}
 		project.addAllProjects(subProjects);
 		project.setProjectPath(gradleModel.getProjectPath());
-		project.setDependencyItem(getDependencyItem(gradleModel.getDependencyNode()));
+		project.setDependencyItem(DependencyItemUtils.getDependencyItem(gradleModel.getDependencyNode()));
 		project.addAllPlugins(gradleModel.getPlugins());
 		project.addAllPluginClosures(getPluginClosures(gradleModel));
 		project.addAllScriptClasspaths(gradleModel.getScriptClasspaths());
@@ -241,21 +237,6 @@ public class GetBuildHandler {
 			tasks.add(builder.build());
 		});
 		return tasks;
-	}
-
-	private DependencyItem getDependencyItem(GradleDependencyNode node) {
-		DependencyItem.Builder item = DependencyItem.newBuilder();
-		item.setName(node.getName());
-		item.setTypeValue(node.getType().ordinal());
-		if (node.getChildren() == null) {
-			return item.build();
-		}
-		List<DependencyItem> children = new ArrayList<>();
-		for (GradleDependencyNode child : node.getChildren()) {
-			children.add(getDependencyItem(child));
-		}
-		item.addAllChildren(children);
-		return item.build();
 	}
 
 	private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {

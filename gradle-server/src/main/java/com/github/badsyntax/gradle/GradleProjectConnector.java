@@ -13,7 +13,7 @@ public class GradleProjectConnector {
 	}
 
 	private static final String GRADLE_HOME = "GRADLE_HOME";
-	public static final String TOOLING_API_VERSION = "6.4";
+	public static final String TOOLING_API_VERSION = "9.2.0";
 
 	private static GradleProjectConnectionType connectionType = GradleProjectConnectionType.WRAPPER;
 	private static String localInstallation;

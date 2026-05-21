@@ -49,6 +49,9 @@ public class CompletionHandler {
 			results.addAll(getCompletionItemsFromExtClosures(resolver, projectPath, resultSet));
 		} else {
 			String methodName = containingCall.getMethodAsString();
+			if (methodName == null) {
+				return Collections.emptyList();
+			}
 			List<CompletionItem> re = getCompletionItemsFromExtClosures(resolver, projectPath, methodName, resultSet);
 			results.addAll(re);
 			List<String> delegates = GradleDelegate.getDelegateMap().get(methodName);

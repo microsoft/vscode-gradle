@@ -1,10 +1,13 @@
 import { execSync } from "child_process";
-import { getRuntime } from "jdk-utils";
+import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
 import { RootProject } from "../rootProject/RootProject";
-
+import * as fse from "fs-extra";
+import * as path from "path";
+import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
 type AutoDetect = "on" | "off";
+export const REQUIRED_JDK_VERSION = 17;
 
 export function getConfigIsAutoDetectionEnabled(rootProject: RootProject): boolean {
     return (
@@ -26,17 +29,67 @@ export function getConfigJavaImportGradleJavaHome(): string | null {
     return vscode.workspace.getConfiguration("java").get<string | null>("import.gradle.java.home", null);
 }
 
-export function getConfigGradleJavaHome(): string | null {
-    return getConfigJavaImportGradleJavaHome() || getJdtlsConfigJavaHome() || getConfigJavaHome();
+export function getJavaExecutablePathFromJavaHome(javaHome: string): string {
+    return path.join(javaHome, "bin", JAVA_FILENAME);
 }
 
-export async function getSupportedJavaHome(): Promise<string | undefined> {
-    const javaHome = getConfigGradleJavaHome() || process.env.JAVA_HOME;
-    if (javaHome) {
-        const runtime = await getRuntime(javaHome, { withVersion: true });
-        if (runtime?.version) {
-            // check the JDK version of given java home is supported, otherwise return undefined
-            return runtime.version.major >= 8 && runtime.version.major <= 19 ? javaHome : undefined;
+export async function findValidJavaHome(): Promise<string | undefined> {
+    const javaHomeGetters = [getConfigJavaImportGradleJavaHome, getJdtlsConfigJavaHome, getConfigJavaHome];
+    let javaHome: string | undefined = undefined;
+    let javaVersion = 0;
+
+    for (const getJavaHome of javaHomeGetters) {
+        javaHome = getJavaHome() || undefined;
+        if (javaHome) {
+            javaVersion = await getMajorVersion(javaHome);
+            if (javaVersion >= REQUIRED_JDK_VERSION) {
+                return javaHome;
+            }
+        }
+    }
+
+    // Prefer JAVA_HOME from environment before scanning system JDKs
+    const envJavaHome = process.env.JAVA_HOME;
+    if (envJavaHome) {
+        javaVersion = await getMajorVersion(envJavaHome);
+        if (javaVersion >= REQUIRED_JDK_VERSION) {
+            return envJavaHome;
+        }
+    }
+
+    // Search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, common directories
+    const javaRuntimes = await listJdks();
+    const validJdks = javaRuntimes.find((r) => r.version!.major >= REQUIRED_JDK_VERSION);
+    if (validJdks !== undefined) {
+        return validJdks.homedir;
+    }
+
+    // Search java.configuration.runtimes if still not found
+    javaHome = await findDefaultRuntimeFromSettings();
+    javaVersion = await getMajorVersion(javaHome);
+    if (javaVersion >= REQUIRED_JDK_VERSION) {
+        return javaHome;
+    }
+
+    return undefined;
+}
+
+export function extensionInstalled(extensionId: string): boolean {
+    return !!vscode.extensions.getExtension(extensionId);
+}
+
+export function getRedHatJavaEmbeddedJRE(): string | undefined {
+    if (!extensionInstalled("redhat.java")) {
+        return undefined;
+    }
+
+    const jreHome = path.join(vscode.extensions.getExtension("redhat.java")!.extensionPath, "jre");
+    if (fse.existsSync(jreHome) && fse.statSync(jreHome).isDirectory()) {
+        const candidates = fse.readdirSync(jreHome);
+        for (const candidate of candidates) {
+            if (fse.existsSync(path.join(jreHome, candidate, "bin", JAVA_FILENAME))) {
+                return path.join(jreHome, candidate);
+            }
         }
     }
     return undefined;
@@ -114,6 +167,18 @@ export function getAllowParallelRun(): boolean {
     return vscode.workspace.getConfiguration("gradle").get<boolean>("allowParallelRun", false);
 }
 
+export function getOpenBuildOutput(): OpenBuildOutputValue {
+    return vscode.workspace
+        .getConfiguration("java.gradle.buildServer")
+        .get<OpenBuildOutputValue>("openBuildOutput", OpenBuildOutputValue.ON_BUILD_FAILURE);
+}
+
+export enum OpenBuildOutputValue {
+    NEVER = "neverOpen",
+    ON_BUILD_START = "openOnBuildStart",
+    ON_BUILD_FAILURE = "openOnBuildFailure",
+}
+
 export enum ProjectOpenBehaviourValue {
     INTERACTIVE = "Interactive",
     OPEN = "Open",
@@ -132,6 +197,7 @@ export function getGradleConfig(): GradleConfig {
     const gradleUserHome = getConfigJavaImportGradleUserHome();
     const gradleJvmArguments = getConfigJavaImportGradleJvmArguments();
     const gradleVersion = getConfigJavaImportGradleVersion();
+    const javaHome = getConfigJavaImportGradleJavaHome();
     if (gradleHome !== null) {
         gradleConfig.setGradleHome(gradleHome);
     }
@@ -143,6 +209,9 @@ export function getGradleConfig(): GradleConfig {
     }
     if (gradleVersion !== null) {
         gradleConfig.setVersion(gradleVersion);
+    }
+    if (javaHome !== null) {
+        gradleConfig.setJavaHome(javaHome);
     }
     gradleConfig.setWrapperEnabled(getConfigJavaImportGradleWrapperEnabled());
     const javaExtension = vscode.extensions.getExtension("redhat.java");

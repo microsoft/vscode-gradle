@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { Output } from "../proto/gradle_pb";
 import { Logger, logger } from "../logger";
 import { GradleTasksTreeDataProvider } from "../views";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { Icons } from "../icons";
 import { getRunBuildCancellationKey } from "../client/CancellationKeys";
 import { GradleTaskProvider } from "../tasks";
@@ -24,6 +24,7 @@ export interface RunBuildOpts {
     onOutput?: (output: Output) => void;
     showOutputColors: boolean;
     cancellationKey?: string;
+    additionalToolOptions?: string;
 }
 
 export interface CancelTaskOpts {
@@ -38,9 +39,15 @@ export interface CancelBuildOpts {
     cancellationKey?: string;
 }
 
+export interface ToolOptionsProvider {
+    resolveToolOptions(): Promise<string>;
+}
+
+export const toolOptionsProviders: Array<ToolOptionsProvider> = [];
+
 export class Api {
     constructor(
-        private readonly client: GradleClient,
+        private readonly client: TaskServerClient,
         private readonly tasksTreeDataProvider: GradleTasksTreeDataProvider,
         private readonly gradleTaskProvider: GradleTaskProvider,
         private readonly icons: Icons
@@ -69,7 +76,8 @@ export class Api {
             0,
             undefined,
             opts.onOutput,
-            opts.showOutputColors
+            opts.showOutputColors,
+            opts.additionalToolOptions ?? ""
         );
     }
 
@@ -116,5 +124,17 @@ export class Api {
 
     public getLogger(): Logger {
         return logger;
+    }
+
+    public registerToolOptionsProvider(provider: ToolOptionsProvider): vscode.Disposable {
+        toolOptionsProviders.push(provider);
+        return {
+            dispose: () => {
+                const index = toolOptionsProviders.indexOf(provider);
+                if (index !== -1) {
+                    toolOptionsProviders.splice(index, 1);
+                }
+            },
+        };
     }
 }

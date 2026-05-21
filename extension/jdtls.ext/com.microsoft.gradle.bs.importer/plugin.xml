@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+    <extension id="importers" point="org.eclipse.jdt.ls.core.importers">
+        <importer
+            id = "gradleBuildServerProjectImporter"
+            order ="200"
+            class = "com.microsoft.gradle.bs.importer.GradleBuildServerProjectImporter"/>
+    </extension>
+    <extension id="buildSupport" point="org.eclipse.jdt.ls.core.buildSupport">
+        <buildSupport
+            id="gradleBuildServerBuildSupport"
+            order="290"
+            class="com.microsoft.gradle.bs.importer.GradleBuildServerBuildSupport" />
+    </extension>
+    <extension
+        id="com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature"
+        name="Gradle Build Server Project"
+        point="org.eclipse.core.resources.natures">
+        <runtime>
+            <run
+                class="com.microsoft.gradle.bs.importer.GradleBuildServerProjectNature">
+            </run>
+        </runtime>
+    </extension>
+    <extension
+        point="org.eclipse.core.resources.builders"
+        id="com.microsoft.gradle.bs.importer.builder.BuildServerBuilder"
+        name="Build Server Builder">
+        <builder callOnEmptyDelta="true" isConfigurable="true">
+            <run class="com.microsoft.gradle.bs.importer.builder.BuildServerBuilder">
+            </run>
+        </builder>
+    </extension>
+    <extension
+        point="org.eclipse.core.resources.builders"
+        id="java.bs.JavaProblemChecker"
+        name="JavaProblemChecker">
+        <builder>
+            <run class="com.microsoft.java.builder.JavaProblemChecker">
+            </run>
+            <dynamicReference class="org.eclipse.jdt.internal.core.DynamicProjectReferences"/>
+        </builder>
+    </extension>
+    <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
+        <delegateCommandHandler class="com.microsoft.gradle.bs.importer.handler.GradleDelegateCommandHandler">
+            <command id="java.gradle.delegateTest" />
+        </delegateCommandHandler>
+  </extension>
+</plugin>

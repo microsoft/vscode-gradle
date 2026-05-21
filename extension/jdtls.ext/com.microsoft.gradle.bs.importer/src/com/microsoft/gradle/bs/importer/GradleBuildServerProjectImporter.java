@@ -1,0 +1,452 @@
+package com.microsoft.gradle.bs.importer;
+
+import java.io.File;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.CompletionException;
+
+import org.eclipse.core.internal.resources.Project;
+import org.eclipse.core.internal.resources.ProjectDescription;
+import org.eclipse.core.internal.resources.VariableDescription;
+import org.eclipse.core.resources.ICommand;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectDescription;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.OperationCanceledException;
+import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.jdt.ls.core.internal.AbstractProjectImporter;
+import org.eclipse.jdt.ls.core.internal.JavaLanguageServerPlugin;
+import org.eclipse.jdt.ls.core.internal.ProjectUtils;
+import org.eclipse.jdt.ls.core.internal.ResourceUtils;
+import org.eclipse.jdt.ls.core.internal.managers.BasicFileDetector;
+import org.eclipse.jdt.ls.core.internal.managers.DigestStore;
+import org.eclipse.jdt.ls.core.internal.preferences.Preferences;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
+
+import com.microsoft.java.builder.JavaProblemChecker;
+import com.microsoft.gradle.bs.importer.model.BuildServerPreferences;
+import com.microsoft.gradle.bs.importer.model.Telemetry;
+
+import ch.epfl.scala.bsp4j.BuildClientCapabilities;
+import ch.epfl.scala.bsp4j.BuildTarget;
+import ch.epfl.scala.bsp4j.InitializeBuildParams;
+import ch.epfl.scala.bsp4j.InitializeBuildResult;
+import ch.epfl.scala.bsp4j.WorkspaceBuildTargetsResult;
+
+public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
+
+    private static final String CLIENT_NAME = "jdtls";
+
+    private static final String BSP_VERSION = "2.1.0-M4";
+
+    private static final String SCHEMA_VERSION_KEY = "bspSchemaVersion";
+    private static final String SCHEMA_VERSION = "0.1.0";
+
+    public static final String BUILD_GRADLE_DESCRIPTOR = "build.gradle";
+    public static final String BUILD_GRADLE_KTS_DESCRIPTOR = "build.gradle.kts";
+    public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
+    public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
+    public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
+    private boolean isResolved = true;
+
+    @Override
+    public boolean applies(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
+        if (rootFolder == null) {
+            return false;
+        }
+
+        //TODO: support multi-root workspaces
+        if (getPreferences().getRootPaths().size() != 1) {
+            return false;
+        }
+
+        if (!Utils.isBuildServerEnabled(getPreferences())) {
+            return false;
+        }
+
+        // if the current root already contains Gradle Java project
+        // imported by Buildship, skip the build server importer.
+        for (IProject project : ProjectUtils.getGradleProjects()) {
+            if (ProjectUtils.isJavaProject(project)
+                    && project.getLocation().toFile().toPath().startsWith(rootFolder.toPath())) {
+                Telemetry telemetry = new Telemetry("hasBuildshipJavaProject", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
+                return false;
+            }
+        }
+
+        if (directories == null) {
+            BasicFileDetector gradleDetector = new BasicFileDetector(rootFolder.toPath(), BUILD_GRADLE_DESCRIPTOR,
+                    SETTINGS_GRADLE_DESCRIPTOR, BUILD_GRADLE_KTS_DESCRIPTOR, SETTINGS_GRADLE_KTS_DESCRIPTOR)
+                    .includeNested(false)
+                    .addExclusions("**/build") //default gradle build dir
+                    .addExclusions("**/bin");
+            directories = gradleDetector.scan(monitor);
+        }
+
+        if (directories.isEmpty()) {
+            return false;
+        }
+
+        for (java.nio.file.Path directory : directories) {
+            // we don't support android
+            BasicFileDetector androidDetector = new BasicFileDetector(directory, ANDROID_MANIFEST)
+                .includeNested(false)
+                .addExclusions("**/build") //default gradle build dir
+                .addExclusions("**/bin");
+            Collection<java.nio.file.Path> androidDirectories = androidDetector.scan(monitor);
+            if (!androidDirectories.isEmpty()) {
+                Telemetry telemetry = new Telemetry("hasAndroidManifest", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
+                return false;
+            }
+        }
+
+        Telemetry telemetry = new Telemetry("hasAndroidManifest", "false");
+        Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                telemetry);
+        return true;
+    }
+
+    @Override
+    public boolean applies(Collection<IPath> projectConfigurations, IProgressMonitor monitor)
+            throws OperationCanceledException, CoreException {
+        // TODO: enable this capability once the upstream experience is stable.
+        return false;
+        // if (rootFolder == null) {
+        //     return false;
+        // }
+
+
+        // if (!Utils.isBuildServerEnabled(getPreferences())) {
+        //     return false;
+        // }
+
+        // this.directories = findProjectPathByConfigurationName(
+        //     projectConfigurations,
+        //     Arrays.asList(
+        //         BUILD_GRADLE_DESCRIPTOR,
+        //         SETTINGS_GRADLE_DESCRIPTOR,
+        //         BUILD_GRADLE_KTS_DESCRIPTOR,
+        //         SETTINGS_GRADLE_KTS_DESCRIPTOR
+        //     ),
+        //     false /*includeNested*/
+        // );
+
+        // return !directories.isEmpty() && !importedByOtherImporters(directories);
+    }
+
+    @Override
+    public void importToWorkspace(IProgressMonitor monitor) throws OperationCanceledException, CoreException {
+        IPath rootPath = ResourceUtils.filePathFromURI(rootFolder.toURI().toString());
+        BuildServerConnection buildServer = ImporterPlugin.getBuildServerConnection(rootPath, true);
+        if (buildServer == null) {
+            JavaLanguageServerPlugin.logError("Reach the maximum number of attempts to connect to the build server, use BuildShip instead");
+            this.isResolved = false;
+            return;
+        }
+        // for all the path in this.directories, find the out most directory which belongs
+        // to rootFolder and use that directory as the root folder for the build server.
+        // TODO: consider the following folder structure
+        //   ROOT
+        //    |-- sub1
+        //    |-- sub2
+        //    |-- sub3
+        // if user partially selects sub1 and sub2, we should still use ROOT as the root folder
+        // and only import sub1 and sub2 as projects.
+        java.nio.file.Path inferredRoot = this.directories.stream()
+                .filter(directory -> directory.startsWith(rootFolder.toPath()))
+                .sorted((p1, p2) -> p1.getNameCount() - p2.getNameCount())
+                .findFirst()
+                .orElse(rootFolder.toPath());
+        InitializeBuildParams params = new InitializeBuildParams(
+                CLIENT_NAME,
+                ImporterPlugin.getBundleVersion(),
+                BSP_VERSION,
+                inferredRoot.toUri().toString(),
+                new BuildClientCapabilities(java.util.Collections.singletonList("java"))
+        );
+        BuildServerPreferences data = getBuildServerPreferences();
+        params.setData(data);
+        try {
+            InitializeBuildResult initializeResult = buildServer.buildInitialize(params).join();
+            buildServer.onBuildInitialized();
+            // TODO: save the capabilities of this server
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ResponseErrorException responseError) {
+                if ("Unhandled method build/initialize".equals(responseError.getMessage())) {
+                    JavaLanguageServerPlugin.logError("Failed to start Gradle Build Server, use BuildShip instead");
+                    this.isResolved = false;
+                    return;
+                }
+            }
+        }
+
+        if (monitor.isCanceled()) {
+            return;
+        }
+
+        // Cache the workspace build targets result to avoid redundant BSP calls.
+        // Previously, importProjects(), updateClasspath(), and updateProjectDependencies()
+        // each independently called workspaceBuildTargets(), resulting in ~2N+1 calls
+        // for N projects. Now we fetch once and pass the cached result everywhere.
+        WorkspaceBuildTargetsResult cachedTargets;
+        try {
+            cachedTargets = buildServer.workspaceBuildTargets().join();
+        } catch (CompletionException e) {
+            JavaLanguageServerPlugin.logException(
+                    "Failed to get build targets from Gradle Build Server. "
+                    + "If another Gradle process is running, please stop it and retry.", e);
+            this.isResolved = false;
+            return;
+        }
+
+        List<IProject> projects = importProjects(cachedTargets, monitor);
+        if (projects.isEmpty()) {
+            return;
+        }
+
+        GradleBuildServerBuildSupport buildSupport = new GradleBuildServerBuildSupport();
+
+        // Use batched BSP calls: instead of making per-target calls (4N round-trips
+        // for N build targets), batch all target IDs into single calls (4 total).
+        buildSupport.updateAllClasspaths(buildServer, projects, cachedTargets, monitor);
+
+        // We need to add the project dependencies after the Java nature is set to all
+        // the projects, which is done in 'updateAllClasspaths()',
+        // otherwise JDT will throw an exception when adding projects as dependencies.
+        Map<URI, List<BuildTarget>> targetsByProjectUri = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
+        for (IProject project : projects) {
+            List<BuildTarget> buildTargets = Utils.getBuildTargetsByProjectUri(targetsByProjectUri, project.getLocationURI());
+            buildSupport.updateProjectDependencies(project, buildTargets, monitor);
+        }
+
+        for (IProject project : projects) {
+            updateConfigurationDigest(project);
+        }
+    }
+
+    @Override
+    public boolean isResolved(File folder) throws OperationCanceledException, CoreException {
+        // TOOD: Once the upstream GradleProjectImporter has been updated to not import when
+        // the gradle project has already imported by other importers, we can modify this logic
+        // so that Maven importer can be involved for other projects.
+        if (!this.isResolved) {
+            for (IProject project : ProjectUtils.getAllProjects()) {
+                if (Utils.isGradleBuildServerProject(project)) {
+                    project.delete(IResource.NEVER_DELETE_PROJECT_CONTENT, new NullProgressMonitor());
+                }
+            }
+            return false;
+        }
+
+        for (IProject project : ProjectUtils.getAllProjects()) {
+            if (Utils.isGradleBuildServerProject(project) &&
+                    project.getLocation().toPath().startsWith(folder.toPath())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void reset() {
+        // do nothing
+    }
+
+    /**
+     * Update the digest of the gradle configuration file. Return <code>true</code> if
+     * the digest is updated, <code>false</code> otherwise.
+     * @throws CoreException
+     */
+    public static boolean updateConfigurationDigest(IProject project) {
+        DigestStore digestStore = ImporterPlugin.getDigestStore();
+        boolean result = false;
+        try {
+            File buildFile = project.getFile(BUILD_GRADLE_DESCRIPTOR).getLocation().toFile();
+            result = (buildFile.exists() && digestStore.updateDigest(buildFile.toPath())) || result;
+
+            File settingsFile = project.getFile(SETTINGS_GRADLE_DESCRIPTOR).getLocation().toFile();
+            result = (settingsFile.exists() && digestStore.updateDigest(settingsFile.toPath())) || result;
+
+            File buildKtsFile = project.getFile(BUILD_GRADLE_KTS_DESCRIPTOR).getLocation().toFile();
+            result = (buildKtsFile.exists() && digestStore.updateDigest(buildKtsFile.toPath())) || result;
+
+            File settingsKtsFile = project.getFile(SETTINGS_GRADLE_KTS_DESCRIPTOR).getLocation().toFile();
+            result = (settingsKtsFile.exists() && digestStore.updateDigest(settingsKtsFile.toPath())) || result;
+        } catch (CoreException e) {
+            JavaLanguageServerPlugin.logException("Failed to update digest for Gradle configuration file", e);
+        }
+
+        return result;
+    }
+
+    /**
+     * Return false if any of the input folder has already been imported as a
+     * Java project by other importer.
+     */
+    private boolean importedByOtherImporters(Collection<java.nio.file.Path> directories) {
+        return directories.stream()
+            .map(directory -> ProjectUtils.getProjectFromUri(directory.toUri().toString()))
+            .anyMatch(project -> !Utils.isGradleBuildServerProject(project) &&
+                    ProjectUtils.isJavaProject(project)
+            );
+    }
+
+    /**
+     * Import the projects according to the available build targets. If a build target
+     * maps to a project that is already imported by other importer
+     *
+     * @throws CoreException
+     */
+    private List<IProject> importProjects(WorkspaceBuildTargetsResult cachedTargets, IProgressMonitor monitor) throws CoreException {
+        Map<URI, List<BuildTarget>> buildTargetMap;
+        try {
+            buildTargetMap = Utils.getBuildTargetsMappedByProjectPath(cachedTargets);
+        } catch (CompletionException e) {
+            JavaLanguageServerPlugin.logException(
+                    "Failed to get build targets from Gradle Build Server. "
+                    + "If another Gradle process is running, please stop it and retry.", e);
+            return new LinkedList<>();
+        }
+        // https://github.com/microsoft/vscode-gradle/issues/1659
+        Set<String> duplicateProjectNames = new HashSet<>();
+        Set<String> projectNames = new HashSet<>();
+        for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
+            URI uri = entrySet.getKey();
+            String projectName = new File(uri).getName();
+            if (!projectNames.add(projectName)) {
+                duplicateProjectNames.add(projectName);
+            }
+        }
+        List<IProject> projects = new LinkedList<>();
+        for (Entry<URI, List<BuildTarget>> entrySet : buildTargetMap.entrySet()) {
+            URI uri = entrySet.getKey();
+            File file = new File(uri);
+            String projectName = file.getName();
+            if (file.getParentFile() != null && duplicateProjectNames.contains(projectName)) {
+                projectName = file.getParentFile().getName() + "-" + projectName;
+            }
+            IProject project = ProjectUtils.getProjectFromUri(uri.toString());
+            if (project == null) {
+                project = createProject(file, projectName, monitor);
+            } else if (!project.isAccessible() || !Utils.isGradleBuildServerProject(project)) {
+                // skip project already imported by other importers.
+                continue;
+            } else {
+                updateProjectDescription(project, monitor);
+            }
+
+            project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
+            projects.add(project);
+        }
+        return projects;
+    }
+
+    private IProject createProject(File directory, String projectName, IProgressMonitor monitor) throws CoreException {
+        if (projectName == null) {
+            projectName = directory.getName();
+        }
+        projectName = findFreeProjectName(projectName);
+        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        IProjectDescription projectDescription = workspace.newProjectDescription(projectName);
+        if (projectDescription instanceof ProjectDescription description) {
+            VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+            description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
+        }
+        projectDescription.setLocation(Path.fromOSString(directory.getPath()));
+        projectDescription.setNatureIds(new String[]{ GradleBuildServerProjectNature.NATURE_ID });
+        ICommand buildSpec = Utils.getBuildServerBuildSpec(projectDescription);
+        ICommand problemReporter = projectDescription.newCommand();
+        problemReporter.setBuilderName(JavaProblemChecker.BUILDER_ID);
+        projectDescription.setBuildSpec(new ICommand[]{ problemReporter, buildSpec});
+        IProject project = workspace.getRoot().getProject(projectName);
+        project.create(projectDescription, monitor);
+
+        project.open(IResource.NONE, monitor);
+        return project;
+    }
+
+    private void updateProjectDescription(IProject project, IProgressMonitor monitor) throws CoreException {
+        SubMonitor progress = SubMonitor.convert(monitor, 1);
+        IProjectDescription projectDescription = project.getDescription();
+        Utils.removeBuildshipConfigurations(projectDescription);
+
+        ICommand problemReporter = projectDescription.newCommand();
+        problemReporter.setBuilderName(JavaProblemChecker.BUILDER_ID);
+        Utils.addBuildSpec(projectDescription, new ICommand[] {
+            Utils.getBuildServerBuildSpec(projectDescription),
+            problemReporter
+        });
+        project.setDescription(projectDescription, IResource.AVOID_NATURE_CONFIG, progress.newChild(1));
+
+        // Here we don't use the public API: {@code project.setDescription()} to update the project,
+        // because that API will ignore the variable descriptions.
+        if (project instanceof Project internalProject) {
+            ProjectDescription description = internalProject.internalGetDescription();
+            if (description == null) {
+                return;
+            }
+            VariableDescription variableDescription = new VariableDescription(SCHEMA_VERSION_KEY, SCHEMA_VERSION);
+            boolean changed = description.setVariableDescription(SCHEMA_VERSION_KEY, variableDescription);
+            if (changed) {
+                internalProject.writeDescription(IResource.NONE);
+            }
+        }
+    }
+
+    private String findFreeProjectName(String baseName) {
+        IProject project = Arrays.stream(ProjectUtils.getAllProjects())
+                .filter(p -> p.getName().equals(baseName)).findFirst().orElse(null);
+        return project != null ? findFreeProjectName(baseName + "_") : baseName;
+    }
+
+    private BuildServerPreferences getBuildServerPreferences() {
+        BuildServerPreferences pref = new BuildServerPreferences();
+        Preferences jdtlsPreferences = getPreferences();
+        pref.setWrapperEnabled(jdtlsPreferences.isGradleWrapperEnabled());
+        pref.setGradleArguments(jdtlsPreferences.getGradleArguments());
+        pref.setGradleHome(jdtlsPreferences.getGradleHome());
+        pref.setGradleJavaHome(jdtlsPreferences.getGradleJavaHome());
+        Set<String> jvmArgs = jdtlsPreferences.getGradleJvmArguments().stream()
+                .map(String::trim)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        String[] defaultJvmArgs = {
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+            "--add-opens=java.base/java.net=ALL-UNNAMED",
+            "--add-opens=java.base/java.nio.charset=ALL-UNNAMED",
+            "--add-opens=java.base/java.util=ALL-UNNAMED",
+            "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+            "--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED",
+        };
+        for (String arg : defaultJvmArgs) {
+            if (!jvmArgs.contains(arg)) {
+                jvmArgs.add(arg);
+            }
+        }
+        pref.setGradleJvmArguments(new ArrayList<>(jvmArgs));
+        pref.setGradleUserHome(jdtlsPreferences.getGradleUserHome());
+        pref.setGradleVersion(jdtlsPreferences.getGradleVersion());
+        pref.setJdks(EclipseVmUtil.getAllVmInstalls());
+        return pref;
+    }
+}

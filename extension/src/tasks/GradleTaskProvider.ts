@@ -4,7 +4,7 @@ import { logger } from "../logger";
 import { loadTasksForProjectRoots, resolveTaskFromDefinition } from "./taskUtil";
 import { TaskId } from "../stores/types";
 import { RootProjectsStore } from "../stores";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { EventWaiter } from "../util/EventWaiter";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 
@@ -16,7 +16,7 @@ export class GradleTaskProvider implements vscode.TaskProvider, vscode.Disposabl
 
     constructor(
         private readonly rootProjectsStore: RootProjectsStore,
-        private readonly client: GradleClient,
+        private readonly client: TaskServerClient,
         private readonly gradleBuildContentProvider: GradleBuildContentProvider
     ) {}
 

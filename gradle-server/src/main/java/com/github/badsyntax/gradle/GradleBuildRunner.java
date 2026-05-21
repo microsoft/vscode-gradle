@@ -2,9 +2,12 @@ package com.github.badsyntax.gradle;
 
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
 import com.google.common.base.Strings;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -24,7 +27,45 @@ import org.slf4j.LoggerFactory;
 
 public class GradleBuildRunner {
 	private static final String JAVA_TOOL_OPTIONS_ENV = "JAVA_TOOL_OPTIONS";
+	private static final String DEBUG_PORT_PROPERTY = "vscode.debug.port";
 	private static final Logger logger = LoggerFactory.getLogger(GradleBuildRunner.class.getName());
+
+	/**
+	 * Static init script content that defers debug port resolution to execution
+	 * time. The port is read from a system property set via {@code -D} in the
+	 * Gradle arguments, so the init script content never changes. This allows
+	 * Gradle's configuration cache to be reused across debug sessions with
+	 * different ports.
+	 *
+	 * <p>
+	 * {@code outputs.upToDateWhen { false }} ensures tasks always re-execute during
+	 * debug sessions, which is necessary because {@code doFirst} runs after
+	 * Gradle's up-to-date checks.
+	 * </p>
+	 */
+	// @formatter:off
+	private static final String DEBUG_INIT_SCRIPT_CONTENT =
+			"allprojects {\n"
+			+ "    tasks.withType(JavaExec) {\n"
+			+ "        outputs.upToDateWhen { false }\n"
+			+ "        doFirst {\n"
+			+ "            def port = System.getProperty('" + DEBUG_PORT_PROPERTY + "')\n"
+			+ "            if (port) {\n"
+			+ "                jvmArgs \"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:${port}\"\n"
+			+ "            }\n"
+			+ "        }\n"
+			+ "    }\n"
+			+ "    tasks.withType(Test) {\n"
+			+ "        outputs.upToDateWhen { false }\n"
+			+ "        doFirst {\n"
+			+ "            def port = System.getProperty('" + DEBUG_PORT_PROPERTY + "')\n"
+			+ "            if (port) {\n"
+			+ "                jvmArgs \"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:${port}\"\n"
+			+ "            }\n"
+			+ "        }\n"
+			+ "    }\n"
+			+ "}";
+	// @formatter:on
 
 	private String projectDir;
 	private List<String> args;
@@ -37,9 +78,10 @@ public class GradleBuildRunner {
 	private InputStream standardInputStream;
 	private ProgressListener progressListener;
 	private Boolean javaDebugCleanOutputCache;
+	private String additionalToolOptions;
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
-			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache) {
+			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
 		this.projectDir = projectDir;
 		this.args = args;
 		this.gradleConfig = gradleConfig;
@@ -47,10 +89,11 @@ public class GradleBuildRunner {
 		this.colorOutput = colorOutput;
 		this.javaDebugPort = javaDebugPort;
 		this.javaDebugCleanOutputCache = javaDebugCleanOutputCache;
+		this.additionalToolOptions = additionalToolOptions;
 	}
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
-		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false);
+		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false, "");
 	}
 
 	public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -95,33 +138,60 @@ public class GradleBuildRunner {
 
 		Boolean isDebugging = javaDebugPort != 0;
 
+		Path debugInitScriptPath = null;
+		if (Boolean.TRUE.equals(isDebugging)) {
+			debugInitScriptPath = createDebugInitScript();
+		}
+
 		BuildLauncher build = connection.newBuild().withCancellationToken(cancellationToken)
 				.addProgressListener(progressListener, progressEvents).setStandardOutput(standardOutputStream)
 				.setStandardError(standardErrorStream).setColorOutput(colorOutput)
-				.withArguments(buildArguments(isDebugging));
+				.withArguments(buildArguments(isDebugging, debugInitScriptPath));
 
 		if (this.standardInputStream != null) {
 			build.setStandardInput(standardInputStream);
 		}
 
-		if (Boolean.TRUE.equals(isDebugging)) {
-			build.setEnvironmentVariables(buildJavaEnvVarsWithJwdp(javaDebugPort));
+		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(additionalToolOptions);
+
+		if (envVars != null) {
+			build.setEnvironmentVariables(envVars);
 		}
 
 		if (!Strings.isNullOrEmpty(gradleConfig.getJvmArguments())) {
 			build.setJvmArguments(gradleConfig.getJvmArguments());
 		}
 
+		if (!Strings.isNullOrEmpty(gradleConfig.getJavaHome())) {
+			build.setJavaHome(new File(gradleConfig.getJavaHome()));
+		}
+
 		build.run();
 	}
 
-	private List<String> buildArguments(Boolean isDebugging) throws GradleBuildRunnerException {
+	private List<String> buildArguments(Boolean isDebugging, Path debugInitScriptPath)
+			throws GradleBuildRunnerException {
+		List<String> newArgs = new ArrayList<>(args);
+
+		// Add init script and debug port system property for debugging.
+		// The port is passed as -D so the init script can read it at execution
+		// time via System.getProperty(), keeping it out of configuration cache
+		// inputs.
+		int debugArgsCount = 0;
+		if (debugInitScriptPath != null) {
+			newArgs.addAll(0, Arrays.asList("--init-script", debugInitScriptPath.toAbsolutePath().toString(),
+					String.format("-D%s=%d", DEBUG_PORT_PROPERTY, javaDebugPort)));
+			debugArgsCount = 3;
+		}
+
 		if (Boolean.FALSE.equals(isDebugging) || Boolean.FALSE.equals(javaDebugCleanOutputCache)) {
-			return args;
+			return newArgs;
 		}
 		int taskIndex = -1;
-		for (int i = 0; i < args.size(); i++) {
-			if (isTask(args.get(i))) {
+		// Account for the debug args added above
+		int offset = debugArgsCount;
+		for (int i = offset; i < newArgs.size(); i++) {
+			if (isTask(newArgs.get(i))) {
 				if (taskIndex == -1) {
 					taskIndex = i;
 				} else {
@@ -133,7 +203,7 @@ public class GradleBuildRunner {
 		if (taskIndex == -1) {
 			throw new GradleBuildRunnerException("No task found when debugging");
 		}
-		List<String> parts = new LinkedList<>(Arrays.asList(args.get(taskIndex).split(":")));
+		List<String> parts = new LinkedList<>(Arrays.asList(newArgs.get(taskIndex).split(":")));
 		String taskName = parts.get(parts.size() - 1);
 		parts.remove(parts.size() - 1);
 
@@ -142,7 +212,6 @@ public class GradleBuildRunner {
 
 		String cleanTaskName = String.join(":", parts);
 
-		List<String> newArgs = new ArrayList<>(args);
 		newArgs.add(taskIndex, cleanTaskName);
 
 		logger.warn("Adding {} to ensure task output is cleared before debugging", cleanTaskName);
@@ -154,10 +223,60 @@ public class GradleBuildRunner {
 		return !argument.startsWith("-");
 	}
 
-	private static Map<String, String> buildJavaEnvVarsWithJwdp(int javaDebugPort) {
+	/**
+	 * Creates or reuses a Gradle init script that applies debug JVM arguments only
+	 * to JavaExec and Test tasks at execution time. This prevents the debug agent
+	 * from being attached to compilation tasks and other Java processes.
+	 *
+	 * <p>
+	 * The init script content is static (the debug port is read from a system
+	 * property at execution time via {@code doFirst}), so its fingerprint never
+	 * changes. Combined with a fixed file path, this allows Gradle's configuration
+	 * cache to be fully reused across debug sessions with different ports.
+	 * </p>
+	 */
+	private static Path createDebugInitScript() throws IOException {
+		String tempDir = System.getProperty("java.io.tmpdir");
+		if (tempDir == null || tempDir.isEmpty()) {
+			tempDir = "/tmp";
+		}
+		Path initScriptPath = Path.of(tempDir, "vscode-gradle-debug-init.gradle");
+
+		// Only write the file if it doesn't exist or the content has changed
+		boolean needsWrite = true;
+		if (Files.exists(initScriptPath)) {
+			try {
+				String existingContent = Files.readString(initScriptPath);
+				needsWrite = !existingContent.equals(DEBUG_INIT_SCRIPT_CONTENT);
+			} catch (IOException e) {
+				logger.debug("Could not read existing init script, will create new one: {}", e.getMessage());
+				needsWrite = true;
+			}
+		}
+
+		if (needsWrite) {
+			Files.writeString(initScriptPath, DEBUG_INIT_SCRIPT_CONTENT);
+			logger.info("Created/updated debug init script at: {}", initScriptPath);
+		} else {
+			logger.info("Reusing existing debug init script at: {}", initScriptPath);
+		}
+
+		return initScriptPath;
+	}
+
+	/**
+	 * Builds environment variables with JAVA_TOOL_OPTIONS for additional tool
+	 * options. Note: Debug agent is no longer set via JAVA_TOOL_OPTIONS to prevent
+	 * it from being applied to all Java processes (e.g., compilation). Instead,
+	 * debugging is configured via Gradle init script to target only JavaExec and
+	 * Test tasks.
+	 */
+	private static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions) {
+		if (additionalToolOptions == null || additionalToolOptions.isEmpty()) {
+			return null;
+		}
 		HashMap<String, String> envVars = new HashMap<>(System.getenv());
-		envVars.put(JAVA_TOOL_OPTIONS_ENV, String
-				.format("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:%d", javaDebugPort));
+		envVars.put(JAVA_TOOL_OPTIONS_ENV, additionalToolOptions);
 		return envVars;
 	}
 }

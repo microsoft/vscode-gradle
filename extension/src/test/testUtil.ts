@@ -2,7 +2,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as Mocha from "mocha";
-import * as glob from "glob";
+import { globSync } from "glob";
 import * as sinon from "sinon";
 import * as assert from "assert";
 import * as fs from "fs";
@@ -26,23 +26,16 @@ export function createTestRunner(pattern: string) {
         });
         mocha.bail(true);
 
-        glob(pattern, { cwd: testsRoot }, (err, files) => {
-            if (err) {
-                return cb(err);
-            }
-
-            // Add files to the test suite
-            files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
-
-            try {
-                // Run the mocha test
-                mocha.run((failures) => {
-                    cb(null, failures);
-                });
-            } catch (e) {
-                cb(e);
-            }
-        });
+        const files = globSync(pattern, { cwd: testsRoot });
+        files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
+        try {
+            // Run the mocha test
+            mocha.run((failures) => {
+                cb(null, failures);
+            });
+        } catch (e) {
+            cb(e);
+        }
     };
 }
 
@@ -93,13 +86,13 @@ export function stubWorkspaceFolders(workspaceFolders: vscode.WorkspaceFolder[])
     const getWorkspaceFolderStub = sinon.stub(vscode.workspace, "getWorkspaceFolder");
     const dirnameStub = sinon.stub(path, "dirname");
     workspaceFolders.forEach((workspaceFolder) => {
-        existsSyncStub.withArgs(path.join(workspaceFolder.uri.fsPath, "gradlew")).returns(true);
+        existsSyncStub.withArgs(path.join(workspaceFolder.uri.fsPath, "settings.gradle")).returns(true);
         getWorkspaceFolderStub.withArgs(sinon.match.has("fsPath", workspaceFolder.uri.fsPath)).returns(workspaceFolder);
         dirnameStub.withArgs(workspaceFolder.uri.fsPath).returns(workspaceFolder.uri.fsPath);
     });
     sinon
         .stub(vscode.workspace, "findFiles")
-        .withArgs("**/{gradlew,gradlew.bat}")
+        .withArgs("**/{settings.gradle,settings.gradle.kts}")
         .returns(Promise.resolve(workspaceFolders.map((folder) => folder.uri)));
 }
 
@@ -119,6 +112,8 @@ export function buildMockContext(): any {
 export function buildMockClient(): any {
     return {
         getBuild: sinon.stub(),
+        getProjectDependencies: sinon.stub(),
+        cancelProjectDependencies: sinon.stub(),
         getDaemonsStatus: sinon.stub(),
         stopDaemon: sinon.stub(),
         stopDaemons: sinon.stub(),

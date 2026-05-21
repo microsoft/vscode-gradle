@@ -1,4 +1,13 @@
 rootProject.name = 'vscode-gradle'
+
+dependencyResolutionManagement {
+  versionCatalogs {
+    libs {
+      plugin('spotless', 'com.diffplug.spotless').version(JavaVersion.current().isJava8() ? '6.13.0' : '6.22.0')
+    }
+  }
+}
+
 include('gradle-server')
 include('extension')
 include('npm-package')

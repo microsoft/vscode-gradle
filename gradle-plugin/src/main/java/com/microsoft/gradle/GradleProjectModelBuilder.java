@@ -4,6 +4,7 @@
 package com.microsoft.gradle;
 
 import com.microsoft.gradle.api.GradleClosure;
+import com.microsoft.gradle.api.GradleDependencyModel;
 import com.microsoft.gradle.api.GradleDependencyNode;
 import com.microsoft.gradle.api.GradleDependencyType;
 import com.microsoft.gradle.api.GradleField;
@@ -34,9 +35,6 @@ import org.gradle.api.artifacts.result.ResolvedDependencyResult;
 import org.gradle.api.initialization.dsl.ScriptHandler;
 import org.gradle.api.internal.initialization.DefaultScriptHandler;
 import org.gradle.api.internal.tasks.TaskContainerInternal;
-import org.gradle.api.plugins.Convention;
-import org.gradle.api.plugins.ExtensionsSchema;
-import org.gradle.api.plugins.ExtensionsSchema.ExtensionSchema;
 import org.gradle.api.reflect.TypeOf;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.TaskContainer;
@@ -59,10 +57,14 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	}
 
 	public boolean canBuild(String modelName) {
-		return modelName.equals(GradleProjectModel.class.getName());
+		return modelName.equals(GradleProjectModel.class.getName())
+				|| modelName.equals(GradleDependencyModel.class.getName());
 	}
 
 	public Object buildAll(String modelName, Project project) {
+		if (modelName.equals(GradleDependencyModel.class.getName())) {
+			return new DefaultGradleDependencyModel(generateDefaultGradleDependencyNode(project));
+		}
 		cachedTasks.clear();
 		DefaultGradleProject gradleProject = (DefaultGradleProject) this.registry
 				.getBuilder("org.gradle.tooling.model.GradleProject").buildAll(modelName, project);
@@ -103,22 +105,12 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 		classpath.getAsFiles().forEach((file) -> {
 			scriptClasspaths.add(file.getAbsolutePath());
 		});
-		GradleDependencyNode node = generateDefaultGradleDependencyNode(project);
+		GradleDependencyNode node = new DefaultGradleDependencyNode(project.getName(), GradleDependencyType.PROJECT);
 		List<String> plugins = getPlugins(project);
 		List<GradleClosure> closures = getPluginClosures(project);
+		// For isolated projects, sub-models will be built separately via individual buildAll calls
+		// Each project model is built in isolation, avoiding cross-project access
 		List<GradleProjectModel> subModels = new ArrayList<>();
-		for (DefaultGradleProject subDefaultGradleProject : gradleProject.getChildren()) {
-			// Query sub projects when both gradleProject and project contain them
-			Map<String, Project> childProjects = project.getChildProjects();
-			String projectName = subDefaultGradleProject.getName();
-			if (childProjects.keySet().contains(projectName)) {
-				GradleProjectModel subModel = buildModel(childProjects.get(projectName), rootProjectName,
-						subDefaultGradleProject);
-				if (subModel != null) {
-					subModels.add(subModel);
-				}
-			}
-		}
 		List<GradleTask> tasks = getGradleTasks(project, rootProjectName, gradleProject);
 		return new DefaultGradleProjectModel(project.getParent() == null, project.getProjectDir().getAbsolutePath(),
 				subModels, tasks, node, plugins, closures, scriptClasspaths);
@@ -138,20 +130,24 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 			}
 			DefaultGradleDependencyNode configNode = new DefaultGradleDependencyNode(config.getName(),
 					GradleDependencyType.CONFIGURATION);
-			ResolvableDependencies incoming = config.getIncoming();
-			ResolutionResult resolutionResult = incoming.getResolutionResult();
-			ResolvedComponentResult rootResult = resolutionResult.getRoot();
-			Set<? extends DependencyResult> dependencies = rootResult.getDependencies();
-			Set<String> dependencySet = new HashSet<>();
-			for (DependencyResult dependency : dependencies) {
-				if (dependency instanceof ResolvedDependencyResult) {
-					DefaultGradleDependencyNode dependencyNode = resolveDependency(
-							(ResolvedDependencyResult) dependency, dependencySet);
-					configNode.addChildren(dependencyNode);
+			try {
+				ResolvableDependencies incoming = config.getIncoming();
+				ResolutionResult resolutionResult = incoming.getResolutionResult();
+				ResolvedComponentResult rootResult = resolutionResult.getRoot();
+				Set<? extends DependencyResult> dependencies = rootResult.getDependencies();
+				Set<String> dependencySet = new HashSet<>();
+				for (DependencyResult dependency : dependencies) {
+					if (dependency instanceof ResolvedDependencyResult) {
+						DefaultGradleDependencyNode dependencyNode = resolveDependency(
+								(ResolvedDependencyResult) dependency, dependencySet);
+						configNode.addChildren(dependencyNode);
+					}
 				}
-			}
-			if (!configNode.getChildren().isEmpty()) {
-				rootNode.addChildren(configNode);
+				if (!configNode.getChildren().isEmpty()) {
+					rootNode.addChildren(configNode);
+				}
+			} catch (Exception e) {
+				// ignore
 			}
 		}
 		return rootNode;
@@ -177,8 +173,13 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 	}
 
 	private List<String> getPlugins(Project project) {
-		Convention convention = project.getConvention();
-		return new ArrayList<>(convention.getPlugins().keySet());
+		// The Convention API was removed in Gradle 8.0+
+		// Use the PluginContainer instead to get applied plugins
+		List<String> plugins = new ArrayList<>();
+		project.getPlugins().forEach(plugin -> {
+			plugins.add(plugin.getClass().getName());
+		});
+		return plugins;
 	}
 
 	private List<GradleClosure> getPluginClosures(Project project) {
@@ -186,36 +187,41 @@ public class GradleProjectModelBuilder implements ToolingModelBuilder {
 				.compareTo(GradleVersion.version(MINIMAL_SUPPORTED_PLUGIN_CLOSURE_VERSION)) < 0) {
 			return Collections.emptyList();
 		}
-		Convention convention = project.getConvention();
-		ExtensionsSchema extensionsSchema = convention.getExtensionsSchema();
+		// The Convention API was removed in Gradle 8.0+
+		// Use the ExtensionContainer instead to get extension schemas
 		List<GradleClosure> closures = new ArrayList<>();
-		for (ExtensionSchema schema : extensionsSchema.getElements()) {
-			TypeOf<?> publicType = schema.getPublicType();
-			Class<?> concreteClass = publicType.getConcreteClass();
-			List<GradleMethod> methods = new ArrayList<>();
-			List<GradleField> fields = new ArrayList<>();
-			for (Method method : concreteClass.getMethods()) {
-				String name = method.getName();
-				List<String> parameterTypes = new ArrayList<>();
-				for (Class<?> parameterType : method.getParameterTypes()) {
-					parameterTypes.add(parameterType.getName());
+		try {
+			project.getExtensions().getExtensionsSchema().getElements().forEach(schema -> {
+				TypeOf<?> publicType = schema.getPublicType();
+				Class<?> concreteClass = publicType.getConcreteClass();
+				List<GradleMethod> methods = new ArrayList<>();
+				List<GradleField> fields = new ArrayList<>();
+				for (Method method : concreteClass.getMethods()) {
+					String name = method.getName();
+					List<String> parameterTypes = new ArrayList<>();
+					for (Class<?> parameterType : method.getParameterTypes()) {
+						parameterTypes.add(parameterType.getName());
+					}
+					methods.add(new DefaultGradleMethod(name, parameterTypes, isDeprecated(method)));
+					int modifiers = method.getModifiers();
+					// See:
+					// https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
+					// we offer managed properties for an abstract getter method
+					if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers)
+							&& Modifier.isAbstract(modifiers)) {
+						fields.add(new DefaultGradleField(name.substring(3, 4).toLowerCase() + name.substring(4),
+								isDeprecated(method)));
+					}
 				}
-				methods.add(new DefaultGradleMethod(name, parameterTypes, isDeprecated(method)));
-				int modifiers = method.getModifiers();
-				// See:
-				// https://docs.gradle.org/current/userguide/custom_gradle_types.html#managed_properties
-				// we offer managed properties for an abstract getter method
-				if (name.startsWith("get") && name.length() > 3 && Modifier.isPublic(modifiers)
-						&& Modifier.isAbstract(modifiers)) {
-					fields.add(new DefaultGradleField(name.substring(3, 4).toLowerCase() + name.substring(4),
-							isDeprecated(method)));
+				for (Field field : concreteClass.getFields()) {
+					fields.add(new DefaultGradleField(field.getName(), isDeprecated(field)));
 				}
-			}
-			for (Field field : concreteClass.getFields()) {
-				fields.add(new DefaultGradleField(field.getName(), isDeprecated(field)));
-			}
-			DefaultGradleClosure closure = new DefaultGradleClosure(schema.getName(), methods, fields);
-			closures.add(closure);
+				DefaultGradleClosure closure = new DefaultGradleClosure(schema.getName(), methods, fields);
+				closures.add(closure);
+			});
+		} catch (Exception e) {
+			// Fallback to empty list if extensions schema is not available
+			return Collections.emptyList();
 		}
 		return closures;
 	}

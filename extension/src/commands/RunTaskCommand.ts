@@ -2,20 +2,20 @@ import { GradleTaskTreeItem } from "../views";
 import { runTask } from "../tasks/taskUtil";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
-import { GradleClient } from "../client";
+import { TaskServerClient } from "../client";
 import { DoubleClickChecker } from "../util/DoubleClickChecker";
 
 export const COMMAND_RUN_TASK = "gradle.runTask";
 export const COMMAND_RUN_TASK_DOUBLE_CLICK = "gradle.runTaskDoubleClick";
 
-async function run(treeItem: GradleTaskTreeItem, rootProjectsStore: RootProjectsStore, client: GradleClient) {
+async function run(treeItem: GradleTaskTreeItem, rootProjectsStore: RootProjectsStore, client: TaskServerClient) {
     if (treeItem && treeItem.task) {
         await runTask(rootProjectsStore, treeItem.task, client);
     }
 }
 
 export class RunTaskCommand extends Command {
-    constructor(private rootProjectsStore: RootProjectsStore, private client: GradleClient) {
+    constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
         super();
     }
 
@@ -27,7 +27,7 @@ export class RunTaskCommand extends Command {
 export class RunTaskDoubleClickCommand extends Command {
     private doubleClickChecker: DoubleClickChecker;
 
-    constructor(private rootProjectsStore: RootProjectsStore, private client: GradleClient) {
+    constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
         super();
         this.doubleClickChecker = new DoubleClickChecker();
     }

@@ -1,4 +1,5 @@
 export * from "./CancelBuildCommand";
+export * from "./CancelDependencyLoadingCommand";
 export * from "./CancelTreeItemTaskCommand";
 export * from "./CancellingTreeItemTaskCommand";
 export * from "./UnpinAllTasksCommand";
@@ -16,6 +17,7 @@ export * from "./PinTaskCommand";
 export * from "./PinTaskWithArgsCommand";
 export * from "./RefreshCommand";
 export * from "./RefreshDaemonStatusCommand";
+export * from "./ReloadDependenciesCommand";
 export * from "./UnpinTaskCommand";
 export * from "./RemoveRecentTaskCommand";
 export * from "./RenderTaskCommand";

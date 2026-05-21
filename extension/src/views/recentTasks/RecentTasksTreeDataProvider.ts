@@ -7,7 +7,7 @@ import { GradleTaskTreeItem } from "..";
 import { isWorkspaceFolder } from "../../util";
 import { TaskId, TaskArgs } from "../../stores/types";
 import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
-import { GradleClient } from "../../client";
+import { TaskServerClient } from "../../client";
 import { Icons } from "../../icons";
 
 const recentTasksGradleProjectTreeItemMap: Map<string, RecentTasksRootProjectTreeItem> = new Map();
@@ -65,11 +65,18 @@ export class RecentTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         private readonly taskTerminalsStore: TaskTerminalsStore,
         private readonly rootProjectsStore: RootProjectsStore,
         private readonly gradleTaskProvider: GradleTaskProvider,
-        private readonly client: GradleClient,
+        private readonly client: TaskServerClient,
         private readonly icons: Icons
     ) {
         this.recentTasksStore.onDidChange(() => this.refresh());
         this.taskTerminalsStore.onDidChange(this.handleTerminalsStoreChange);
+        // [fix] Re-render when tasks finish loading so the recent-tasks view recovers
+        // after a transient gRPC failure on refresh.
+        this.gradleTaskProvider.onDidLoadTasks((tasks) => {
+            if (tasks.length > 0) {
+                this.refresh();
+            }
+        });
     }
 
     private handleTerminalsStoreChange = (terminals: Set<vscode.Terminal> | null): void => {

@@ -198,4 +198,56 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
+task buildJdtlsPlugin(type: CrossPlatformExec) {
+  workingDir file('./jdtls.ext')
+  environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
+  if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+    commandLine 'mvnw', 'clean', 'package'
+  } else {
+    commandLine './mvnw', 'clean', 'package'
+  }
+}
+
+task copyJdtlsPluginJar(type: Copy) {
+  dependsOn ':extension:buildJdtlsPlugin'
+  from('./jdtls.ext/com.microsoft.gradle.bs.importer/target/') {
+    include 'com.microsoft.gradle.bs.importer-*.jar'
+  }
+  into 'server'
+  mustRunAfter copyDocs
+}
+
+task buildBuildServer(type: CrossPlatformExec) {
+  workingDir file('./build-server-for-gradle')
+  if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+    commandLine 'gradlew', 'build', '-x', 'test'
+  } else {
+    commandLine './gradlew', 'build', '-x', 'test'
+  }
+}
+
+task copyBuildServerPluginJars(type: Copy) {
+  dependsOn ':extension:buildBuildServer'
+  from('./build-server-for-gradle/server/build/libs/') {
+    include 'plugins/'
+  }
+  into 'server'
+  mustRunAfter copyDocs
+}
+
+// TODO: This task can be removed once the build server is published.
+task copyBuildServerJarsToGradleServer(type: Copy) {
+  dependsOn ':extension:buildBuildServer'
+  from('./build-server-for-gradle/server/build/libs/') {
+    include 'runtime/'
+  }
+  from('./build-server-for-gradle/server/build/libs/server.jar')
+  into '../gradle-server/build/libs/'
+  mustRunAfter copyDocs
+}
+
+task buildJars() {
+  dependsOn copyJdtlsPluginJar, copyBuildServerPluginJars, copyBuildServerJarsToGradleServer
+}
+
 build.finalizedBy buildProd, buildTest

@@ -1,1 +1,1 @@
-export * from "./GradleClient";
+export * from "./TaskServerClient";

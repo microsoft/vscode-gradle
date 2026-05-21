@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?pde version="3.8"?>
+<target name="JDTLS.EXT" sequenceNumber="39">
+    <locations>
+        <location includeDependencyDepth="none" includeDependencyScopes="compile" includeSource="true" missingManifest="generate" type="Maven">
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                    <version>3.14.0</version>
+                    <type>jar</type>
+                </dependency>
+            </dependencies>
+        </location>
+        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
+            <unit id="org.eclipse.equinox.core.feature.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.equinox.core.sdk.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.platform.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.equinox.p2.core.feature.source.feature.group" version="0.0.0"/>
+            <unit id="org.eclipse.equinox.sdk.feature.group" version="0.0.0"/>
+            <unit id="org.mockito.mockito-core" version="0.0.0"/>
+            <unit id="org.apache.commons.commons-io" version="0.0.0"/>
+            <unit id="org.eclipse.jdt.apt.pluggable.core" version="0.0.0"/>
+            <repository location="https://download.eclipse.org/eclipse/updates/4.35/"/>
+        </location>
+        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
+            <unit id="org.eclipse.xtext.xbase.lib" version="0.0.0"/>
+            <repository location="https://download.eclipse.org/releases/2025-03/"/>
+        </location>
+        <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
+            <unit id="org.eclipse.jdt.ls.core" version="0.0.0"/>
+            <repository location="https://download.eclipse.org/jdtls/snapshots/repository/latest/"/>
+        </location>
+    </locations>
+</target>

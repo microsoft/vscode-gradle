@@ -2,7 +2,7 @@
   "name": "vscode-gradle",
   "displayName": "Gradle for Java",
   "description": "Manage Gradle Projects, run Gradle tasks and provide better Gradle file authoring experience in VS Code",
-  "version": "3.12.7",
+  "version": "3.17.3",
   "private": true,
   "publisher": "vscjava",
   "aiKey": "b4aae7d0-c65b-4819-92bf-1d2f537ae7ce",
@@ -18,8 +18,8 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
     "vscode": "^1.76.0",
-    "node": "^14.15.4",
-    "npm": "^6.14.10"
+    "node": ">=20.0.0",
+    "npm": "^10.7.0"
   },
   "categories": [
     "Programming Languages",
@@ -36,12 +36,20 @@
     "workspaceContains:**/gradlew",
     "workspaceContains:**/gradlew.bat",
     "workspaceContains:build.gradle",
+    "workspaceContains:*/build.gradle",
     "workspaceContains:settings.gradle",
+    "workspaceContains:*/settings.gradle",
     "workspaceContains:build.gradle.kts",
-    "workspaceContains:settings.gradle.kts"
+    "workspaceContains:*/build.gradle.kts",
+    "workspaceContains:settings.gradle.kts",
+    "workspaceContains:*/settings.gradle.kts",
+    "onCommand:_gradle.onWillImporterConnect"
   ],
   "main": "./dist/index.js",
   "contributes": {
+    "javaExtensions": [
+      "./server/com.microsoft.gradle.bs.importer-0.5.4.jar"
+    ],
     "languages": [
       {
         "id": "gradle",
@@ -52,6 +60,9 @@
           "Gradle"
         ],
         "configuration": "./gradle-language-configuration.json"
+      },
+      {
+        "id": "gradle-build"
       }
     ],
     "grammars": [
@@ -59,6 +70,11 @@
         "language": "gradle",
         "scopeName": "source.groovy",
         "path": "./syntaxes/groovy.tmLanguage.json"
+      },
+      {
+        "language": "gradle-build",
+        "scopeName": "source.gradle-build",
+        "path": "./syntaxes/GradleBuild.tmLanguage.json"
       }
     ],
     "problemMatchers": [
@@ -242,6 +258,19 @@
         }
       },
       {
+        "command": "gradle.cancelDependencyLoading",
+        "title": "Cancel Loading Dependencies",
+        "icon": {
+          "light": "resources/light/stop.svg",
+          "dark": "resources/dark/stop.svg"
+        }
+      },
+      {
+        "command": "gradle.reloadDependencies",
+        "title": "Reload Dependencies",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "gradle.explorerFlat",
         "title": "Show Flat Tasks",
         "icon": {
@@ -332,11 +361,6 @@
         "title": "Create a Gradle Java Project..."
       },
       {
-        "command": "gradle.createProjectAdvanced",
-        "category": "Gradle",
-        "title": "Create a Gradle Java Project... (Advanced)"
-      },
-      {
         "command": "gradle.runTasks",
         "category": "Gradle",
         "title": "Run Gradle Tasks..."
@@ -346,6 +370,12 @@
         "category": "Gradle",
         "title": "Reload All Gradle Projects",
         "icon": "$(sync)"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "explorer/gradle",
+        "label": "Gradle"
       }
     ],
     "menus": {
@@ -420,6 +450,14 @@
         },
         {
           "command": "gradle.cancelTreeItemTask",
+          "when": "false"
+        },
+        {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "false"
+        },
+        {
+          "command": "gradle.reloadDependencies",
           "when": "false"
         },
         {
@@ -626,6 +664,11 @@
           "group": "inline@6"
         },
         {
+          "command": "gradle.cancelDependencyLoading",
+          "when": "view =~ /^gradleTasksView$|^gradleDefaultProjectsView$/ && viewItem == dependenciesLoading",
+          "group": "inline@0"
+        },
+        {
           "command": "gradle.pinTask",
           "when": "view =~ /^gradleTasksView$|^recentTasksView$/ && viewItem =~ /^debugTask(WithTerminals)?.*$|^task(WithTerminals)?.*$/",
           "group": "contextGroup3@0"
@@ -673,9 +716,9 @@
       ],
       "explorer/context": [
         {
-          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
-          "command": "gradle.showTasks",
-          "group": "gradle@0"
+          "submenu": "explorer/gradle",
+          "when": "resourceFilename =~ /^.*\\.gradle(\\.kts)?$/",
+          "group": "1_javaactions@200"
         }
       ],
       "editor/context": [
@@ -693,6 +736,13 @@
         {
           "command": "gradle.openBuildFile",
           "group": "gradle@30"
+        }
+      ],
+      "explorer/gradle": [
+        {
+          "when": "resourceFilename =~ /^((?!settings).)*\\.gradle(\\.kts)?$/",
+          "command": "gradle.showTasks",
+          "group": "gradle@10"
         }
       ]
     },
@@ -825,13 +875,37 @@
             "Open",
             "Add to Workspace"
           ]
+        },
+        "java.gradle.buildServer.enabled": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off"
+          ],
+          "markdownDescription": "Whether to use build server to synchronize Gradle project. It will replace the original Buildship to import the Gradle when enabled.",
+          "default": "on"
+        },
+        "java.gradle.buildServer.openBuildOutput": {
+          "type": "string",
+          "enum": [
+            "neverOpen",
+            "openOnBuildStart",
+            "openOnBuildFailure"
+          ],
+          "enumDescriptions": [
+            "Never automatically open build output.",
+            "Open the build output when the build starts.",
+            "Open the build output when the build fails."
+          ],
+          "default": "openOnBuildFailure",
+          "description": "Controls when the build output should open."
         }
       }
     },
     "jsonValidation": [
       {
         "fileMatch": "package.json",
-        "url": "https://schemastore.azurewebsites.net/schemas/json/package.json"
+        "url": "https://www.schemastore.org/package.json"
       }
     ],
     "taskDefinitions": [
@@ -912,7 +986,7 @@
     "update-tpn": "node scripts/update-third-party-notice.js"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "^1.8.11",
+    "@grpc/grpc-js": "^1.14.3",
     "@types/fs-extra": "^11.0.1",
     "@types/glob": "^8.1.0",
     "@types/google-protobuf": "^3.15.6",
@@ -923,32 +997,35 @@
     "@types/vscode": "^1.76.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
-    "@vscode/test-electron": "^2.3.0",
+    "@vscode/test-electron": "^2.3.8",
     "@vscode/vsce": "^2.18.0",
     "eslint": "^8.35.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
     "google-protobuf": "^3.21.2",
-    "grpc-tools": "^1.12.4",
+    "grpc-tools": "^1.13.1",
     "mocha": "^10.2.0",
     "prettier": "^2.8.4",
     "sinon": "^15.0.1",
     "ts-loader": "^9.4.2",
     "ts-protoc-gen": "^0.15.0",
     "typescript": "^4.9.5",
-    "webpack": "^5.76.0",
+    "webpack": "^5.105.0",
     "webpack-cli": "^5.0.1"
   },
   "dependencies": {
     "await-lock": "^2.2.2",
-    "jdk-utils": "^0.4.4",
     "fs-extra": "^11.1.0",
     "get-port": "^5.1.1",
-    "lodash": "^4.17.21",
-    "minimatch": "^5.1.1",
+    "jdk-utils": "^0.4.4",
+    "lodash": "^4.17.23",
+    "minimatch": "^5.1.9",
     "string-argv": "^0.3.1",
     "tree-kill": "^1.2.2",
-    "vscode-extension-telemetry-wrapper": "0.13.3",
+    "vscode-extension-telemetry-wrapper": "0.15.2",
     "vscode-languageclient": "7.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
   }
 }
