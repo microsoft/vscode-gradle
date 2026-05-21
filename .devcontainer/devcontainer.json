@@ -2,3 +2,7 @@
   "image": "mcr.microsoft.com/devcontainers/universal:2",
   "features": {}
 }
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:3",
+  "features": {}
+}
