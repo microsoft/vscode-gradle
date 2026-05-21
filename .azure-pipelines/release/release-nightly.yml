@@ -46,8 +46,18 @@ extends:
                   buildVersionToDownload: latest
                 artifactName: extension
                 downloadType: specific
-                targetPath: '$(Build.SourcesDirectory)'
+   targetPath: '$(Build.SourcesDirectory)'
+            
             steps:
+              - task: DownloadPipelineArtifact@1
+                displayName: Download Pipeline Artifact
+                inputs:
+                  buildType: specific
+                  project: '$(ProjectId)'
+                  pipeline: 13344
+                  runVersion: latest
+                  artifactName: extension
+                  targetPath: '$(Build.SourcesDirectory)'
               - task: UseNode@1
                 displayName: 'Use Node.js 20.x'
                 inputs:
