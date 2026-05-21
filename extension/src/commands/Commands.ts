@@ -1,3 +1,88 @@
+register(): void {
+        this.registerCommand(COMMAND_SHOW_TASKS, new ShowTasksCommand(this.gradleTasksTreeView));
+        this.registerCommand(COMMAND_RUN_TASK, new RunTaskCommand(this.rootProjectsStore, this.client));
+        this.registerCommand(
+            COMMAND_RUN_TASK_DOUBLE_CLICK,
+            new RunTaskDoubleClickCommand(this.rootProjectsStore, this.client)
+        );
+        this.registerCommand(COMMAND_DEBUG_TASK, new DebugTaskCommand(this.rootProjectsStore, this.client));
+        this.registerCommand(COMMAND_RESTART_TASK, new RestartTaskCommand(this.client));
+        this.registerCommand(
+            COMMAND_RUN_TASK_WITH_ARGS,
+            new RunTaskWithArgsCommand(this.rootProjectsStore, this.client)
+        );
+        this.registerCommand(
+            COMMAND_DEBUG_TASK_WITH_ARGS,
+            new DebugTaskWithArgsCommand(this.rootProjectsStore, this.client)
+        );
+        this.registerCommandWithoutInstrument(
+            COMMAND_RENDER_TASK,
+            new RenderTaskCommand(this.gradleTasksTreeDataProvider, this.recentTasksTreeDataProvider)
+        );
+        this.registerCommand(COMMAND_CANCEL_BUILD, new CancelBuildCommand(this.client));
+        this.registerCommand(
+            COMMAND_CANCEL_DEPENDENCY_LOADING,
+            new CancelDependencyLoadingCommand(this.gradleDependencyProvider)
+        );
+        this.registerCommand(COMMAND_RELOAD_DEPENDENCIES, new ReloadDependenciesCommand(this.gradleDependencyProvider));
+        this.registerCommand(COMMAND_CANCEL_TREE_ITEM_TASK, new CancelTreeItemTaskCommand());
+        const refreshCommand = new RefreshCommand(
+            this.gradleTaskProvider,
+            this.gradleBuildContentProvider,
+            this.gradleTasksTreeDataProvider,
+            this.recentTasksTreeDataProvider
+        );
+        this.registerCommandWithoutInstrument(COMMAND_REFRESH, refreshCommand);
+        this.registerCommand(COMMAND_REFRESH_EXTERNAL, new RefreshExternalCommand(refreshCommand));
+        this.registerCommand(COMMAND_LOAD_TASKS, new LoadTasksCommand(this.gradleTaskProvider));
+        this.registerCommandWithoutInstrument(
+            COMMAND_REFRESH_DAEMON_STATUS,
+            new RefreshDaemonStatusCommand(this.gradleDaemonsTreeDataProvider)
+        );
+        this.registerCommand(COMMAND_STOP_DAEMONS, new StopDaemonsCommand(this.rootProjectsStore));
+        this.registerCommand(COMMAND_STOP_DAEMON, new StopDaemonCommand());
+        this.registerCommand(COMMAND_EXPLORER_TREE, new ExplorerTreeCommand(this.gradleTasksTreeDataProvider));
+        this.registerCommand(COMMAND_EXPLORER_FLAT, new ExplorerFlatCommand(this.gradleTasksTreeDataProvider));
+        this.registerCommand(COMMAND_OPEN_SETTINGS, new OpenSettingsCommand());
+        this.registerCommand(COMMAND_OPEN_BUILD_FILE, new OpenBuildFileCommand());
+
+        this.registerCommand(COMMAND_CANCELLING_TREE_ITEM_TASK, new CancellingTreeItemTaskCommand());
+        this.registerCommand(COMMAND_SHOW_LOGS, new ShowLogsCommand());
+        this.registerCommand(
+            COMMAND_PIN_TASK,
+            new PinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(
+            COMMAND_PIN_TASK_WITH_ARGS,
+            new PinTaskWithArgsCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(
+            COMMAND_UNPIN_TASK,
+            new UnpinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(COMMAND_SHOW_TASK_TERMINAL, new ShowTaskTerminalCommand(this.taskTerminalsStore));
+        this.registerCommand(COMMAND_CLOSE_TASK_TERMINALS, new CloseTaskTerminalsCommand(this.taskTerminalsStore));
+        this.registerCommand(
+            COMMAND_CLOSE_ALL_TASK_TERMINALS,
+            new CloseAllTaskTerminalsCommand(this.taskTerminalsStore)
+        );
+        this.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, new ClearAllRecentTasksCommand(this.recentTasksStore));
+        this.registerCommand(
+            COMMAND_UNPIN_ALL_TASKS,
+            new UnpinAllTasksCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
+        );
+        this.registerCommand(COMMAND_REMOVE_RECENT_TASK, new RemoveRecentTaskCommand(this.recentTasksStore));
+        this.registerCommand(COMMAND_RUN_BUILD, new RunBuildCommand(this.rootProjectsStore, this.client));
+        this.registerCommand(COMMAND_FIND_TASK, new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider));
+        this.registerCommand(SHOW_STOPPED_DAEMONS, new ShowStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
+        this.registerCommand(HIDE_STOPPED_DAEMONS, new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
+        this.registerCommand(COMMAND_CREATE_PROJECT, new CreateProjectCommand(this.client), [false]);
+        this.registerCommand(COMMAND_RUN_TASKS, new RunTasksCommand(this.gradleTaskProvider));
+        if (isJavaExtEnabled()) {
+            this.registerCommand(COMMAND_RELOAD_JAVA_PROJECT, new ReloadJavaProjectsCommand());
+        }
+    }
+}
 import * as vscode from "vscode";
 import { instrumentOperationAsVsCodeCommand } from "vscode-extension-telemetry-wrapper";
 import {
@@ -83,6 +168,7 @@ import { COMMAND_CREATE_PROJECT, CreateProjectCommand } from "./CreateProjectCom
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
 import { COMMAND_RELOAD_JAVA_PROJECT, ReloadJavaProjectsCommand } from "./ReloadJavaProjectsCommand";
 import { COMMAND_RUN_TASKS, RunTasksCommand } from "./RunTasksCommand";
+import { COMMAND_REFRESH_EXTERNAL, RefreshExternalCommand } from "./RefreshExternalCommand";
 import { ShowStoppedDaemonsCommand, SHOW_STOPPED_DAEMONS } from "./ShowStoppedDaemonsCommand";
 
 export class Commands {
@@ -119,91 +205,4 @@ export class Commands {
         );
     }
 
-    register(): void {
-        this.registerCommand(COMMAND_SHOW_TASKS, new ShowTasksCommand(this.gradleTasksTreeView));
-        this.registerCommand(COMMAND_RUN_TASK, new RunTaskCommand(this.rootProjectsStore, this.client));
-        this.registerCommand(
-            COMMAND_RUN_TASK_DOUBLE_CLICK,
-            new RunTaskDoubleClickCommand(this.rootProjectsStore, this.client)
-        );
-        this.registerCommand(COMMAND_DEBUG_TASK, new DebugTaskCommand(this.rootProjectsStore, this.client));
-        this.registerCommand(COMMAND_RESTART_TASK, new RestartTaskCommand(this.client));
-        this.registerCommand(
-            COMMAND_RUN_TASK_WITH_ARGS,
-            new RunTaskWithArgsCommand(this.rootProjectsStore, this.client)
-        );
-        this.registerCommand(
-            COMMAND_DEBUG_TASK_WITH_ARGS,
-            new DebugTaskWithArgsCommand(this.rootProjectsStore, this.client)
-        );
-        this.registerCommandWithoutInstrument(
-            COMMAND_RENDER_TASK,
-            new RenderTaskCommand(this.gradleTasksTreeDataProvider, this.recentTasksTreeDataProvider)
-        );
-        this.registerCommand(COMMAND_CANCEL_BUILD, new CancelBuildCommand(this.client));
-        this.registerCommand(
-            COMMAND_CANCEL_DEPENDENCY_LOADING,
-            new CancelDependencyLoadingCommand(this.gradleDependencyProvider)
-        );
-        this.registerCommand(COMMAND_RELOAD_DEPENDENCIES, new ReloadDependenciesCommand(this.gradleDependencyProvider));
-        this.registerCommand(COMMAND_CANCEL_TREE_ITEM_TASK, new CancelTreeItemTaskCommand());
-        this.registerCommandWithoutInstrument(
-            COMMAND_REFRESH,
-            new RefreshCommand(
-                this.gradleTaskProvider,
-                this.gradleBuildContentProvider,
-                this.gradleTasksTreeDataProvider,
-                this.recentTasksTreeDataProvider,
-                this.defaultProjectsTreeDataProvider,
-                this.gradleDependencyProvider
-            )
-        );
-        this.registerCommand(COMMAND_LOAD_TASKS, new LoadTasksCommand(this.gradleTaskProvider));
-        this.registerCommandWithoutInstrument(
-            COMMAND_REFRESH_DAEMON_STATUS,
-            new RefreshDaemonStatusCommand(this.gradleDaemonsTreeDataProvider)
-        );
-        this.registerCommand(COMMAND_STOP_DAEMONS, new StopDaemonsCommand(this.rootProjectsStore));
-        this.registerCommand(COMMAND_STOP_DAEMON, new StopDaemonCommand());
-        this.registerCommand(COMMAND_EXPLORER_TREE, new ExplorerTreeCommand(this.gradleTasksTreeDataProvider));
-        this.registerCommand(COMMAND_EXPLORER_FLAT, new ExplorerFlatCommand(this.gradleTasksTreeDataProvider));
-        this.registerCommand(COMMAND_OPEN_SETTINGS, new OpenSettingsCommand());
-        this.registerCommand(COMMAND_OPEN_BUILD_FILE, new OpenBuildFileCommand());
-
-        this.registerCommand(COMMAND_CANCELLING_TREE_ITEM_TASK, new CancellingTreeItemTaskCommand());
-        this.registerCommand(COMMAND_SHOW_LOGS, new ShowLogsCommand());
-        this.registerCommand(
-            COMMAND_PIN_TASK,
-            new PinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
-        );
-        this.registerCommand(
-            COMMAND_PIN_TASK_WITH_ARGS,
-            new PinTaskWithArgsCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
-        );
-        this.registerCommand(
-            COMMAND_UNPIN_TASK,
-            new UnpinTaskCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
-        );
-        this.registerCommand(COMMAND_SHOW_TASK_TERMINAL, new ShowTaskTerminalCommand(this.taskTerminalsStore));
-        this.registerCommand(COMMAND_CLOSE_TASK_TERMINALS, new CloseTaskTerminalsCommand(this.taskTerminalsStore));
-        this.registerCommand(
-            COMMAND_CLOSE_ALL_TASK_TERMINALS,
-            new CloseAllTaskTerminalsCommand(this.taskTerminalsStore)
-        );
-        this.registerCommand(COMMAND_CLEAR_ALL_RECENT_TASKS, new ClearAllRecentTasksCommand(this.recentTasksStore));
-        this.registerCommand(
-            COMMAND_UNPIN_ALL_TASKS,
-            new UnpinAllTasksCommand(this.pinnedTasksStore, this.gradleTasksTreeDataProvider)
-        );
-        this.registerCommand(COMMAND_REMOVE_RECENT_TASK, new RemoveRecentTaskCommand(this.recentTasksStore));
-        this.registerCommand(COMMAND_RUN_BUILD, new RunBuildCommand(this.rootProjectsStore, this.client));
-        this.registerCommand(COMMAND_FIND_TASK, new FindTaskCommand(this.gradleTasksTreeView, this.gradleTaskProvider));
-        this.registerCommand(SHOW_STOPPED_DAEMONS, new ShowStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
-        this.registerCommand(HIDE_STOPPED_DAEMONS, new HideStoppedDaemonsCommand(this.gradleDaemonsTreeDataProvider));
-        this.registerCommand(COMMAND_CREATE_PROJECT, new CreateProjectCommand(this.client), [false]);
-        this.registerCommand(COMMAND_RUN_TASKS, new RunTasksCommand(this.gradleTaskProvider));
-        if (isJavaExtEnabled()) {
-            this.registerCommand(COMMAND_RELOAD_JAVA_PROJECT, new ReloadJavaProjectsCommand());
-        }
-    }
-}
+    
