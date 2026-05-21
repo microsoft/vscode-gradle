@@ -143,6 +143,12 @@ task copyRuntimeLibs(type: Copy) {
   }
 }
 
+// copyRuntimeLibs wipes libsDir in its doFirst block. The jar task also outputs
+// gradle-server.jar into libsDir (via libsDirName). Without explicit ordering,
+// Gradle may schedule copyRuntimeLibs after jar, deleting the freshly built
+// gradle-server.jar and producing a runtime ClassNotFoundException.
+jar.mustRunAfter copyRuntimeLibs
+
 project.tasks.named("processResources") {
   dependsOn(':gradle-plugin:copyJar')
   duplicatesStrategy = 'include'

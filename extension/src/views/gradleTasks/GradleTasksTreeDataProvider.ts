@@ -12,6 +12,7 @@ import {
 import { GradleTaskDefinition, GradleTaskProvider } from "../../tasks";
 import { isWorkspaceFolder } from "../../util";
 import { cloneTask, isGradleTask } from "../../tasks/taskUtil";
+import { getGradleProjectPathFromTaskPath } from "../../util/gradlePath";
 import { PinnedTasksStore, RootProjectsStore } from "../../stores";
 import { Icons } from "../../icons";
 import { DependencyConfigurationTreeItem } from "./DependencyConfigurationTreeItem";
@@ -70,6 +71,15 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         const collapsed = this.context.workspaceState.get("gradleTasksCollapsed", false);
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this.setCollapsed(collapsed);
+        // [fix] Re-render the tree whenever GradleTaskProvider finishes a load with a
+        // non-empty task list. This recovers the UI after a transient failure (e.g. the
+        // spurious gRPC CANCELLED on the first refresh, where the immediate retry
+        // succeeds but nothing else was driving a tree refresh).
+        this.gradleTaskProvider.onDidLoadTasks((tasks) => {
+            if (tasks.length > 0) {
+                this.refresh();
+            }
+        });
     }
 
     public async setCollapsed(collapsed: boolean): Promise<void> {
@@ -224,7 +234,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
             vscode.TreeItemCollapsibleState.Collapsed,
             element,
             path.dirname(resourceUri.fsPath),
-            typeof element.label === "string" ? element.label : resourceUri.fsPath
+            typeof element.label === "string" ? element.label : resourceUri.fsPath,
+            element.gradleProjectPath
         );
         return [...results, projectDependencyTreeItem, ...element.subprojects];
     }
@@ -253,7 +264,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     gradleProjectTreeItemMap.set(definition.projectFolder, gradleProjectTreeItem);
                 }
 
-                const projectPath = definition.script.split(":").slice(0, -1);
+                const projectPath = definition.script.split(":").filter(Boolean).slice(0, -1);
+                const gradleProjectPath = getGradleProjectPathFromTaskPath(definition.script);
                 const projectMapKey = definition.projectFolder + "_" + projectPath.join(":");
                 let projectTreeItem = projectTreeItemMap.get(projectMapKey);
                 if (!projectTreeItem) {
@@ -265,7 +277,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
                     projectTreeItem = new ProjectTreeItem(
                         definition.project,
                         parentProject,
-                        vscode.Uri.file(definition.buildFile)
+                        vscode.Uri.file(definition.buildFile),
+                        gradleProjectPath
                     );
                     if (parentProject instanceof ProjectTreeItem) {
                         parentProject.addSubproject(projectTreeItem);

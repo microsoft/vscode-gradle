@@ -1,5 +1,11 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
 
+parameters:
+  - name: buildId
+    displayName: 'Build ID (leave empty to use latest)'
+    type: string
+    default: ''
+
 variables:
   - name: Codeql.Enabled
     value: true
@@ -28,6 +34,20 @@ extends:
             templateContext:
               type: releaseJob
               isProduction: true
+              inputs:
+              - input: pipelineArtifact
+                buildType: specific
+                project: '$(ProjectId)'
+                definition: 13344
+                ${{ if ne(parameters.buildId, '') }}:
+                  buildVersionToDownload: specific
+                  runId: ${{ parameters.buildId }}
+                ${{ else }}:
+                  buildVersionToDownload: latest
+                artifactName: extension
+                downloadType: specific
+   targetPath: '$(Build.SourcesDirectory)'
+            
             steps:
               - task: DownloadPipelineArtifact@1
                 displayName: Download Pipeline Artifact

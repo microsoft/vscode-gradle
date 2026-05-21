@@ -4,6 +4,8 @@ schedules:
     branches:
       include:
         - develop
+variables:
+  system.debug: true
 resources:
   repositories:
     - repository: self
@@ -74,6 +76,12 @@ extends:
                   project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
                   pipeline: 16493
                   runVersion: latest
+                  artifact: build-server
+                  path: $(Pipeline.Workspace)
+              - task: CopyFiles@2
+                displayName: 'Copy Build Server Plugin Artifacts'
+                inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs/plugins'
                   artifactName: build-server
                   targetPath: $(Pipeline.Workspace)/build-server
               - task: CopyFiles@2
@@ -85,66 +93,70 @@ extends:
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Artifacts'
                 inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs'
                   SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs'
                   Contents: 'server.jar'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Runtime Artifacts'
                 inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs/runtime'
                   SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs/runtime'
                   Contents: '**'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
-              - task: Gradle@3
+               task: Gradle@me
                 displayName: Build
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'build'
-              - task: Gradle@3
+               task: Gradle@me
                 displayName: PrepareForRelease
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'prepareForRelease'
-              - bash: chmod +x gradle-server
+               bash: chmod +x gradle-server
                 workingDirectory: $(Build.SourcesDirectory)/extension/lib
                 displayName: Set permission
-              - task: CmdLine@2
+               task: CmdLine@2
                 displayName: Sign jars
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:gradle-server.jar /certs:100010171
                   workingDirectory: 'extension/lib'
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              - bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
+               bash: npx json@latest -I -f package.json -e "this.aiKey=\"$(AI_KEY)\""
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Replace AI Key
-              - bash: |
+               bash: |
                   node ./scripts/prepare-nightly-build.js
                   mv ./package.insiders.json ./package.json
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Generate new package.json
-              - task: ComponentGovernanceComponentDetection@0
+               task: ComponentGovernanceComponentDetection@0
                 inputs:
                   scanType: 'Register'
                   verbosity: 'Verbose'
                   alertWarningLevel: 'High'
-              - task: notice@0
+               task: notice@0
                 displayName: 'NOTICE File Generator'
                 inputs:
                   outputformat: 'text'
-              - task: DownloadPipelineArtifact@2
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+               task: DownloadPipelineArtifact@2
                 displayName: Download NOTICE file
                 inputs:
                   artifact: 'NOTICE.txt'
                   path: $(Build.SourcesDirectory)/extension
-              - task: Gradle@3
+               task: Gradle@3
                 displayName: Build Gradle Build Server Importer
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   gradleOptions: '-Xmx3072m'
                   tasks: ':extension:copyJdtlsPluginJar'
-              - task: CmdLine@2
+               task: CmdLine@2
                 displayName: Sign jars
                 inputs:
                   script: |
@@ -156,23 +168,23 @@ extends:
                   workingDirectory: 'extension/server'
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              - bash: npx @vscode/vsce@latest package --pre-release -o extension.vsix
+               bash: npx @vscode/vsce@latest package --pre-release -o extension.vsix
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: Package VSIX
-              - bash: npx @vscode/vsce@latest generate-manifest -i extension.vsix -o extension.manifest
+               bash: npx @vscode/vsce@latest generate-manifest -i extension.vsix -o extension.manifest
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: 'Generate extension manifest'
-              - bash: cp extension.manifest extension.signature.p7s
+               bash: cp extension.manifest extension.signature.p7s
                 workingDirectory: $(Build.SourcesDirectory)/extension
                 displayName: 'Prepare manifest for signing'
-              - task: CmdLine@2
+               task: CmdLine@2
                 displayName: Sign extension
                 inputs:
                   script: dotnet "$MBSIGN_APPFOLDER/DDSignFiles.dll" -- /file:extension.signature.p7s /certs:4014052
                   workingDirectory: 'extension'
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              - task: CopyFiles@2
+               task: CopyFiles@2
                 displayName: Copy VSIX
                 inputs:
                   Contents: |
@@ -180,7 +192,7 @@ extends:
                     extension/extension.manifest
                     extension/extension.signature.p7s
                   TargetFolder: '$(Build.ArtifactStagingDirectory)/extension'
-              - task: PublishPipelineArtifact@1
+               task: PublishPipelineArtifact@1
                 displayName: Publish Pipeline Artifact
                 inputs:
                   targetPath: '$(Build.ArtifactStagingDirectory)/extension'

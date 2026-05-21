@@ -17,6 +17,8 @@ import {
     RenderTaskCommand,
     COMMAND_CANCEL_BUILD,
     CancelBuildCommand,
+    COMMAND_CANCEL_DEPENDENCY_LOADING,
+    CancelDependencyLoadingCommand,
     COMMAND_CANCEL_TREE_ITEM_TASK,
     CancelTreeItemTaskCommand,
     COMMAND_REFRESH,
@@ -65,13 +67,17 @@ import {
     COMMAND_UNPIN_TASK,
     COMMAND_RUN_TASK_DOUBLE_CLICK,
     RunTaskDoubleClickCommand,
+    COMMAND_RELOAD_DEPENDENCIES,
+    ReloadDependenciesCommand,
 } from ".";
 import { TaskServerClient } from "../client";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
+import { GradleDependencyProvider } from "../dependencies/GradleDependencyProvider";
 import { PinnedTasksStore, RecentTasksStore, RootProjectsStore, TaskTerminalsStore } from "../stores";
 import { GradleTaskProvider } from "../tasks";
 import { isJavaExtEnabled } from "../util/javaExtension";
 import { GradleDaemonsTreeDataProvider, GradleTasksTreeDataProvider, RecentTasksTreeDataProvider } from "../views";
+import { DefaultProjectsTreeDataProvider } from "../views/defaultProject/DefaultProjectsTreeDataProvider";
 import { Command } from "./Command";
 import { COMMAND_CREATE_PROJECT, COMMAND_CREATE_PROJECT_ADVANCED, CreateProjectCommand } from "./CreateProjectCommand";
 import { HideStoppedDaemonsCommand, HIDE_STOPPED_DAEMONS } from "./HideStoppedDaemonsCommand";
@@ -87,8 +93,10 @@ export class Commands {
         private gradleBuildContentProvider: GradleBuildContentProvider,
         private gradleTasksTreeDataProvider: GradleTasksTreeDataProvider,
         private recentTasksTreeDataProvider: RecentTasksTreeDataProvider,
+        private defaultProjectsTreeDataProvider: DefaultProjectsTreeDataProvider,
         private gradleDaemonsTreeDataProvider: GradleDaemonsTreeDataProvider,
         private client: TaskServerClient,
+        private gradleDependencyProvider: GradleDependencyProvider,
         private rootProjectsStore: RootProjectsStore,
         private taskTerminalsStore: TaskTerminalsStore,
         private recentTasksStore: RecentTasksStore,
@@ -133,6 +141,11 @@ export class Commands {
             new RenderTaskCommand(this.gradleTasksTreeDataProvider, this.recentTasksTreeDataProvider)
         );
         this.registerCommand(COMMAND_CANCEL_BUILD, new CancelBuildCommand(this.client));
+        this.registerCommand(
+            COMMAND_CANCEL_DEPENDENCY_LOADING,
+            new CancelDependencyLoadingCommand(this.gradleDependencyProvider)
+        );
+        this.registerCommand(COMMAND_RELOAD_DEPENDENCIES, new ReloadDependenciesCommand(this.gradleDependencyProvider));
         this.registerCommand(COMMAND_CANCEL_TREE_ITEM_TASK, new CancelTreeItemTaskCommand());
         this.registerCommandWithoutInstrument(
             COMMAND_REFRESH,
@@ -140,7 +153,9 @@ export class Commands {
                 this.gradleTaskProvider,
                 this.gradleBuildContentProvider,
                 this.gradleTasksTreeDataProvider,
-                this.recentTasksTreeDataProvider
+                this.recentTasksTreeDataProvider,
+                this.defaultProjectsTreeDataProvider,
+                this.gradleDependencyProvider
             )
         );
         this.registerCommand(COMMAND_LOAD_TASKS, new LoadTasksCommand(this.gradleTaskProvider));

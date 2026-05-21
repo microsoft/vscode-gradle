@@ -17,6 +17,7 @@ import { OpenBuildOutputValue, getOpenBuildOutput } from "../util/config";
 import * as path from "path";
 import * as fse from "fs-extra";
 import { GradleTestRunner } from "./GradleTestRunner";
+import { TaskServerClient } from "../client";
 
 const APPEND_BUILD_LOG_CMD = "_java.gradle.buildServer.appendBuildLog";
 const LOG_CMD = "_java.gradle.buildServer.log";
@@ -124,15 +125,15 @@ export class BuildServerController implements Disposable {
         this.checkMachineStatus();
     }
 
-    public getGradleTestRunner(testRunnerApi: any): GradleTestRunner {
-        if (!this.gradleTestRunner) {
-            this.gradleTestRunner = new GradleTestRunner(testRunnerApi);
-        }
-        return this.gradleTestRunner;
-    }
-
     public dispose() {
         this.disposable.dispose();
+    }
+
+    public getGradleTestRunner(testRunnerApi: any, client: TaskServerClient): GradleTestRunner {
+        if (!this.gradleTestRunner) {
+            this.gradleTestRunner = new GradleTestRunner(testRunnerApi, client);
+        }
+        return this.gradleTestRunner;
     }
 
     private async checkMachineStatus() {

@@ -4,6 +4,16 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.17.3
+## What's Changed
+* perf - Batch BSP calls during import to reduce round-trips from ~4400 to 6 in https://github.com/microsoft/vscode-gradle/pull/1791
+* perf - Skip reloadWorkspace() when compile tasks are all UP-TO-DATE in https://github.com/microsoft/build-server-for-gradle/pull/222
+* fix - Suppress auto-build during BSP didChange to prevent infinite rebuild loop in https://github.com/microsoft/vscode-gradle/pull/1794
+* fix - Improve server connection stability and fix resource leaks in https://github.com/microsoft/vscode-gradle/pull/1796
+* fix - Fix log message taskId NPE error in https://github.com/microsoft/vscode-gradle/pull/1769
+* fix - Fix Gradle project test treeview refresh after running in https://github.com/microsoft/vscode-gradle/pull/1766
+* fix - Fix debug agent attaching to compilation tasks instead of target task in https://github.com/microsoft/vscode-gradle/pull/1757
+
 ## 3.17.2
 ## What's Changed
 * fix - IllegalResolutionException when resolving configurations in https://github.com/microsoft/vscode-gradle/pull/1740

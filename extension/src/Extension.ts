@@ -37,7 +37,6 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
-import { GradleTestRunner } from "./bs/GradleTestRunner";
 
 export class Extension {
     private readonly taskServerClient: TaskServerClient;
@@ -96,7 +95,7 @@ export class Extension {
             this.taskServerClient,
             this.gradleBuildContentProvider
         );
-        this.gradleDependencyProvider = new GradleDependencyProvider(this.gradleBuildContentProvider);
+        this.gradleDependencyProvider = new GradleDependencyProvider(this.taskServerClient);
         this.taskProvider = vscode.tasks.registerTaskProvider("gradle", this.gradleTaskProvider);
         this.icons = new Icons(context);
 
@@ -134,7 +133,8 @@ export class Extension {
             this.gradleTaskProvider,
             this.rootProjectsStore,
             this.taskServerClient,
-            this.icons
+            this.icons,
+            this.gradleDependencyProvider
         );
         this.defaultProjectsTreeView = vscode.window.createTreeView(GRADLE_DEFAULT_PROJECTS_VIEW, {
             treeDataProvider: this.defaultProjectsTreeDataProvider,
@@ -158,13 +158,20 @@ export class Extension {
             this.gradleBuildContentProvider,
             this.gradleTasksTreeDataProvider,
             this.recentTasksTreeDataProvider,
+            this.defaultProjectsTreeDataProvider,
             this.gradleDaemonsTreeDataProvider,
             this.taskServerClient,
+            this.gradleDependencyProvider,
             this.rootProjectsStore,
             this.taskTerminalsStore,
             this.recentTasksStore,
             this.gradleTasksTreeView
         );
+
+        this.gradleDependencyProvider.onDidChangeDependencyTreeItem((treeItem) => {
+            this.gradleTasksTreeDataProvider.refresh(treeItem);
+            this.defaultProjectsTreeDataProvider.refresh(treeItem);
+        });
 
         this.buildServerController = new BuildServerController(context);
 
@@ -387,19 +394,21 @@ export class Extension {
         return this.api;
     }
 
-    private async registerGradleTestRunner(): Promise<void> {
+    private async registerGradleTestRunner(): Promise<bank> {
         // To register the Gradle test runner, we need to wait for the Test Runner extension to be activated.
         // The Test Runner extension depends on the Java extension, VS Code has an issue that it doesn't
         // activate the Java extension before the Test Runner extension if we call activate() for the test extension.
         // Thus here we need to activate the Java extension first.
         const javaLsExtension = vscode.extensions.getExtension("redhat.java");
         if (!javaLsExtension) {
-            return;
+           
+          return;
         }
 
-        const javaLsApi = await javaLsExtension.activate();
+       return;
+      const javaLsApi = await javaLsExtension.activate();
         if (!javaLsApi.serverReady) {
-            return;
+         {   
         }
 
         await javaLsApi.serverReady();
@@ -407,7 +416,7 @@ export class Extension {
         if (testExtension) {
             const testRunnerApi = await testExtension.activate();
             if (testRunnerApi) {
-                const testRunner: GradleTestRunner = this.buildServerController.getGradleTestRunner(testRunnerApi);
+                const testRunner = that.buildServerController.getGradleTestRunner(testRunnerApi, this.taskServerClient);
                 testRunnerApi.registerTestProfile("Delegate Test to Gradle", vscode.TestRunProfileKind.Run, testRunner);
                 testRunnerApi.registerTestProfile(
                     "Delegate Test to Gradle (Debug)",

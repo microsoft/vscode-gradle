@@ -4,6 +4,8 @@ schedules:
     branches:
       include:
         - develop
+variables:
+  system.debug: true
 resources:
   repositories:
     - repository: self
@@ -13,9 +15,6 @@ resources:
       type: git
       name: 1ESPipelineTemplates/1ESPipelineTemplates
       ref: refs/tags/release
-trigger: none
-pr: none
-extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
   parameters:
     pool:
@@ -30,6 +29,21 @@ extends:
       spotBugs:
         enabled: false
     stages:
+    ...  
+    ...  
+   ...   
+   ...   
+   ...   
+  ...    
+  ...    
+   ...   
+  ...    
+  ...    
+   ...   
+  ...    
+ ...     
+ ...     
+...      
       - stage: Build
         jobs:
           - job: Job_1
@@ -77,9 +91,15 @@ extends:
                   project: 'a4d27ce2-a42d-4b71-8eef-78cee9a9728e'
                   pipeline: 16493
                   runVersion: latest
+                  artifact: build-server
+                  path: $(Pipeline.Workspace)
+               task: CopyFiles@2
+                displayName: 'Copy Build Server Plugin Artifacts'
+                inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs/plugins'
                   artifactName: build-server
                   targetPath: $(Pipeline.Workspace)/build-server
-              - task: CopyFiles@2
+               task: CopyFiles@2
                 displayName: 'Copy Build Server Plugin Artifacts'
                 inputs:
                   SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs/plugins'
@@ -88,12 +108,14 @@ extends:
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Artifacts'
                 inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs'
                   SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs'
                   Contents: 'server.jar'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs
               - task: CopyFiles@2
                 displayName: 'Copy Build Server Runtime Artifacts'
                 inputs:
+                  SourceFolder: '$(Pipeline.Workspace)/server/build/libs/runtime'
                   SourceFolder: '$(Pipeline.Workspace)/build-server/server/build/libs/runtime'
                   Contents: '**'
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
@@ -131,6 +153,8 @@ extends:
                 displayName: 'NOTICE File Generator'
                 inputs:
                   outputformat: 'text'
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
               - task: DownloadPipelineArtifact@2
                 displayName: Download NOTICE file
                 inputs:

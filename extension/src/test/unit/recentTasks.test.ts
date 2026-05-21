@@ -286,4 +286,28 @@ describe(getSuiteName("Recent tasks"), () => {
             assert.ok(mockTerminal2.dispose.called, "Latest task terminal was not called");
         });
     });
+
+    describe("onDidLoadTasks subscription", () => {
+        // Same contract as the gradle-tasks tree: recover the recent-tasks view
+        // after a transient gRPC failure where the immediate retry succeeded but
+        // nothing else drove a re-render. Non-empty load must refresh, empty
+        // load must not.
+        it("emits onDidChangeTreeData when the load yielded tasks", () => {
+            const spy = sinon.spy();
+            recentTasksTreeDataProvider.onDidChangeTreeData(spy);
+
+            (gradleTaskProvider as any)._onDidLoadTasks.fire([mockGradleTask1, mockGradleTask2]);
+
+            assert.ok(spy.called, "non-empty task list should trigger a tree refresh");
+        });
+
+        it("does not emit onDidChangeTreeData when the load yielded no tasks", () => {
+            const spy = sinon.spy();
+            recentTasksTreeDataProvider.onDidChangeTreeData(spy);
+
+            (gradleTaskProvider as any)._onDidLoadTasks.fire([]);
+
+            assert.ok(!spy.called, "empty task list should not trigger a refresh");
+        });
+    });
 });
