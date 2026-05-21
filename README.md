@@ -1,42 +1,4 @@
-# Gradle for Java
 
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/vscjava.vscode-gradle)](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-gradle)
-[![Build & Publish](https://github.com/microsoft/vscode-gradle/workflows/Build%20&%20Publish/badge.svg)](https://github.com/microsoft/vscode-gradle/actions/workflows/main.yml?query=workflow%3A%22%5C%22Build%22)
-[![GitHub bug issues](https://img.shields.io/github/issues/microsoft/vscode-gradle/bug?label=bug%20reports)](https://github.com/microsoft/vscode-gradle/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-
-This VS Code extension provides a visual interface for your Gradle build. You can use this interface to view Gradle Tasks and Project dependencies, or run Gradle Tasks as VS Code Task. The extension also offers better Gradle file (e.g. `build.gradle`) authoring experience including syntax highlighting, error reporting and auto completion. The extension works nicely alongside other Java extensions in the [Extension Pack for Java](https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack).
-
-## Requirements
-
-- [VS Code >= 1.76.0](https://code.visualstudio.com/download)
-- [Java from 8 to 21](https://adoptium.net/)
-
-## Project Discovery
-
-This extension supports both root and nested Gradle projects. A Gradle project is identified by having Gradle Wrapper scripts (`gradlew` or `gradlew.bat`) or Gradle build files (`build.gradle` or `settings.gradle` and their Kotlin versions) at the root of a directory. (Nested Gradle project discovery is not enabled by default, set `"gradle.nestedProjects": true` to enable it.)
-
-## Feature Overview
-
-Once the extension is activated you will see a new Gradle icon in the [activity bar](https://code.visualstudio.com/docs/getstarted/userinterface). Clicking on this icon will reveal some tree views in the sidebar.
-
-> Protip: you can move drag & drop any of these tree views into the main explorer view for easier access. This is especially useful for pinned tasks.
-
-You can also run any Gradle task as a [VS Code task](https://code.visualstudio.com/docs/editor/tasks). Access the Gradle VS Code tasks by running `Run Task` from the command palette.
-
-<details><summary>List projects and tasks</summary>
-
-A Gradle build can have one or more projects. Projects are listed in a flat list with the root project listed first, and sub-projects listed alphabetically thereafter.
-
-When you expand a project, tasks are listed in a tree, grouped by the task group. You can toggle the display of the tasks by clicking on the `Show Flat List`/`Show Tree` button in the tree view header.
-
-<img src="images/gradle-tasks-view.png" width="350" alt="Gradle Tasks View" />
-</details>
-
-<details><summary>List project dependencies</summary>
-
-The project's dependencies are included in the `Dependencies` item under the project. The dependencies are grouped by Gradle configurations and you can expand each configuration to find the corresponding ones. For omitted dependency (marked with a `(*)`), you can use the inline button `Go to Omitted Dependency` to go to the previously listed dependency.
-
-<img src="images/dependencies.png" width="650" alt="Gradle Dependencies" />
 </details>
 
 <details><summary>Run tasks</summary>
