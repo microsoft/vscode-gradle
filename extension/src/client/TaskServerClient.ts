@@ -107,10 +107,7 @@ export class TaskServerClient implements vscode.Disposable {
 
     private connectToServer(): void {
         try {
-            this.grpcClient = new GrpcClient(`localhost:${this.server.getPort()}`, grpc.credentials.createInsecure(), {
-                "grpc.enable_http_proxy": 0,
-                "grpc.max_receive_message_length": -1,
-            });
+            this.grpcClient = this.createGrpcClient();
             grpc.setLogger(this.clientLogger);
             const deadline = new Date();
             deadline.setSeconds(deadline.getSeconds() + this.connectDeadline);
@@ -120,6 +117,21 @@ export class TaskServerClient implements vscode.Disposable {
             this.statusBarItem.hide();
             this._onDidConnectFail.fire(null);
         }
+    }
+
+    private createGrpcClient(): GrpcClient {
+        // High-volume server-streaming calls can hit a grpc-js/Node http2 race
+        // when reusing an HTTP/2 session. Keep the shared client for readiness
+        // and unary RPCs, but create short-lived clients for GetBuild/RunBuild.
+        return new GrpcClient(`localhost:${this.server.getPort()}`, grpc.credentials.createInsecure(), {
+            "grpc.enable_http_proxy": 0,
+            "grpc.max_receive_message_length": -1,
+        });
+    }
+
+    private closeGrpcClient(client: GrpcClient, operationName: string): void {
+        client.close();
+        logger.debug(`${operationName}: closed per-call gRPC client`);
     }
 
     public async getBuild(
@@ -207,9 +219,18 @@ export class TaskServerClient implements vscode.Disposable {
         request.setCancellationKey(cancellationKey);
         request.setGradleConfig(gradleConfig);
         request.setShowOutputColors(showOutputColors);
-        const getBuildStream = this.grpcClient!.getBuild(request);
+        logger.info("GetBuild: using per-call gRPC client");
+        const grpcClient = this.createGrpcClient();
+        const getBuildStream = grpcClient.getBuild(request);
         const attemptStartTs = Date.now();
+        let closedGrpcClient = false;
         let receivedAnyData = false;
+        const closeGrpcClient = () => {
+            if (!closedGrpcClient) {
+                closedGrpcClient = true;
+                this.closeGrpcClient(grpcClient, "GetBuild");
+            }
+        };
         return new Promise((resolve, reject) => {
             let build: GradleBuild | undefined;
             getBuildStream
@@ -268,9 +289,13 @@ export class TaskServerClient implements vscode.Disposable {
                     };
                     tagged.__receivedAnyData = receivedAnyData;
                     tagged.__durationMs = Date.now() - attemptStartTs;
+                    closeGrpcClient();
                     reject(err);
                 })
-                .on("end", () => resolve(build));
+                .on("end", () => {
+                    closeGrpcClient();
+                    resolve(build);
+                });
         });
     }
 
@@ -379,7 +404,9 @@ export class TaskServerClient implements vscode.Disposable {
                     }
                 }
 
-                const runBuildStream = this.grpcClient!.runBuild(request);
+                logger.info("RunBuild: using per-call gRPC client");
+                const grpcClient = this.createGrpcClient();
+                const runBuildStream = grpcClient.runBuild(request);
                 try {
                     await new Promise((resolve, reject) => {
                         runBuildStream
@@ -406,6 +433,7 @@ export class TaskServerClient implements vscode.Disposable {
                     logger.error("Error running build:", `${args.join(" ")}:`, err.details || err.message);
                     throw err;
                 } finally {
+                    this.closeGrpcClient(grpcClient, "RunBuild");
                     await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
                     if (task) {
                         await restartQueuedTask(task);
