@@ -1,7 +1,8 @@
 name: Build & Publish
 on:
+  workflow_dispatch:
   push:
-    branches: [main, develop]
+    branches: [main, develop, wenyt/per-call-grpc-channel]
   pull_request:
     branches: [main, develop]
 
