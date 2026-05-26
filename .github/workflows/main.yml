@@ -50,6 +50,15 @@ jobs:
         env:
           JAVA_HOME: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
+      - name: Package VSIX
+        run: npx @vscode/vsce@latest package
+        working-directory: extension/
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-gradle-vsix
+          path: extension/*.vsix
+          if-no-files-found: error
       - name: Upload lib
         uses: actions/upload-artifact@v4
         with:
