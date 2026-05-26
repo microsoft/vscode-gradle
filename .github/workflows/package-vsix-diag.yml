@@ -34,9 +34,15 @@ jobs:
           repository: microsoft/build-server-for-gradle
           path: extension/build-server-for-gradle
 
-      - name: Build bundled artifacts
-        run: ../gradlew buildJars :extension:bundle
+      - name: Build external jars
+        run: ../gradlew buildJars
         working-directory: extension
+        env:
+          JAVA_HOME: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Build bundled artifacts
+        run: ./gradlew :extension:bundle
         env:
           JAVA_HOME: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
