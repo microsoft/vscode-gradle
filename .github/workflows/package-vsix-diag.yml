@@ -1,4 +1,4 @@
-name: Package Per-call gRPC Probe VSIX
+name: Package Diagnostic VSIX
 
 on:
   push:
