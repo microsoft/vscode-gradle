@@ -10,9 +10,13 @@ jobs:
   package-vsix:
     name: Package VSIX
     runs-on: ubuntu-latest
+    env:
+      VSCODE_GRADLE_REF: cdecf7b251c6b15d047edf9ae20c35039a231377
+      VSIX_NAME: vscode-gradle-3.17.3-pr1862-per-call-grpc-cdecf7b2.vsix
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.VSCODE_GRADLE_REF }}
           fetch-depth: 0
 
       - name: Use Java 21
@@ -51,15 +55,17 @@ jobs:
         run: chmod +x extension/lib/gradle-server
 
       - name: Package VSIX
-        run: npx @vscode/vsce@latest package -o vscode-gradle-3.17.5-diag.20260526-a12c707.vsix
+        run: npx @vscode/vsce@latest package -o ${{ env.VSIX_NAME }}
         working-directory: extension
 
-      - name: Verify diagnostic setting is included
-        run: unzip -p extension/vscode-gradle-3.17.5-diag.20260526-a12c707.vsix extension/package.json | grep -A 12 '"gradle.taskExecution"'
+      - name: Verify per-call gRPC probe is included
+        run: |
+          unzip -p extension/${{ env.VSIX_NAME }} extension/dist/index.js | grep -q 'GetBuild: using per-call gRPC client'
+          unzip -p extension/${{ env.VSIX_NAME }} extension/dist/index.js | grep -q 'RunBuild: using per-call gRPC client'
 
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
         with:
-          name: vscode-gradle-3.17.5-diag.20260526-a12c707
-          path: extension/vscode-gradle-3.17.5-diag.20260526-a12c707.vsix
+          name: vscode-gradle-3.17.3-pr1862-per-call-grpc-cdecf7b2
+          path: extension/${{ env.VSIX_NAME }}
           if-no-files-found: error
