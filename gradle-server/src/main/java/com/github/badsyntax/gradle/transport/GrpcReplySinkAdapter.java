@@ -38,7 +38,8 @@ public final class GrpcReplySinkAdapter<T> implements TaskReplySink<T> {
 
 	@Override
 	public void onError(TaskException error) {
-		delegate.onError(toStatus(error.getType()).withDescription(error.getMessage()).asRuntimeException());
+		delegate.onError(toStatus(error.getType()).withCause(error.getCause()).withDescription(error.getMessage())
+				.asRuntimeException());
 	}
 
 	private static Status toStatus(TaskException.Type type) {

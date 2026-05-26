@@ -29,12 +29,16 @@ public class ExecuteCommandHandler {
 				List<String> arguments = req.getArgumentsList();
 				if (arguments == null || arguments.size() != 1) {
 					replyWithError(new Exception("illegal Arguments"));
+					return;
 				}
 				try {
 					replyWithSuccess(Utils.normalizePackageName(arguments.get(0)));
 				} catch (Exception e) {
 					replyWithError(e);
 				}
+				return;
+			default :
+				replyWithError(new Exception("Unknown command: " + command));
 		}
 	}
 
