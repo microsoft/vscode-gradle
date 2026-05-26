@@ -3,23 +3,23 @@
 
 package com.github.badsyntax.gradle.handlers;
 
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.ExecuteCommandReply;
 import com.github.badsyntax.gradle.ExecuteCommandRequest;
+import com.github.badsyntax.gradle.transport.TaskException;
+import com.github.badsyntax.gradle.transport.TaskReplySink;
 import com.github.badsyntax.gradle.utils.Utils;
-import io.grpc.stub.StreamObserver;
 import java.util.List;
 
 public class ExecuteCommandHandler {
 
 	private ExecuteCommandRequest req;
-	private StreamObserver<ExecuteCommandReply> responseObserver;
+	private TaskReplySink<ExecuteCommandReply> sink;
 
 	private static final String GET_NORMALIZED_PACKAGE_NAME = "getNormalizedPackageName";
 
-	public ExecuteCommandHandler(ExecuteCommandRequest req, StreamObserver<ExecuteCommandReply> responseObserver) {
+	public ExecuteCommandHandler(ExecuteCommandRequest req, TaskReplySink<ExecuteCommandReply> sink) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.sink = sink;
 	}
 
 	public void run() {
@@ -39,11 +39,11 @@ public class ExecuteCommandHandler {
 	}
 
 	private void replyWithError(Exception e) {
-		responseObserver.onError(ErrorMessageBuilder.build(e));
+		sink.onError(new TaskException(TaskException.Type.INTERNAL, e.getMessage(), e));
 	}
 
 	private void replyWithSuccess(String value) {
-		responseObserver.onNext(ExecuteCommandReply.newBuilder().setResult(value).build());
-		responseObserver.onCompleted();
+		sink.onNext(ExecuteCommandReply.newBuilder().setResult(value).build());
+		sink.onCompleted();
 	}
 }

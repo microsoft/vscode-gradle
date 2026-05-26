@@ -1,16 +1,15 @@
 package com.github.badsyntax.gradle.handlers;
 
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetProjectDependenciesReply;
 import com.github.badsyntax.gradle.GetProjectDependenciesRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
+import com.github.badsyntax.gradle.transport.TaskException;
+import com.github.badsyntax.gradle.transport.TaskReplySink;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.google.common.base.Strings;
 import com.microsoft.gradle.api.GradleDependencyModelAction;
 import com.microsoft.gradle.api.GradleDependencyNode;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,12 +22,12 @@ import org.gradle.tooling.ProjectConnection;
 
 public class GetProjectDependenciesHandler {
 	private GetProjectDependenciesRequest req;
-	private StreamObserver<GetProjectDependenciesReply> responseObserver;
+	private TaskReplySink<GetProjectDependenciesReply> sink;
 
 	public GetProjectDependenciesHandler(GetProjectDependenciesRequest req,
-			StreamObserver<GetProjectDependenciesReply> responseObserver) {
+			TaskReplySink<GetProjectDependenciesReply> sink) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.sink = sink;
 	}
 
 	public void run() {
@@ -55,18 +54,18 @@ public class GetProjectDependenciesHandler {
 			}
 			GradleDependencyNode dependencyNode = action.run();
 			if (dependencyNode == null) {
-				responseObserver.onError(ErrorMessageBuilder.build(
-						new IllegalArgumentException("Cannot find Gradle project: " + req.getProjectPath()),
-						Status.NOT_FOUND));
+				String message = "Cannot find Gradle project: " + req.getProjectPath();
+				sink.onError(new TaskException(TaskException.Type.NOT_FOUND, message,
+						new IllegalArgumentException(message)));
 				return;
 			}
-			responseObserver.onNext(GetProjectDependenciesReply.newBuilder()
+			sink.onNext(GetProjectDependenciesReply.newBuilder()
 					.setDependencyItem(DependencyItemUtils.getDependencyItem(dependencyNode)).build());
-			responseObserver.onCompleted();
+			sink.onCompleted();
 		} catch (BuildCancelledException e) {
-			responseObserver.onError(ErrorMessageBuilder.build(e, Status.CANCELLED));
+			sink.onError(new TaskException(TaskException.Type.CANCELLED, e.getMessage(), e));
 		} catch (Exception e) {
-			responseObserver.onError(ErrorMessageBuilder.build(e));
+			sink.onError(new TaskException(TaskException.Type.INTERNAL, e.getMessage(), e));
 		} finally {
 			GradleBuildCancellation.clearToken(req.getCancellationKey());
 		}

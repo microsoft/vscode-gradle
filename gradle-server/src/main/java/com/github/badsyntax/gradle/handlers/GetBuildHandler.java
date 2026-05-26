@@ -3,7 +3,6 @@ package com.github.badsyntax.gradle.handlers;
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
 import com.github.badsyntax.gradle.Environment;
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
 import com.github.badsyntax.gradle.GetBuildRequest;
 import com.github.badsyntax.gradle.GetBuildResult;
@@ -19,6 +18,8 @@ import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
+import com.github.badsyntax.gradle.transport.TaskException;
+import com.github.badsyntax.gradle.transport.TaskReplySink;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
@@ -29,7 +30,6 @@ import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
-import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,15 +55,15 @@ public class GetBuildHandler {
 	private static final Logger logger = LoggerFactory.getLogger(GetBuildHandler.class.getName());
 
 	private GetBuildRequest req;
-	private StreamObserver<GetBuildReply> responseObserver;
+	private TaskReplySink<GetBuildReply> sink;
 	private ProgressListener progressListener;
 	private ByteBufferOutputStream standardOutputListener;
 	private ByteBufferOutputStream standardErrorListener;
 	private Environment environment;
 
-	public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
+	public GetBuildHandler(GetBuildRequest req, TaskReplySink<GetBuildReply> sink) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.sink = sink;
 		this.progressListener = (ProgressEvent event) -> {
 			synchronized (GetBuildHandler.class) {
 				replyWithProgress(event);
@@ -94,7 +94,7 @@ public class GetBuildHandler {
 			replyWithBuildEnvironment(this.environment);
 			BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
 			if (action == null) {
-				responseObserver.onCompleted();
+				sink.onCompleted();
 				return;
 			}
 			List<String> arguments = new ArrayList<>();
@@ -263,43 +263,43 @@ public class GetBuildHandler {
 	}
 
 	private void replyWithProject(GradleProject gradleProject) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		sink.onNext(GetBuildReply.newBuilder()
 				.setGetBuildResult(
 						GetBuildResult.newBuilder().setBuild(GradleBuild.newBuilder().setProject(gradleProject)))
 				.build());
-		responseObserver.onCompleted();
+		sink.onCompleted();
 	}
 
 	private void replyWithCancelled(BuildCancelledException e) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		sink.onNext(GetBuildReply.newBuilder()
 				.setCancelled(Cancelled.newBuilder().setMessage(e.getMessage()).setProjectDir(req.getProjectDir()))
 				.build());
-		responseObserver.onCompleted();
+		sink.onCompleted();
 	}
 
 	private void replyWithError(Exception e) {
-		responseObserver.onError(ErrorMessageBuilder.build(e));
+		sink.onError(new TaskException(TaskException.Type.INTERNAL, e.getMessage(), e));
 	}
 
 	private void replyWithBuildEnvironment(Environment environment) {
-		responseObserver.onNext(GetBuildReply.newBuilder().setEnvironment(environment).build());
+		sink.onNext(GetBuildReply.newBuilder().setEnvironment(environment).build());
 	}
 
 	private void replyWithProgress(ProgressEvent progressEvent) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		sink.onNext(GetBuildReply.newBuilder()
 				.setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName())).build());
 	}
 
 	private void replyWithStandardOutput(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		sink.onNext(GetBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setOutputBytes(byteString))
 				.build());
 	}
 
 	private void replyWithStandardError(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		sink.onNext(GetBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDERR).setOutputBytes(byteString))
 				.build());
 	}
@@ -307,11 +307,11 @@ public class GetBuildHandler {
 	private void replyWithCompatibilityCheckError(String gradleVersion, String javaVersion) {
 		String errorMessage = "Could not use Gradle version " + gradleVersion + " and Java version " + javaVersion
 				+ " to configure the build. Please consider either to change your Java Runtime or your Gradle settings.";
-		responseObserver.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
+		sink.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
 	}
 
 	private void replyWithCompatibilityCheckError() {
 		String errorMessage = "The current Gradle version requires Java 8 or lower. Please consider to change your Gradle settings.";
-		responseObserver.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
+		sink.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
 	}
 }

@@ -4,7 +4,7 @@ import com.github.badsyntax.gradle.CancelBuildReply;
 import com.github.badsyntax.gradle.CancelBuildRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.exceptions.GradleCancellationException;
-import io.grpc.stub.StreamObserver;
+import com.github.badsyntax.gradle.transport.TaskReplySink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,11 +12,11 @@ public class CancelBuildHandler {
 	private static final Logger logger = LoggerFactory.getLogger(CancelBuildHandler.class.getName());
 
 	private CancelBuildRequest req;
-	private StreamObserver<CancelBuildReply> responseObserver;
+	private TaskReplySink<CancelBuildReply> sink;
 
-	public CancelBuildHandler(CancelBuildRequest req, StreamObserver<CancelBuildReply> responseObserver) {
+	public CancelBuildHandler(CancelBuildRequest req, TaskReplySink<CancelBuildReply> sink) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.sink = sink;
 	}
 
 	public void run() {
@@ -27,17 +27,15 @@ public class CancelBuildHandler {
 			logger.error(e.getMessage());
 			replyWithCancelError(e);
 		} finally {
-			responseObserver.onCompleted();
+			sink.onCompleted();
 		}
 	}
 
 	private void replyWithCancelledSuccess() {
-		responseObserver.onNext(
-				CancelBuildReply.newBuilder().setMessage("Cancel build requested").setBuildRunning(true).build());
+		sink.onNext(CancelBuildReply.newBuilder().setMessage("Cancel build requested").setBuildRunning(true).build());
 	}
 
 	private void replyWithCancelError(Exception e) {
-		responseObserver
-				.onNext(CancelBuildReply.newBuilder().setMessage(e.getMessage()).setBuildRunning(false).build());
+		sink.onNext(CancelBuildReply.newBuilder().setMessage(e.getMessage()).setBuildRunning(false).build());
 	}
 }
