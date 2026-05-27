@@ -1,20 +1,20 @@
 package com.github.badsyntax.gradle.handlers;
 
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetProjectDependenciesReply;
 import com.github.badsyntax.gradle.GetProjectDependenciesRequest;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.GradleProjectConnector;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.google.common.base.Strings;
 import com.microsoft.gradle.api.GradleDependencyModelAction;
 import com.microsoft.gradle.api.GradleDependencyNode;
-import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.CancellationToken;
@@ -23,12 +23,12 @@ import org.gradle.tooling.ProjectConnection;
 
 public class GetProjectDependenciesHandler {
 	private GetProjectDependenciesRequest req;
-	private StreamObserver<GetProjectDependenciesReply> responseObserver;
+	private CompletableFuture<GradleResponse> response;
 
 	public GetProjectDependenciesHandler(GetProjectDependenciesRequest req,
-			StreamObserver<GetProjectDependenciesReply> responseObserver) {
+			CompletableFuture<GradleResponse> response) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.response = response;
 	}
 
 	public void run() {
@@ -55,18 +55,17 @@ public class GetProjectDependenciesHandler {
 			}
 			GradleDependencyNode dependencyNode = action.run();
 			if (dependencyNode == null) {
-				responseObserver.onError(ErrorMessageBuilder.build(
-						new IllegalArgumentException("Cannot find Gradle project: " + req.getProjectPath()),
-						Status.NOT_FOUND));
+				response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_NOT_FOUND,
+						"Cannot find Gradle project: " + req.getProjectPath()));
 				return;
 			}
-			responseObserver.onNext(GetProjectDependenciesReply.newBuilder()
-					.setDependencyItem(DependencyItemUtils.getDependencyItem(dependencyNode)).build());
-			responseObserver.onCompleted();
+			GetProjectDependenciesReply reply = GetProjectDependenciesReply.newBuilder()
+					.setDependencyItem(DependencyItemUtils.getDependencyItem(dependencyNode)).build();
+			response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 		} catch (BuildCancelledException e) {
-			responseObserver.onError(ErrorMessageBuilder.build(e, Status.CANCELLED));
+			response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_CANCELLED, e));
 		} catch (Exception e) {
-			responseObserver.onError(ErrorMessageBuilder.build(e));
+			response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_INTERNAL, e));
 		} finally {
 			GradleBuildCancellation.clearToken(req.getCancellationKey());
 		}
