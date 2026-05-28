@@ -43,16 +43,20 @@ public class GradleServer {
 			return t;
 		});
 		Thread serverThread = new Thread(() -> {
+			int exitCode = 0;
 			try {
 				Future<Void> listening = TaskSocketServer.connectAndStart(port, workerExecutor);
 				logger.info("Gradle Server JSON-RPC transport connected on loopback port {}", port);
 				listening.get();
 				logger.info("Gradle Server JSON-RPC transport closed");
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				exitCode = 1;
+				logger.error("Gradle Server JSON-RPC transport failed", e);
 			} finally {
-				workerExecutor.shutdown();
+				workerExecutor.shutdownNow();
 			}
+			logger.info("Exiting Gradle Server JVM because JSON-RPC task transport ended");
+			System.exit(exitCode);
 		}, "gradle-jsonrpc-server");
 		serverThread.start();
 

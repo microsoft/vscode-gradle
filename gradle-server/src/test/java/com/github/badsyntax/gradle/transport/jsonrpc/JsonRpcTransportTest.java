@@ -139,6 +139,16 @@ public class JsonRpcTransportTest {
 	}
 
 	@Test
+	public void getBuild_missingStreamId_rejectedBeforeDispatch() throws Exception {
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		GetBuildRequest request = GetBuildRequest.newBuilder().setProjectDir("/tmp/proj")
+				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		assertResponseError(service.getBuild(new GradleRequestParams(JsonRpcCodec.encode(request), null)),
+				JsonRpcCodec.ERROR_UNKNOWN, "streamId is required");
+	}
+
+	@Test
 	public void runBuild_request_roundtrip() throws Exception {
 		RunBuildRequest request = RunBuildRequest.newBuilder().setProjectDir("/tmp/proj").addArgs("build").build();
 		stubService.nextResponse = new GradleResponse("ok");
@@ -164,6 +174,15 @@ public class JsonRpcTransportTest {
 		assertEquals(1, recordingClient.runBuildNotifications.size());
 		assertEquals(22L, recordingClient.runBuildNotifications.peek().getStreamId());
 		assertEquals(0, recordingClient.getBuildNotifications.size());
+	}
+
+	@Test
+	public void runBuild_missingStreamId_rejectedBeforeDispatch() throws Exception {
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		RunBuildRequest request = RunBuildRequest.newBuilder().setProjectDir("/tmp/proj").addArgs("build").build();
+
+		assertResponseError(service.runBuild(new GradleRequestParams(JsonRpcCodec.encode(request), null)),
+				JsonRpcCodec.ERROR_UNKNOWN, "streamId is required");
 	}
 
 	@Test

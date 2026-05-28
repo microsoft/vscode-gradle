@@ -54,14 +54,22 @@ public class GradleServiceImpl implements GradleService {
 
 	@Override
 	public CompletableFuture<GradleResponse> getBuild(GradleRequestParams params) {
+		Long streamId = params.getStreamId();
+		if (streamId == null) {
+			return failed(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "streamId is required for gradle/getBuild"));
+		}
 		return dispatch(params, GetBuildRequest::parseFrom,
-				(req, future) -> new GetBuildHandler(req, future, client, streamId(params)).run());
+				(req, future) -> new GetBuildHandler(req, future, client, streamId).run());
 	}
 
 	@Override
 	public CompletableFuture<GradleResponse> runBuild(GradleRequestParams params) {
+		Long streamId = params.getStreamId();
+		if (streamId == null) {
+			return failed(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "streamId is required for gradle/runBuild"));
+		}
 		return dispatch(params, RunBuildRequest::parseFrom,
-				(req, future) -> new RunBuildHandler(req, future, client, streamId(params)).run());
+				(req, future) -> new RunBuildHandler(req, future, client, streamId).run());
 	}
 
 	@Override
@@ -95,11 +103,6 @@ public class GradleServiceImpl implements GradleService {
 				(req, future) -> new ExecuteCommandHandler(req, future).run());
 	}
 
-	private static long streamId(GradleRequestParams params) {
-		Long sid = params.getStreamId();
-		return sid == null ? 0L : sid;
-	}
-
 	private <T> CompletableFuture<GradleResponse> dispatch(GradleRequestParams params, ProtoParser<T> parser,
 			HandlerInvoker<T> invoker) {
 		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
@@ -127,6 +130,12 @@ public class GradleServiceImpl implements GradleService {
 		if (!future.isDone()) {
 			future.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_INTERNAL, t));
 		}
+	}
+
+	private static CompletableFuture<GradleResponse> failed(Throwable t) {
+		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
+		future.completeExceptionally(t);
+		return future;
 	}
 
 	@FunctionalInterface
