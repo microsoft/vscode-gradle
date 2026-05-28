@@ -21,11 +21,6 @@ sourceSets {
 
 protobuf {
   plugins {
-    grpc {
-      path = file(
-        './node_modules/.bin/grpc_tools_node_protoc_plugin' + (isWindows ? '.cmd' : '')
-      )
-    }
     ts {
       path = file(
         './node_modules/.bin/protoc-gen-ts' + (isWindows ? '.cmd' : '')
@@ -40,13 +35,7 @@ protobuf {
     generateProto.finalizedBy copyProtoJs, copyProtoTs
     all().each { task ->
       task.plugins {
-        grpc {
-          outputSubDir = 'js'
-          option 'grpc_js'
-        }
-        ts {
-          option 'service=grpc-node,mode=grpc-js'
-        }
+        ts {}
       }
       task.builtins {
         remove java

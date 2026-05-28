@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as cp from "child_process";
-import * as getPort from "get-port";
 import * as kill from "tree-kill";
 import { commands } from "vscode";
+import { MessageConnection } from "vscode-jsonrpc";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
@@ -11,6 +11,7 @@ import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
 import { extensionInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
+import { createLoopbackListener, LoopbackListener } from "../transport/jsonrpc";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 const STDERR_TAIL_LINES = 40;
@@ -27,6 +28,7 @@ export class GradleServer {
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
     private taskServerPort: number | undefined;
+    private loopbackListener: LoopbackListener | undefined;
     private restarting = false;
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
@@ -68,7 +70,13 @@ export class GradleServer {
         }
         this.bspProxy.setBuildServerStarted(startBuildServer);
         this.bspProxy.start();
-        this.taskServerPort = await getPort();
+        // PR 1 flipped the JVM into a TCP *client*: it dials the port the
+        // extension picks and connects back over JSON-RPC. Bind the
+        // ephemeral loopback port BEFORE spawning the JVM so the JVM
+        // never sees a connection-refused race against our listener.
+        this.loopbackListener?.dispose();
+        this.loopbackListener = await createLoopbackListener();
+        this.taskServerPort = this.loopbackListener.port;
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
         const env = await getGradleServerEnv();
@@ -127,6 +135,8 @@ export class GradleServer {
                 this._onDidStop.fire(null);
                 this.ready = false;
                 this.process?.removeAllListeners();
+                this.loopbackListener?.dispose();
+                this.loopbackListener = undefined;
                 this.bspProxy.closeConnection();
                 if (this.restarting) {
                     this.restarting = false;
@@ -253,6 +263,8 @@ export class GradleServer {
         this.bspProxy.closeConnection();
         this.process?.removeAllListeners();
         await this.killProcess();
+        this.loopbackListener?.dispose();
+        this.loopbackListener = undefined;
         this.ready = false;
         this._onDidStart.dispose();
         this._onDidStop.dispose();
@@ -260,6 +272,13 @@ export class GradleServer {
 
     public getPort(): number | undefined {
         return this.taskServerPort;
+    }
+
+    public awaitTaskConnection(): Promise<MessageConnection> {
+        if (!this.loopbackListener) {
+            return Promise.reject(new Error("Gradle task server loopback listener is not initialized."));
+        }
+        return this.loopbackListener.connection;
     }
 
     public getOpts(): ServerOptions {

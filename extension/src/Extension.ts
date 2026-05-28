@@ -72,9 +72,6 @@ export class Extension {
         const loggingChannel = vscode.window.createOutputChannel("Gradle for Java");
         logger.setLoggingChannel(loggingChannel);
 
-        const clientLogger = new Logger("grpc");
-        clientLogger.setLoggingChannel(loggingChannel);
-
         const serverLogger = new Logger("gradle-server");
         serverLogger.setLoggingChannel(loggingChannel);
 
@@ -84,7 +81,7 @@ export class Extension {
 
         const statusBarItem = vscode.window.createStatusBarItem();
         this.server = new GradleServer({ host: "localhost" }, context, serverLogger);
-        this.taskServerClient = new TaskServerClient(this.server, statusBarItem, clientLogger);
+        this.taskServerClient = new TaskServerClient(this.server, statusBarItem);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();
         this.taskTerminalsStore = new TaskTerminalsStore();
