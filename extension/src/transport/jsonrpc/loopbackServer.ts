@@ -4,6 +4,7 @@
 import * as net from "net";
 import { createMessageConnection, MessageConnection } from "vscode-jsonrpc/node";
 import { SocketMessageReader, SocketMessageWriter } from "vscode-jsonrpc/node";
+import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
 
 /**
  * Loopback listener for the JSON-RPC task transport.
@@ -35,6 +36,11 @@ export interface LoopbackListener {
 
 export interface LoopbackListenerOptions {
     connectTimeoutMs?: number;
+    /**
+     * Optional logger forwarded to {@link createMessageConnection}. Receives
+     * protocol-level diagnostics (framing errors, malformed messages, etc.).
+     */
+    logger?: JsonRpcLogger;
 }
 
 export async function createLoopbackListener(options: LoopbackListenerOptions = {}): Promise<LoopbackListener> {
@@ -83,7 +89,7 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
 
             const reader = new SocketMessageReader(socket);
             const writer = new SocketMessageWriter(socket);
-            const conn = createMessageConnection(reader, writer);
+            const conn = createMessageConnection(reader, writer, options.logger);
             resolve(conn);
         });
 

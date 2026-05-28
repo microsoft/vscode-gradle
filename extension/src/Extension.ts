@@ -75,12 +75,15 @@ export class Extension {
         const serverLogger = new Logger("gradle-server");
         serverLogger.setLoggingChannel(loggingChannel);
 
+        const transportLogger = new Logger("jsonrpc");
+        transportLogger.setLoggingChannel(loggingChannel);
+
         if (getConfigIsDebugEnabled()) {
             Logger.setLogVerbosity(LogVerbosity.DEBUG);
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger);
+        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, transportLogger);
         this.taskServerClient = new TaskServerClient(this.server, statusBarItem);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();

@@ -3,7 +3,7 @@ import * as path from "path";
 import * as cp from "child_process";
 import * as kill from "tree-kill";
 import { commands } from "vscode";
-import { MessageConnection } from "vscode-jsonrpc";
+import type { Logger as JsonRpcLogger, MessageConnection } from "vscode-jsonrpc";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
@@ -42,10 +42,21 @@ export class GradleServer {
     constructor(
         private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
-        private readonly logger: Logger
+        private readonly logger: Logger,
+        private readonly transportLogger: Logger
     ) {
         this.setLanguageServerPipePath();
         this.bspProxy = new BspProxy(this.context, logger);
+    }
+
+    /** Adapt the project Logger to the {@link JsonRpcLogger} shape (single-arg methods). */
+    private buildJsonRpcLogger(): JsonRpcLogger {
+        return {
+            error: (message: string) => this.transportLogger.error(message),
+            warn: (message: string) => this.transportLogger.warn(message),
+            info: (message: string) => this.transportLogger.info(message),
+            log: (message: string) => this.transportLogger.info(message),
+        };
     }
 
     private setLanguageServerPipePath(): void {
@@ -92,7 +103,7 @@ export class GradleServer {
         // listener is created AFTER the env check so we don't leak a
         // bound socket + pending connect promise on the no-Java path.
         this.loopbackListener?.dispose();
-        this.loopbackListener = await createLoopbackListener();
+        this.loopbackListener = await createLoopbackListener({ logger: this.buildJsonRpcLogger() });
         this.taskServerPort = this.loopbackListener.port;
         const args = [
             quoteArg(`--port=${this.taskServerPort}`),
