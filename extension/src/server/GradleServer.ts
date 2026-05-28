@@ -70,13 +70,6 @@ export class GradleServer {
         }
         this.bspProxy.setBuildServerStarted(startBuildServer);
         this.bspProxy.start();
-        // PR 1 flipped the JVM into a TCP *client*: it dials the port the
-        // extension picks and connects back over JSON-RPC. Bind the
-        // ephemeral loopback port BEFORE spawning the JVM so the JVM
-        // never sees a connection-refused race against our listener.
-        this.loopbackListener?.dispose();
-        this.loopbackListener = await createLoopbackListener();
-        this.taskServerPort = this.loopbackListener.port;
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
         const env = await getGradleServerEnv();
@@ -92,6 +85,15 @@ export class GradleServer {
             });
             return;
         }
+        // PR 1 flipped the JVM into a TCP *client*: it dials the port the
+        // extension picks and connects back over JSON-RPC. Bind the
+        // ephemeral loopback port BEFORE spawning the JVM so the JVM
+        // never sees a connection-refused race against our listener. The
+        // listener is created AFTER the env check so we don't leak a
+        // bound socket + pending connect promise on the no-Java path.
+        this.loopbackListener?.dispose();
+        this.loopbackListener = await createLoopbackListener();
+        this.taskServerPort = this.loopbackListener.port;
         const args = [
             quoteArg(`--port=${this.taskServerPort}`),
             quoteArg(`--startBuildServer=${startBuildServer}`),
