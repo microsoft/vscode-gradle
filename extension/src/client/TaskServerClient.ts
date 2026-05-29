@@ -161,7 +161,7 @@ export class TaskServerClient implements vscode.Disposable {
         request.setShowOutputColors(showOutputColors);
 
         let build: GradleBuild | undefined;
-        await this.rpcClient!.getBuild(request, async (getBuildReply: GetBuildReply) => {
+        const handleReply = async (getBuildReply: GetBuildReply): Promise<void> => {
             switch (getBuildReply.getKindCase()) {
                 case GetBuildReply.KindCase.PROGRESS:
                     progressHandler.report(getBuildReply.getProgress()!.getMessage().trim());
@@ -205,7 +205,11 @@ export class TaskServerClient implements vscode.Disposable {
                     break;
                 }
             }
-        });
+        };
+        const terminalReply = await this.rpcClient!.getBuild(request, handleReply);
+        if (terminalReply) {
+            await handleReply(terminalReply);
+        }
         return build;
     }
 
@@ -305,7 +309,7 @@ export class TaskServerClient implements vscode.Disposable {
                 }
 
                 try {
-                    await this.rpcClient!.runBuild(request, (runBuildReply: RunBuildReply) => {
+                    const handleReply = (runBuildReply: RunBuildReply): void => {
                         switch (runBuildReply.getKindCase()) {
                             case RunBuildReply.KindCase.PROGRESS:
                                 progressHandler.report(runBuildReply.getProgress()!.getMessage().trim());
@@ -319,7 +323,11 @@ export class TaskServerClient implements vscode.Disposable {
                                 this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
                                 break;
                         }
-                    });
+                    };
+                    const terminalReply = await this.rpcClient!.runBuild(request, handleReply);
+                    if (terminalReply) {
+                        handleReply(terminalReply);
+                    }
                     logger.info("Completed build:", args.join(" "));
                 } catch (err) {
                     logger.error("Error running build:", `${args.join(" ")}:`, errorDetails(err));
