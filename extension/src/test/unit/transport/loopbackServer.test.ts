@@ -43,6 +43,22 @@ describe(suiteName("createLoopbackListener"), () => {
         connection.dispose();
     });
 
+    it("rejects the connection promise when dispose() is called before any JVM connects", async () => {
+        listener = await createLoopbackListener({ connectTimeoutMs: 10_000 });
+
+        // Simulate `GradleServer`'s exit handler tearing the listener down
+        // because the JVM failed to spawn — without this rejection, awaiters
+        // (TaskServerClient.connectToServer) hang forever.
+        const pending = listener.connection;
+        listener.dispose();
+        listener = undefined;
+
+        await assert.rejects(pending, (err: Error) => {
+            assert.match(err.message, /disposed before gradle-server connected/i);
+            return true;
+        });
+    });
+
     it("forwards vscode-jsonrpc protocol diagnostics to the supplied Logger", async () => {
         const errors: string[] = [];
         const spy: JsonRpcLogger = {

@@ -62,8 +62,10 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
     let acceptedSocket: net.Socket | undefined;
     let timeoutHandle: NodeJS.Timeout | undefined;
     let disposed = false;
+    let rejectConnection: ((reason: Error) => void) | undefined;
 
     const connection = new Promise<MessageConnection>((resolve, reject) => {
+        rejectConnection = reject;
         timeoutHandle = setTimeout(() => {
             reject(new Error(`Timed out after ${timeoutMs}ms waiting for gradle-server to connect on port ${port}`));
             try {
@@ -84,6 +86,7 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
                 clearTimeout(timeoutHandle);
                 timeoutHandle = undefined;
             }
+            rejectConnection = undefined;
             // Stop accepting further connections; the listener has served its purpose.
             server.close();
 
@@ -98,6 +101,7 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
                 clearTimeout(timeoutHandle);
                 timeoutHandle = undefined;
             }
+            rejectConnection = undefined;
             reject(err);
         });
     });
@@ -113,6 +117,16 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
             if (timeoutHandle) {
                 clearTimeout(timeoutHandle);
                 timeoutHandle = undefined;
+            }
+            // If we tear down before any JVM has connected, settle the
+            // `connection` promise so awaiting callers (TaskServerClient,
+            // GradleServer.awaitTaskConnection) don't hang forever — e.g.
+            // when GradleServer's exit handler disposes us after a failed
+            // JVM spawn.
+            if (rejectConnection) {
+                const reject = rejectConnection;
+                rejectConnection = undefined;
+                reject(new Error("Loopback listener disposed before gradle-server connected"));
             }
             try {
                 server.close();
