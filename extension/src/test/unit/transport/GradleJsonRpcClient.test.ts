@@ -18,11 +18,15 @@ import {
     ExecuteCommandRequest,
     GetBuildReply,
     GetBuildRequest,
+    GetBuildResult,
     GetProjectDependenciesReply,
     GetProjectDependenciesRequest,
+    GradleBuild,
+    GradleProject,
     Progress,
     RunBuildReply,
     RunBuildRequest,
+    RunBuildResult,
 } from "../../../proto/gradle_pb";
 import { decodeProto, encodeProto, GradleJsonRpcClient, JsonRpcErrors } from "../../../transport/jsonrpc";
 import { GradleRequestParams, GradleResponse, GradleStreamPayload } from "../../../transport/jsonrpc/types";
@@ -110,6 +114,34 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
         afterEach(() => {
             client.dispose();
             wired.dispose();
+        });
+
+        it("returns the terminal GetBuildReply carrying the build result", async () => {
+            // Regression: the Java handler delivers the GET_BUILD_RESULT as the
+            // JSON-RPC response body (not as a stream notification). The TS
+            // facade must surface that terminal reply so callers can read the
+            // resulting GradleBuild.
+            wired.server.onRequest(GET_BUILD, (params) => {
+                const terminal = new GetBuildReply();
+                const result = new GetBuildResult();
+                const build = new GradleBuild();
+                const project = new GradleProject();
+                project.setProjectpath(":root");
+                build.setProject(project);
+                result.setBuild(build);
+                terminal.setGetBuildResult(result);
+                return { reply: encodeProto(terminal.serializeBinary()), streamId: params.streamId };
+            });
+
+            const request = new GetBuildRequest();
+            request.setProjectDir("/tmp/example");
+            const notifications: GetBuildReply[] = [];
+            const terminalReply = await client.getBuild(request, (r) => notifications.push(r));
+
+            assert.deepStrictEqual(notifications, []);
+            assert.ok(terminalReply, "terminal reply must be returned to caller");
+            assert.strictEqual(terminalReply!.getKindCase(), GetBuildReply.KindCase.GET_BUILD_RESULT);
+            assert.strictEqual(terminalReply!.getGetBuildResult()!.getBuild()!.getProject()!.getProjectpath(), ":root");
         });
 
         it("dispatches getBuild stream notifications and terminates with a null response", async () => {
@@ -200,7 +232,11 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
                     streamId: params.streamId!,
                     payload: encodeProto(intermediate.serializeBinary()),
                 });
-                return { reply: null };
+                const terminal = new RunBuildReply();
+                const result = new RunBuildResult();
+                result.setMessage("Successfully run build");
+                terminal.setRunBuildResult(result);
+                return { reply: encodeProto(terminal.serializeBinary()) };
             });
 
             const request = new RunBuildRequest();
@@ -208,12 +244,15 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
             request.setArgsList(["build", "--info"]);
 
             const seen: string[] = [];
-            await client.runBuild(request, (reply) => {
+            const terminalReply = await client.runBuild(request, (reply) => {
                 if (reply.hasProgress()) {
                     seen.push(reply.getProgress()!.getMessage());
                 }
             });
             assert.deepStrictEqual(seen, ["Running"]);
+            assert.ok(terminalReply, "runBuild must surface the terminal reply");
+            assert.strictEqual(terminalReply!.getKindCase(), RunBuildReply.KindCase.RUN_BUILD_RESULT);
+            assert.strictEqual(terminalReply!.getRunBuildResult()!.getMessage(), "Successfully run build");
         });
 
         it("roundtrips unary getProjectDependencies with a non-null reply", async () => {
