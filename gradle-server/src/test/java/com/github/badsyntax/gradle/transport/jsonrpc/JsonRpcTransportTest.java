@@ -186,6 +186,38 @@ public class JsonRpcTransportTest {
 	}
 
 	@Test
+	public void getBuild_nullParams_rejectedAsUnknown() throws Exception {
+		// JSON-RPC clients can omit `params` or send `null`; lsp4j hands a null
+		// reference straight to the handler. The dispatcher must classify that
+		// as a client input error rather than INTERNAL.
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		assertResponseError(service.getBuild(null), JsonRpcCodec.ERROR_UNKNOWN, "params is required");
+	}
+
+	@Test
+	public void getBuild_nullRequestPayload_rejectedAsUnknown() throws Exception {
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		assertResponseError(service.getBuild(new GradleRequestParams(null, 1L)), JsonRpcCodec.ERROR_UNKNOWN,
+				"params.request is required");
+	}
+
+	@Test
+	public void getBuild_invalidBase64Payload_rejectedAsUnknown() throws Exception {
+		// Base64 decode failures used to fall through to the catch-all `Throwable`
+		// branch and surface as INTERNAL (-32603). Now they should be reported as
+		// a client input error (-32000 UNKNOWN).
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		assertResponseError(service.getBuild(new GradleRequestParams("!!!not-base64!!!", 1L)),
+				JsonRpcCodec.ERROR_UNKNOWN, "not valid base64");
+	}
+
+	@Test
+	public void cancelBuilds_nullParams_rejectedAsUnknown() throws Exception {
+		GradleServiceImpl service = new GradleServiceImpl(serverExecutor);
+		assertResponseError(service.cancelBuilds(null), JsonRpcCodec.ERROR_UNKNOWN, "params is required");
+	}
+
+	@Test
 	public void getProjectDependencies_unary_roundtrip() throws Exception {
 		stubService.nextResponse = new GradleResponse("deps");
 		GradleResponse reply = await(serviceProxy.getProjectDependencies(new GradleRequestParams("req", null)));

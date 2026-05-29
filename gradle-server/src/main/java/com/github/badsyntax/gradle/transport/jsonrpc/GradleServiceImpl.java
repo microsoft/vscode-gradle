@@ -17,6 +17,7 @@ import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import org.eclipse.lsp4j.jsonrpc.ResponseErrorException;
 
 /**
  * {@link GradleService} implementation that decodes the base64 request envelope
@@ -54,6 +55,10 @@ public class GradleServiceImpl implements GradleService {
 
 	@Override
 	public CompletableFuture<GradleResponse> getBuild(GradleRequestParams params) {
+		ResponseErrorException paramError = validateParams(params);
+		if (paramError != null) {
+			return failed(paramError);
+		}
 		Long streamId = params.getStreamId();
 		if (streamId == null) {
 			return failed(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "streamId is required for gradle/getBuild"));
@@ -64,6 +69,10 @@ public class GradleServiceImpl implements GradleService {
 
 	@Override
 	public CompletableFuture<GradleResponse> runBuild(GradleRequestParams params) {
+		ResponseErrorException paramError = validateParams(params);
+		if (paramError != null) {
+			return failed(paramError);
+		}
 		Long streamId = params.getStreamId();
 		if (streamId == null) {
 			return failed(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "streamId is required for gradle/runBuild"));
@@ -74,18 +83,32 @@ public class GradleServiceImpl implements GradleService {
 
 	@Override
 	public CompletableFuture<GradleResponse> getProjectDependencies(GradleRequestParams params) {
+		ResponseErrorException paramError = validateParams(params);
+		if (paramError != null) {
+			return failed(paramError);
+		}
 		return dispatch(params, GetProjectDependenciesRequest::parseFrom,
 				(req, future) -> new GetProjectDependenciesHandler(req, future).run());
 	}
 
 	@Override
 	public CompletableFuture<GradleResponse> cancelBuild(GradleRequestParams params) {
+		ResponseErrorException paramError = validateParams(params);
+		if (paramError != null) {
+			return failed(paramError);
+		}
 		return dispatch(params, CancelBuildRequest::parseFrom,
 				(req, future) -> new CancelBuildHandler(req, future).run());
 	}
 
 	@Override
 	public CompletableFuture<GradleResponse> cancelBuilds(GradleRequestParams params) {
+		// `cancelBuilds` carries no request payload; the only validation is that
+		// `params` itself is not null (lsp4j passes null when the client sends an
+		// empty params object or omits the field).
+		if (params == null) {
+			return failed(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "params is required"));
+		}
 		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
 		executor.submit(() -> {
 			try {
@@ -99,8 +122,22 @@ public class GradleServiceImpl implements GradleService {
 
 	@Override
 	public CompletableFuture<GradleResponse> executeCommand(GradleRequestParams params) {
+		ResponseErrorException paramError = validateParams(params);
+		if (paramError != null) {
+			return failed(paramError);
+		}
 		return dispatch(params, ExecuteCommandRequest::parseFrom,
 				(req, future) -> new ExecuteCommandHandler(req, future).run());
+	}
+
+	private static ResponseErrorException validateParams(GradleRequestParams params) {
+		if (params == null) {
+			return JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "params is required");
+		}
+		if (params.getRequest() == null) {
+			return JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, "params.request is required");
+		}
+		return null;
 	}
 
 	private <T> CompletableFuture<GradleResponse> dispatch(GradleRequestParams params, ProtoParser<T> parser,
@@ -112,6 +149,11 @@ public class GradleServiceImpl implements GradleService {
 				req = parser.parse(JsonRpcCodec.decode(params.getRequest()));
 			} catch (InvalidProtocolBufferException e) {
 				future.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, e));
+				return;
+			} catch (IllegalArgumentException e) {
+				// Base64 decode failure — caller sent a malformed payload.
+				future.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN,
+						"params.request is not valid base64: " + e.getMessage()));
 				return;
 			} catch (Throwable t) {
 				completeWithInternal(future, t);

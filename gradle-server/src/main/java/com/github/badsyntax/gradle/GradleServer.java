@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,11 +38,7 @@ public class GradleServer {
 	}
 
 	private static void startTaskServerThread(int port) {
-		ExecutorService workerExecutor = Executors.newCachedThreadPool(runnable -> {
-			Thread t = new Thread(runnable, "gradle-jsonrpc-worker");
-			t.setDaemon(true);
-			return t;
-		});
+		ExecutorService workerExecutor = Executors.newCachedThreadPool(workerThreadFactory());
 		Thread serverThread = new Thread(() -> {
 			int exitCode = 0;
 			try {
@@ -77,5 +74,20 @@ public class GradleServer {
 			GradleLanguageServer.main(new String[]{languageServerPipePath});
 		});
 		languageServerThread.start();
+	}
+
+	/**
+	 * Worker thread factory: gives every JSON-RPC worker thread a unique name
+	 * (suffixed with a monotonic counter) so thread dumps and logs can distinguish
+	 * concurrent handlers. Daemon threads so they don't keep the JVM alive past
+	 * {@link #main(String[])}. Package-private for testing.
+	 */
+	static java.util.concurrent.ThreadFactory workerThreadFactory() {
+		AtomicInteger counter = new AtomicInteger();
+		return runnable -> {
+			Thread t = new Thread(runnable, "gradle-jsonrpc-worker-" + counter.incrementAndGet());
+			t.setDaemon(true);
+			return t;
+		};
 	}
 }

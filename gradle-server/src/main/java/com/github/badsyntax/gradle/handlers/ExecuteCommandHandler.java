@@ -29,7 +29,8 @@ public class ExecuteCommandHandler {
 			case GET_NORMALIZED_PACKAGE_NAME :
 				List<String> arguments = req.getArgumentsList();
 				if (arguments == null || arguments.size() != 1) {
-					replyWithError(new Exception("illegal Arguments"));
+					replyWithBadRequest("Illegal arguments for " + GET_NORMALIZED_PACKAGE_NAME
+							+ ": expected 1 argument, got " + (arguments == null ? 0 : arguments.size()));
 					return;
 				}
 				try {
@@ -39,12 +40,20 @@ public class ExecuteCommandHandler {
 				}
 				return;
 			default :
-				replyWithError(new Exception("Unknown command: " + command));
+				replyWithUnknownCommand(command);
 		}
 	}
 
 	private void replyWithError(Exception e) {
 		response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_INTERNAL, e));
+	}
+
+	private void replyWithBadRequest(String message) {
+		response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_UNKNOWN, message));
+	}
+
+	private void replyWithUnknownCommand(String command) {
+		response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_NOT_FOUND, "Unknown command: " + command));
 	}
 
 	private void replyWithSuccess(String value) {
