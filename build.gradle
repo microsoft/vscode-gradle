@@ -5,7 +5,6 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-project.ext.set('grpcVersion', '1.54.2')
 project.ext.set('protobufVersion', '3.25.5')
 // protoc compiler stays at 3.12.0 because the extension subproject uses
 // the built-in --js_out, which was removed in protoc 3.21+.

@@ -6,15 +6,6 @@ option java_outer_classname = "GradleProto";
 
 package gradle;
 
-service Gradle {
-  rpc GetBuild(GetBuildRequest) returns (stream GetBuildReply) {}
-  rpc GetProjectDependencies(GetProjectDependenciesRequest) returns (GetProjectDependenciesReply) {}
-  rpc RunBuild(RunBuildRequest) returns (stream RunBuildReply) {}
-  rpc CancelBuild(CancelBuildRequest) returns (CancelBuildReply) {}
-  rpc CancelBuilds(CancelBuildsRequest) returns (CancelBuildsReply) {}
-  rpc executeCommand(ExecuteCommandRequest) returns (ExecuteCommandReply) {}
-}
-
 message GetBuildRequest {
   string project_dir = 1;
   string cancellation_key = 2;

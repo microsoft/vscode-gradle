@@ -72,9 +72,8 @@ export class GradleTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this.setCollapsed(collapsed);
         // [fix] Re-render the tree whenever GradleTaskProvider finishes a load with a
-        // non-empty task list. This recovers the UI after a transient failure (e.g. the
-        // spurious gRPC CANCELLED on the first refresh, where the immediate retry
-        // succeeds but nothing else was driving a tree refresh).
+        // non-empty task list. This recovers the UI after a transient load failure where
+        // the immediate retry succeeds but nothing else was driving a tree refresh.
         this.gradleTaskProvider.onDidLoadTasks((tasks) => {
             if (tasks.length > 0) {
                 this.refresh();

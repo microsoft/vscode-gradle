@@ -21,16 +21,24 @@ import org.eclipse.lsp4j.jsonrpc.messages.ResponseError;
  */
 public final class JsonRpcCodec {
 
-	/** Maps to the legacy gRPC {@code NOT_FOUND} status. */
+	/**
+	 * Mirrors the legacy transport's {@code NOT_FOUND} status for API
+	 * compatibility.
+	 */
 	public static final int ERROR_NOT_FOUND = -32001;
 
-	/** Maps to the legacy gRPC {@code CANCELLED} status. */
+	/**
+	 * Mirrors the legacy transport's {@code CANCELLED} status for API
+	 * compatibility.
+	 */
 	public static final int ERROR_CANCELLED = -32002;
 
-	/** Maps to the legacy gRPC {@code UNKNOWN} status. */
+	/**
+	 * Mirrors the legacy transport's {@code UNKNOWN} status for API compatibility.
+	 */
 	public static final int ERROR_UNKNOWN = -32000;
 
-	/** Maps to the legacy gRPC {@code INTERNAL} status (LSP4J reserved). */
+	/** Mirrors the legacy transport's {@code INTERNAL} status (LSP4J reserved). */
 	public static final int ERROR_INTERNAL = -32603;
 
 	private JsonRpcCodec() {

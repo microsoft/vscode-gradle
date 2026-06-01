@@ -675,7 +675,7 @@ describe(getSuiteName("Gradle tasks"), () => {
 
     describe("onDidLoadTasks subscription", () => {
         // The tree data provider subscribes to GradleTaskProvider.onDidLoadTasks
-        // so the view recovers after a transient gRPC failure where the immediate
+        // so the view recovers after a transient load failure where the immediate
         // retry succeeded but nothing else drove a re-render. These tests pin the
         // subscription contract: non-empty load fires the tree's change event,
         // empty load does not.

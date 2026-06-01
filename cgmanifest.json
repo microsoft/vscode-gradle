@@ -82,28 +82,6 @@
       "Component": {
         "Type": "maven",
         "Maven": {
-          "GroupId": "io.grpc",
-          "ArtifactId": "grpc-protobuf",
-          "Version": "1.54.2"
-        }
-      },
-      "DevelopmentDependency": false
-    },
-    {
-      "Component": {
-        "Type": "maven",
-        "Maven": {
-          "GroupId": "io.grpc",
-          "ArtifactId": "grpc-stub",
-          "Version": "1.54.2"
-        }
-      },
-      "DevelopmentDependency": false
-    },
-    {
-      "Component": {
-        "Type": "maven",
-        "Maven": {
           "GroupId": "com.github.zafarkhaja",
           "ArtifactId": "java-semver",
           "Version": "0.9.0"
@@ -126,34 +104,12 @@
       "Component": {
         "Type": "maven",
         "Maven": {
-          "GroupId": "io.grpc",
-          "ArtifactId": "grpc-netty",
-          "Version": "1.54.2"
-        }
-      },
-      "DevelopmentDependency": false
-    },
-    {
-      "Component": {
-        "Type": "maven",
-        "Maven": {
           "GroupId": "org.slf4j",
           "ArtifactId": "slf4j-simple",
           "Version": "2.0.0-alpha6"
         }
       },
       "DevelopmentDependency": false
-    },
-    {
-      "Component": {
-        "Type": "maven",
-        "Maven": {
-          "GroupId": "io.grpc",
-          "ArtifactId": "grpc-testing",
-          "Version": "1.54.2"
-        }
-      },
-      "DevelopmentDependency": true
     },
     {
       "Component": {

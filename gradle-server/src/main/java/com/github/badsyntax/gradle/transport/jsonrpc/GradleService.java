@@ -12,11 +12,11 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonSegment;
  * {@code MessageConnection}.
  *
  * <p>
- * Each method maps 1:1 to a former gRPC RPC on the legacy {@code Gradle}
- * service. Streaming RPCs ({@code getBuild}, {@code runBuild}) deliver
- * intermediate messages out-of-band on the {@link GradleClient} notification
- * channel and resolve their {@link CompletableFuture} when the stream
- * terminates. Unary RPCs resolve directly with the single response payload.
+ * Each method maps 1:1 to a former RPC on the legacy {@code Gradle} transport.
+ * Streaming RPCs ({@code getBuild}, {@code runBuild}) deliver intermediate
+ * messages out-of-band on the {@link GradleClient} notification channel and
+ * resolve their {@link CompletableFuture} when the stream terminates. Unary
+ * RPCs resolve directly with the single response payload.
  *
  * <p>
  * <b>Ordering invariant for streaming RPCs:</b> a handler MUST enqueue every
@@ -24,8 +24,8 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonSegment;
  * before it completes the response {@link CompletableFuture}. LSP4J serialises
  * all outbound traffic on a single {@code RemoteEndpoint}, so honouring this
  * call order guarantees the client receives all streamed progress/output before
- * the terminal reply — reproducing the in-order delivery the old single gRPC
- * stream provided. See {@code RunBuildHandler#notify} /
+ * the terminal reply — reproducing the in-order delivery the old single
+ * server-streaming call provided. See {@code RunBuildHandler#notify} /
  * {@code GetBuildHandler#notify} and the ordering test in
  * {@code GradleServerTest}.
  *

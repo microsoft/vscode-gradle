@@ -191,7 +191,7 @@ We will continue improving the auto completion feature to support more cases in 
 - View [Gradle Dependencies](https://docs.gradle.org/current/userguide/declaring_dependencies.html)
 - Supports massive Gradle projects (eg with 10000+ tasks)
 - Uses the [Gradle Tooling API](https://docs.gradle.org/current/userguide/third_party_integration.html#embedding) to discover and run Gradle tasks
-- Uses a long running gRPC server which provides good performance
+- Uses a long running JSON-RPC server which provides good performance
 - Supports Kotlin & Groovy build files
 - Supports [multi-project builds](https://docs.gradle.org/current/userguide/multi_project_builds.html)
 - Supports [multi-root workspaces](https://code.visualstudio.com/docs/editor/multi-root-workspaces)

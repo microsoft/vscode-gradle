@@ -24,7 +24,6 @@ const config = {
         vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
         "applicationinsights-native-metrics": "commonjs applicationinsights-native-metrics",
         "diagnostic-channel-publishers": "commonjs diagnostic-channel-publishers",
-        "@grpc/proto-loader": "@grpc/proto-loader",
         encoding: "commonjs encoding",
         "google-auth-library": "commonjs google-auth-library",
     },
