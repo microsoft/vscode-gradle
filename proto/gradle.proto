@@ -54,19 +54,19 @@ message DependencyItem {
   repeated DependencyItem children = 3;
 }
 
-message GrpcGradleClosure {
+message GradleClosureProto {
   string name = 1;
-  repeated GrpcGradleMethod methods = 2;
-  repeated GrpcGradleField fields = 3;
+  repeated GradleMethodProto methods = 2;
+  repeated GradleFieldProto fields = 3;
 }
 
-message GrpcGradleMethod {
+message GradleMethodProto {
   string name = 1;
   repeated string parameterTypes = 2;
   bool deprecated = 3;
 }
 
-message GrpcGradleField {
+message GradleFieldProto {
   string name = 1;
   bool deprecated = 2;
 }
@@ -130,7 +130,7 @@ message GradleProject {
   string projectPath = 4;
   DependencyItem dependencyItem = 5;
   repeated string plugins = 6;
-  repeated GrpcGradleClosure pluginClosures = 7;
+  repeated GradleClosureProto pluginClosures = 7;
   repeated string scriptClasspaths = 8;
 }
 
