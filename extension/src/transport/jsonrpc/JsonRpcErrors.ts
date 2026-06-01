@@ -10,19 +10,19 @@ import { ResponseError } from "vscode-jsonrpc";
  * emits; renumbering on either side requires a coordinated change.
  */
 export const JsonRpcErrors = {
-    /** Maps to the legacy gRPC `UNKNOWN` status. Used for proto parse failures and unmapped server errors. */
+    /** Mirrors the legacy transport's `UNKNOWN` status. Used for proto parse failures and unmapped server errors. */
     UNKNOWN: -32000,
-    /** Maps to the legacy gRPC `NOT_FOUND` status. */
+    /** Mirrors the legacy transport's `NOT_FOUND` status. */
     NOT_FOUND: -32001,
-    /** Maps to the legacy gRPC `CANCELLED` status. */
+    /** Mirrors the legacy transport's `CANCELLED` status. */
     CANCELLED: -32002,
-    /** Maps to the legacy gRPC `INTERNAL` status (LSP4J reserved code). */
+    /** Mirrors the legacy transport's `INTERNAL` status (LSP4J reserved code). */
     INTERNAL: -32603,
 } as const;
 
 /**
  * Lightweight surface used by callers that previously typed errors as
- * `grpc.ServiceError`. `message` / `code` mirror what `ResponseError`
+ * the legacy transport's service-error type. `message` / `code` mirror what `ResponseError`
  * exposes; `details` is provided for source-compat with logger call sites
  * that read `err.details || err.message`.
  */

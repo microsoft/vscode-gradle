@@ -40,8 +40,8 @@ import { GradleRequestParams, GradleResponse, GradleStreamPayload } from "./type
  *
  * - Errors raised by the server come back as `ResponseError`; we wrap
  *   them in a `GradleRpcError` so call sites that previously typed errors
- *   as `grpc.ServiceError` keep the same `.code` / `.message` /
- *   `.details` access pattern.
+ *   as the legacy transport's service-error type keep the same
+ *   `.code` / `.message` / `.details` access pattern.
  */
 
 const GET_BUILD = new RequestType<GradleRequestParams, GradleResponse, void>("gradle/getBuild");

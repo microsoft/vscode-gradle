@@ -289,7 +289,7 @@ describe(getSuiteName("Recent tasks"), () => {
 
     describe("onDidLoadTasks subscription", () => {
         // Same contract as the gradle-tasks tree: recover the recent-tasks view
-        // after a transient gRPC failure where the immediate retry succeeded but
+        // after a transient load failure where the immediate retry succeeded but
         // nothing else drove a re-render. Non-empty load must refresh, empty
         // load must not.
         it("emits onDidChangeTreeData when the load yielded tasks", () => {

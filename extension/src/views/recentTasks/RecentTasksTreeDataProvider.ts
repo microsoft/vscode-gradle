@@ -71,7 +71,7 @@ export class RecentTasksTreeDataProvider implements vscode.TreeDataProvider<vsco
         this.recentTasksStore.onDidChange(() => this.refresh());
         this.taskTerminalsStore.onDidChange(this.handleTerminalsStoreChange);
         // [fix] Re-render when tasks finish loading so the recent-tasks view recovers
-        // after a transient gRPC failure on refresh.
+        // after a transient load failure on refresh.
         this.gradleTaskProvider.onDidLoadTasks((tasks) => {
             if (tasks.length > 0) {
                 this.refresh();
