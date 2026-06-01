@@ -13,6 +13,7 @@ import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleStreamPayload;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -415,5 +416,54 @@ public class GradleServerTest {
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TRANSFORM));
+	}
+
+	@Test
+	public void runBuild_streamNotificationsPrecedeTerminalResponse() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.setShowOutputColors(true).build();
+
+		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
+
+		// Record, for every stream notification, whether the response future had
+		// already completed. The ordering invariant requires every notification to
+		// be emitted while the terminal response is still pending.
+		List<Boolean> futureDoneAtNotify = new ArrayList<>();
+		List<Long> notifiedStreamIds = new ArrayList<>();
+		GradleClient orderingClient = mock(GradleClient.class);
+		doAnswer(invocation -> {
+			GradleStreamPayload payload = invocation.getArgument(0);
+			notifiedStreamIds.add(payload.getStreamId());
+			futureDoneAtNotify.add(future.isDone());
+			return null;
+		}).when(orderingClient).onRunBuildReply(any(GradleStreamPayload.class));
+
+		// Capture the progress listener the handler registers so the mocked build
+		// run can drive a mid-build progress event (which fans out to a stream
+		// notification through the handler's streamLock-guarded path).
+		final org.gradle.tooling.events.ProgressListener[] listenerHolder = new org.gradle.tooling.events.ProgressListener[1];
+		when(mockBuildLauncher.addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
+				ArgumentMatchers.<Set<OperationType>>any())).thenAnswer(inv -> {
+					listenerHolder[0] = inv.getArgument(0);
+					return mockBuildLauncher;
+				});
+		doAnswer(invocation -> {
+			org.gradle.tooling.events.ProgressEvent event = mock(org.gradle.tooling.events.ProgressEvent.class);
+			when(event.getDisplayName()).thenReturn("configuring");
+			listenerHolder[0].statusChanged(event);
+			return null;
+		}).when(mockBuildLauncher).run();
+
+		new RunBuildHandler(req, future, orderingClient, 99L).run();
+
+		assertSuccess(future);
+		assertFalse("Expected at least one stream notification during the build", futureDoneAtNotify.isEmpty());
+		for (Boolean doneAtNotify : futureDoneAtNotify) {
+			assertFalse("Stream notification must be emitted before the terminal response completes", doneAtNotify);
+		}
+		for (Long id : notifiedStreamIds) {
+			assertEquals(Long.valueOf(99L), id);
+		}
 	}
 }

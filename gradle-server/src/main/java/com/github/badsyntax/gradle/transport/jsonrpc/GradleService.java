@@ -19,6 +19,17 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonSegment;
  * terminates. Unary RPCs resolve directly with the single response payload.
  *
  * <p>
+ * <b>Ordering invariant for streaming RPCs:</b> a handler MUST enqueue every
+ * intermediate {@link GradleClient} notification for a given {@code streamId}
+ * before it completes the response {@link CompletableFuture}. LSP4J serialises
+ * all outbound traffic on a single {@code RemoteEndpoint}, so honouring this
+ * call order guarantees the client receives all streamed progress/output before
+ * the terminal reply — reproducing the in-order delivery the old single gRPC
+ * stream provided. See {@code RunBuildHandler#notify} /
+ * {@code GetBuildHandler#notify} and the ordering test in
+ * {@code GradleServerTest}.
+ *
+ * <p>
  * The wire envelope ({@link GradleRequestParams} / {@link GradleResponse})
  * carries base64-encoded protobuf bytes so the proto schema continues to be the
  * single source of truth for field-level semantics.

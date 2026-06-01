@@ -37,6 +37,12 @@ public class RunBuildHandler {
 	private ProgressListener progressListener;
 	private ByteBufferOutputStream standardOutputListener;
 	private ByteBufferOutputStream standardErrorListener;
+	// Guards write ordering of stream notifications for this single build only.
+	// progress/stdout/stderr fire from different threads; serialising them keeps
+	// the notification order on this stream deterministic. It is intentionally a
+	// per-handler lock (not a class lock) so concurrent builds never block each
+	// other's output flushes.
+	private final Object streamLock = new Object();
 
 	public RunBuildHandler(RunBuildRequest req, CompletableFuture<GradleResponse> response, GradleClient client,
 			long streamId) {
@@ -45,14 +51,14 @@ public class RunBuildHandler {
 		this.client = client;
 		this.streamId = streamId;
 		this.progressListener = (ProgressEvent event) -> {
-			synchronized (RunBuildHandler.class) {
+			synchronized (streamLock) {
 				replyWithProgress(event);
 			}
 		};
 		this.standardOutputListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardOutput(bytes);
 				}
 			}
@@ -60,7 +66,7 @@ public class RunBuildHandler {
 		this.standardErrorListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardError(bytes);
 				}
 			}
@@ -107,6 +113,14 @@ public class RunBuildHandler {
 		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 
+	// Stream notifications and the terminal response travel on two different
+	// channels (server->client notification vs. the request's response future).
+	// Invariant: every notify(...) for this streamId is enqueued before the
+	// response future is completed by replyWithSuccess/replyWithCancelled/
+	// replyWithError. Because LSP4J serialises all outbound writes on a single
+	// RemoteEndpoint, this guarantees the client observes all progress/output
+	// before the terminal reply. Do not move notify(...) off this thread or
+	// after response.complete(...) without re-establishing that ordering.
 	private void notify(RunBuildReply reply) {
 		client.onRunBuildReply(new GradleStreamPayload(streamId, JsonRpcCodec.encode(reply)));
 	}
