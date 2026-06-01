@@ -89,8 +89,14 @@ public class RunBuildHandler {
 			replyWithSuccess();
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
-		} catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
-				| IllegalStateException | IOException | GradleBuildRunnerException e) {
+		} catch (UnsupportedVersionException | UnsupportedBuildArgumentException e) {
+			// Client-caused: the request targeted an unsupported Gradle version or
+			// passed an invalid build argument. Report it as UNKNOWN ("bad request")
+			// so the TS client can tell it apart from an unexpected server failure
+			// (INTERNAL). Mirrors the convention in ExecuteCommandHandler.
+			logger.error(e.getMessage());
+			replyWithError(JsonRpcCodec.ERROR_UNKNOWN, e);
+		} catch (BuildException | IllegalStateException | IOException | GradleBuildRunnerException e) {
 			logger.error(e.getMessage());
 			replyWithError(e);
 		}
@@ -104,7 +110,11 @@ public class RunBuildHandler {
 	}
 
 	public void replyWithError(Exception e) {
-		response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_INTERNAL, e));
+		replyWithError(JsonRpcCodec.ERROR_INTERNAL, e);
+	}
+
+	public void replyWithError(int code, Exception e) {
+		response.completeExceptionally(JsonRpcCodec.error(code, e));
 	}
 
 	public void replyWithSuccess() {

@@ -14,6 +14,7 @@ import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleStreamPayload;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -163,6 +164,19 @@ public class GradleServerTest {
 	private static void assertSuccess(CompletableFuture<GradleResponse> future) {
 		assertFalse("Handler future completed exceptionally: " + (future.isCompletedExceptionally() ? future : ""),
 				future.isCompletedExceptionally());
+	}
+
+	private static org.eclipse.lsp4j.jsonrpc.messages.ResponseError errorOf(CompletableFuture<GradleResponse> future) {
+		assertTrue("Expected the handler future to complete exceptionally", future.isCompletedExceptionally());
+		try {
+			future.join();
+		} catch (java.util.concurrent.CompletionException e) {
+			Throwable cause = e.getCause();
+			assertTrue("Expected a ResponseErrorException but got: " + cause,
+					cause instanceof org.eclipse.lsp4j.jsonrpc.ResponseErrorException);
+			return ((org.eclipse.lsp4j.jsonrpc.ResponseErrorException) cause).getResponseError();
+		}
+		throw new AssertionError("Expected the handler future to complete exceptionally");
 	}
 
 	@Test
@@ -465,5 +479,29 @@ public class GradleServerTest {
 		for (Long id : notifiedStreamIds) {
 			assertEquals(Long.valueOf(99L), id);
 		}
+	}
+
+	@Test
+	public void runBuild_unsupportedVersion_isReportedAsUnknown() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		doThrow(new org.gradle.tooling.UnsupportedVersionException("Gradle version too old")).when(mockBuildLauncher)
+				.run();
+
+		org.eclipse.lsp4j.jsonrpc.messages.ResponseError error = errorOf(runRunBuild(req));
+		assertEquals(JsonRpcCodec.ERROR_UNKNOWN, error.getCode());
+	}
+
+	@Test
+	public void runBuild_buildFailure_isReportedAsInternal() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		doThrow(new org.gradle.tooling.BuildException("compilation failed", new RuntimeException("boom")))
+				.when(mockBuildLauncher).run();
+
+		org.eclipse.lsp4j.jsonrpc.messages.ResponseError error = errorOf(runRunBuild(req));
+		assertEquals(JsonRpcCodec.ERROR_INTERNAL, error.getCode());
 	}
 }
