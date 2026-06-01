@@ -4,7 +4,7 @@ import * as getPort from "get-port";
 import { isTest, waitOnTcp } from "../util";
 import { logger, LoggerStream, LogVerbosity } from "../logger";
 import { Output } from "../proto/gradle_pb";
-import { ServiceError, status } from "@grpc/grpc-js";
+import { GradleRpcError, isUnknown } from "../transport/jsonrpc";
 import { RootProject } from "../rootProject/RootProject";
 import { isTaskRunning } from "../tasks/taskUtil";
 import { COMMAND_CANCEL_BUILD } from "../commands";
@@ -132,16 +132,19 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         }
     };
 
-    private handleError(err: ServiceError): void {
-        if (err.code === status.UNKNOWN) {
+    private handleError(err: unknown): void {
+        if (isUnknown(err)) {
             const outputChannel = logger.getChannel();
             if (outputChannel) {
                 this.write(
                     `Unable to run Gradle Task due to server error. View the "${outputChannel.name}" output for details.`
                 );
             }
+        } else if (err instanceof Error) {
+            const tagged = err as GradleRpcError;
+            this.write(tagged.details || tagged.message);
         } else {
-            this.write(err.details || err.message);
+            this.write(String(err));
         }
     }
 
