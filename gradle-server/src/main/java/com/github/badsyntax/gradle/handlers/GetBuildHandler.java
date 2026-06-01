@@ -8,13 +8,13 @@ import com.github.badsyntax.gradle.GetBuildRequest;
 import com.github.badsyntax.gradle.GetBuildResult;
 import com.github.badsyntax.gradle.GradleBuild;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
+import com.github.badsyntax.gradle.GradleClosureProto;
 import com.github.badsyntax.gradle.GradleEnvironment;
+import com.github.badsyntax.gradle.GradleFieldProto;
+import com.github.badsyntax.gradle.GradleMethodProto;
 import com.github.badsyntax.gradle.GradleProject;
 import com.github.badsyntax.gradle.GradleProjectConnector;
 import com.github.badsyntax.gradle.GradleTask;
-import com.github.badsyntax.gradle.GrpcGradleClosure;
-import com.github.badsyntax.gradle.GrpcGradleField;
-import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
@@ -253,12 +253,12 @@ public class GetBuildHandler {
 		return tasks;
 	}
 
-	private List<GrpcGradleClosure> getPluginClosures(GradleProjectModel model) {
-		List<GrpcGradleClosure> closures = new ArrayList<>();
+	private List<GradleClosureProto> getPluginClosures(GradleProjectModel model) {
+		List<GradleClosureProto> closures = new ArrayList<>();
 		for (GradleClosure closure : model.getClosures()) {
-			GrpcGradleClosure.Builder closureBuilder = GrpcGradleClosure.newBuilder();
+			GradleClosureProto.Builder closureBuilder = GradleClosureProto.newBuilder();
 			for (GradleMethod method : closure.getMethods()) {
-				GrpcGradleMethod.Builder methodBuilder = GrpcGradleMethod.newBuilder();
+				GradleMethodProto.Builder methodBuilder = GradleMethodProto.newBuilder();
 				methodBuilder.setName(method.getName());
 				methodBuilder.addAllParameterTypes(method.getParameterTypes());
 				methodBuilder.setDeprecated(method.getDeprecated());
@@ -266,7 +266,7 @@ public class GetBuildHandler {
 			}
 			closureBuilder.setName(closure.getName());
 			for (GradleField field : closure.getFields()) {
-				GrpcGradleField.Builder fieldBuilder = GrpcGradleField.newBuilder();
+				GradleFieldProto.Builder fieldBuilder = GradleFieldProto.newBuilder();
 				fieldBuilder.setName(field.getName());
 				fieldBuilder.setDeprecated(field.getDeprecated());
 				closureBuilder.addFields(fieldBuilder.build());
