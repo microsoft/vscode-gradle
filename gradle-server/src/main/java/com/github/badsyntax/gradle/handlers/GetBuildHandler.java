@@ -3,7 +3,6 @@ package com.github.badsyntax.gradle.handlers;
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
 import com.github.badsyntax.gradle.Environment;
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GetBuildReply;
 import com.github.badsyntax.gradle.GetBuildRequest;
 import com.github.badsyntax.gradle.GetBuildResult;
@@ -19,6 +18,10 @@ import com.github.badsyntax.gradle.GrpcGradleMethod;
 import com.github.badsyntax.gradle.JavaEnvironment;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleStreamPayload;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
 import com.github.badsyntax.gradle.utils.PluginUtils;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
@@ -29,13 +32,13 @@ import com.microsoft.gradle.api.GradleMethod;
 import com.microsoft.gradle.api.GradleModelAction;
 import com.microsoft.gradle.api.GradleProjectModel;
 import io.github.g00fy2.versioncompare.Version;
-import io.grpc.stub.StreamObserver;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.gradle.internal.service.ServiceCreationException;
 import org.gradle.tooling.BuildActionExecuter;
 import org.gradle.tooling.BuildCancelledException;
@@ -55,24 +58,35 @@ public class GetBuildHandler {
 	private static final Logger logger = LoggerFactory.getLogger(GetBuildHandler.class.getName());
 
 	private GetBuildRequest req;
-	private StreamObserver<GetBuildReply> responseObserver;
+	private CompletableFuture<GradleResponse> response;
+	private GradleClient client;
+	private long streamId;
 	private ProgressListener progressListener;
 	private ByteBufferOutputStream standardOutputListener;
 	private ByteBufferOutputStream standardErrorListener;
 	private Environment environment;
+	// Guards write ordering of stream notifications for this single model query
+	// only. progress/stdout/stderr fire from different threads; serialising them
+	// keeps the notification order on this stream deterministic. It is
+	// intentionally a per-handler lock (not a class lock) so concurrent queries
+	// never block each other's output flushes.
+	private final Object streamLock = new Object();
 
-	public GetBuildHandler(GetBuildRequest req, StreamObserver<GetBuildReply> responseObserver) {
+	public GetBuildHandler(GetBuildRequest req, CompletableFuture<GradleResponse> response, GradleClient client,
+			long streamId) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.response = response;
+		this.client = client;
+		this.streamId = streamId;
 		this.progressListener = (ProgressEvent event) -> {
-			synchronized (GetBuildHandler.class) {
+			synchronized (streamLock) {
 				replyWithProgress(event);
 			}
 		};
 		this.standardOutputListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (GetBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardOutput(bytes);
 				}
 			}
@@ -80,7 +94,7 @@ public class GetBuildHandler {
 		this.standardErrorListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (GetBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardError(bytes);
 				}
 			}
@@ -94,7 +108,7 @@ public class GetBuildHandler {
 			replyWithBuildEnvironment(this.environment);
 			BuildActionExecuter<GradleProjectModel> action = connection.action(new GradleModelAction());
 			if (action == null) {
-				responseObserver.onCompleted();
+				response.complete(new GradleResponse(null));
 				return;
 			}
 			List<String> arguments = new ArrayList<>();
@@ -262,44 +276,57 @@ public class GetBuildHandler {
 		return closures;
 	}
 
+	// Stream notifications and the terminal response travel on two different
+	// channels (server->client notification vs. the request's response future).
+	// Invariant: every notify(...) for this streamId is enqueued before the
+	// response future is completed (replyWithProject/replyWithCancelled/
+	// replyWithError or the empty-terminal complete). Because LSP4J serialises
+	// all outbound writes on a single RemoteEndpoint, this guarantees the client
+	// observes all environment/progress/output before the terminal reply. Do not
+	// move notify(...) off this thread or after response.complete(...) without
+	// re-establishing that ordering.
+	private void notify(GetBuildReply reply) {
+		client.onGetBuildReply(new GradleStreamPayload(streamId, JsonRpcCodec.encode(reply)));
+	}
+
 	private void replyWithProject(GradleProject gradleProject) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		GetBuildReply reply = GetBuildReply.newBuilder()
 				.setGetBuildResult(
 						GetBuildResult.newBuilder().setBuild(GradleBuild.newBuilder().setProject(gradleProject)))
-				.build());
-		responseObserver.onCompleted();
+				.build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 
 	private void replyWithCancelled(BuildCancelledException e) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		GetBuildReply reply = GetBuildReply.newBuilder()
 				.setCancelled(Cancelled.newBuilder().setMessage(e.getMessage()).setProjectDir(req.getProjectDir()))
-				.build());
-		responseObserver.onCompleted();
+				.build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 
 	private void replyWithError(Exception e) {
-		responseObserver.onError(ErrorMessageBuilder.build(e));
+		response.completeExceptionally(JsonRpcCodec.error(JsonRpcCodec.ERROR_INTERNAL, e));
 	}
 
 	private void replyWithBuildEnvironment(Environment environment) {
-		responseObserver.onNext(GetBuildReply.newBuilder().setEnvironment(environment).build());
+		notify(GetBuildReply.newBuilder().setEnvironment(environment).build());
 	}
 
 	private void replyWithProgress(ProgressEvent progressEvent) {
-		responseObserver.onNext(GetBuildReply.newBuilder()
-				.setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName())).build());
+		notify(GetBuildReply.newBuilder().setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
+				.build());
 	}
 
 	private void replyWithStandardOutput(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		notify(GetBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setOutputBytes(byteString))
 				.build());
 	}
 
 	private void replyWithStandardError(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(GetBuildReply.newBuilder()
+		notify(GetBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDERR).setOutputBytes(byteString))
 				.build());
 	}
@@ -307,11 +334,11 @@ public class GetBuildHandler {
 	private void replyWithCompatibilityCheckError(String gradleVersion, String javaVersion) {
 		String errorMessage = "Could not use Gradle version " + gradleVersion + " and Java version " + javaVersion
 				+ " to configure the build. Please consider either to change your Java Runtime or your Gradle settings.";
-		responseObserver.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
+		notify(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
 	}
 
 	private void replyWithCompatibilityCheckError() {
 		String errorMessage = "The current Gradle version requires Java 8 or lower. Please consider to change your Gradle settings.";
-		responseObserver.onNext(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
+		notify(GetBuildReply.newBuilder().setCompatibilityCheckError(errorMessage).build());
 	}
 }

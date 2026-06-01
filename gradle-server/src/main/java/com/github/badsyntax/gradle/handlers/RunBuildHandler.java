@@ -2,7 +2,6 @@ package com.github.badsyntax.gradle.handlers;
 
 import com.github.badsyntax.gradle.ByteBufferOutputStream;
 import com.github.badsyntax.gradle.Cancelled;
-import com.github.badsyntax.gradle.ErrorMessageBuilder;
 import com.github.badsyntax.gradle.GradleBuildRunner;
 import com.github.badsyntax.gradle.Output;
 import com.github.badsyntax.gradle.Progress;
@@ -10,11 +9,15 @@ import com.github.badsyntax.gradle.RunBuildReply;
 import com.github.badsyntax.gradle.RunBuildRequest;
 import com.github.badsyntax.gradle.RunBuildResult;
 import com.github.badsyntax.gradle.exceptions.GradleBuildRunnerException;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleStreamPayload;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
 import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
-import io.grpc.stub.StreamObserver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import org.gradle.tooling.BuildCancelledException;
 import org.gradle.tooling.BuildException;
 import org.gradle.tooling.UnsupportedVersionException;
@@ -28,23 +31,34 @@ public class RunBuildHandler {
 	private static final Logger logger = LoggerFactory.getLogger(RunBuildHandler.class.getName());
 
 	private RunBuildRequest req;
-	private StreamObserver<RunBuildReply> responseObserver;
+	private CompletableFuture<GradleResponse> response;
+	private GradleClient client;
+	private long streamId;
 	private ProgressListener progressListener;
 	private ByteBufferOutputStream standardOutputListener;
 	private ByteBufferOutputStream standardErrorListener;
+	// Guards write ordering of stream notifications for this single build only.
+	// progress/stdout/stderr fire from different threads; serialising them keeps
+	// the notification order on this stream deterministic. It is intentionally a
+	// per-handler lock (not a class lock) so concurrent builds never block each
+	// other's output flushes.
+	private final Object streamLock = new Object();
 
-	public RunBuildHandler(RunBuildRequest req, StreamObserver<RunBuildReply> responseObserver) {
+	public RunBuildHandler(RunBuildRequest req, CompletableFuture<GradleResponse> response, GradleClient client,
+			long streamId) {
 		this.req = req;
-		this.responseObserver = responseObserver;
+		this.response = response;
+		this.client = client;
+		this.streamId = streamId;
 		this.progressListener = (ProgressEvent event) -> {
-			synchronized (RunBuildHandler.class) {
+			synchronized (streamLock) {
 				replyWithProgress(event);
 			}
 		};
 		this.standardOutputListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardOutput(bytes);
 				}
 			}
@@ -52,7 +66,7 @@ public class RunBuildHandler {
 		this.standardErrorListener = new ByteBufferOutputStream() {
 			@Override
 			public void onFlush(byte[] bytes) {
-				synchronized (RunBuildHandler.class) {
+				synchronized (streamLock) {
 					replyWithStandardError(bytes);
 				}
 			}
@@ -73,47 +87,69 @@ public class RunBuildHandler {
 		try {
 			gradleRunner.run();
 			replyWithSuccess();
-			responseObserver.onCompleted();
 		} catch (BuildCancelledException e) {
 			replyWithCancelled(e);
-			responseObserver.onCompleted();
-		} catch (BuildException | UnsupportedVersionException | UnsupportedBuildArgumentException
-				| IllegalStateException | IOException | GradleBuildRunnerException e) {
+		} catch (UnsupportedVersionException | UnsupportedBuildArgumentException e) {
+			// Client-caused: the request targeted an unsupported Gradle version or
+			// passed an invalid build argument. Report it as UNKNOWN ("bad request")
+			// so the TS client can tell it apart from an unexpected server failure
+			// (INTERNAL). Mirrors the convention in ExecuteCommandHandler.
+			logger.error(e.getMessage());
+			replyWithError(JsonRpcCodec.ERROR_UNKNOWN, e);
+		} catch (BuildException | IllegalStateException | IOException | GradleBuildRunnerException e) {
 			logger.error(e.getMessage());
 			replyWithError(e);
 		}
 	}
 
 	public void replyWithCancelled(BuildCancelledException e) {
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		RunBuildReply reply = RunBuildReply.newBuilder()
 				.setCancelled(Cancelled.newBuilder().setMessage(e.getMessage()).setProjectDir(req.getProjectDir()))
-				.build());
+				.build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 
 	public void replyWithError(Exception e) {
-		responseObserver.onError(ErrorMessageBuilder.build(e));
+		replyWithError(JsonRpcCodec.ERROR_INTERNAL, e);
+	}
+
+	public void replyWithError(int code, Exception e) {
+		response.completeExceptionally(JsonRpcCodec.error(code, e));
 	}
 
 	public void replyWithSuccess() {
-		responseObserver.onNext(RunBuildReply.newBuilder()
-				.setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build")).build());
+		RunBuildReply reply = RunBuildReply.newBuilder()
+				.setRunBuildResult(RunBuildResult.newBuilder().setMessage("Successfully run build")).build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
+	}
+
+	// Stream notifications and the terminal response travel on two different
+	// channels (server->client notification vs. the request's response future).
+	// Invariant: every notify(...) for this streamId is enqueued before the
+	// response future is completed by replyWithSuccess/replyWithCancelled/
+	// replyWithError. Because LSP4J serialises all outbound writes on a single
+	// RemoteEndpoint, this guarantees the client observes all progress/output
+	// before the terminal reply. Do not move notify(...) off this thread or
+	// after response.complete(...) without re-establishing that ordering.
+	private void notify(RunBuildReply reply) {
+		client.onRunBuildReply(new GradleStreamPayload(streamId, JsonRpcCodec.encode(reply)));
 	}
 
 	private void replyWithProgress(ProgressEvent progressEvent) {
-		responseObserver.onNext(RunBuildReply.newBuilder()
-				.setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName())).build());
+		notify(RunBuildReply.newBuilder().setProgress(Progress.newBuilder().setMessage(progressEvent.getDisplayName()))
+				.build());
 	}
 
 	private void replyWithStandardOutput(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		notify(RunBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDOUT).setOutputBytes(byteString))
 				.build());
 	}
 
 	private void replyWithStandardError(byte[] bytes) {
 		ByteString byteString = ByteString.copyFrom(bytes);
-		responseObserver.onNext(RunBuildReply.newBuilder()
+		notify(RunBuildReply.newBuilder()
 				.setOutput(Output.newBuilder().setOutputType(Output.OutputType.STDERR).setOutputBytes(byteString))
 				.build());
 	}

@@ -1,6 +1,7 @@
 package com.github.badsyntax.gradle;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -8,11 +9,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.*;
 
-import io.grpc.ManagedChannel;
-import io.grpc.inprocess.InProcessChannelBuilder;
-import io.grpc.inprocess.InProcessServerBuilder;
-import io.grpc.stub.StreamObserver;
-import io.grpc.testing.GrpcCleanupRule;
+import com.github.badsyntax.gradle.handlers.GetBuildHandler;
+import com.github.badsyntax.gradle.handlers.RunBuildHandler;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleStreamPayload;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -24,10 +26,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.gradle.tooling.events.OperationType;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -40,31 +42,23 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PrepareForTest(org.gradle.tooling.GradleConnector.class)
 @SuppressWarnings(value = "unchecked")
 public class GradleServerTest {
-	@Rule
-	public final GrpcCleanupRule grpcCleanup = new GrpcCleanupRule();
-
-	private GradleServer server;
-	private GradleGrpc.GradleStub stub;
-	private ManagedChannel inProcessChannel;
 	private File mockProjectDir;
 	private File mockGradleUserHome;
 	private File mockJavaHome;
 	private List<String> mockJvmArgs;
 	private List<String> mockBuildArgs;
 
+	private GradleClient mockClient;
+
 	@Before
 	public void setUp() throws Exception {
-		String serverName = InProcessServerBuilder.generateName();
-		server = new GradleServer(InProcessServerBuilder.forName(serverName).directExecutor(), 0);
-		server.start();
-		inProcessChannel = grpcCleanup.register(InProcessChannelBuilder.forName(serverName).directExecutor().build());
 		mockProjectDir = new File(Files.createTempDirectory("mockProjectDir").toAbsolutePath().toString());
 		mockGradleUserHome = new File(Files.createTempDirectory("mockGradleUserHome").toAbsolutePath().toString());
 		mockJavaHome = new File("/path/to/jdk");
 		mockJvmArgs = new ArrayList<>();
 		mockBuildArgs = new ArrayList<>();
 		mockBuildArgs.add("test");
-		stub = GradleGrpc.newStub(inProcessChannel);
+		mockClient = mock(GradleClient.class);
 		setupMocks();
 	}
 
@@ -151,48 +145,67 @@ public class GradleServerTest {
 
 	@After
 	public void tearDown() throws Exception {
-		server.stop();
 		mockProjectDir.delete();
 		mockGradleUserHome.delete();
 	}
 
+	private CompletableFuture<GradleResponse> runGetBuild(GetBuildRequest req) {
+		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
+		new GetBuildHandler(req, future, mockClient, 1L).run();
+		return future;
+	}
+
+	private CompletableFuture<GradleResponse> runRunBuild(RunBuildRequest req) {
+		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
+		new RunBuildHandler(req, future, mockClient, 1L).run();
+		return future;
+	}
+
+	private static void assertSuccess(CompletableFuture<GradleResponse> future) {
+		assertFalse("Handler future completed exceptionally: " + (future.isCompletedExceptionally() ? future : ""),
+				future.isCompletedExceptionally());
+	}
+
+	private static org.eclipse.lsp4j.jsonrpc.messages.ResponseError errorOf(CompletableFuture<GradleResponse> future) {
+		assertTrue("Expected the handler future to complete exceptionally", future.isCompletedExceptionally());
+		try {
+			future.join();
+		} catch (java.util.concurrent.CompletionException e) {
+			Throwable cause = e.getCause();
+			assertTrue("Expected a ResponseErrorException but got: " + cause,
+					cause instanceof org.eclipse.lsp4j.jsonrpc.ResponseErrorException);
+			return ((org.eclipse.lsp4j.jsonrpc.ResponseErrorException) cause).getResponseError();
+		}
+		throw new AssertionError("Expected the handler future to complete exceptionally");
+	}
+
 	@Test
 	public void getBuild_shouldSetProjectDirectory() throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
-		stub.getBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 		verify(mockConnector).forProjectDirectory(mockProjectDir);
 	}
 
 	@Test
 	public void getBuild_shouldUseGradleUserHome() throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setUserHome(mockGradleUserHome.getAbsolutePath().toString())
 						.setWrapperEnabled(true))
 				.build();
 
-		stub.getBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 		verify(mockConnector).useGradleUserHomeDir(mockGradleUserHome);
 	}
 
 	@Test
 	public void getBuild_shouldUseInternalVersionIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
 			throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false)).build();
 
-		stub.getBuild(req, mockResponseObserver);
-		mockResponseObserver.onCompleted();
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 		File gradleHomeFile = GradleProjectConnector.getSystemGradleHome();
 		if (gradleHomeFile != null) {
 			verify(mockConnector).useInstallation(gradleHomeFile);
@@ -203,60 +216,46 @@ public class GradleServerTest {
 
 	@Test
 	public void getBuild_shouldSetGradleVersionWrapperNotEnabledVersionSpecified() throws Exception {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false).setVersion("6.3")).build();
 
-		stub.getBuild(req, mockResponseObserver);
-		mockResponseObserver.onCompleted();
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 		verify(mockConnector).useGradleVersion("6.3");
 	}
 
 	@Test
 	public void getBuild_shouldUseJvmArgs() throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		String jvmArgs = "-Xmx64m -Xms64m";
 
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setJvmArguments(jvmArgs).setWrapperEnabled(true)).build();
 
-		stub.getBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 		verify(mockBuildEnvironmentBuilder).setJvmArguments(jvmArgs.split(" "));
 	}
 
 	@Test
 	public void getBuild_shouldSetColorOutput() throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req1 = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).setShowOutputColors(false).build();
 
-		stub.getBuild(req1, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req1));
 		verify(mockBuildEnvironmentBuilder).setColorOutput(false);
 
 		GetBuildRequest req2 = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).setShowOutputColors(true).build();
-		stub.getBuild(req2, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req2));
 		verify(mockBuildEnvironmentBuilder).setColorOutput(true);
 	}
 
 	@Test
 	public void getBuild_shouldStreamCorrectProgressEvents() throws IOException {
-		StreamObserver<GetBuildReply> mockResponseObserver = (StreamObserver<GetBuildReply>) mock(StreamObserver.class);
-
 		GetBuildRequest req = GetBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).setShowOutputColors(true).build();
 
 		ArgumentCaptor<Set<OperationType>> onAddProgressListener = ArgumentCaptor.forClass(Set.class);
 
-		stub.getBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runGetBuild(req));
 
 		verify(mockBuildEnvironmentBuilder).addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
 				onAddProgressListener.capture());
@@ -267,41 +266,31 @@ public class GradleServerTest {
 
 	@Test
 	public void runBuild_shouldSetProjectDirectory() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockConnector).forProjectDirectory(mockProjectDir);
 	}
 
 	@Test
 	public void runBuild_shouldUseGradleUserHome() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder()
 						.setUserHome(mockGradleUserHome.getAbsolutePath().toString()).setWrapperEnabled(true))
 				.build();
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockConnector).useGradleUserHomeDir(mockGradleUserHome);
 	}
 
 	@Test
 	public void runBuild_shouldUseInternalVersionIfWrapperNotEnabledAndNoVersionAndNoGradleHomeSpecified()
 			throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false)).build();
 
-		stub.runBuild(req, mockResponseObserver);
-		mockResponseObserver.onCompleted();
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		File gradleHomeFile = GradleProjectConnector.getSystemGradleHome();
 		if (gradleHomeFile != null) {
 			verify(mockConnector).useInstallation(gradleHomeFile);
@@ -312,48 +301,37 @@ public class GradleServerTest {
 
 	@Test
 	public void runBuild_shouldSetGradleVersionWrapperNotEnabledVersionSpecified() throws Exception {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(false).setVersion("6.3")).build();
 
-		stub.runBuild(req, mockResponseObserver);
-		mockResponseObserver.onCompleted();
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockConnector).useGradleVersion("6.3");
 	}
 
 	@Test
 	public void runBuild_shouldUseJvmArgs() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		String jvmArgs = "-Xmx64m -Xms64m";
 
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setJvmArguments(jvmArgs).setWrapperEnabled(true)).build();
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockBuildLauncher).setJvmArguments(jvmArgs);
 	}
 
 	@Test
 	public void runBuild_shouldUseInitScriptForDebug() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setJavaDebugPort(1111).addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
 		ArgumentCaptor<List<String>> argumentsCaptor = ArgumentCaptor.forClass(List.class);
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
 
-		// Verify init-script argument is added for debugging
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
 		int initScriptIndex = capturedArgs.indexOf("--init-script");
@@ -361,34 +339,26 @@ public class GradleServerTest {
 		assertTrue("Init script path should contain vscode-gradle-debug-init",
 				capturedArgs.get(initScriptIndex + 1).contains("vscode-gradle-debug-init"));
 
-		// Verify debug port is passed as a system property argument
 		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
 
-		// Verify JAVA_TOOL_OPTIONS is NOT set when only debugging (no
-		// additionalToolOptions)
 		verify(mockBuildLauncher, never()).setEnvironmentVariables(any());
 	}
 
 	@Test
 	public void runBuild_shouldSetToolOptionsVar() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setAdditionalToolOptions("-agentpath:test").addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
 
 		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
 		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
 	}
 
 	@Test
 	public void runBuild_shouldSetToolOptionsVarWithDebug() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.setAdditionalToolOptions("-agentpath:test").setJavaDebugPort(1111).addAllArgs(mockBuildArgs)
 				.setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
@@ -396,33 +366,26 @@ public class GradleServerTest {
 		ArgumentCaptor<HashMap<String, String>> setEnvironmentVariables = ArgumentCaptor.forClass(HashMap.class);
 		ArgumentCaptor<List<String>> argumentsCaptor = ArgumentCaptor.forClass(List.class);
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 
-		// Verify init-script and debug port system property are added
 		verify(mockBuildLauncher).withArguments(argumentsCaptor.capture());
 		List<String> capturedArgs = argumentsCaptor.getValue();
 		assertTrue("Expected --init-script argument for debugging", capturedArgs.contains("--init-script"));
 		assertTrue("Expected -Dvscode.debug.port argument", capturedArgs.contains("-Dvscode.debug.port=1111"));
 
-		// Verify JAVA_TOOL_OPTIONS contains only additionalToolOptions
-		// (not debug agent)
 		verify(mockBuildLauncher).setEnvironmentVariables(setEnvironmentVariables.capture());
 		assertEquals("-agentpath:test", setEnvironmentVariables.getValue().get("JAVA_TOOL_OPTIONS"));
 	}
 
 	@Test
 	public void runBuild_shouldSetStandardInput() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
 				.setInput("An input string").build();
 
 		ArgumentCaptor<InputStream> inputStream = ArgumentCaptor.forClass(InputStream.class);
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockBuildLauncher).setStandardInput(inputStream.capture());
 		InputStreamReader isReader = new InputStreamReader(inputStream.getValue());
 		BufferedReader reader = new BufferedReader(isReader);
@@ -436,37 +399,30 @@ public class GradleServerTest {
 
 	@Test
 	public void runBuild_shouldSetColorOutput() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req1 = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
 				.setShowOutputColors(false).build();
 
-		stub.runBuild(req1, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req1));
 		verify(mockBuildLauncher).setColorOutput(false);
 
 		RunBuildRequest req2 = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
 				.setShowOutputColors(true).build();
 
-		stub.runBuild(req2, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req2));
 		verify(mockBuildLauncher).setColorOutput(true);
 	}
 
 	@Test
 	public void runBuild_shouldStreamCorrectProgressEvents() throws IOException {
-		StreamObserver<RunBuildReply> mockResponseObserver = (StreamObserver<RunBuildReply>) mock(StreamObserver.class);
-
 		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
 				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
 				.setShowOutputColors(true).build();
 
 		ArgumentCaptor<Set<OperationType>> onAddProgressListener = ArgumentCaptor.forClass(Set.class);
 
-		stub.runBuild(req, mockResponseObserver);
-		verify(mockResponseObserver, never()).onError(any());
+		assertSuccess(runRunBuild(req));
 		verify(mockBuildLauncher).addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
 				onAddProgressListener.capture());
 
@@ -474,5 +430,78 @@ public class GradleServerTest {
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.PROJECT_CONFIGURATION));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TASK));
 		assertTrue(onAddProgressListener.getValue().contains(OperationType.TRANSFORM));
+	}
+
+	@Test
+	public void runBuild_streamNotificationsPrecedeTerminalResponse() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.setShowOutputColors(true).build();
+
+		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
+
+		// Record, for every stream notification, whether the response future had
+		// already completed. The ordering invariant requires every notification to
+		// be emitted while the terminal response is still pending.
+		List<Boolean> futureDoneAtNotify = new ArrayList<>();
+		List<Long> notifiedStreamIds = new ArrayList<>();
+		GradleClient orderingClient = mock(GradleClient.class);
+		doAnswer(invocation -> {
+			GradleStreamPayload payload = invocation.getArgument(0);
+			notifiedStreamIds.add(payload.getStreamId());
+			futureDoneAtNotify.add(future.isDone());
+			return null;
+		}).when(orderingClient).onRunBuildReply(any(GradleStreamPayload.class));
+
+		// Capture the progress listener the handler registers so the mocked build
+		// run can drive a mid-build progress event (which fans out to a stream
+		// notification through the handler's streamLock-guarded path).
+		final org.gradle.tooling.events.ProgressListener[] listenerHolder = new org.gradle.tooling.events.ProgressListener[1];
+		when(mockBuildLauncher.addProgressListener(any(org.gradle.tooling.events.ProgressListener.class),
+				ArgumentMatchers.<Set<OperationType>>any())).thenAnswer(inv -> {
+					listenerHolder[0] = inv.getArgument(0);
+					return mockBuildLauncher;
+				});
+		doAnswer(invocation -> {
+			org.gradle.tooling.events.ProgressEvent event = mock(org.gradle.tooling.events.ProgressEvent.class);
+			when(event.getDisplayName()).thenReturn("configuring");
+			listenerHolder[0].statusChanged(event);
+			return null;
+		}).when(mockBuildLauncher).run();
+
+		new RunBuildHandler(req, future, orderingClient, 99L).run();
+
+		assertSuccess(future);
+		assertFalse("Expected at least one stream notification during the build", futureDoneAtNotify.isEmpty());
+		for (Boolean doneAtNotify : futureDoneAtNotify) {
+			assertFalse("Stream notification must be emitted before the terminal response completes", doneAtNotify);
+		}
+		for (Long id : notifiedStreamIds) {
+			assertEquals(Long.valueOf(99L), id);
+		}
+	}
+
+	@Test
+	public void runBuild_unsupportedVersion_isReportedAsUnknown() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		doThrow(new org.gradle.tooling.UnsupportedVersionException("Gradle version too old")).when(mockBuildLauncher)
+				.run();
+
+		org.eclipse.lsp4j.jsonrpc.messages.ResponseError error = errorOf(runRunBuild(req));
+		assertEquals(JsonRpcCodec.ERROR_UNKNOWN, error.getCode());
+	}
+
+	@Test
+	public void runBuild_buildFailure_isReportedAsInternal() throws Exception {
+		RunBuildRequest req = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath().toString())
+				.addAllArgs(mockBuildArgs).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true)).build();
+
+		doThrow(new org.gradle.tooling.BuildException("compilation failed", new RuntimeException("boom")))
+				.when(mockBuildLauncher).run();
+
+		org.eclipse.lsp4j.jsonrpc.messages.ResponseError error = errorOf(runRunBuild(req));
+		assertEquals(JsonRpcCodec.ERROR_INTERNAL, error.getCode());
 	}
 }

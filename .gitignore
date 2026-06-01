@@ -33,3 +33,6 @@ gradle-server/src/main/resources/*.jar
 
 # Ignore user-specified .tool-versions file (asdf-vm configuration)
 .tool-versions
+
+# Local-only working notes (never commit)
+*.local.md

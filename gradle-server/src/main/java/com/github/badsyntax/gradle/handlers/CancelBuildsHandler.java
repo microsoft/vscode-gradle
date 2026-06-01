@@ -3,17 +3,19 @@ package com.github.badsyntax.gradle.handlers;
 import com.github.badsyntax.gradle.CancelBuildsReply;
 import com.github.badsyntax.gradle.GradleBuildCancellation;
 import com.github.badsyntax.gradle.exceptions.GradleCancellationException;
-import io.grpc.stub.StreamObserver;
+import com.github.badsyntax.gradle.transport.jsonrpc.GradleResponse;
+import com.github.badsyntax.gradle.transport.jsonrpc.JsonRpcCodec;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CancelBuildsHandler {
 	private static final Logger logger = LoggerFactory.getLogger(CancelBuildsHandler.class.getName());
 
-	private StreamObserver<CancelBuildsReply> responseObserver;
+	private CompletableFuture<GradleResponse> response;
 
-	public CancelBuildsHandler(StreamObserver<CancelBuildsReply> responseObserver) {
-		this.responseObserver = responseObserver;
+	public CancelBuildsHandler(CompletableFuture<GradleResponse> response) {
+		this.response = response;
 	}
 
 	public void run() {
@@ -23,16 +25,16 @@ public class CancelBuildsHandler {
 		} catch (GradleCancellationException e) {
 			logger.error(e.getMessage());
 			replyWithCancelError(e);
-		} finally {
-			responseObserver.onCompleted();
 		}
 	}
 
 	private void replyWithCancelledSuccess() {
-		responseObserver.onNext(CancelBuildsReply.newBuilder().setMessage("Cancel builds requested").build());
+		CancelBuildsReply reply = CancelBuildsReply.newBuilder().setMessage("Cancel builds requested").build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 
 	private void replyWithCancelError(Exception e) {
-		responseObserver.onNext(CancelBuildsReply.newBuilder().setMessage(e.getMessage()).build());
+		CancelBuildsReply reply = CancelBuildsReply.newBuilder().setMessage(e.getMessage()).build();
+		response.complete(new GradleResponse(JsonRpcCodec.encode(reply)));
 	}
 }
