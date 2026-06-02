@@ -92,6 +92,20 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
 
             const reader = new SocketMessageReader(socket);
             const writer = new SocketMessageWriter(socket);
+
+            // gRPC managed connection state internally; with a raw socket we
+            // must attach our own handlers so a peer reset / process exit can
+            // never surface as an uncaught 'error' event, and so socket
+            // lifecycle is visible in the transport log. Connection teardown is
+            // driven by the MessageConnection's own onClose (GradleJsonRpcClient
+            // observes it); these handlers only guard and trace.
+            socket.on("error", (socketErr) => {
+                options.logger?.error(`gradle-server loopback socket error: ${socketErr.message}`);
+            });
+            socket.on("close", (hadError) => {
+                options.logger?.info(`gradle-server loopback socket closed${hadError ? " after error" : ""}`);
+            });
+
             const conn = createMessageConnection(reader, writer, options.logger);
             resolve(conn);
         });

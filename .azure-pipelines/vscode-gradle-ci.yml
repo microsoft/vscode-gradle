@@ -90,6 +90,11 @@ extends:
                     sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
               - task: Gradle@3
                 displayName: Test VSCode
+                # The VS Code integration tests spin up real Gradle builds and
+                # are timing-sensitive on shared agents. GitHub Actions wraps
+                # this step in a 3-attempt retry; mirror that here so a single
+                # flaky run doesn't fail the pipeline (1 initial + 2 retries).
+                retryCountOnTaskFailure: 2
                 env:
                   DISPLAY: ":99.0"
                 inputs:

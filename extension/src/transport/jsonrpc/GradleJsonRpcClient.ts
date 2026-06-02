@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-import { Disposable, MessageConnection, NotificationType, RequestType } from "vscode-jsonrpc";
+import { Disposable, Emitter, Event, MessageConnection, NotificationType, RequestType } from "vscode-jsonrpc";
 import {
     CancelBuildReply,
     CancelBuildRequest,
@@ -62,6 +62,19 @@ export class GradleJsonRpcClient implements Disposable {
     private readonly getBuildSinks = new Map<number, StreamSink<GetBuildReply>>();
     private readonly runBuildSinks = new Map<number, StreamSink<RunBuildReply>>();
     private readonly disposables: Disposable[] = [];
+    private readonly _onClosed = new Emitter<Error | undefined>();
+    private closed = false;
+    private lastError: Error | undefined;
+
+    /**
+     * Fires once when the underlying connection dies — either because the
+     * `gradle-server` socket closed (process exit / peer reset) or because a
+     * transport-level read/write error tore it down. Owners should dispose the
+     * client and stop issuing requests in response; further calls reject with a
+     * handled {@link GradleRpcError} instead of leaking an unhandled
+     * "Cannot call write after a stream was destroyed" rejection.
+     */
+    public readonly onClosed: Event<Error | undefined> = this._onClosed.event;
 
     public constructor(private readonly connection: MessageConnection) {
         this.disposables.push(
@@ -78,6 +91,22 @@ export class GradleJsonRpcClient implements Disposable {
                 if (sink) {
                     sink(RunBuildReply.deserializeBinary(decodeProto(params.payload)));
                 }
+            })
+        );
+
+        // The raw-socket transport does not heal connection loss the way gRPC
+        // did internally, so we must observe it explicitly. `onError` surfaces
+        // transport read/write failures (the socket-destroyed write throw is
+        // re-fired here); `onClose` fires when the reader/writer sees EOF and
+        // vscode-jsonrpc transitions the connection to Closed.
+        this.disposables.push(
+            this.connection.onError(([error]) => {
+                this.lastError = error;
+            })
+        );
+        this.disposables.push(
+            this.connection.onClose(() => {
+                this.markClosed(this.lastError);
             })
         );
 
@@ -123,6 +152,7 @@ export class GradleJsonRpcClient implements Disposable {
     }
 
     public dispose(): void {
+        this.closed = true;
         for (const d of this.disposables) {
             try {
                 d.dispose();
@@ -143,6 +173,26 @@ export class GradleJsonRpcClient implements Disposable {
         } catch {
             // best-effort
         }
+        this._onClosed.dispose();
+    }
+
+    private markClosed(err: Error | undefined): void {
+        if (this.closed) {
+            return;
+        }
+        this.closed = true;
+        this._onClosed.fire(err);
+    }
+
+    /**
+     * Fail fast when the connection is already dead so callers get a handled
+     * {@link GradleRpcError} rather than triggering a write on a destroyed
+     * socket (which vscode-jsonrpc would surface as an unhandled rejection).
+     */
+    private ensureOpen(): void {
+        if (this.closed) {
+            throw toGradleRpcError(new Error("Gradle JSON-RPC connection is closed."));
+        }
     }
 
     private async runUnaryRequest<TRequest extends { serializeBinary(): Uint8Array }, TReply>(
@@ -150,6 +200,7 @@ export class GradleJsonRpcClient implements Disposable {
         request: TRequest,
         deserialize: (bytes: Uint8Array) => TReply
     ): Promise<TReply | null> {
+        this.ensureOpen();
         try {
             const response = await this.connection.sendRequest(type, {
                 request: encodeProto(request.serializeBinary()),
@@ -168,6 +219,7 @@ export class GradleJsonRpcClient implements Disposable {
         sinkMap: Map<number, StreamSink<TReply>>,
         deserialize: (bytes: Uint8Array) => TReply
     ): Promise<TReply | null> {
+        this.ensureOpen();
         const streamId = nextStreamId();
         sinkMap.set(streamId, onReply);
         try {

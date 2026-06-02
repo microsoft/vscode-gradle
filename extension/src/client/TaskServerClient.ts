@@ -50,6 +50,7 @@ function errorDetails(err: unknown): string {
 
 export class TaskServerClient implements vscode.Disposable {
     private rpcClient: GradleJsonRpcClient | null = null;
+    private rpcClientClosedHandler: vscode.Disposable | undefined;
     private readonly cancelledProjectDependencies: Set<string> = new Set();
     private readonly _onDidConnect: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
@@ -96,6 +97,17 @@ export class TaskServerClient implements vscode.Disposable {
         try {
             const connection = await this.server.awaitTaskConnection();
             this.rpcClient = new GradleJsonRpcClient(connection);
+            // The raw-socket transport can die between gradle-server process
+            // exits (peer reset, crash). Proactively tear down the stale client
+            // so subsequent task loads don't write to a destroyed socket and
+            // silently drop a project's tasks.
+            this.rpcClientClosedHandler?.dispose();
+            this.rpcClientClosedHandler = this.rpcClient.onClosed((err) => {
+                if (err) {
+                    logger.error(`Gradle client connection closed unexpectedly: ${errorDetails(err)}`);
+                }
+                this.close();
+            });
             logger.info("Gradle client connected to server");
             this._onDidConnect.fire(null);
         } catch (err) {
@@ -431,6 +443,8 @@ export class TaskServerClient implements vscode.Disposable {
 
     public close(): void {
         this.statusBarItem.hide();
+        this.rpcClientClosedHandler?.dispose();
+        this.rpcClientClosedHandler = undefined;
         this.rpcClient?.dispose();
         this.rpcClient = null;
     }
