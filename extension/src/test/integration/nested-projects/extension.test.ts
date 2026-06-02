@@ -47,9 +47,17 @@ describe(getSuiteName("Extension"), () => {
             });
 
             beforeEach(async () => {
+                // Nested projects load sequentially, so a non-empty task list
+                // does not mean every project finished configuring. Retry until
+                // the tasks this suite asserts on are actually present (or the
+                // budget is exhausted) instead of breaking on the first project
+                // that loads — otherwise a slow/contended agent surfaces a
+                // partial load as a hard assertion failure.
+                const expectedTaskNames = ["helloGroovyDefault", "helloKotlinDefault", "helloGroovyCustom"];
                 for (let i = 0; i < 5; i++) {
                     tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                    if (tasks.length > 0) {
+                    const loadedAll = expectedTaskNames.every((name) => tasks!.some((task) => task.name === name));
+                    if (loadedAll) {
                         break;
                     }
                     await sleep(5 * 1000);

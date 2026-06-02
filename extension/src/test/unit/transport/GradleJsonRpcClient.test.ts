@@ -57,6 +57,7 @@ const RUN_BUILD_REPLY_NOTIF = new NotificationType<GradleStreamPayload>("gradle/
 function wirePair(): {
     client: MessageConnection;
     server: MessageConnection;
+    killTransport: () => void;
     dispose: () => void;
 } {
     const clientToServer = new PassThrough();
@@ -76,6 +77,13 @@ function wirePair(): {
     return {
         client,
         server,
+        // Simulate the gradle-server socket dying without first disposing the
+        // client connection — destroying the stream the client reads from makes
+        // its reader see EOF, which is what fires the connection's onClose.
+        killTransport: () => {
+            serverToClient.destroy();
+            clientToServer.destroy();
+        },
         dispose: () => {
             try {
                 client.dispose();
@@ -328,6 +336,33 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
                 client.executeCommand(new ExecuteCommandRequest()),
                 (err: Error & { code?: number }) => {
                     assert.strictEqual(err.code, JsonRpcErrors.INTERNAL);
+                    return true;
+                }
+            );
+        });
+
+        it("fires onClosed and rejects further requests when the connection dies", async () => {
+            const closedErrors: Array<Error | undefined> = [];
+            const closed = new Promise<void>((resolve) =>
+                client.onClosed((err) => {
+                    closedErrors.push(err);
+                    resolve();
+                })
+            );
+
+            // Kill the transport (gradle-server socket death) while the client
+            // connection is still listening, so its reader sees EOF.
+            wired.killTransport();
+            await closed;
+
+            assert.strictEqual(closedErrors.length, 1, "onClosed must fire exactly once");
+
+            // After death, a request must surface as a handled GradleRpcError
+            // rather than an unhandled "write after destroyed" rejection.
+            await assert.rejects(
+                client.getProjectDependencies(new GetProjectDependenciesRequest()),
+                (err: Error & { code?: number }) => {
+                    assert.strictEqual(err.code, JsonRpcErrors.UNKNOWN);
                     return true;
                 }
             );
