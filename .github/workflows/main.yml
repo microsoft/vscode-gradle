@@ -38,6 +38,17 @@ jobs:
           path: extension/build-server-for-gradle
       - name: Build Jars
         run: |
+          configure_gradle_wrapper() {
+            local properties="$1"
+            sed -i 's#https\\://services.gradle.org/distributions/#https\\://downloads.gradle.org/distributions/#' "$properties"
+            sed -i 's#https://services.gradle.org/distributions/#https://downloads.gradle.org/distributions/#' "$properties"
+            if grep -q '^networkTimeout=' "$properties"; then
+              sed -i 's/^networkTimeout=.*/networkTimeout=60000/' "$properties"
+            else
+              printf '\nnetworkTimeout=60000\n' >> "$properties"
+            fi
+          }
+
           retry_gradle() {
             local gradlew="$1"
             for attempt in 1 2 3 4 5; do
@@ -51,6 +62,8 @@ jobs:
             done
           }
 
+          configure_gradle_wrapper ../gradle/wrapper/gradle-wrapper.properties
+          configure_gradle_wrapper ./build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
           retry_gradle ../gradlew
           retry_gradle ./build-server-for-gradle/gradlew
           ../gradlew buildJars
