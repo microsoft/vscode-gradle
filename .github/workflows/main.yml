@@ -38,15 +38,21 @@ jobs:
           path: extension/build-server-for-gradle
       - name: Build Jars
         run: |
-          for attempt in 1 2 3 4 5; do
-            if ../gradlew --version; then
-              break
-            fi
-            if [ "$attempt" -eq 5 ]; then
-              exit 1
-            fi
-            sleep $((attempt * 15))
-          done
+          retry_gradle() {
+            local gradlew="$1"
+            for attempt in 1 2 3 4 5; do
+              if "$gradlew" --version; then
+                return 0
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                return 1
+              fi
+              sleep $((attempt * 15))
+            done
+          }
+
+          retry_gradle ../gradlew
+          retry_gradle ./build-server-for-gradle/gradlew
           ../gradlew buildJars
         working-directory: extension/
       - name: Lint
