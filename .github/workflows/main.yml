@@ -37,7 +37,17 @@ jobs:
           repository: microsoft/build-server-for-gradle
           path: extension/build-server-for-gradle
       - name: Build Jars
-        run: ../gradlew buildJars
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if ../gradlew --version; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
+          ../gradlew buildJars
         working-directory: extension/
       - name: Lint
         uses: gradle/gradle-build-action@v2
