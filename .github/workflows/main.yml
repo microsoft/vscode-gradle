@@ -113,6 +113,19 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: "temurin"
+      - name: Configure Gradle wrapper downloads
+        shell: pwsh
+        run: |
+          $properties = "gradle/wrapper/gradle-wrapper.properties"
+          $content = Get-Content -Path $properties -Raw
+          $content = $content -replace 'https\\://services\.gradle\.org/distributions/', 'https\://downloads.gradle.org/distributions/'
+          $content = $content -replace 'https://services\.gradle\.org/distributions/', 'https://downloads.gradle.org/distributions/'
+          if ($content -match '(?m)^networkTimeout=') {
+            $content = $content -replace '(?m)^networkTimeout=.*$', 'networkTimeout=60000'
+          } else {
+            $content = $content.TrimEnd() + "`nnetworkTimeout=60000`n"
+          }
+          Set-Content -Path $properties -Value $content -NoNewline
       - name: Cache vscode
         uses: actions/cache@v4
         with:
