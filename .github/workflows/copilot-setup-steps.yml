@@ -69,6 +69,18 @@ jobs:
         run: ../gradlew buildJars
         working-directory: extension/
 
+      # Produces extension/lib (incl. the `gradle-server` start script via
+      # :gradle-server:serverStartScripts), extension/dist and extension/out —
+      # the same outputs the `build-and-analyse` job uploads as the `lib`
+      # artifact and `test-extension` consumes. `buildJars` alone does not
+      # create the launcher script.
+      - name: Build extension and gradle-server
+        run: ../gradlew build
+        working-directory: extension/
+        env:
+          JAVA_HOME: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
       - name: Install extension dependencies
         working-directory: extension/
         run: npm ci
