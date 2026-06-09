@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -261,12 +262,21 @@ public class Utils {
   }
 
   /**
-   * Extracts the jar file from the aar file, since JDT.LS is not able to understand
-   * the structure of aar files.
-  */
+   * Returns a file that can be added as a JDT library entry.
+   *
+   * @return the input directory, jar, zip, or extracted AAR classes jar; {@code null} when the
+   *         artifact cannot be used on a Java classpath
+   */
   public static File getJarFile(File file) {
+    if (file.isDirectory()) {
+      return file;
+    }
 
-    String filepath = file.getAbsolutePath();
+    String filepath = file.getAbsolutePath().toLowerCase(Locale.ROOT);
+
+    if (filepath.endsWith(".jar") || filepath.endsWith(".zip")) {
+      return file;
+    }
 
     if (filepath.endsWith(".aar")) {
 
@@ -297,7 +307,7 @@ public class Utils {
 
     }
 
-    return file;
+    return null;
 
   }
 

@@ -37,7 +37,36 @@ jobs:
           repository: microsoft/build-server-for-gradle
           path: extension/build-server-for-gradle
       - name: Build Jars
-        run: ../gradlew buildJars
+        run: |
+          configure_gradle_wrapper() {
+            local properties="$1"
+            sed -i 's#https\\://services.gradle.org/distributions/#https\\://downloads.gradle.org/distributions/#' "$properties"
+            sed -i 's#https://services.gradle.org/distributions/#https://downloads.gradle.org/distributions/#' "$properties"
+            if grep -q '^networkTimeout=' "$properties"; then
+              sed -i 's/^networkTimeout=.*/networkTimeout=60000/' "$properties"
+            else
+              printf '\nnetworkTimeout=60000\n' >> "$properties"
+            fi
+          }
+
+          retry_gradle() {
+            local gradlew="$1"
+            for attempt in 1 2 3 4 5; do
+              if "$gradlew" --version; then
+                return 0
+              fi
+              if [ "$attempt" -eq 5 ]; then
+                return 1
+              fi
+              sleep $((attempt * 15))
+            done
+          }
+
+          configure_gradle_wrapper ../gradle/wrapper/gradle-wrapper.properties
+          configure_gradle_wrapper ./build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
+          retry_gradle ../gradlew
+          retry_gradle ./build-server-for-gradle/gradlew
+          ../gradlew buildJars
         working-directory: extension/
       - name: Lint
         uses: gradle/gradle-build-action@v2
@@ -84,6 +113,19 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: "temurin"
+      - name: Configure Gradle wrapper downloads
+        shell: pwsh
+        run: |
+          $properties = "gradle/wrapper/gradle-wrapper.properties"
+          $content = Get-Content -Path $properties -Raw
+          $content = $content -replace 'https\\://services\.gradle\.org/distributions/', 'https\://downloads.gradle.org/distributions/'
+          $content = $content -replace 'https://services\.gradle\.org/distributions/', 'https://downloads.gradle.org/distributions/'
+          if ($content -match '(?m)^networkTimeout=') {
+            $content = $content -replace '(?m)^networkTimeout=.*$', 'networkTimeout=60000'
+          } else {
+            $content = $content.TrimEnd() + "`nnetworkTimeout=60000`n"
+          }
+          Set-Content -Path $properties -Value $content -NoNewline
       - name: Cache vscode
         uses: actions/cache@v4
         with:
