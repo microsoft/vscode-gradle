@@ -263,6 +263,9 @@ public class Utils {
 
   /**
    * Returns a file that can be added as a JDT library entry.
+   *
+   * @return the input directory, jar, zip, or extracted AAR classes jar; {@code null} when the
+   *         artifact cannot be used on a Java classpath
    */
   public static File getJarFile(File file) {
     if (file.isDirectory()) {
