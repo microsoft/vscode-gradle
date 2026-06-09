@@ -1,0 +1,84 @@
+name: "Copilot Setup Steps"
+
+# Provisions the runtime that GitHub Copilot's cloud agent needs to BUILD and
+# RUN this extension (JDK 21, Node 20, the gradle-server jars and a headless
+# display). The agent always works in a checkout of the repo, so static code
+# analysis is available with no extra setup; these steps only make the optional
+# "build + run the autotest to reproduce" fallback possible.
+#
+# Mirrors the runtime of the `build-and-analyse` + `test-extension` jobs in
+# .github/workflows/main.yml so a reproduction in the agent matches CI.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be named `copilot-setup-steps` or Copilot will not pick it up.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    # Lowest privilege needed for setup; Copilot uses its own token for its work.
+    permissions:
+      contents: read
+    timeout-minutes: 59
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache-dependency-path: extension/package-lock.json
+          cache: npm
+
+      # Needed to build the gradle-server jars consumed by the extension.
+      - name: Checkout microsoft/build-server-for-gradle
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/build-server-for-gradle
+          path: extension/build-server-for-gradle
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Cache vscode test host
+        uses: actions/cache@v4
+        with:
+          path: extension/.vscode-test
+          key: ${{ runner.os }}-vscode-${{ hashFiles('**/vscode-version.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-vscode-
+
+      - name: Build Jars
+        run: ../gradlew buildJars
+        working-directory: extension/
+
+      - name: Install extension dependencies
+        working-directory: extension/
+        run: npm ci
+
+      - name: Set gradle-server executable
+        run: chmod +x extension/lib/gradle-server
+
+      # `testVsCode` runs a headless VS Code host; install Xvfb so the agent can
+      # run it on demand (e.g. `xvfb-run -a ../gradlew testVsCode`). Xvfb is NOT
+      # started here because background processes do not persist into the agent
+      # session.
+      - name: Install Xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
