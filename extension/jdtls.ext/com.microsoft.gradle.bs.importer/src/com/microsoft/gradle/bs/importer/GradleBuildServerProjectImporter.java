@@ -72,7 +72,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         }
 
         //TODO: support multi-root workspaces
-        if (getPreferences().getRootPaths().size() != 1) {
+        Collection<IPath> rootPaths = getPreferences().getRootPaths();
+        if (rootPaths.size() != 1 && hasMultipleGradleRoots(rootPaths, monitor)) {
+            // The build server supports a single connection per workspace, so
+            // multi-root workspaces can only be handled when at most one root
+            // contains a Gradle build. Additional roots without any Gradle
+            // build (docs, scripts, ...) are fine.
+            Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
+            Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                    telemetry);
             return false;
         }
 
@@ -124,6 +132,26 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
                 telemetry);
         return true;
+    }
+
+    /**
+     * Check whether more than one of the given workspace roots contains a
+     * Gradle build. Roots that do not contain any Gradle build file do not
+     * prevent the build server from handling the workspace.
+     */
+    private boolean hasMultipleGradleRoots(Collection<IPath> rootPaths, IProgressMonitor monitor) throws CoreException {
+        int gradleRoots = 0;
+        for (IPath rootPath : rootPaths) {
+            BasicFileDetector gradleDetector = new BasicFileDetector(rootPath.toFile().toPath(), BUILD_GRADLE_DESCRIPTOR,
+                    SETTINGS_GRADLE_DESCRIPTOR, BUILD_GRADLE_KTS_DESCRIPTOR, SETTINGS_GRADLE_KTS_DESCRIPTOR)
+                    .includeNested(false)
+                    .addExclusions("**/build") //default gradle build dir
+                    .addExclusions("**/bin");
+            if (!gradleDetector.scan(monitor).isEmpty() && ++gradleRoots > 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
