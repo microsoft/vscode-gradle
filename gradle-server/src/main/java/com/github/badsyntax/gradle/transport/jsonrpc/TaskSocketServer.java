@@ -49,6 +49,12 @@ public final class TaskSocketServer {
 	public static Future<Void> connectAndStart(int port, ExecutorService workerExecutor) throws IOException {
 		Socket socket = new Socket();
 		socket.connect(new InetSocketAddress(LOOPBACK, port), CONNECT_TIMEOUT_MS);
+		// Mirror the Node listener: disable Nagle for the small JSON-RPC frames
+		// and enable TCP keepalive so a half-open connection (peer gone without
+		// a FIN, e.g. a security product severing loopback) is detected instead
+		// of blocking forever on a read.
+		socket.setTcpNoDelay(true);
+		socket.setKeepAlive(true);
 
 		GradleServiceImpl service = new GradleServiceImpl(workerExecutor);
 		Launcher<GradleClient> launcher = new Launcher.Builder<GradleClient>().setLocalService(service)

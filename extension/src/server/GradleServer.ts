@@ -12,12 +12,21 @@ import { extensionInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 import { createLoopbackListener, LoopbackListener } from "../transport/jsonrpc";
+import { shouldAutoRestart } from "./autoRestartPolicy";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 const STDERR_TAIL_LINES = 40;
 const STDERR_TAIL_PREVIEW_LINES = 3;
 const VIEW_LOG_ACTION = "View Log";
 const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
+// Bounded auto-restart for unexpected gradle-server exits (e.g. a loopback
+// transport reset that kills the JVM). Relaunch transparently instead of
+// immediately asking the user to reload, and only fall back to the warning
+// once the retry budget is exhausted. The budget is per session (not reset on
+// recovery) to keep this conservative; a future refinement could reset it on a
+// successful reconnect.
+const MAX_AUTO_RESTARTS = 3;
+const AUTO_RESTART_DELAY_MS = 1_000;
 
 export interface ServerOptions {
     host: string;
@@ -38,6 +47,9 @@ export class GradleServer {
     private processStartedAt = 0;
     private stderrTail: string[] = [];
     private pendingStderrLine = "";
+    private disposing = false;
+    private autoRestartCount = 0;
+    private autoRestartTimer: NodeJS.Timeout | undefined;
 
     constructor(
         private readonly opts: ServerOptions,
@@ -70,6 +82,12 @@ export class GradleServer {
         return this.languageServerPipePath;
     }
     public async start(): Promise<void> {
+        // Cancel any pending auto-restart so an explicit start()/restart()
+        // never races with a scheduled relaunch into a double-spawn.
+        if (this.autoRestartTimer) {
+            clearTimeout(this.autoRestartTimer);
+            this.autoRestartTimer = undefined;
+        }
         let startBuildServer = false;
         if (extensionInstalled("redhat.java")) {
             const isPrepared = this.bspProxy.prepareToStart();
@@ -157,6 +175,9 @@ export class GradleServer {
                     return;
                 }
                 if ((code !== null && code !== 0) || signal !== null) {
+                    if (this.tryAutoRestart(code, signal)) {
+                        return;
+                    }
                     await this.handleUnexpectedExit(code, signal);
                 }
             });
@@ -247,6 +268,42 @@ export class GradleServer {
         }
     }
 
+    /**
+     * Transparently relaunch the gradle-server after an unexpected exit, up to
+     * {@link MAX_AUTO_RESTARTS} times, so a transient transport failure
+     * self-heals instead of forcing the user to reload the window. Returns
+     * `true` if a restart was scheduled (caller must not show the
+     * unexpected-exit warning); `false` if the retry budget is exhausted or the
+     * server is being disposed.
+     */
+    private tryAutoRestart(code: number | null, signal: NodeJS.Signals | null): boolean {
+        if (!shouldAutoRestart(this.disposing, this.autoRestartCount, MAX_AUTO_RESTARTS)) {
+            return false;
+        }
+        this.autoRestartCount += 1;
+        sendInfo("", {
+            kind: "serverProcessAutoRestart",
+            data3: code !== null ? code.toString() : "",
+            dataMsg: signal ?? "",
+            attempt: this.autoRestartCount.toString(),
+        });
+        this.logger.warn(
+            `Gradle server exited unexpectedly; auto-restarting (attempt ${this.autoRestartCount}/${MAX_AUTO_RESTARTS}) in ${AUTO_RESTART_DELAY_MS}ms`
+        );
+        this.autoRestartTimer = setTimeout(() => {
+            this.autoRestartTimer = undefined;
+            void this.start();
+        }, AUTO_RESTART_DELAY_MS);
+        return true;
+    }
+
+    /** True while an auto-restart is scheduled but not yet completed. Lets the
+     * client suppress its manual "reconnect" prompts so they don't compete with
+     * the transparent relaunch. */
+    public isAutoRestartPending(): boolean {
+        return this.autoRestartTimer !== undefined;
+    }
+
     private async handleUnexpectedExit(code: number | null, signal: NodeJS.Signals | null): Promise<void> {
         sendInfo("", {
             kind: "serverProcessExit",
@@ -273,6 +330,11 @@ export class GradleServer {
     }
 
     public async asyncDispose(): Promise<void> {
+        this.disposing = true;
+        if (this.autoRestartTimer) {
+            clearTimeout(this.autoRestartTimer);
+            this.autoRestartTimer = undefined;
+        }
         this.bspProxy.closeConnection();
         this.process?.removeAllListeners();
         await this.killProcess();

@@ -24,6 +24,11 @@ import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
 
 const LOOPBACK = "127.0.0.1";
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
+// Probe idle loopback connections so a peer that vanishes without a FIN
+// (e.g. a security product severing the socket) surfaces as a close/error
+// instead of a silently half-open connection. Raw sockets have keepalive off
+// by default.
+const KEEPALIVE_DELAY_MS = 15_000;
 
 export interface LoopbackListener {
     /** Ephemeral port the JVM should be told to connect back to. */
@@ -82,6 +87,12 @@ export async function createLoopbackListener(options: LoopbackListenerOptions = 
                 return;
             }
             acceptedSocket = socket;
+            // Raw TCP sockets default to Nagle-on / keepalive-off. Disable
+            // Nagle so the small JSON-RPC frames aren't delayed, and enable
+            // keepalive so a half-open connection (peer gone without a FIN) is
+            // detected instead of hanging until the OS-default timeout.
+            socket.setNoDelay(true);
+            socket.setKeepAlive(true, KEEPALIVE_DELAY_MS);
             if (timeoutHandle) {
                 clearTimeout(timeoutHandle);
                 timeoutHandle = undefined;
