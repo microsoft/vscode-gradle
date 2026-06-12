@@ -175,15 +175,20 @@ export class GradleServer {
                     return;
                 }
                 if ((code !== null && code !== 0) || signal !== null) {
-                    // Record every unexpected exit so counts stay comparable to
-                    // the baseline, even when the exit is transparently
-                    // recovered below (correlate with serverProcessAutoRestart).
+                    // Decide on recovery first, then record a single
+                    // serverProcessExit event for every unexpected exit (kept
+                    // comparable to the historical baseline). autoRestartAttempt
+                    // carries the recovery outcome on the same event: "1".."N"
+                    // while self-healing, "" once we give up (budget exhausted
+                    // or disposing) and the user is prompted to reload.
+                    const willAutoRestart = this.tryAutoRestart(code, signal);
                     sendInfo("", {
                         kind: "serverProcessExit",
                         data3: code !== null ? code.toString() : "",
                         dataMsg: signal ?? "",
+                        autoRestartAttempt: willAutoRestart ? this.autoRestartCount.toString() : "",
                     });
-                    if (this.tryAutoRestart(code, signal)) {
+                    if (willAutoRestart) {
                         return;
                     }
                     await this.handleUnexpectedExit(code, signal);
@@ -282,19 +287,14 @@ export class GradleServer {
      * self-heals instead of forcing the user to reload the window. Returns
      * `true` if a restart was scheduled (caller must not show the
      * unexpected-exit warning); `false` if the retry budget is exhausted or the
-     * server is being disposed.
+     * server is being disposed. The exit itself (and the resulting attempt
+     * number) is reported by the caller on the serverProcessExit event.
      */
     private tryAutoRestart(code: number | null, signal: NodeJS.Signals | null): boolean {
         if (!shouldAutoRestart(this.disposing, this.autoRestartCount, MAX_AUTO_RESTARTS)) {
             return false;
         }
         this.autoRestartCount += 1;
-        sendInfo("", {
-            kind: "serverProcessAutoRestart",
-            data3: code !== null ? code.toString() : "",
-            dataMsg: signal ?? "",
-            attempt: this.autoRestartCount.toString(),
-        });
         this.logger.warn(
             `Gradle server exited unexpectedly; auto-restarting (attempt ${this.autoRestartCount}/${MAX_AUTO_RESTARTS}) in ${AUTO_RESTART_DELAY_MS}ms`
         );
