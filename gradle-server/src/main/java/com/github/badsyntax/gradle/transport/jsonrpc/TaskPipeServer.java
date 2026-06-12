@@ -46,15 +46,20 @@ public final class TaskPipeServer {
 	public static Future<Void> connectAndStart(String pipeName, ExecutorService workerExecutor) throws IOException {
 		PipeStreams pipeStreams = PipeStreams.open(pipeName);
 
-		GradleServiceImpl service = new GradleServiceImpl(workerExecutor);
-		Launcher<GradleClient> launcher = new Launcher.Builder<GradleClient>().setLocalService(service)
-				.setRemoteInterface(GradleClient.class).setInput(pipeStreams.getInputStream())
-				.setOutput(pipeStreams.getOutputStream()).setExecutorService(workerExecutor).create();
-		service.setClient(launcher.getRemoteProxy());
+		try {
+			GradleServiceImpl service = new GradleServiceImpl(workerExecutor);
+			Launcher<GradleClient> launcher = new Launcher.Builder<GradleClient>().setLocalService(service)
+					.setRemoteInterface(GradleClient.class).setInput(pipeStreams.getInputStream())
+					.setOutput(pipeStreams.getOutputStream()).setExecutorService(workerExecutor).create();
+			service.setClient(launcher.getRemoteProxy());
 
-		Future<Void> listening = launcher.startListening();
-		closeWhenDone(listening, pipeStreams);
-		return listening;
+			Future<Void> listening = launcher.startListening();
+			closeWhenDone(listening, pipeStreams);
+			return listening;
+		} catch (RuntimeException e) {
+			closeOnFailure(pipeStreams, e);
+			throw e;
+		}
 	}
 
 	private static void closeWhenDone(Future<Void> listening, Closeable closeable) {
@@ -105,8 +110,13 @@ public final class TaskPipeServer {
 
 			UnixDomainSocketAddress socketAddress = UnixDomainSocketAddress.of(pipePath);
 			SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX);
-			channel.connect(socketAddress);
-			return new PipeStreams(new PipeInputStream(channel), new PipeOutputStream(channel), channel);
+			try {
+				channel.connect(socketAddress);
+				return new PipeStreams(new PipeInputStream(channel), new PipeOutputStream(channel), channel);
+			} catch (IOException | RuntimeException e) {
+				closeOnFailure(channel, e);
+				throw e;
+			}
 		}
 
 		private InputStream getInputStream() {
@@ -120,6 +130,14 @@ public final class TaskPipeServer {
 		@Override
 		public void close() throws IOException {
 			channel.close();
+		}
+	}
+
+	private static void closeOnFailure(Closeable closeable, Exception failure) {
+		try {
+			closeable.close();
+		} catch (IOException closeException) {
+			failure.addSuppressed(closeException);
 		}
 	}
 
