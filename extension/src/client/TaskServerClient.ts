@@ -97,8 +97,8 @@ export class TaskServerClient implements vscode.Disposable {
         try {
             const connection = await this.server.awaitTaskConnection();
             this.rpcClient = new GradleJsonRpcClient(connection);
-            // The raw-socket transport can die between gradle-server process
-            // exits (peer reset, crash). Proactively tear down the stale client
+            // The task transport can die between gradle-server process exits
+            // (peer reset, crash). Proactively tear down the stale client
             // so subsequent task loads don't write to a destroyed socket and
             // silently drop a project's tasks.
             this.rpcClientClosedHandler?.dispose();
@@ -415,7 +415,7 @@ export class TaskServerClient implements vscode.Disposable {
 
     /**
      * Invoked when establishing the JSON-RPC connection to the task server fails
-     * (e.g. the JVM exited before connecting back, or the loopback listener timed
+     * (e.g. the JVM exited before connecting back, or the pipe listener timed
      * out). If the server process never came up, hand off to the server-level
      * restart prompt; otherwise show the client-level reconnect prompt.
      */

@@ -94,9 +94,9 @@ export class GradleJsonRpcClient implements Disposable {
             })
         );
 
-        // The raw-socket transport does not heal connection loss the way gRPC
-        // did internally, so we must observe it explicitly. `onError` surfaces
-        // transport read/write failures (the socket-destroyed write throw is
+        // The task transport does not heal connection loss the way gRPC did
+        // internally, so we must observe it explicitly. `onError` surfaces
+        // transport read/write failures (the destroyed-stream write throw is
         // re-fired here); `onClose` fires when the reader/writer sees EOF and
         // vscode-jsonrpc transitions the connection to Closed.
         this.disposables.push(
