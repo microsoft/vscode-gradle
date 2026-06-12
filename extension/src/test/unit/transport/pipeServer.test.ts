@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as assert from "assert";
+import * as fs from "fs";
 import * as net from "net";
 import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
 import { createPipeListener, PipeListener } from "../../../transport/jsonrpc";
@@ -42,6 +43,24 @@ describe(suiteName("createPipeListener"), () => {
         assert.ok(connection, "expected a MessageConnection to resolve from the listener");
         connection.dispose();
     });
+
+    if (process.platform !== "win32") {
+        it("unlinks the Unix socket path after accepting the first connection", async () => {
+            listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+            assert.ok(fs.existsSync(listener.pipePath), "expected Unix socket path to exist while listening");
+
+            clientSock = net.connect(listener.pipePath);
+            await new Promise<void>((resolve, reject) => {
+                clientSock!.once("connect", () => resolve());
+                clientSock!.once("error", reject);
+            });
+
+            const connection = await listener.connection;
+            assert.ok(connection, "expected a MessageConnection to resolve from the listener");
+            assert.strictEqual(fs.existsSync(listener.pipePath), false, "expected Unix socket path to be unlinked");
+            connection.dispose();
+        });
+    }
 
     it("rejects the connection promise when dispose() is called before any JVM connects", async () => {
         listener = await createPipeListener({ connectTimeoutMs: 10_000 });

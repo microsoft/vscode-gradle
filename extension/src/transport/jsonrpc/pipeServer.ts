@@ -144,10 +144,11 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
 
 function closeServer(server: net.Server, pipePath: string): void {
     try {
-        server.close(() => cleanupPipePath(pipePath));
+        server.close();
     } catch {
-        cleanupPipePath(pipePath);
+        // best-effort; cleanup below still removes the Unix socket path
     }
+    cleanupPipePath(pipePath);
 }
 
 function cleanupPipePath(pipePath: string): void {
