@@ -195,7 +195,9 @@ task buildJdtlsPlugin(type: CrossPlatformExec) {
   if (mavenRepoLocal) {
     mavenArguments << "-Dmaven.repo.local=${mavenRepoLocal}"
   }
-  mavenArguments += ['clean', 'package']
+  // 'verify' instead of 'package' so the tycho-surefire tests of
+  // com.microsoft.gradle.bs.importer.test are executed as well
+  mavenArguments += ['clean', 'verify']
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
     commandLine(['mvnw'] + mavenArguments)
   } else {

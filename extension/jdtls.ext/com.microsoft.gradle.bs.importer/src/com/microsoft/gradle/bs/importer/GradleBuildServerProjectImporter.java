@@ -71,20 +71,19 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        //TODO: support multi-root workspaces
-        Collection<IPath> rootPaths = getPreferences().getRootPaths();
-        if (rootPaths.size() != 1 && hasMultipleGradleRoots(rootPaths, monitor)) {
-            // The build server supports a single connection per workspace, so
-            // multi-root workspaces can only be handled when at most one root
-            // contains a Gradle build. Additional roots without any Gradle
-            // build (docs, scripts, ...) are fine.
-            Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
-            Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
-                    telemetry);
+        if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
         }
 
-        if (!Utils.isBuildServerEnabled(getPreferences())) {
+        // The build server supports a single connection per workspace, so
+        // multi-root workspaces can only be handled when at most one root
+        // contains a Gradle build. Additional roots without any Gradle
+        // build (docs, scripts, ...) are fine.
+        Collection<IPath> rootPaths = getPreferences().getRootPaths();
+        if (rootPaths.size() != 1 && hasMultipleGradleRoots(rootPaths, monitor)) {
+            Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
+            Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                    telemetry);
             return false;
         }
 
@@ -147,8 +146,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
                     .includeNested(false)
                     .addExclusions("**/build") //default gradle build dir
                     .addExclusions("**/bin");
-            if (!gradleDetector.scan(monitor).isEmpty() && ++gradleRoots > 1) {
-                return true;
+            if (!gradleDetector.scan(monitor).isEmpty()) {
+                gradleRoots++;
+                if (gradleRoots > 1) {
+                    return true;
+                }
             }
         }
         return false;
@@ -320,7 +322,12 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     @Override
     public void reset() {
-        // do nothing
+        // jdt.ls creates a fresh importer instance for every workspace root,
+        // but initialize() calls reset() whenever the root folder changes.
+        // Clear all root-scoped state here as a defensive guard in case an
+        // instance is ever reused for a different root.
+        directories = null;
+        isResolved = true;
     }
 
     /**

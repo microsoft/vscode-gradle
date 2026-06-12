@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.microsoft.gradle.jdtls.ext</groupId>
+        <artifactId>gradle-jdtls-ext-parent</artifactId>
+        <version>0.5.4</version>
+    </parent>
+    <artifactId>com.microsoft.gradle.bs.importer.test</artifactId>
+    <packaging>eclipse-test-plugin</packaging>
+    <name>${base.name} :: Gradle Build Server Importer Tests</name>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-surefire-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <useUIHarness>false</useUIHarness>
+                    <!-- Start org.eclipse.jdt.ls.core in syntax server mode so its
+                         activator does not require the m2e bundles, which are not
+                         part of the target platform. -->
+                    <argLine>-Dsyntaxserver=true</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

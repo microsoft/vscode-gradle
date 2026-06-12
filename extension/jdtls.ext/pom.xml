@@ -15,6 +15,7 @@
     <modules>
         <module>com.microsoft.gradle.bs.importer.target</module>
         <module>com.microsoft.gradle.bs.importer</module>
+        <module>com.microsoft.gradle.bs.importer.test</module>
     </modules>
     <build>
         <pluginManagement>

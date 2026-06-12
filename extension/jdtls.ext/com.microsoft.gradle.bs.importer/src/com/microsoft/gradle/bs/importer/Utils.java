@@ -257,6 +257,10 @@ public class Utils {
   }
 
   public static void sendTelemetry(JavaLanguageClient client, Object message) {
+    if (client == null) {
+      // no client connection, e.g. when running in tests
+      return;
+    }
     client.sendNotification(new ExecuteCommandParams("_java.gradle.buildServer.sendTelemetry",
         Arrays.asList(message)));
   }
