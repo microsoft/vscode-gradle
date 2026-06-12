@@ -301,9 +301,14 @@ export class GradleServer {
         this.autoRestartTimer = setTimeout(() => {
             this.autoRestartTimer = undefined;
             this.start().catch((error) => {
+                // The relaunch itself failed (e.g. the loopback listener could
+                // not bind). Fall back to the normal unexpected-exit handling so
+                // the user still gets the recovery prompt instead of being left
+                // with a silently dead server.
                 this.logger.error(
                     `Gradle server auto-restart failed: ${error instanceof Error ? error.message : String(error)}`
                 );
+                void this.handleUnexpectedExit(code, signal);
             });
         }, AUTO_RESTART_DELAY_MS);
         return true;
