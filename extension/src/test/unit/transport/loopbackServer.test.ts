@@ -3,6 +3,7 @@
 
 import * as assert from "assert";
 import * as net from "net";
+import * as sinon from "sinon";
 import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
 import { createLoopbackListener, LoopbackListener } from "../../../transport/jsonrpc";
 
@@ -41,6 +42,41 @@ describe(suiteName("createLoopbackListener"), () => {
         const connection = await listener.connection;
         assert.ok(connection, "expected a MessageConnection to resolve from the listener");
         connection.dispose();
+    });
+
+    it("disables Nagle and enables TCP keepalive on the accepted gradle-server socket", async () => {
+        // Spy on the prototype so we observe the configuration applied to the
+        // inbound (accepted) socket. The test client never sets these itself,
+        // so any matching call must originate from the listener. Use spies
+        // (call-through) rather than stubs so the real socket still works.
+        const noDelaySpy = sinon.spy(net.Socket.prototype, "setNoDelay");
+        const keepAliveSpy = sinon.spy(net.Socket.prototype, "setKeepAlive");
+        try {
+            listener = await createLoopbackListener({ connectTimeoutMs: 2_000 });
+
+            clientSock = net.connect(listener.port, "127.0.0.1");
+            await new Promise<void>((resolve, reject) => {
+                clientSock!.once("connect", () => resolve());
+                clientSock!.once("error", reject);
+            });
+
+            const connection = await listener.connection;
+
+            assert.ok(noDelaySpy.calledWith(true), "expected setNoDelay(true) on the accepted gradle-server socket");
+            assert.ok(
+                keepAliveSpy
+                    .getCalls()
+                    .some((call) => call.args[0] === true && typeof call.args[1] === "number" && call.args[1] > 0),
+                `expected setKeepAlive(true, <ms>) on the accepted gradle-server socket, got: ${JSON.stringify(
+                    keepAliveSpy.getCalls().map((call) => call.args)
+                )}`
+            );
+
+            connection.dispose();
+        } finally {
+            noDelaySpy.restore();
+            keepAliveSpy.restore();
+        }
     });
 
     it("rejects the connection promise when dispose() is called before any JVM connects", async () => {

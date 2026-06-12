@@ -423,6 +423,12 @@ export class TaskServerClient implements vscode.Disposable {
         logger.error("Error connecting to gradle server:", e.message);
         this.close();
         this._onDidConnectFail.fire(null);
+        // An auto-restart is already scheduled; it will respawn the server and
+        // the client will reconnect on the next onDidStart. Don't compete with
+        // it by prompting the user to restart manually.
+        if (this.server.isAutoRestartPending()) {
+            return;
+        }
         if (this.server.isReady()) {
             await this.showRestartMessage();
         } else {
