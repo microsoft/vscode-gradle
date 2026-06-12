@@ -175,6 +175,14 @@ export class GradleServer {
                     return;
                 }
                 if ((code !== null && code !== 0) || signal !== null) {
+                    // Record every unexpected exit so counts stay comparable to
+                    // the baseline, even when the exit is transparently
+                    // recovered below (correlate with serverProcessAutoRestart).
+                    sendInfo("", {
+                        kind: "serverProcessExit",
+                        data3: code !== null ? code.toString() : "",
+                        dataMsg: signal ?? "",
+                    });
                     if (this.tryAutoRestart(code, signal)) {
                         return;
                     }
@@ -292,7 +300,11 @@ export class GradleServer {
         );
         this.autoRestartTimer = setTimeout(() => {
             this.autoRestartTimer = undefined;
-            void this.start();
+            this.start().catch((error) => {
+                this.logger.error(
+                    `Gradle server auto-restart failed: ${error instanceof Error ? error.message : String(error)}`
+                );
+            });
         }, AUTO_RESTART_DELAY_MS);
         return true;
     }
@@ -305,11 +317,6 @@ export class GradleServer {
     }
 
     private async handleUnexpectedExit(code: number | null, signal: NodeJS.Signals | null): Promise<void> {
-        sendInfo("", {
-            kind: "serverProcessExit",
-            data3: code !== null ? code.toString() : "",
-            dataMsg: signal ?? "",
-        });
         const reason = signal
             ? `was terminated by signal ${signal}`
             : `exited unexpectedly with code ${code ?? "null"}`;
