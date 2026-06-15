@@ -3,7 +3,12 @@
 
 import * as net from "net";
 import * as vscode from "vscode";
-import { DidChangeConfigurationNotification, LanguageClientOptions } from "vscode-languageclient";
+import {
+    CloseAction,
+    DidChangeConfigurationNotification,
+    ErrorAction,
+    LanguageClientOptions,
+} from "vscode-languageclient";
 import { LanguageClient, StreamInfo } from "vscode-languageclient/node";
 import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider";
 import { GradleBuild, GradleProject } from "../proto/gradle_pb";
@@ -17,6 +22,10 @@ import {
 } from "../util/config";
 
 export let isLanguageServerStarted = false;
+let activeLanguageClient: LanguageClient | undefined;
+let languageClientDisposable: vscode.Disposable | undefined;
+let configurationDisposable: vscode.Disposable | undefined;
+let pendingPipeServer: vscode.Disposable | undefined;
 
 export async function startLanguageClientAndWaitForConnection(
     context: vscode.ExtensionContext,
@@ -28,60 +37,146 @@ export async function startLanguageClientAndWaitForConnection(
         isLanguageServerStarted = false;
         return;
     }
-    void vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, (progress) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        return new Promise<void>(async (resolve) => {
-            progress.report({
-                message: "Initializing Gradle Language Server",
-            });
-            const clientOptions: LanguageClientOptions = {
-                documentSelector: [{ scheme: "file", language: "gradle" }],
-                initializationOptions: {
-                    settings: getGradleSettings(),
-                },
-            };
-            const serverOptions = () => awaitServerConnection(languageServerPipePath);
-            const languageClient = new LanguageClient("gradle", "Gradle Language Server", serverOptions, clientOptions);
-            void languageClient.onReady().then(
-                () => {
-                    isLanguageServerStarted = true;
-                    void handleLanguageServerStart(contentProvider, rootProjectsStore);
-                    resolve();
-                },
-                (e) => {
-                    const errorMessage = e instanceof Error ? e.message : String(e);
-                    void vscode.window.showErrorMessage(errorMessage);
-                    resolve();
-                }
-            );
-            const disposable = languageClient.start();
-
-            context.subscriptions.push(disposable);
-            context.subscriptions.push(
-                vscode.workspace.onDidChangeConfiguration((e) => {
-                    if (e.affectsConfiguration("java.import.gradle")) {
-                        languageClient.sendNotification(DidChangeConfigurationNotification.type, {
-                            settings: getGradleSettings(),
-                        });
-                    }
-                })
-            );
+    stopLanguageClient();
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, async (progress) => {
+        progress.report({
+            message: "Initializing Gradle Language Server",
         });
+        const pipeServer = createLanguageServerPipeServer(languageServerPipePath);
+        pendingPipeServer = pipeServer;
+        await pipeServer.listening;
+        const currentDisposables: {
+            client?: vscode.Disposable;
+            configuration?: vscode.Disposable;
+        } = {};
+        const cleanupClosedClient = (): void => {
+            if (languageClientDisposable === currentDisposables.client) {
+                activeLanguageClient = undefined;
+                languageClientDisposable = undefined;
+                isLanguageServerStarted = false;
+            }
+            if (configurationDisposable && configurationDisposable === currentDisposables.configuration) {
+                const disposable = configurationDisposable;
+                configurationDisposable = undefined;
+                disposable.dispose();
+            }
+            if (pendingPipeServer === pipeServer) {
+                pendingPipeServer.dispose();
+                pendingPipeServer = undefined;
+            }
+        };
+        const clientOptions: LanguageClientOptions = {
+            documentSelector: [{ scheme: "file", language: "gradle" }],
+            errorHandler: {
+                error: () => ErrorAction.Continue,
+                closed: () => {
+                    cleanupClosedClient();
+                    return CloseAction.DoNotRestart;
+                },
+            },
+            initializationOptions: {
+                settings: getGradleSettings(),
+            },
+        };
+        const serverOptions = () => pipeServer.connection;
+        const languageClient = new LanguageClient("gradle", "Gradle Language Server", serverOptions, clientOptions);
+        void languageClient.onReady().then(
+            () => {
+                isLanguageServerStarted = true;
+                void handleLanguageServerStart(contentProvider, rootProjectsStore);
+            },
+            (e) => {
+                const errorMessage = e instanceof Error ? e.message : String(e);
+                void vscode.window.showErrorMessage(errorMessage);
+            }
+        );
+        const currentConfigurationDisposable = vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration("java.import.gradle")) {
+                languageClient.sendNotification(DidChangeConfigurationNotification.type, {
+                    settings: getGradleSettings(),
+                });
+            }
+        });
+        currentDisposables.configuration = currentConfigurationDisposable;
+        configurationDisposable = currentConfigurationDisposable;
+        const currentClientDisposable = languageClient.start();
+        activeLanguageClient = languageClient;
+        currentDisposables.client = currentClientDisposable;
+        languageClientDisposable = currentClientDisposable;
+        context.subscriptions.push(pipeServer, currentClientDisposable, currentConfigurationDisposable);
     });
 }
 
-async function awaitServerConnection(pipeName: string): Promise<StreamInfo> {
-    return new Promise((resolve, reject) => {
-        const server = net.createServer((stream) => {
+function stopLanguageClient(): void {
+    isLanguageServerStarted = false;
+    const client = activeLanguageClient;
+    activeLanguageClient = undefined;
+    pendingPipeServer?.dispose();
+    pendingPipeServer = undefined;
+    configurationDisposable?.dispose();
+    configurationDisposable = undefined;
+    languageClientDisposable = undefined;
+    void client?.stop().catch(() => undefined);
+}
+
+function createLanguageServerPipeServer(pipeName: string): {
+    readonly listening: Promise<void>;
+    readonly connection: Promise<StreamInfo>;
+    dispose(): void;
+} {
+    const server = net.createServer();
+    let settled = false;
+    let rejectConnection: ((reason: Error) => void) | undefined;
+    let rejectListening: ((reason: Error) => void) | undefined;
+    const connection = new Promise<StreamInfo>((resolve, reject) => {
+        rejectConnection = reject;
+        server.on("connection", (stream) => {
+            if (settled) {
+                stream.destroy();
+                return;
+            }
+            settled = true;
+            rejectConnection = undefined;
             server.close();
             resolve({ reader: stream, writer: stream });
         });
-        server.on("error", reject);
-        server.listen(pipeName, () => {
-            server.removeListener("error", reject);
-        });
-        return server;
     });
+    void connection.catch(() => undefined);
+
+    const listening = new Promise<void>((resolve, reject) => {
+        rejectListening = reject;
+        server.on("error", (err) => {
+            rejectListening?.(err);
+            if (!settled) {
+                settled = true;
+                const rejectPendingConnection = rejectConnection;
+                rejectConnection = undefined;
+                rejectPendingConnection?.(err);
+            }
+        });
+        server.listen(pipeName, () => {
+            rejectListening = undefined;
+            resolve();
+        });
+    });
+
+    return {
+        listening,
+        connection,
+        dispose: () => {
+            if (!settled) {
+                settled = true;
+                const reject = rejectConnection;
+                rejectConnection = undefined;
+                reject?.(new Error("Gradle language server pipe listener disposed before connection"));
+            }
+            try {
+                server.close();
+            } catch {
+                // best-effort cleanup; listener may already be closed
+            }
+        },
+    };
 }
 
 function getGradleSettings(): unknown {

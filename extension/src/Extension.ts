@@ -90,6 +90,14 @@ export class Extension {
         this.taskTerminalsStore = new TaskTerminalsStore();
         this.rootProjectsStore = new RootProjectsStore();
         this.gradleBuildContentProvider = new GradleBuildContentProvider(this.taskServerClient);
+        this.server.setLanguageServerInitializer((languageServerPipePath) =>
+            startLanguageClientAndWaitForConnection(
+                this.context,
+                this.gradleBuildContentProvider,
+                this.rootProjectsStore,
+                languageServerPipePath
+            )
+        );
         this.gradleTaskProvider = new GradleTaskProvider(
             this.rootProjectsStore,
             this.taskServerClient,
@@ -211,12 +219,6 @@ export class Extension {
         );
 
         this.taskServerClient.onDidConnect(() => this.refresh());
-        void startLanguageClientAndWaitForConnection(
-            this.context,
-            this.gradleBuildContentProvider,
-            this.rootProjectsStore,
-            this.server.getLanguageServerPipePath()
-        );
         void this.activate();
         void vscode.commands.executeCommand("setContext", "allowParallelRun", getAllowParallelRun());
         void vscode.commands.executeCommand("setContext", Context.ACTIVATION_CONTEXT_KEY, true);

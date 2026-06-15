@@ -35,10 +35,11 @@ export class GradleServer {
     private processRunning = false;
     private pipeListener: PipeListener | undefined;
     private restarting = false;
+    private languageServerInitializer: (pipePath: string) => Promise<void> = async () => undefined;
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
     private process?: cp.ChildProcessWithoutNullStreams;
-    private languageServerPipePath: string;
+    private languageServerPipePath = "";
     private bspProxy: BspProxy;
     private processStartedAt = 0;
     private stderrTail: string[] = [];
@@ -52,7 +53,6 @@ export class GradleServer {
         private readonly logger: Logger,
         private readonly transportLogger: Logger
     ) {
-        this.setLanguageServerPipePath();
         this.bspProxy = new BspProxy(this.context, logger);
     }
 
@@ -73,9 +73,10 @@ export class GradleServer {
         }
     }
 
-    public getLanguageServerPipePath(): string {
-        return this.languageServerPipePath;
+    public setLanguageServerInitializer(initializer: (pipePath: string) => Promise<void>): void {
+        this.languageServerInitializer = initializer;
     }
+
     public async start(): Promise<void> {
         if (this.starting || this.processRunning) {
             return;
@@ -114,6 +115,17 @@ export class GradleServer {
                     }
                 });
                 return;
+            }
+            this.setLanguageServerPipePath();
+            try {
+                await this.languageServerInitializer(this.languageServerPipePath);
+            } catch (error) {
+                this.logger.error(
+                    `Gradle language server pipe initialization failed: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
+                this.languageServerPipePath = "";
             }
             // The JVM connects back as a named-pipe / UDS client over JSON-RPC.
             // Bind the pipe BEFORE spawning the JVM so the JVM never sees a
