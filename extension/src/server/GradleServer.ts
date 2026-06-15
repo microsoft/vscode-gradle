@@ -152,17 +152,21 @@ export class GradleServer {
             this.processStartedAt = Date.now();
             this.stderrTail = [];
             this.pendingStderrLine = "";
-            this.process = cp.spawn(`"${cmd}"`, args, {
+            const childProcess = cp.spawn(`"${cmd}"`, args, {
                 cwd,
                 env,
                 shell: true,
             });
+            this.process = childProcess;
             this.processRunning = true;
-            this.process.stdout.on("data", this.logOutput);
-            this.process.stderr.on("data", this.logOutput);
-            this.process.stderr.on("data", this.captureStderrTail);
-            this.process
-                .on("error", (err: Error) => this.logger.error(err.message))
+            childProcess.stdout.on("data", this.logOutput);
+            childProcess.stderr.on("data", this.logOutput);
+            childProcess.stderr.on("data", this.captureStderrTail);
+            childProcess
+                .on("error", (err: Error) => {
+                    this.logger.error(err.message);
+                    void this.handleProcessError(childProcess, err);
+                })
                 .on("exit", async (code, signal) => {
                     this.flushPendingStderrLine();
                     const wasTaskTransportReady = this.ready;
@@ -181,8 +185,10 @@ export class GradleServer {
                     this._onDidStop.fire(null);
                     this.ready = false;
                     this.processRunning = false;
-                    this.process?.removeAllListeners();
-                    this.process = undefined;
+                    childProcess.removeAllListeners();
+                    if (this.process === childProcess) {
+                        this.process = undefined;
+                    }
                     this.pipeListener?.dispose();
                     this.pipeListener = undefined;
                     this.bspProxy.closeConnection();
@@ -222,6 +228,21 @@ export class GradleServer {
         } finally {
             this.starting = false;
         }
+    }
+
+    private async handleProcessError(process: cp.ChildProcessWithoutNullStreams, error: Error): Promise<void> {
+        if (this.process !== process) {
+            return;
+        }
+        this._onDidStop.fire(null);
+        this.ready = false;
+        this.processRunning = false;
+        process.removeAllListeners();
+        this.process = undefined;
+        this.pipeListener?.dispose();
+        this.pipeListener = undefined;
+        this.bspProxy.closeConnection();
+        await this.showRestartMessage(`Gradle server failed to start (${error.message}).`);
     }
 
     public isReady(): boolean {
