@@ -28,10 +28,6 @@ const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
 const MAX_AUTO_RESTARTS = 3;
 const AUTO_RESTART_DELAY_MS = 1_000;
 
-export interface ServerOptions {
-    host: string;
-}
-
 export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
@@ -52,7 +48,6 @@ export class GradleServer {
     private autoRestartTimer: NodeJS.Timeout | undefined;
 
     constructor(
-        private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
         private readonly transportLogger: Logger
@@ -362,9 +357,5 @@ export class GradleServer {
             return Promise.reject(new Error("Gradle task server pipe listener is not initialized."));
         }
         return this.pipeListener.connection;
-    }
-
-    public getOpts(): ServerOptions {
-        return this.opts;
     }
 }
