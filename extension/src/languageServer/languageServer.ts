@@ -26,6 +26,7 @@ let activeLanguageClient: LanguageClient | undefined;
 let languageClientDisposable: vscode.Disposable | undefined;
 let configurationDisposable: vscode.Disposable | undefined;
 let pendingPipeServer: vscode.Disposable | undefined;
+let cleanupDisposableRegistered = false;
 
 export async function startLanguageClientAndWaitForConnection(
     context: vscode.ExtensionContext,
@@ -33,6 +34,7 @@ export async function startLanguageClientAndWaitForConnection(
     rootProjectsStore: RootProjectsStore,
     languageServerPipePath: string
 ): Promise<void> {
+    registerLanguageServerCleanup(context);
     if (languageServerPipePath === "") {
         isLanguageServerStarted = false;
         return;
@@ -103,8 +105,20 @@ export async function startLanguageClientAndWaitForConnection(
         activeLanguageClient = languageClient;
         currentDisposables.client = currentClientDisposable;
         languageClientDisposable = currentClientDisposable;
-        context.subscriptions.push(pipeServer, currentClientDisposable, currentConfigurationDisposable);
     });
+}
+
+function registerLanguageServerCleanup(context: vscode.ExtensionContext): void {
+    if (cleanupDisposableRegistered) {
+        return;
+    }
+    cleanupDisposableRegistered = true;
+    context.subscriptions.push(
+        new vscode.Disposable(() => {
+            cleanupDisposableRegistered = false;
+            stopLanguageClient();
+        })
+    );
 }
 
 function stopLanguageClient(): void {

@@ -47,6 +47,7 @@ export class GradleServer {
     private disposing = false;
     private autoRestartCount = 0;
     private autoRestartTimer: NodeJS.Timeout | undefined;
+    private restartMessagePromise: Promise<void> | undefined;
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -236,6 +237,16 @@ export class GradleServer {
     }
 
     public async showRestartMessage(reason?: string): Promise<void> {
+        if (this.restartMessagePromise) {
+            return this.restartMessagePromise;
+        }
+        this.restartMessagePromise = this.showRestartMessageOnce(reason).finally(() => {
+            this.restartMessagePromise = undefined;
+        });
+        return this.restartMessagePromise;
+    }
+
+    private async showRestartMessageOnce(reason?: string): Promise<void> {
         const message = reason
             ? `${reason} Restart the Gradle server?`
             : "No connection to Gradle server. Restart the Gradle server?";
