@@ -413,12 +413,6 @@ export class TaskServerClient implements vscode.Disposable {
         logger.info("Build cancelled:", cancelled.getMessage());
     };
 
-    /**
-     * Invoked when establishing the JSON-RPC connection to the task server fails
-     * (e.g. the JVM exited before connecting back, or the pipe listener timed
-     * out). If the server process never came up, hand off to the server-level
-     * restart prompt; otherwise show the client-level reconnect prompt.
-     */
     private handleConnectError = async (e: Error): Promise<void> => {
         logger.error("Error connecting to gradle server:", e.message);
         this.close();
@@ -429,23 +423,15 @@ export class TaskServerClient implements vscode.Disposable {
         if (this.server.isAutoRestartPending()) {
             return;
         }
-        if (this.server.isReady()) {
-            await this.showRestartMessage();
-        } else {
-            await this.server.showRestartMessage();
+        // A named pipe / UDS connection is single-use: once its listener has
+        // timed out or failed, reconnecting only the client would wait on the
+        // same rejected promise. If the JVM is still alive, restart the Gradle
+        // server so it gets a fresh pipe path; if it already exited, the server
+        // exit handler owns the user prompt.
+        if (this.server.isProcessRunning()) {
+            await this.server.showRestartMessage(`Gradle client could not connect to the task server (${e.message}).`);
         }
     };
-
-    public async showRestartMessage(): Promise<void> {
-        const OPT_RESTART = "Re-connect Client";
-        const input = await vscode.window.showErrorMessage(
-            "The Gradle client was unable to connect. Try re-connecting.",
-            OPT_RESTART
-        );
-        if (input === OPT_RESTART) {
-            await this.handleServerStart();
-        }
-    }
 
     public close(): void {
         this.statusBarItem.hide();
