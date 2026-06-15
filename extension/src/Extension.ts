@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { commands, window } from "vscode";
+import { window } from "vscode";
 import { logger, LogVerbosity, Logger } from "./logger";
 import { Api } from "./api";
 import { TaskServerClient } from "./client";
@@ -330,11 +330,11 @@ export class Extension {
 
     private async restartServer(): Promise<void> {
         await this.taskServerClient.cancelBuilds();
-        await commands.executeCommand("workbench.action.restartExtensionHost");
+        await this.server.restart();
     }
 
     private async showRestartWindow(): Promise<string | undefined> {
-        const msg = "Please restart the extension to make the change take effect. Restart now?";
+        const msg = "Please restart the Gradle server to make the change take effect. Restart now?";
         const selection = await window.showWarningMessage(msg, OPT_RESTART);
         return selection;
     }
