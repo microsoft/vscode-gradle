@@ -1,6 +1,6 @@
 package com.github.badsyntax.gradle;
 
-import com.github.badsyntax.gradle.transport.jsonrpc.TaskSocketServer;
+import com.github.badsyntax.gradle.transport.jsonrpc.TaskPipeServer;
 import com.github.badsyntax.gradle.utils.Utils;
 import com.google.common.base.Strings;
 import com.microsoft.gradle.GradleLanguageServer;
@@ -21,8 +21,8 @@ public class GradleServer {
 	public static void main(String[] args) throws Exception {
 		Map<String, String> params = Utils.parseArgs(args);
 
-		int taskServerPort = Integer.parseInt(Utils.validateRequiredParam(params, "port"));
-		startTaskServerThread(taskServerPort);
+		String taskServerPipeName = Utils.validateRequiredParam(params, "pipe");
+		startTaskServerThread(taskServerPipeName);
 
 		String languageServerPipePath = params.get("languageServerPipePath");
 		if (!Strings.isNullOrEmpty(languageServerPipePath)) {
@@ -37,13 +37,13 @@ public class GradleServer {
 		}
 	}
 
-	private static void startTaskServerThread(int port) {
+	private static void startTaskServerThread(String pipeName) {
 		ExecutorService workerExecutor = Executors.newCachedThreadPool(workerThreadFactory());
 		Thread serverThread = new Thread(() -> {
 			int exitCode = 0;
 			try {
-				Future<Void> listening = TaskSocketServer.connectAndStart(port, workerExecutor);
-				logger.info("Gradle Server JSON-RPC transport connected on loopback port {}", port);
+				Future<Void> listening = TaskPipeServer.connectAndStart(pipeName, workerExecutor);
+				logger.info("Gradle Server JSON-RPC transport connected on task pipe");
 				listening.get();
 				logger.info("Gradle Server JSON-RPC transport closed");
 			} catch (Exception e) {

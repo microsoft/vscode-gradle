@@ -11,7 +11,7 @@ import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
 import { extensionInstalled } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
-import { createLoopbackListener, LoopbackListener } from "../transport/jsonrpc";
+import { createPipeListener, PipeListener } from "../transport/jsonrpc";
 import { shouldAutoRestart } from "./autoRestartPolicy";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -19,8 +19,8 @@ const STDERR_TAIL_LINES = 40;
 const STDERR_TAIL_PREVIEW_LINES = 3;
 const VIEW_LOG_ACTION = "View Log";
 const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
-// Bounded auto-restart for unexpected gradle-server exits (e.g. a loopback
-// transport reset that kills the JVM). Relaunch transparently instead of
+// Bounded auto-restart for unexpected gradle-server exits (e.g. a task
+// transport break that kills the JVM). Relaunch transparently instead of
 // immediately asking the user to reload, and only fall back to the warning
 // once the retry budget is exhausted. The budget is per session (not reset on
 // recovery) to keep this conservative; a future refinement could reset it on a
@@ -36,8 +36,8 @@ export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
-    private taskServerPort: number | undefined;
-    private loopbackListener: LoopbackListener | undefined;
+    private taskServerPipePath: string | undefined;
+    private pipeListener: PipeListener | undefined;
     private restarting = false;
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
     public readonly onDidStop: vscode.Event<null> = this._onDidStop.event;
@@ -114,17 +114,16 @@ export class GradleServer {
             });
             return;
         }
-        // PR 1 flipped the JVM into a TCP *client*: it dials the port the
-        // extension picks and connects back over JSON-RPC. Bind the
-        // ephemeral loopback port BEFORE spawning the JVM so the JVM
-        // never sees a connection-refused race against our listener. The
-        // listener is created AFTER the env check so we don't leak a
-        // bound socket + pending connect promise on the no-Java path.
-        this.loopbackListener?.dispose();
-        this.loopbackListener = await createLoopbackListener({ logger: this.buildJsonRpcLogger() });
-        this.taskServerPort = this.loopbackListener.port;
+        // The JVM connects back as a named-pipe / UDS client over JSON-RPC.
+        // Bind the pipe BEFORE spawning the JVM so the JVM never sees a
+        // connection race against our listener. The listener is created AFTER
+        // the env check so we don't leak a bound pipe + pending connect promise
+        // on the no-Java path.
+        this.pipeListener?.dispose();
+        this.pipeListener = await createPipeListener({ logger: this.buildJsonRpcLogger() });
+        this.taskServerPipePath = this.pipeListener.pipePath;
         const args = [
-            quoteArg(`--port=${this.taskServerPort}`),
+            quoteArg(`--pipe=${this.taskServerPipePath}`),
             quoteArg(`--startBuildServer=${startBuildServer}`),
             quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
         ];
@@ -166,8 +165,8 @@ export class GradleServer {
                 this._onDidStop.fire(null);
                 this.ready = false;
                 this.process?.removeAllListeners();
-                this.loopbackListener?.dispose();
-                this.loopbackListener = undefined;
+                this.pipeListener?.dispose();
+                this.pipeListener = undefined;
                 this.bspProxy.closeConnection();
                 if (this.restarting) {
                     this.restarting = false;
@@ -187,6 +186,7 @@ export class GradleServer {
                         data3: code !== null ? code.toString() : "",
                         dataMsg: signal ?? "",
                         autoRestartAttempt: willAutoRestart ? this.autoRestartCount.toString() : "",
+                        transport: "pipe",
                     });
                     if (willAutoRestart) {
                         return;
@@ -301,10 +301,10 @@ export class GradleServer {
         this.autoRestartTimer = setTimeout(() => {
             this.autoRestartTimer = undefined;
             this.start().catch((error) => {
-                // The relaunch itself failed (e.g. the loopback listener could
-                // not bind). Fall back to the normal unexpected-exit handling so
-                // the user still gets the recovery prompt instead of being left
-                // with a silently dead server.
+                // The relaunch itself failed (e.g. the pipe listener could not
+                // bind). Fall back to the normal unexpected-exit handling so the
+                // user still gets the recovery prompt instead of being left with
+                // a silently dead server.
                 this.logger.error(
                     `Gradle server auto-restart failed: ${error instanceof Error ? error.message : String(error)}`
                 );
@@ -350,22 +350,18 @@ export class GradleServer {
         this.bspProxy.closeConnection();
         this.process?.removeAllListeners();
         await this.killProcess();
-        this.loopbackListener?.dispose();
-        this.loopbackListener = undefined;
+        this.pipeListener?.dispose();
+        this.pipeListener = undefined;
         this.ready = false;
         this._onDidStart.dispose();
         this._onDidStop.dispose();
     }
 
-    public getPort(): number | undefined {
-        return this.taskServerPort;
-    }
-
     public awaitTaskConnection(): Promise<MessageConnection> {
-        if (!this.loopbackListener) {
-            return Promise.reject(new Error("Gradle task server loopback listener is not initialized."));
+        if (!this.pipeListener) {
+            return Promise.reject(new Error("Gradle task server pipe listener is not initialized."));
         }
-        return this.loopbackListener.connection;
+        return this.pipeListener.connection;
     }
 
     public getOpts(): ServerOptions {

@@ -8,7 +8,7 @@ import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.jsonrpc.services.JsonSegment;
 
 /**
- * JSON-RPC server endpoint exposed by {@code gradle-server} over a TCP loopback
+ * JSON-RPC server endpoint exposed by {@code gradle-server} over a task pipe
  * {@code MessageConnection}.
  *
  * <p>
