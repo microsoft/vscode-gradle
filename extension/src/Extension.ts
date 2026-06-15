@@ -83,7 +83,7 @@ export class Extension {
         }
 
         const statusBarItem = vscode.window.createStatusBarItem();
-        this.server = new GradleServer({ host: "localhost" }, context, serverLogger, transportLogger);
+        this.server = new GradleServer(context, serverLogger, transportLogger);
         this.taskServerClient = new TaskServerClient(this.server, statusBarItem);
         this.pinnedTasksStore = new PinnedTasksStore(context);
         this.recentTasksStore = new RecentTasksStore();

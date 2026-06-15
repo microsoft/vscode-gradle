@@ -28,15 +28,10 @@ const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
 const MAX_AUTO_RESTARTS = 3;
 const AUTO_RESTART_DELAY_MS = 1_000;
 
-export interface ServerOptions {
-    host: string;
-}
-
 export class GradleServer {
     private readonly _onDidStart: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private readonly _onDidStop: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     private ready = false;
-    private taskServerPipePath: string | undefined;
     private pipeListener: PipeListener | undefined;
     private restarting = false;
     public readonly onDidStart: vscode.Event<null> = this._onDidStart.event;
@@ -52,7 +47,6 @@ export class GradleServer {
     private autoRestartTimer: NodeJS.Timeout | undefined;
 
     constructor(
-        private readonly opts: ServerOptions,
         private readonly context: vscode.ExtensionContext,
         private readonly logger: Logger,
         private readonly transportLogger: Logger
@@ -121,9 +115,9 @@ export class GradleServer {
         // on the no-Java path.
         this.pipeListener?.dispose();
         this.pipeListener = await createPipeListener({ logger: this.buildJsonRpcLogger() });
-        this.taskServerPipePath = this.pipeListener.pipePath;
+        const taskServerPipePath = this.pipeListener.pipePath;
         const args = [
-            quoteArg(`--pipe=${this.taskServerPipePath}`),
+            quoteArg(`--pipe=${taskServerPipePath}`),
             quoteArg(`--startBuildServer=${startBuildServer}`),
             quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
         ];
@@ -362,9 +356,5 @@ export class GradleServer {
             return Promise.reject(new Error("Gradle task server pipe listener is not initialized."));
         }
         return this.pipeListener.connection;
-    }
-
-    public getOpts(): ServerOptions {
-        return this.opts;
     }
 }
