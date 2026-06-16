@@ -22,7 +22,7 @@ import { FileWatcher } from "./util/FileWatcher";
 import { DependencyTreeItem } from "./views/gradleTasks/DependencyTreeItem";
 import { GRADLE_DEPENDENCY_REVEAL } from "./views/gradleTasks/DependencyUtils";
 import { GradleDependencyProvider } from "./dependencies/GradleDependencyProvider";
-import { isLanguageServerStarted, startLanguageClientAndWaitForConnection } from "./languageServer/languageServer";
+import { isLanguageServerStarted, startLanguageClientAndWaitForPipeServer } from "./languageServer/languageServer";
 import { DefaultProjectsTreeDataProvider } from "./views/defaultProject/DefaultProjectsTreeDataProvider";
 import {
     CompletionKinds,
@@ -91,7 +91,7 @@ export class Extension {
         this.rootProjectsStore = new RootProjectsStore();
         this.gradleBuildContentProvider = new GradleBuildContentProvider(this.taskServerClient);
         this.server.setLanguageServerInitializer((languageServerPipePath) =>
-            startLanguageClientAndWaitForConnection(
+            startLanguageClientAndWaitForPipeServer(
                 this.context,
                 this.gradleBuildContentProvider,
                 this.rootProjectsStore,

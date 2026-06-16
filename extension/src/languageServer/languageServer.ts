@@ -33,18 +33,17 @@ interface LanguageServerPipeServer extends vscode.Disposable {
     readonly connection: Promise<StreamInfo>;
 }
 
-export async function startLanguageClientAndWaitForConnection(
+export async function startLanguageClientAndWaitForPipeServer(
     context: vscode.ExtensionContext,
     contentProvider: GradleBuildContentProvider,
     rootProjectsStore: RootProjectsStore,
     languageServerPipePath: string
 ): Promise<void> {
     registerLanguageServerCleanup(context);
+    stopLanguageClient();
     if (languageServerPipePath === "") {
-        isLanguageServerStarted = false;
         return;
     }
-    stopLanguageClient();
     await vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, async (progress) => {
         progress.report({
             message: "Initializing Gradle Language Server",
