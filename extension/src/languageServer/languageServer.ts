@@ -25,8 +25,13 @@ export let isLanguageServerStarted = false;
 let activeLanguageClient: LanguageClient | undefined;
 let languageClientDisposable: vscode.Disposable | undefined;
 let configurationDisposable: vscode.Disposable | undefined;
-let pendingPipeServer: vscode.Disposable | undefined;
+let pendingPipeServer: LanguageServerPipeServer | undefined;
 let cleanupDisposableRegistered = false;
+
+interface LanguageServerPipeServer extends vscode.Disposable {
+    readonly listening: Promise<void>;
+    readonly connection: Promise<StreamInfo>;
+}
 
 export async function startLanguageClientAndWaitForConnection(
     context: vscode.ExtensionContext,
@@ -46,16 +51,26 @@ export async function startLanguageClientAndWaitForConnection(
         });
         const pipeServer = createLanguageServerPipeServer(languageServerPipePath);
         pendingPipeServer = pipeServer;
-        await pipeServer.listening;
+        try {
+            await pipeServer.listening;
+        } catch (error) {
+            if (pendingPipeServer === pipeServer) {
+                pendingPipeServer = undefined;
+            }
+            pipeServer.dispose();
+            throw error;
+        }
         const currentDisposables: {
             client?: vscode.Disposable;
             configuration?: vscode.Disposable;
         } = {};
         const cleanupClosedClient = (): void => {
-            if (languageClientDisposable === currentDisposables.client) {
+            if (currentDisposables.client && languageClientDisposable === currentDisposables.client) {
+                const disposable = languageClientDisposable;
                 activeLanguageClient = undefined;
                 languageClientDisposable = undefined;
                 isLanguageServerStarted = false;
+                disposable.dispose();
             }
             if (configurationDisposable && configurationDisposable === currentDisposables.configuration) {
                 const disposable = configurationDisposable;
@@ -89,6 +104,7 @@ export async function startLanguageClientAndWaitForConnection(
             },
             (e) => {
                 const errorMessage = e instanceof Error ? e.message : String(e);
+                cleanupClosedClient();
                 void vscode.window.showErrorMessage(errorMessage);
             }
         );
@@ -124,24 +140,47 @@ function registerLanguageServerCleanup(context: vscode.ExtensionContext): void {
 function stopLanguageClient(): void {
     isLanguageServerStarted = false;
     const client = activeLanguageClient;
+    const disposable = languageClientDisposable;
     activeLanguageClient = undefined;
+    languageClientDisposable = undefined;
     pendingPipeServer?.dispose();
     pendingPipeServer = undefined;
     configurationDisposable?.dispose();
     configurationDisposable = undefined;
-    languageClientDisposable = undefined;
-    void client?.stop().catch(() => undefined);
+    if (disposable) {
+        disposable.dispose();
+        return;
+    }
+    void client?.stop().catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("Failed to stop Gradle Language Server:", message);
+    });
 }
 
-function createLanguageServerPipeServer(pipeName: string): {
-    readonly listening: Promise<void>;
-    readonly connection: Promise<StreamInfo>;
-    dispose(): void;
-} {
+function createLanguageServerPipeServer(pipeName: string): LanguageServerPipeServer {
     const server = net.createServer();
     let settled = false;
+    let listeningSettled = false;
     let rejectConnection: ((reason: Error) => void) | undefined;
     let rejectListening: ((reason: Error) => void) | undefined;
+    const rejectPendingConnection = (error: Error): void => {
+        if (settled) {
+            return;
+        }
+        settled = true;
+        const reject = rejectConnection;
+        rejectConnection = undefined;
+        reject?.(error);
+    };
+    const rejectPendingListening = (error: Error): void => {
+        if (listeningSettled) {
+            return;
+        }
+        listeningSettled = true;
+        const reject = rejectListening;
+        rejectListening = undefined;
+        reject?.(error);
+    };
     const connection = new Promise<StreamInfo>((resolve, reject) => {
         rejectConnection = reject;
         server.on("connection", (stream) => {
@@ -160,15 +199,11 @@ function createLanguageServerPipeServer(pipeName: string): {
     const listening = new Promise<void>((resolve, reject) => {
         rejectListening = reject;
         server.on("error", (err) => {
-            rejectListening?.(err);
-            if (!settled) {
-                settled = true;
-                const rejectPendingConnection = rejectConnection;
-                rejectConnection = undefined;
-                rejectPendingConnection?.(err);
-            }
+            rejectPendingListening(err);
+            rejectPendingConnection(err);
         });
         server.listen(pipeName, () => {
+            listeningSettled = true;
             rejectListening = undefined;
             resolve();
         });
@@ -178,12 +213,9 @@ function createLanguageServerPipeServer(pipeName: string): {
         listening,
         connection,
         dispose: () => {
-            if (!settled) {
-                settled = true;
-                const reject = rejectConnection;
-                rejectConnection = undefined;
-                reject?.(new Error("Gradle language server pipe listener disposed before connection"));
-            }
+            const error = new Error("Gradle language server pipe listener disposed before connection");
+            rejectPendingConnection(error);
+            rejectPendingListening(error);
             try {
                 server.close();
             } catch {
