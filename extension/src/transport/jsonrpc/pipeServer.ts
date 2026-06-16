@@ -25,9 +25,19 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
 export interface PipeListener {
     /** Pipe path the JVM should be told to connect back to. */
     readonly pipePath: string;
-    /** Resolves with the next `MessageConnection` once the JVM connects; rejects on timeout or dispose. */
+    /**
+     * Convenience accessor that waits for the next `MessageConnection` using the
+     * default timeout. Each read registers a fresh waiter, so production code
+     * should prefer {@link waitForConnection}; this is kept for tests and simple
+     * call sites.
+     */
     readonly connection: Promise<MessageConnection>;
-    /** Fires every time the JVM establishes a new task transport session. */
+    /**
+     * Fires every time the JVM establishes a new task transport session.
+     * Currently consumed only by tests; exposed for future subscribers that need
+     * to observe every session without consuming the {@link waitForConnection}
+     * queue.
+     */
     readonly onConnection: Event<MessageConnection>;
     /** Wait for the next task transport session. */
     waitForConnection(connectTimeoutMs?: number): Promise<MessageConnection>;

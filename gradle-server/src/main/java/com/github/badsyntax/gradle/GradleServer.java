@@ -79,7 +79,7 @@ public class GradleServer {
 				}
 				if (!shutdownRequested.get()) {
 					logger.info("Reconnecting Gradle Server JSON-RPC task transport in {} ms", reconnectDelayMs);
-					if (!sleepBeforeReconnect(reconnectDelayMs)) {
+					if (!sleepQuietly(reconnectDelayMs)) {
 						break;
 					}
 					reconnectDelayMs = Math.min(reconnectDelayMs * 2, MAX_TASK_RECONNECT_DELAY_MS);
@@ -100,7 +100,9 @@ public class GradleServer {
 		}, "gradle-jsonrpc-shutdown"));
 	}
 
-	private static boolean sleepBeforeReconnect(long delayMs) {
+	// Sleep for the given duration, returning false if the thread was
+	// interrupted (e.g. JVM shutdown) so callers can break out of their loop.
+	private static boolean sleepQuietly(long delayMs) {
 		try {
 			Thread.sleep(delayMs);
 			return true;
@@ -110,6 +112,10 @@ public class GradleServer {
 		}
 	}
 
+	// Cancel any in-flight Gradle builds when the task transport tears down.
+	// A build started over the now-dead task channel can no longer stream
+	// results back to the client, so we proactively cancel it instead of
+	// leaking a Gradle worker that nobody is listening to.
 	private static void cancelActiveBuilds() {
 		try {
 			GradleBuildCancellation.cancelBuilds();
@@ -136,8 +142,13 @@ public class GradleServer {
 			return;
 		}
 		Thread watcherThread = new Thread(() -> {
+			// Poll the parent's liveness rather than rely on the task channel: this
+			// keeps orphan cleanup working even while the task transport is healthy.
+			// Note: ProcessHandle tracks the original process, but on PID reuse a
+			// recycled id could read as alive; the interval is short and the worst
+			// case is a slightly delayed exit, so a simple poll is sufficient here.
 			while (parentProcess.isAlive()) {
-				if (!sleepBeforeReconnect(PARENT_PROCESS_CHECK_INTERVAL_MS)) {
+				if (!sleepQuietly(PARENT_PROCESS_CHECK_INTERVAL_MS)) {
 					return;
 				}
 			}
