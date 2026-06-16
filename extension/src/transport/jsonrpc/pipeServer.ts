@@ -4,6 +4,7 @@
 import * as fs from "fs";
 import * as net from "net";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
+import { Emitter, Event } from "vscode-jsonrpc";
 import { createMessageConnection, MessageConnection } from "vscode-jsonrpc/node";
 import { SocketMessageReader, SocketMessageWriter } from "vscode-jsonrpc/node";
 import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
@@ -15,7 +16,8 @@ import { getRandomPipeName } from "../../util/generateRandomPipeName";
  * The extension creates the pipe first, then spawns the `gradle-server` JVM with
  * `--pipe=<path>`. The JVM connects back as a pipe client (`TaskPipeServer` on
  * the Java side) and the resulting stream is wrapped in an LSP4J-compatible
- * `MessageConnection`.
+ * `MessageConnection`. The listener stays bound for the JVM lifetime so the
+ * task channel can reconnect without restarting the JVM.
  */
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
@@ -23,8 +25,12 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
 export interface PipeListener {
     /** Pipe path the JVM should be told to connect back to. */
     readonly pipePath: string;
-    /** Resolves with the `MessageConnection` once the JVM connects; rejects on timeout or socket error. */
+    /** Resolves with the next `MessageConnection` once the JVM connects; rejects on timeout or dispose. */
     readonly connection: Promise<MessageConnection>;
+    /** Fires every time the JVM establishes a new task transport session. */
+    readonly onConnection: Event<MessageConnection>;
+    /** Wait for the next task transport session. */
+    waitForConnection(connectTimeoutMs?: number): Promise<MessageConnection>;
     /** Tear down the listener and (if connected) the inbound socket. Safe to call repeatedly. */
     dispose(): void;
 }
@@ -61,85 +67,118 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         });
     });
 
-    let acceptedSocket: net.Socket | undefined;
-    let timeoutHandle: NodeJS.Timeout | undefined;
+    let activeSocket: net.Socket | undefined;
     let disposed = false;
-    let rejectConnection: ((reason: Error) => void) | undefined;
+    const pendingConnections: MessageConnection[] = [];
+    const pendingWaiters: Array<{
+        resolve: (connection: MessageConnection) => void;
+        reject: (reason: Error) => void;
+        timeoutHandle?: NodeJS.Timeout;
+    }> = [];
+    const onConnectionEmitter = new Emitter<MessageConnection>();
 
-    const connection = new Promise<MessageConnection>((resolve, reject) => {
-        rejectConnection = reject;
-        timeoutHandle = setTimeout(() => {
-            const err = new Error(`Timed out after ${timeoutMs}ms waiting for gradle-server to connect to task pipe`);
-            rejectConnection = undefined;
-            reportPipeFailure("taskPipeConnectTimeout", err.message);
-            reject(err);
-            closeServer(server, pipePath);
-        }, timeoutMs);
-
-        server.on("connection", (socket) => {
-            if (acceptedSocket) {
-                // Already paired with a JVM; reject extra connections.
-                socket.destroy();
-                return;
+    const waitForConnection = (connectTimeoutMs = timeoutMs): Promise<MessageConnection> => {
+        if (disposed) {
+            return Promise.reject(new Error("Task pipe listener disposed before gradle-server connected"));
+        }
+        const queuedConnection = pendingConnections.shift();
+        if (queuedConnection) {
+            return Promise.resolve(queuedConnection);
+        }
+        return new Promise<MessageConnection>((resolve, reject) => {
+            const waiter = { resolve, reject, timeoutHandle: undefined as NodeJS.Timeout | undefined };
+            if (connectTimeoutMs > 0) {
+                waiter.timeoutHandle = setTimeout(() => {
+                    const waiterIndex = pendingWaiters.indexOf(waiter);
+                    if (waiterIndex >= 0) {
+                        pendingWaiters.splice(waiterIndex, 1);
+                    }
+                    const err = new Error(
+                        `Timed out after ${connectTimeoutMs}ms waiting for gradle-server to connect to task pipe`
+                    );
+                    reportPipeFailure("taskPipeConnectTimeout", err.message);
+                    reject(err);
+                }, connectTimeoutMs);
             }
-            acceptedSocket = socket;
-            if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-                timeoutHandle = undefined;
+            pendingWaiters.push(waiter);
+        });
+    };
+
+    server.on("connection", (socket) => {
+        if (disposed) {
+            socket.destroy();
+            return;
+        }
+
+        if (activeSocket && !activeSocket.destroyed) {
+            activeSocket.destroy();
+        }
+        activeSocket = socket;
+
+        const reader = new SocketMessageReader(socket);
+        const writer = new SocketMessageWriter(socket);
+
+        socket.on("error", (socketErr) => {
+            options.logger?.error(`gradle-server task pipe error: ${socketErr.message}`);
+            reportPipeFailure("taskPipeConnectionClosed", socketErr.message);
+        });
+        socket.on("close", (hadError) => {
+            if (activeSocket === socket) {
+                activeSocket = undefined;
             }
-            rejectConnection = undefined;
-            // Stop accepting further connections; the listener has served its purpose.
-            closeServer(server, pipePath);
-
-            const reader = new SocketMessageReader(socket);
-            const writer = new SocketMessageWriter(socket);
-
-            socket.on("error", (socketErr) => {
-                options.logger?.error(`gradle-server task pipe error: ${socketErr.message}`);
-                reportPipeFailure("taskPipeConnectionClosed", socketErr.message);
-            });
-            socket.on("close", (hadError) => {
-                options.logger?.info(`gradle-server task pipe closed${hadError ? " after error" : ""}`);
-            });
-
-            const conn = createMessageConnection(reader, writer, options.logger);
-            resolve(conn);
+            options.logger?.info(`gradle-server task pipe closed${hadError ? " after error" : ""}`);
         });
 
-        server.on("error", (err) => {
-            if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-                timeoutHandle = undefined;
+        const conn = createMessageConnection(reader, writer, options.logger);
+        const waiter = pendingWaiters.shift();
+        if (waiter) {
+            if (waiter.timeoutHandle) {
+                clearTimeout(waiter.timeoutHandle);
             }
-            rejectConnection = undefined;
-            reportPipeFailure("taskPipeSetupFailure", err.message);
-            reject(err);
-        });
+            waiter.resolve(conn);
+        } else {
+            pendingConnections.push(conn);
+        }
+        onConnectionEmitter.fire(conn);
+    });
+
+    server.on("error", (err) => {
+        reportPipeFailure("taskPipeSetupFailure", err.message);
+        rejectPendingWaiters(err);
     });
 
     return {
         pipePath,
-        connection,
+        get connection() {
+            return waitForConnection(timeoutMs);
+        },
+        onConnection: onConnectionEmitter.event,
+        waitForConnection,
         dispose: () => {
             if (disposed) {
                 return;
             }
             disposed = true;
-            if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-                timeoutHandle = undefined;
-            }
-            if (rejectConnection) {
-                const reject = rejectConnection;
-                rejectConnection = undefined;
-                reject(new Error("Task pipe listener disposed before gradle-server connected"));
+            rejectPendingWaiters(new Error("Task pipe listener disposed before gradle-server connected"));
+            for (const connection of pendingConnections.splice(0)) {
+                connection.dispose();
             }
             closeServer(server, pipePath);
-            if (acceptedSocket && !acceptedSocket.destroyed) {
-                acceptedSocket.destroy();
+            if (activeSocket && !activeSocket.destroyed) {
+                activeSocket.destroy();
             }
+            onConnectionEmitter.dispose();
         },
     };
+
+    function rejectPendingWaiters(err: Error): void {
+        for (const waiter of pendingWaiters.splice(0)) {
+            if (waiter.timeoutHandle) {
+                clearTimeout(waiter.timeoutHandle);
+            }
+            waiter.reject(err);
+        }
+    }
 }
 
 function closeServer(server: net.Server, pipePath: string): void {

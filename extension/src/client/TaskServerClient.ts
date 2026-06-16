@@ -56,6 +56,8 @@ export class TaskServerClient implements vscode.Disposable {
     private readonly _onDidConnectFail: vscode.EventEmitter<null> = new vscode.EventEmitter<null>();
     public readonly onDidConnect: vscode.Event<null> = this._onDidConnect.event;
     public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail.event;
+    private disposed = false;
+    private connecting = false;
 
     private readonly connectWaiter = new EventWaiter(this.onDidConnect);
 
@@ -65,10 +67,14 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     private handleServerStop = (): void => {
+        this.connecting = false;
         this.close();
     };
 
     public handleServerStart = (): Thenable<void> => {
+        if (this.rpcClient) {
+            return Promise.resolve();
+        }
         this.connectWaiter.reset();
         return vscode.window.withProgress(
             {
@@ -94,8 +100,16 @@ export class TaskServerClient implements vscode.Disposable {
     };
 
     private async connectToServer(): Promise<void> {
+        if (this.disposed || this.connecting || this.rpcClient) {
+            return;
+        }
+        this.connecting = true;
         try {
             const connection = await this.server.awaitTaskConnection();
+            if (this.disposed) {
+                connection.dispose();
+                return;
+            }
             this.rpcClient = new GradleJsonRpcClient(connection);
             // The task transport can die between gradle-server process exits
             // (peer reset, crash). Proactively tear down the stale client
@@ -106,12 +120,19 @@ export class TaskServerClient implements vscode.Disposable {
                 if (err) {
                     logger.error(`Gradle client connection closed unexpectedly: ${errorDetails(err)}`);
                 }
+                this.server.handleTaskConnectionClosed();
                 this.close();
+                if (!this.disposed && this.server.isStarted()) {
+                    this.connectWaiter.reset();
+                    void this.connectToServer();
+                }
             });
             logger.info("Gradle client connected to server");
             this._onDidConnect.fire(null);
         } catch (err) {
             await this.handleConnectError(err instanceof Error ? err : new Error(String(err)));
+        } finally {
+            this.connecting = false;
         }
     }
 
@@ -429,7 +450,7 @@ export class TaskServerClient implements vscode.Disposable {
         if (this.server.isAutoRestartPending()) {
             return;
         }
-        if (this.server.isReady()) {
+        if (this.server.isStarted()) {
             await this.showRestartMessage();
         } else {
             await this.server.showRestartMessage();
@@ -456,6 +477,7 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     public dispose(): void {
+        this.disposed = true;
         this.close();
         this._onDidConnect.dispose();
         this._onDidConnectFail.dispose();
