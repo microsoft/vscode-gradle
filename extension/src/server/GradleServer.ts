@@ -18,6 +18,7 @@ const STDERR_TAIL_LINES = 40;
 const STDERR_TAIL_PREVIEW_LINES = 3;
 const VIEW_LOG_ACTION = "View Log";
 const RESTART_GRADLE_SERVER_ACTION = "Restart Gradle Server";
+const RESTART_EXTENSION_HOST_ACTION = "Restart Extension Host";
 // Bounded auto-restart for unexpected gradle-server exits (e.g. a task
 // transport break that kills the JVM). Relaunch transparently instead of
 // immediately asking the user to reload, and only fall back to the warning
@@ -191,10 +192,18 @@ export class GradleServer {
                     }
                     this.pipeListener?.dispose();
                     this.pipeListener = undefined;
+                    const wasBspImporterActive = this.bspProxy.hasImporterSession();
                     this.bspProxy.closeConnection();
                     if (this.restarting) {
                         this.restarting = false;
-                        await this.start();
+                        if (wasBspImporterActive) {
+                            this.logger.info(
+                                "Restarting extension host because Gradle Build Server importer is active"
+                            );
+                            await vscode.commands.executeCommand("workbench.action.restartExtensionHost");
+                        } else {
+                            await this.start();
+                        }
                         return;
                     }
                     if ((code !== null && code !== 0) || signal !== null) {
@@ -204,7 +213,8 @@ export class GradleServer {
                         // carries the recovery outcome on the same event: "1".."N"
                         // while self-healing, "" once we give up (budget exhausted
                         // or disposing) and the user is prompted.
-                        const willAutoRestart = wasTaskTransportReady && this.tryAutoRestart(code, signal);
+                        const willAutoRestart =
+                            wasTaskTransportReady && !wasBspImporterActive && this.tryAutoRestart(code, signal);
                         sendInfo("", {
                             kind: "serverProcessExit",
                             data3: code !== null ? code.toString() : "",
@@ -215,7 +225,7 @@ export class GradleServer {
                         if (willAutoRestart) {
                             return;
                         }
-                        await this.handleUnexpectedExit(code, signal);
+                        await this.handleUnexpectedExit(code, signal, wasBspImporterActive);
                     }
                 });
 
@@ -257,32 +267,55 @@ export class GradleServer {
         return this.processRunning;
     }
 
-    public async showRestartMessage(reason?: string): Promise<void> {
+    public async showRestartMessage(reason?: string, requiresExtensionHostRestart = false): Promise<void> {
         if (this.restartMessagePromise) {
             return this.restartMessagePromise;
         }
-        this.restartMessagePromise = this.showRestartMessageOnce(reason).finally(() => {
+        this.restartMessagePromise = this.showRestartMessageOnce(reason, requiresExtensionHostRestart).finally(() => {
             this.restartMessagePromise = undefined;
         });
         return this.restartMessagePromise;
     }
 
-    private async showRestartMessageOnce(reason?: string): Promise<void> {
-        const message = reason
-            ? `${reason} Restart the Gradle server?`
-            : "No connection to Gradle server. Restart the Gradle server?";
-        const selection = await vscode.window.showErrorMessage(message, RESTART_GRADLE_SERVER_ACTION);
+    private async showRestartMessageOnce(reason?: string, requiresExtensionHostRestart = false): Promise<void> {
+        const restartExtensionHost = requiresExtensionHostRestart || this.isBspImporterActive();
+        const message = this.buildRestartMessage(reason, restartExtensionHost);
+        const action = restartExtensionHost ? RESTART_EXTENSION_HOST_ACTION : RESTART_GRADLE_SERVER_ACTION;
+        const selection = await vscode.window.showErrorMessage(message, action);
         sendInfo("", {
             kind: "serverProcessExitRestart",
-            data3: selection === RESTART_GRADLE_SERVER_ACTION ? "true" : "false",
-            dataMsg: "gradleServer",
+            data3: selection === action ? "true" : "false",
+            dataMsg: restartExtensionHost ? "extensionHost" : "gradleServer",
         });
-        if (selection === RESTART_GRADLE_SERVER_ACTION) {
-            await this.restart();
+        if (selection === action) {
+            if (restartExtensionHost) {
+                await vscode.commands.executeCommand("workbench.action.restartExtensionHost");
+            } else {
+                await this.restart();
+            }
         }
     }
 
+    private buildRestartMessage(reason: string | undefined, restartExtensionHost: boolean): string {
+        if (!restartExtensionHost) {
+            return reason
+                ? `${reason} Restart the Gradle server?`
+                : "No connection to Gradle server. Restart the Gradle server?";
+        }
+        const prefix = reason ? `${reason} ` : "No connection to Gradle server. ";
+        return `${prefix}Restart the extension host to restore Gradle Build Server integration?`;
+    }
+
+    private isBspImporterActive(): boolean {
+        return this.bspProxy?.hasImporterSession() ?? false;
+    }
+
     public async restart(): Promise<void> {
+        if (this.isBspImporterActive()) {
+            this.logger.info("Restarting extension host because Gradle Build Server importer is active");
+            await vscode.commands.executeCommand("workbench.action.restartExtensionHost");
+            return;
+        }
         this.logger.info("Restarting gradle server");
         this.ready = false;
         if (this.processRunning && this.process) {
@@ -380,7 +413,7 @@ export class GradleServer {
                 this.logger.error(
                     `Gradle server auto-restart failed: ${error instanceof Error ? error.message : String(error)}`
                 );
-                void this.handleUnexpectedExit(code, signal);
+                void this.handleUnexpectedExit(code, signal, this.isBspImporterActive());
             });
         }, AUTO_RESTART_DELAY_MS);
         return true;
@@ -393,7 +426,11 @@ export class GradleServer {
         return this.autoRestartTimer !== undefined;
     }
 
-    private async handleUnexpectedExit(code: number | null, signal: NodeJS.Signals | null): Promise<void> {
+    private async handleUnexpectedExit(
+        code: number | null,
+        signal: NodeJS.Signals | null,
+        requiresExtensionHostRestart = false
+    ): Promise<void> {
         const reason = signal
             ? `was terminated by signal ${signal}`
             : `exited unexpectedly with code ${code ?? "null"}`;
@@ -402,18 +439,21 @@ export class GradleServer {
             ? `Last output: ${tailPreview}`
             : `See the "Gradle for Java" output channel for details.`;
         const message = `Gradle server ${reason}. ${detail}`;
-        const selection = await vscode.window.showWarningMessage(
-            message,
-            RESTART_GRADLE_SERVER_ACTION,
-            VIEW_LOG_ACTION
-        );
-        if (selection === RESTART_GRADLE_SERVER_ACTION) {
+        const restartAction = requiresExtensionHostRestart
+            ? RESTART_EXTENSION_HOST_ACTION
+            : RESTART_GRADLE_SERVER_ACTION;
+        const selection = await vscode.window.showWarningMessage(message, restartAction, VIEW_LOG_ACTION);
+        if (selection === restartAction) {
             sendInfo("", {
                 kind: "serverProcessExitRestart",
                 data3: "true",
-                dataMsg: "gradleServer",
+                dataMsg: requiresExtensionHostRestart ? "extensionHost" : "gradleServer",
             });
-            await this.restart();
+            if (requiresExtensionHostRestart) {
+                await vscode.commands.executeCommand("workbench.action.restartExtensionHost");
+            } else {
+                await this.restart();
+            }
         } else if (selection === VIEW_LOG_ACTION) {
             this.logger.getChannel()?.show(true);
         }

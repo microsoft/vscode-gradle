@@ -20,6 +20,11 @@ type GradleServerInternals = {
     _onDidStop: { fire(value: null): void };
     showRestartMessage: SinonStub<[string?], Promise<void>>;
     handleProcessError(process: cp.ChildProcessWithoutNullStreams, error: Error): Promise<void>;
+    handleUnexpectedExit(
+        code: number | null,
+        signal: NodeJS.Signals | null,
+        requiresExtensionHostRestart: boolean
+    ): Promise<void>;
 };
 
 describe(suiteName("GradleServer recovery"), () => {
@@ -44,6 +49,55 @@ describe(suiteName("GradleServer recovery"), () => {
         resolvePrompt(undefined);
         await Promise.all([firstPrompt, secondPrompt]);
         assert.strictEqual(showErrorMessageStub.calledOnce, true);
+    });
+
+    it("uses extension host restart when prompting with an active BSP importer session", async () => {
+        const showErrorMessageStub = (sinon.stub(vscode.window, "showErrorMessage") as SinonStub).resolves(
+            "Restart Extension Host"
+        );
+        const executeCommandStub = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const server = Object.assign(Object.create(GradleServer.prototype), {
+            bspProxy: { hasImporterSession: sinon.stub().returns(true) },
+        }) as GradleServer;
+
+        await server.showRestartMessage("Gradle server failed.");
+
+        assert.strictEqual(showErrorMessageStub.calledOnce, true);
+        const [message, action] = showErrorMessageStub.firstCall.args;
+        assert.match(String(message), /extension host/i);
+        assert.strictEqual(action, "Restart Extension Host");
+        assert.strictEqual(executeCommandStub.calledOnceWith("workbench.action.restartExtensionHost"), true);
+    });
+
+    it("routes direct restart to the extension host when BSP importer is active", async () => {
+        const executeCommandStub = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const logger = { info: sinon.stub() };
+        const server = Object.assign(Object.create(GradleServer.prototype), {
+            bspProxy: { hasImporterSession: sinon.stub().returns(true) },
+            logger,
+        }) as GradleServer;
+
+        await server.restart();
+
+        assert.strictEqual(logger.info.calledOnce, true);
+        assert.strictEqual(executeCommandStub.calledOnceWith("workbench.action.restartExtensionHost"), true);
+    });
+
+    it("uses extension host restart for unexpected exits when BSP importer is active", async () => {
+        const showWarningMessageStub = (sinon.stub(vscode.window, "showWarningMessage") as SinonStub).resolves(
+            "Restart Extension Host"
+        );
+        const executeCommandStub = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const server = Object.assign(Object.create(GradleServer.prototype), {
+            stderrTail: [],
+            logger: { getChannel: sinon.stub() },
+        }) as GradleServerInternals;
+
+        await server.handleUnexpectedExit(1, null, true);
+
+        assert.strictEqual(showWarningMessageStub.calledOnce, true);
+        assert.strictEqual(showWarningMessageStub.firstCall.args[1], "Restart Extension Host");
+        assert.strictEqual(executeCommandStub.calledOnceWith("workbench.action.restartExtensionHost"), true);
     });
 
     it("cleans up pending startup state when the child process emits error", async () => {

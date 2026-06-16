@@ -12,8 +12,8 @@ export const ON_WILL_IMPORTER_CONNECT = "_gradle.onWillImporterConnect";
  */
 export class JdtlsImporterConnector {
     private importerConnection: rpc.MessageConnection | null = null;
-    private importerPipeServer: net.Server;
-    private importerPipePath: string;
+    private importerPipeServer: net.Server | undefined;
+    private importerPipePath: string | undefined;
     private setPipePathPromise: Promise<void> | null = null;
     private readonly _onImporterReady: vscode.EventEmitter<string> = new vscode.EventEmitter<string>();
 
@@ -53,6 +53,10 @@ export class JdtlsImporterConnector {
     }
 
     public async setupImporterPipeStream(): Promise<void> {
+        const importerPipePath = this.importerPipePath;
+        if (!importerPipePath) {
+            throw new Error("JDT LS importer pipe path is not initialized.");
+        }
         return new Promise((resolve) => {
             this.importerPipeServer = net.createServer((socket: net.Socket) => {
                 this.importerConnection = rpc.createMessageConnection(
@@ -68,7 +72,7 @@ export class JdtlsImporterConnector {
                     proxyErrorStack: error.stack ? error.stack.toString() : "",
                 });
             });
-            this.importerPipeServer.listen(this.importerPipePath);
+            this.importerPipeServer.listen(importerPipePath);
         });
     }
 
@@ -80,9 +84,15 @@ export class JdtlsImporterConnector {
         return this.importerConnection;
     }
 
+    public hasImporterSession(): boolean {
+        return this.importerConnection !== null || this.importerPipePath !== undefined;
+    }
+
     public close(): void {
         this.importerConnection?.end();
         this.importerConnection?.dispose();
-        this.importerPipeServer.close();
+        this.importerConnection = null;
+        this.importerPipeServer?.close();
+        this.importerPipeServer = undefined;
     }
 }

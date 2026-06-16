@@ -9,8 +9,8 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
  */
 export class BuildServerConnector {
     private serverConnection: rpc.MessageConnection | null = null;
-    private serverPipeServer: net.Server;
-    private serverPipePath: string;
+    private serverPipeServer: net.Server | undefined;
+    private serverPipePath = "";
 
     /**
      * Generates a random pipe name, creates a pipe server and
@@ -50,6 +50,8 @@ export class BuildServerConnector {
     public close(): void {
         this.serverConnection?.end();
         this.serverConnection?.dispose();
-        this.serverPipeServer.close();
+        this.serverConnection = null;
+        this.serverPipeServer?.close();
+        this.serverPipeServer = undefined;
     }
 }

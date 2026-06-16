@@ -95,6 +95,10 @@ export class BspProxy {
         this.buildServerStart = started;
     }
 
+    public hasImporterSession(): boolean {
+        return this.jdtlsImporterConnector.hasImporterSession();
+    }
+
     public closeConnection(): void {
         try {
             this.buildServerConnector.close();
