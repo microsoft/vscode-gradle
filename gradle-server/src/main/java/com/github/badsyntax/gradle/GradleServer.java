@@ -131,7 +131,8 @@ public class GradleServer {
 		}
 		ProcessHandle parentProcess = ProcessHandle.of(pid).orElse(null);
 		if (parentProcess == null) {
-			logger.warn("Parent process {} was not found; Gradle Server orphan watcher is disabled", pid);
+			logger.warn("Parent process {} was not found; exiting Gradle Server JVM", pid);
+			System.exit(0);
 			return;
 		}
 		Thread watcherThread = new Thread(() -> {

@@ -58,6 +58,7 @@ export class TaskServerClient implements vscode.Disposable {
     public readonly onDidConnectFail: vscode.Event<null> = this._onDidConnectFail.event;
     private disposed = false;
     private connecting = false;
+    private reconnectTimer: NodeJS.Timeout | undefined;
 
     private readonly connectWaiter = new EventWaiter(this.onDidConnect);
 
@@ -68,6 +69,7 @@ export class TaskServerClient implements vscode.Disposable {
 
     private handleServerStop = (): void => {
         this.connecting = false;
+        this.clearReconnectTimer();
         this.close();
     };
 
@@ -122,10 +124,7 @@ export class TaskServerClient implements vscode.Disposable {
                 }
                 this.server.handleTaskConnectionClosed();
                 this.close();
-                if (!this.disposed && this.server.isStarted()) {
-                    this.connectWaiter.reset();
-                    void this.connectToServer();
-                }
+                this.scheduleReconnect();
             });
             logger.info("Gradle client connected to server");
             this._onDidConnect.fire(null);
@@ -457,6 +456,25 @@ export class TaskServerClient implements vscode.Disposable {
         }
     };
 
+    private scheduleReconnect(): void {
+        if (this.disposed || !this.server.isStarted() || this.reconnectTimer) {
+            return;
+        }
+        this.connectWaiter.reset();
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = undefined;
+            void this.connectToServer();
+        }, 0);
+    }
+
+    private clearReconnectTimer(): void {
+        if (!this.reconnectTimer) {
+            return;
+        }
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = undefined;
+    }
+
     public async showRestartMessage(): Promise<void> {
         const OPT_RESTART = "Re-connect Client";
         const input = await vscode.window.showErrorMessage(
@@ -478,6 +496,7 @@ export class TaskServerClient implements vscode.Disposable {
 
     public dispose(): void {
         this.disposed = true;
+        this.clearReconnectTimer();
         this.close();
         this._onDidConnect.dispose();
         this._onDidConnectFail.dispose();

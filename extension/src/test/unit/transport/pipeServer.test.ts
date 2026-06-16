@@ -4,7 +4,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as net from "net";
-import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
+import type { Logger as JsonRpcLogger, MessageConnection } from "vscode-jsonrpc";
 import { createPipeListener, PipeListener } from "../../../transport/jsonrpc";
 
 function suiteName(name: string): string {
@@ -77,6 +77,29 @@ describe(suiteName("createPipeListener"), () => {
         assert.ok(secondConnection, "expected the second task connection");
         assert.notStrictEqual(secondConnection, firstConnection);
         secondConnection.dispose();
+    });
+
+    it("returns the latest queued connection when multiple sockets arrive before a waiter", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        const seenConnections: MessageConnection[] = [];
+        const observedConnections = new Promise<void>((resolve) => {
+            listener!.onConnection((connection) => {
+                seenConnections.push(connection);
+                if (seenConnections.length === 2) {
+                    resolve();
+                }
+            });
+        });
+
+        await connectClient(listener.pipePath);
+        await connectClient(listener.pipePath);
+        await observedConnections;
+
+        assert.strictEqual(seenConnections.length, 2, "expected both inbound connections to be observed");
+        const connection = await listener.connection;
+        assert.strictEqual(connection, seenConnections[1], "expected the latest queued connection");
+
+        connection.dispose();
     });
 
     it("rejects the connection promise when dispose() is called before any JVM connects", async () => {

@@ -137,7 +137,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
             }
             waiter.resolve(conn);
         } else {
-            pendingConnections.push(conn);
+            replacePendingConnection(conn);
         }
         onConnectionEmitter.fire(conn);
     });
@@ -178,6 +178,13 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
             }
             waiter.reject(err);
         }
+    }
+
+    function replacePendingConnection(connection: MessageConnection): void {
+        for (const pendingConnection of pendingConnections.splice(0)) {
+            pendingConnection.dispose();
+        }
+        pendingConnections.push(connection);
     }
 }
 
