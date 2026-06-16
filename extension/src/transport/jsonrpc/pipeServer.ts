@@ -79,6 +79,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
 
     let activeSocket: net.Socket | undefined;
     let disposed = false;
+    let disposedReason: Error | undefined;
     const pendingConnections: MessageConnection[] = [];
     const pendingWaiters: Array<{
         resolve: (connection: MessageConnection) => void;
@@ -89,7 +90,9 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
 
     const waitForConnection = (connectTimeoutMs = timeoutMs): Promise<MessageConnection> => {
         if (disposed) {
-            return Promise.reject(new Error("Task pipe listener disposed before gradle-server connected"));
+            return Promise.reject(
+                disposedReason ?? new Error("Task pipe listener disposed before gradle-server connected")
+            );
         }
         const queuedConnection = pendingConnections.shift();
         if (queuedConnection) {
@@ -154,7 +157,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
 
     server.on("error", (err) => {
         reportPipeFailure("taskPipeSetupFailure", err.message);
-        rejectPendingWaiters(err);
+        teardown(err);
     });
 
     return {
@@ -165,21 +168,26 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         onConnection: onConnectionEmitter.event,
         waitForConnection,
         dispose: () => {
-            if (disposed) {
-                return;
-            }
-            disposed = true;
-            rejectPendingWaiters(new Error("Task pipe listener disposed before gradle-server connected"));
-            for (const connection of pendingConnections.splice(0)) {
-                connection.dispose();
-            }
-            closeServer(server, pipePath);
-            if (activeSocket && !activeSocket.destroyed) {
-                activeSocket.destroy();
-            }
-            onConnectionEmitter.dispose();
+            teardown(new Error("Task pipe listener disposed before gradle-server connected"));
         },
     };
+
+    function teardown(err: Error): void {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
+        disposedReason = err;
+        rejectPendingWaiters(err);
+        for (const connection of pendingConnections.splice(0)) {
+            connection.dispose();
+        }
+        closeServer(server, pipePath);
+        if (activeSocket && !activeSocket.destroyed) {
+            activeSocket.destroy();
+        }
+        onConnectionEmitter.dispose();
+    }
 
     function rejectPendingWaiters(err: Error): void {
         for (const waiter of pendingWaiters.splice(0)) {
