@@ -70,6 +70,7 @@ export class TaskServerClient implements vscode.Disposable {
     private handleServerStop = (): void => {
         this.connecting = false;
         this.clearReconnectTimer();
+        this.connectWaiter.reset();
         this.close();
     };
 
