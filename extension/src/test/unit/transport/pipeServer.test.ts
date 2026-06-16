@@ -115,6 +115,22 @@ describe(suiteName("createPipeListener"), () => {
         });
     });
 
+    it("uses a generic dispose reason after a task connection was established", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        await connectClient(listener.pipePath);
+        const connection = await listener.connection;
+        connection.dispose();
+
+        const pending = listener.connection;
+        listener.dispose();
+        listener = undefined;
+
+        await assert.rejects(pending, (err: Error) => {
+            assert.strictEqual(err.message, "Task pipe listener disposed");
+            return true;
+        });
+    });
+
     it("forwards vscode-jsonrpc protocol diagnostics to the supplied Logger", async () => {
         const errors: string[] = [];
         const spy: JsonRpcLogger = {

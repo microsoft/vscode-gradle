@@ -80,6 +80,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
     let activeSocket: net.Socket | undefined;
     let disposed = false;
     let disposedReason: Error | undefined;
+    let hasAcceptedConnection = false;
     const pendingConnections: MessageConnection[] = [];
     const pendingWaiters: Array<{
         resolve: (connection: MessageConnection) => void;
@@ -122,6 +123,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
             socket.destroy();
             return;
         }
+        hasAcceptedConnection = true;
 
         if (activeSocket && !activeSocket.destroyed) {
             activeSocket.destroy();
@@ -168,7 +170,13 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         onConnection: onConnectionEmitter.event,
         waitForConnection,
         dispose: () => {
-            teardown(new Error("Task pipe listener disposed before gradle-server connected"));
+            teardown(
+                new Error(
+                    hasAcceptedConnection
+                        ? "Task pipe listener disposed"
+                        : "Task pipe listener disposed before gradle-server connected"
+                )
+            );
         },
     };
 
