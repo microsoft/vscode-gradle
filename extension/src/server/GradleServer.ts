@@ -139,7 +139,10 @@ export class GradleServer {
         this.process.stderr.on("data", this.logOutput);
         this.process.stderr.on("data", this.captureStderrTail);
         this.process
-            .on("error", (err: Error) => this.logger.error(err.message))
+            .on("error", (err: Error) => {
+                this.logger.error(err.message);
+                this.cleanupProcessState();
+            })
             .on("exit", async (code, signal) => {
                 this.flushPendingStderrLine();
                 const durationMs = Date.now() - this.processStartedAt;
@@ -154,13 +157,7 @@ export class GradleServer {
                         this.logger.warn(`  ${line}`);
                     }
                 }
-                this._onDidStop.fire(null);
-                this.ready = false;
-                this.process?.removeAllListeners();
-                this.process = undefined;
-                this.pipeListener?.dispose();
-                this.pipeListener = undefined;
-                this.bspProxy.closeConnection();
+                this.cleanupProcessState();
                 if (this.restarting) {
                     this.restarting = false;
                     await this.start();
@@ -269,6 +266,16 @@ export class GradleServer {
             this.logger.info(str);
         }
     };
+
+    private cleanupProcessState(): void {
+        this._onDidStop.fire(null);
+        this.ready = false;
+        this.process?.removeAllListeners();
+        this.process = undefined;
+        this.pipeListener?.dispose();
+        this.pipeListener = undefined;
+        this.bspProxy.closeConnection();
+    }
 
     private async killProcess(): Promise<void> {
         if (this.process) {
