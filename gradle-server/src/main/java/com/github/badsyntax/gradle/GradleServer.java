@@ -135,6 +135,10 @@ public class GradleServer {
 			logger.warn("Ignoring invalid parent process id: {}", parentPid);
 			return;
 		}
+		if (pid <= 0) {
+			logger.warn("Ignoring invalid parent process id: {}", parentPid);
+			return;
+		}
 		ProcessHandle parentProcess = ProcessHandle.of(pid).orElse(null);
 		if (parentProcess == null) {
 			logger.warn("Parent process {} was not found; exiting Gradle Server JVM", pid);
