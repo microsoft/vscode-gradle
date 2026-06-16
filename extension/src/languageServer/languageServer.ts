@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import * as net from "net";
+import * as fs from "fs";
 import * as vscode from "vscode";
 import {
     CloseAction,
@@ -189,7 +190,7 @@ function createLanguageServerPipeServer(pipeName: string): LanguageServerPipeSer
             }
             settled = true;
             rejectConnection = undefined;
-            server.close();
+            closeLanguageServerPipeServer(server, pipeName);
             resolve({ reader: stream, writer: stream });
         });
     });
@@ -198,6 +199,7 @@ function createLanguageServerPipeServer(pipeName: string): LanguageServerPipeSer
     const listening = new Promise<void>((resolve, reject) => {
         rejectListening = reject;
         server.on("error", (err) => {
+            cleanupPipePath(pipeName);
             rejectPendingListening(err);
             rejectPendingConnection(err);
         });
@@ -215,13 +217,29 @@ function createLanguageServerPipeServer(pipeName: string): LanguageServerPipeSer
             const error = new Error("Gradle language server pipe listener disposed before connection");
             rejectPendingConnection(error);
             rejectPendingListening(error);
-            try {
-                server.close();
-            } catch {
-                // best-effort cleanup; listener may already be closed
-            }
+            closeLanguageServerPipeServer(server, pipeName);
         },
     };
+}
+
+function closeLanguageServerPipeServer(server: net.Server, pipeName: string): void {
+    try {
+        server.close();
+    } catch {
+        // best-effort cleanup; listener may already be closed
+    }
+    cleanupPipePath(pipeName);
+}
+
+function cleanupPipePath(pipeName: string): void {
+    if (process.platform === "win32") {
+        return;
+    }
+    try {
+        fs.unlinkSync(pipeName);
+    } catch {
+        // best-effort; the socket file may already be gone
+    }
 }
 
 function getGradleSettings(): unknown {
