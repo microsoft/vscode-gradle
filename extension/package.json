@@ -993,7 +993,7 @@
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vscode/test-electron": "^2.3.8",
-    "@vscode/vsce": "^2.18.0",
+    "@vscode/vsce": "^3.9.2",
     "eslint": "^8.35.0",
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
