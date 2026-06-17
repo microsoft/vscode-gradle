@@ -19,12 +19,9 @@ const STDERR_TAIL_LINES = 40;
 const STDERR_TAIL_PREVIEW_LINES = 3;
 const VIEW_LOG_ACTION = "View Log";
 const RELOAD_HINT = "Run 'Developer: Reload Window' if Gradle stops working.";
-// Bounded auto-restart for unexpected gradle-server exits (e.g. a task
-// transport break that kills the JVM). Relaunch transparently instead of
-// immediately asking the user to reload, and only fall back to the warning
-// once the retry budget is exhausted. The budget is per session (not reset on
-// recovery) to keep this conservative; a future refinement could reset it on a
-// successful reconnect.
+// Bounded auto-restart for unexpected gradle-server process exits. Task
+// transport disconnects are handled by the in-JVM reconnect loop and should not
+// normally reach this path.
 const MAX_AUTO_RESTARTS = 3;
 const AUTO_RESTART_DELAY_MS = 1_000;
 
@@ -118,6 +115,7 @@ export class GradleServer {
         const taskServerPipePath = this.pipeListener.pipePath;
         const args = [
             quoteArg(`--pipe=${taskServerPipePath}`),
+            quoteArg(`--parentPid=${process.pid}`),
             quoteArg(`--startBuildServer=${startBuildServer}`),
             quoteArg(`--languageServerPipePath=${this.languageServerPipePath}`),
         ];
@@ -141,7 +139,10 @@ export class GradleServer {
         this.process.stderr.on("data", this.logOutput);
         this.process.stderr.on("data", this.captureStderrTail);
         this.process
-            .on("error", (err: Error) => this.logger.error(err.message))
+            .on("error", (err: Error) => {
+                this.logger.error(err.message);
+                this.cleanupProcessState();
+            })
             .on("exit", async (code, signal) => {
                 this.flushPendingStderrLine();
                 const durationMs = Date.now() - this.processStartedAt;
@@ -156,12 +157,7 @@ export class GradleServer {
                         this.logger.warn(`  ${line}`);
                     }
                 }
-                this._onDidStop.fire(null);
-                this.ready = false;
-                this.process?.removeAllListeners();
-                this.pipeListener?.dispose();
-                this.pipeListener = undefined;
-                this.bspProxy.closeConnection();
+                this.cleanupProcessState();
                 if (this.restarting) {
                     this.restarting = false;
                     await this.start();
@@ -194,6 +190,14 @@ export class GradleServer {
 
     public isReady(): boolean {
         return this.ready;
+    }
+
+    public isStarted(): boolean {
+        return this.process !== undefined;
+    }
+
+    public handleTaskConnectionClosed(): void {
+        this.ready = false;
     }
 
     public async showRestartMessage(): Promise<void> {
@@ -263,6 +267,16 @@ export class GradleServer {
         }
     };
 
+    private cleanupProcessState(): void {
+        this._onDidStop.fire(null);
+        this.ready = false;
+        this.process?.removeAllListeners();
+        this.process = undefined;
+        this.pipeListener?.dispose();
+        this.pipeListener = undefined;
+        this.bspProxy.closeConnection();
+    }
+
     private async killProcess(): Promise<void> {
         if (this.process) {
             return new Promise((resolve) => {
@@ -331,7 +345,6 @@ export class GradleServer {
     }
 
     private fireOnStart(): void {
-        this.ready = true;
         this._onDidStart.fire(null);
     }
 
@@ -355,6 +368,9 @@ export class GradleServer {
         if (!this.pipeListener) {
             return Promise.reject(new Error("Gradle task server pipe listener is not initialized."));
         }
-        return this.pipeListener.connection;
+        return this.pipeListener.waitForConnection().then((connection) => {
+            this.ready = true;
+            return connection;
+        });
     }
 }

@@ -5,6 +5,7 @@ package com.github.badsyntax.gradle.transport.jsonrpc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 import com.github.badsyntax.gradle.CancelBuildsReply;
@@ -16,10 +17,12 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.junit.After;
 import org.junit.Before;
@@ -99,6 +102,56 @@ public class TaskPipeServerTest {
 
 		CancelBuildsReply reply = CancelBuildsReply.parseFrom(JsonRpcCodec.decode(response.getReply()));
 		assertEquals("Cancel builds requested", reply.getMessage());
+	}
+
+	@Test
+	public void connectAndStart_reconnectsToSameUnixDomainSocket_afterTransportDisconnect() throws Exception {
+		Future<SocketChannel> firstAccepted = acceptExecutor.submit(() -> serverSocket.accept());
+		taskListening = TaskPipeServer.connectAndStart(socketPath.toString(), taskExecutor);
+		acceptedChannel = firstAccepted.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+		Launcher<GradleService> firstClientLauncher = createClientLauncher(acceptedChannel);
+		clientListening = firstClientLauncher.startListening();
+		assertCancelBuilds(firstClientLauncher);
+
+		acceptedChannel.close();
+		awaitTransportClosed(taskListening);
+		clientListening.cancel(true);
+		taskExecutor.shutdownNow();
+		taskExecutor = Executors.newCachedThreadPool();
+
+		Future<SocketChannel> secondAccepted = acceptExecutor.submit(() -> serverSocket.accept());
+		taskListening = TaskPipeServer.connectAndStart(socketPath.toString(), taskExecutor);
+		acceptedChannel = secondAccepted.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+
+		Launcher<GradleService> secondClientLauncher = createClientLauncher(acceptedChannel);
+		clientListening = secondClientLauncher.startListening();
+		assertCancelBuilds(secondClientLauncher);
+	}
+
+	private Launcher<GradleService> createClientLauncher(SocketChannel channel) {
+		return new Launcher.Builder<GradleService>().setLocalService(new NoopGradleClient())
+				.setRemoteInterface(GradleService.class).setInput(Channels.newInputStream(channel))
+				.setOutput(Channels.newOutputStream(channel)).setExecutorService(clientExecutor).create();
+	}
+
+	private void assertCancelBuilds(Launcher<GradleService> clientLauncher) throws Exception {
+		GradleResponse response = clientLauncher.getRemoteProxy().cancelBuilds(new GradleRequestParams(null, null))
+				.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+		assertNotNull(response);
+
+		CancelBuildsReply reply = CancelBuildsReply.parseFrom(JsonRpcCodec.decode(response.getReply()));
+		assertEquals("Cancel builds requested", reply.getMessage());
+	}
+
+	private void awaitTransportClosed(Future<Void> listening) throws Exception {
+		try {
+			listening.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+		} catch (ExecutionException expected) {
+			return;
+		} catch (TimeoutException e) {
+			fail("Expected task transport session to close after disconnect");
+		}
 	}
 
 	private static boolean isWindows() {

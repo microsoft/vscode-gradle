@@ -4,7 +4,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as net from "net";
-import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
+import type { Logger as JsonRpcLogger, MessageConnection } from "vscode-jsonrpc";
 import { createPipeListener, PipeListener } from "../../../transport/jsonrpc";
 
 function suiteName(name: string): string {
@@ -18,13 +18,15 @@ function frame(body: string): string {
 
 describe(suiteName("createPipeListener"), () => {
     let listener: PipeListener | undefined;
-    let clientSock: net.Socket | undefined;
+    let clientSocks: net.Socket[] = [];
 
     afterEach(() => {
-        if (clientSock && !clientSock.destroyed) {
-            clientSock.destroy();
+        for (const clientSock of clientSocks) {
+            if (!clientSock.destroyed) {
+                clientSock.destroy();
+            }
         }
-        clientSock = undefined;
+        clientSocks = [];
         listener?.dispose();
         listener = undefined;
     });
@@ -33,11 +35,7 @@ describe(suiteName("createPipeListener"), () => {
         listener = await createPipeListener({ connectTimeoutMs: 2_000 });
         assert.ok(listener.pipePath, "expected a pipe path");
 
-        clientSock = net.connect(listener.pipePath);
-        await new Promise<void>((resolve, reject) => {
-            clientSock!.once("connect", () => resolve());
-            clientSock!.once("error", reject);
-        });
+        await connectClient(listener.pipePath);
 
         const connection = await listener.connection;
         assert.ok(connection, "expected a MessageConnection to resolve from the listener");
@@ -45,22 +43,64 @@ describe(suiteName("createPipeListener"), () => {
     });
 
     if (process.platform !== "win32") {
-        it("unlinks the Unix socket path after accepting the first connection", async () => {
+        it("keeps the Unix socket path available for reconnects until dispose", async () => {
             listener = await createPipeListener({ connectTimeoutMs: 2_000 });
-            assert.ok(fs.existsSync(listener.pipePath), "expected Unix socket path to exist while listening");
+            const pipePath = listener.pipePath;
+            assert.ok(fs.existsSync(pipePath), "expected Unix socket path to exist while listening");
 
-            clientSock = net.connect(listener.pipePath);
-            await new Promise<void>((resolve, reject) => {
-                clientSock!.once("connect", () => resolve());
-                clientSock!.once("error", reject);
-            });
+            await connectClient(pipePath);
 
             const connection = await listener.connection;
             assert.ok(connection, "expected a MessageConnection to resolve from the listener");
-            assert.strictEqual(fs.existsSync(listener.pipePath), false, "expected Unix socket path to be unlinked");
+            assert.strictEqual(fs.existsSync(pipePath), true, "expected Unix socket path to stay available");
             connection.dispose();
+
+            listener.dispose();
+            listener = undefined;
+            assert.strictEqual(fs.existsSync(pipePath), false, "expected Unix socket path to be unlinked on dispose");
         });
     }
+
+    it("accepts a new task connection after the previous socket closes", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+
+        const firstSocket = await connectClient(listener.pipePath);
+        const firstConnection = await listener.connection;
+        assert.ok(firstConnection, "expected the first task connection");
+
+        firstSocket.destroy();
+        firstConnection.dispose();
+
+        const secondSocket = await connectClient(listener.pipePath);
+        const secondConnection = await listener.connection;
+        assert.ok(secondSocket, "expected the second socket to connect to the same pipe path");
+        assert.ok(secondConnection, "expected the second task connection");
+        assert.notStrictEqual(secondConnection, firstConnection);
+        secondConnection.dispose();
+    });
+
+    it("returns the latest queued connection when multiple sockets arrive before a waiter", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        const seenConnections: MessageConnection[] = [];
+        const observedConnections = new Promise<void>((resolve) => {
+            listener!.onConnection((connection) => {
+                seenConnections.push(connection);
+                if (seenConnections.length === 2) {
+                    resolve();
+                }
+            });
+        });
+
+        await connectClient(listener.pipePath);
+        await connectClient(listener.pipePath);
+        await observedConnections;
+
+        assert.strictEqual(seenConnections.length, 2, "expected both inbound connections to be observed");
+        const connection = await listener.connection;
+        assert.strictEqual(connection, seenConnections[1], "expected the latest queued connection");
+
+        connection.dispose();
+    });
 
     it("rejects the connection promise when dispose() is called before any JVM connects", async () => {
         listener = await createPipeListener({ connectTimeoutMs: 10_000 });
@@ -71,6 +111,22 @@ describe(suiteName("createPipeListener"), () => {
 
         await assert.rejects(pending, (err: Error) => {
             assert.match(err.message, /disposed before gradle-server connected/i);
+            return true;
+        });
+    });
+
+    it("uses a generic dispose reason after a task connection was established", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        await connectClient(listener.pipePath);
+        const connection = await listener.connection;
+        connection.dispose();
+
+        const pending = listener.connection;
+        listener.dispose();
+        listener = undefined;
+
+        await assert.rejects(pending, (err: Error) => {
+            assert.strictEqual(err.message, "Task pipe listener disposed");
             return true;
         });
     });
@@ -92,11 +148,7 @@ describe(suiteName("createPipeListener"), () => {
 
         listener = await createPipeListener({ logger: spy, connectTimeoutMs: 2_000 });
 
-        clientSock = net.connect(listener.pipePath);
-        await new Promise<void>((resolve, reject) => {
-            clientSock!.once("connect", () => resolve());
-            clientSock!.once("error", reject);
-        });
+        const clientSock = await connectClient(listener.pipePath);
 
         const connection = await listener.connection;
         connection.listen();
@@ -113,4 +165,14 @@ describe(suiteName("createPipeListener"), () => {
 
         connection.dispose();
     });
+
+    async function connectClient(pipePath: string): Promise<net.Socket> {
+        const socket = net.connect(pipePath);
+        clientSocks.push(socket);
+        await new Promise<void>((resolve, reject) => {
+            socket.once("connect", () => resolve());
+            socket.once("error", reject);
+        });
+        return socket;
+    }
 });
