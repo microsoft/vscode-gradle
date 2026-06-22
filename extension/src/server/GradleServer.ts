@@ -210,7 +210,9 @@ export class GradleServer {
         );
         sendInfo("", {
             kind: "serverProcessExitRestart",
-            data3: selection === OPT_RESTART ? "true" : "false",
+            // Encode the choice in dataMsg; the telemetry sink only persists
+            // kind and dataMsg, so the boolean would be dropped if sent in data3.
+            dataMsg: JSON.stringify({ restartChosen: selection === OPT_RESTART }),
         });
         if (selection === OPT_RESTART) {
             await commands.executeCommand("workbench.action.restartExtensionHost");
