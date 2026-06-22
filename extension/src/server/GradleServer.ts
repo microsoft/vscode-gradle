@@ -13,6 +13,7 @@ import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 import { createPipeListener, PipeListener } from "../transport/jsonrpc";
 import { shouldAutoRestart } from "./autoRestartPolicy";
+import { buildServerProcessExitInfo } from "./serverProcessExitInfo";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 const STDERR_TAIL_LINES = 40;
@@ -166,16 +167,18 @@ export class GradleServer {
                 if ((code !== null && code !== 0) || signal !== null) {
                     // Decide on recovery first, then record a single
                     // serverProcessExit event for every unexpected exit (kept
-                    // comparable to the historical baseline). autoRestartAttempt
-                    // carries the recovery outcome on the same event: "1".."N"
-                    // while self-healing, "" once we give up (budget exhausted
-                    // or disposing) and the user is prompted to reload.
+                    // comparable to the historical baseline). The exit code,
+                    // signal and recovery outcome are JSON-encoded into dataMsg
+                    // because the telemetry sink only persists kind and dataMsg;
+                    // the exit code previously lived in data3 and was dropped, so
+                    // unexpected exits could not be attributed. None of these
+                    // fields carry user data.
                     const willAutoRestart = this.tryAutoRestart(code, signal);
                     sendInfo("", {
                         kind: "serverProcessExit",
-                        data3: code !== null ? code.toString() : "",
-                        dataMsg: signal ?? "",
-                        autoRestartAttempt: willAutoRestart ? this.autoRestartCount.toString() : "",
+                        dataMsg: JSON.stringify(
+                            buildServerProcessExitInfo(code, signal, willAutoRestart ? this.autoRestartCount : 0)
+                        ),
                         transport: "pipe",
                     });
                     if (willAutoRestart) {
