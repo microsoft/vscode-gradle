@@ -182,10 +182,12 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         const reader = new SocketMessageReader(socket);
         const writer = new SafeSocketMessageWriter(socket);
         const connectedAt = Date.now();
-        let lastSocketError: Error | undefined;
+        let lastSocketErrorCode: string | undefined;
 
         socket.on("error", (socketErr) => {
-            lastSocketError = socketErr;
+            // Keep only the low-cardinality, path-free Node error code for telemetry;
+            // the full message still goes to the local logger.
+            lastSocketErrorCode = (socketErr as NodeJS.ErrnoException).code;
             options.logger?.error(`gradle-server task pipe error: ${socketErr.message}`);
         });
         socket.on("close", (hadError) => {
@@ -197,7 +199,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
                 outcome: classifyDisconnect(disposed, supersededSockets.has(socket), hadError),
                 hadError,
                 durationMs: Date.now() - connectedAt,
-                reason: lastSocketError?.message,
+                reason: lastSocketErrorCode,
             });
         });
 
@@ -322,9 +324,8 @@ function classifyDisconnect(disposed: boolean, superseded: boolean, hadError: bo
 
 /**
  * Record that a task pipe socket ended. The structured payload is stringified
- * into `dataMsg` because the filtered telemetry cluster drops arbitrary custom
- * fields; only `kind` and `dataMsg` survive. `reason` carries the Node error
- * code (e.g. `read ECONNRESET`) and never a user path.
+ * into `dataMsg` because the telemetry sink only persists `kind` and `dataMsg`.
+ * `reason` carries the Node error code (e.g. `ECONNRESET`) and never a user path.
  */
 function reportPipeDisconnect(detail: {
     outcome: DisconnectOutcome;

@@ -28,7 +28,7 @@ describe(suiteName("createPipeListener"), () => {
         sendInfoStub = sinon.stub(telemetry, "sendInfo");
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         for (const clientSock of clientSocks) {
             if (!clientSock.destroyed) {
                 clientSock.destroy();
@@ -37,6 +37,10 @@ describe(suiteName("createPipeListener"), () => {
         clientSocks = [];
         listener?.dispose();
         listener = undefined;
+        // dispose() destroys the socket and its `close` handler emits telemetry on
+        // a later tick; let those callbacks run while the stub is still installed
+        // so restore() does not expose the real telemetry implementation.
+        await new Promise((resolve) => setImmediate(resolve));
         sinon.restore();
     });
 
