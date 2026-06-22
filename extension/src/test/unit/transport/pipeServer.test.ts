@@ -4,8 +4,11 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as net from "net";
-import type { Logger as JsonRpcLogger, MessageConnection } from "vscode-jsonrpc";
+import * as sinon from "sinon";
+import * as telemetry from "vscode-extension-telemetry-wrapper";
+import type { Logger as JsonRpcLogger, Message, MessageConnection } from "vscode-jsonrpc";
 import { createPipeListener, PipeListener } from "../../../transport/jsonrpc";
+import { SafeSocketMessageWriter } from "../../../transport/jsonrpc/pipeServer";
 
 function suiteName(name: string): string {
     const prefix = process.env.SUITE_NAME ? `${process.env.SUITE_NAME} - ` : "";
@@ -175,4 +178,106 @@ describe(suiteName("createPipeListener"), () => {
         });
         return socket;
     }
+});
+
+describe(suiteName("SafeSocketMessageWriter"), () => {
+    let server: net.Server | undefined;
+    let pairSocks: net.Socket[] = [];
+
+    const ping: Message = { jsonrpc: "2.0", method: "ping" } as Message;
+
+    afterEach(() => {
+        for (const sock of pairSocks) {
+            if (!sock.destroyed) {
+                sock.destroy();
+            }
+        }
+        pairSocks = [];
+        server?.close();
+        server = undefined;
+        sinon.restore();
+    });
+
+    // Establish a connected loopback socket pair: `local` is what the writer
+    // writes to, `remote` is the peer that receives the framed bytes.
+    function connectPair(): Promise<{ local: net.Socket; remote: net.Socket }> {
+        return new Promise((resolve, reject) => {
+            let local!: net.Socket;
+            const srv = net.createServer((remote) => {
+                pairSocks.push(remote);
+                resolve({ local, remote });
+            });
+            server = srv;
+            srv.once("error", reject);
+            srv.listen(0, "127.0.0.1", () => {
+                const { port } = srv.address() as net.AddressInfo;
+                local = net.connect(port, "127.0.0.1");
+                pairSocks.push(local);
+                local.once("error", () => {
+                    /* ignore; teardown destroys the socket */
+                });
+            });
+        });
+    }
+
+    it("delivers a message while the socket is writable", async () => {
+        const { local, remote } = await connectPair();
+        const writer = new SafeSocketMessageWriter(local);
+        const sendInfoStub = sinon.stub(telemetry, "sendInfo");
+        let sawError = false;
+        writer.onError(() => (sawError = true));
+
+        const received = new Promise<string>((resolve) => {
+            remote.once("data", (data: Buffer) => resolve(data.toString("utf8")));
+        });
+
+        await writer.write(ping);
+
+        const payload = await received;
+        assert.ok(payload.includes("ping"), `expected the framed message to arrive, got: ${payload}`);
+        assert.strictEqual(sawError, false, "did not expect an error while the socket was writable");
+        assert.strictEqual(sendInfoStub.called, false, "did not expect telemetry for a successful write");
+    });
+
+    it("does not throw 'write after end' once the socket is destroyed", async () => {
+        const { local } = await connectPair();
+        const writer = new SafeSocketMessageWriter(local);
+        const sendInfoStub = sinon.stub(telemetry, "sendInfo");
+        const errors: Error[] = [];
+        writer.onError(([err]) => errors.push(err));
+
+        local.destroy();
+        // Allow Node to mark the socket destroyed before we attempt the write.
+        await new Promise((resolve) => setImmediate(resolve));
+
+        await assert.doesNotReject(
+            writer.write(ping),
+            "writing to a destroyed task pipe must resolve, not throw write-after-end"
+        );
+        assert.ok(errors.length >= 1, "expected the write failure to be routed through the onError event");
+        assert.ok(
+            sendInfoStub.calledWith("", sinon.match({ kind: "taskPipeWriteAfterEnd" })),
+            "expected taskPipeWriteAfterEnd telemetry to be reported once the pipe is torn down"
+        );
+    });
+
+    it("reports the torn-down pipe telemetry at most once per writer", async () => {
+        const { local } = await connectPair();
+        const writer = new SafeSocketMessageWriter(local);
+        const sendInfoStub = sinon.stub(telemetry, "sendInfo");
+        writer.onError(() => {
+            /* swallow; assertions below cover the telemetry */
+        });
+
+        local.destroy();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        await writer.write(ping);
+        await writer.write(ping);
+
+        const writeAfterEndCalls = sendInfoStub
+            .getCalls()
+            .filter((call) => call.args[1] && (call.args[1] as { kind?: string }).kind === "taskPipeWriteAfterEnd");
+        assert.strictEqual(writeAfterEndCalls.length, 1, "expected taskPipeWriteAfterEnd to be reported only once");
+    });
 });

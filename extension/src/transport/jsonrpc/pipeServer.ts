@@ -4,7 +4,7 @@
 import * as fs from "fs";
 import * as net from "net";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
-import { Emitter, Event } from "vscode-jsonrpc";
+import { Emitter, Event, Message } from "vscode-jsonrpc";
 import { createMessageConnection, MessageConnection } from "vscode-jsonrpc/node";
 import { SocketMessageReader, SocketMessageWriter } from "vscode-jsonrpc/node";
 import type { Logger as JsonRpcLogger } from "vscode-jsonrpc";
@@ -21,6 +21,51 @@ import { getRandomPipeName } from "../../util/generateRandomPipeName";
  */
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
+
+/**
+ * A {@link SocketMessageWriter} that never lets a write on an already
+ * ended/destroyed socket escape as an unhandled `write after end` rejection.
+ *
+ * The task transport tears the writable side down (peer reset, JVM exit,
+ * `dispose()`) before vscode-jsonrpc observes reader EOF and transitions the
+ * connection to Closed. In that window an outbound message would call
+ * `socket.write()` on a finished stream, which Node throws synchronously. We
+ * guard the writable state up front and route any residual TOCTOU failure
+ * through the writer's error event, so callers and in-flight requests settle via
+ * the normal connection-close path instead of crashing the extension host.
+ *
+ * The same tear-down previously surfaced as an `unhandlederror` crash rather
+ * than a clean socket `error` event, so the disconnect went unrecorded by
+ * {@link reportPipeFailure}. We emit `taskPipeWriteAfterEnd` once per writer to
+ * keep that signal observable after the crash is suppressed.
+ */
+export class SafeSocketMessageWriter extends SocketMessageWriter {
+    private writeFailureReported = false;
+
+    public constructor(private readonly pipeSocket: net.Socket) {
+        super(pipeSocket);
+    }
+
+    public async write(msg: Message): Promise<void> {
+        if (!this.pipeSocket.writable || this.pipeSocket.writableEnded || this.pipeSocket.destroyed) {
+            this.handleWriteFailure(new Error("gradle-server task pipe is no longer writable"), msg);
+            return;
+        }
+        try {
+            await super.write(msg);
+        } catch (err) {
+            this.handleWriteFailure(err instanceof Error ? err : new Error(String(err)), msg);
+        }
+    }
+
+    private handleWriteFailure(error: Error, msg: Message): void {
+        this.fireError(error, msg);
+        if (!this.writeFailureReported) {
+            this.writeFailureReported = true;
+            reportPipeFailure("taskPipeWriteAfterEnd", error.message);
+        }
+    }
+}
 
 export interface PipeListener {
     /** Pipe path the JVM should be told to connect back to. */
@@ -131,7 +176,7 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         activeSocket = socket;
 
         const reader = new SocketMessageReader(socket);
-        const writer = new SocketMessageWriter(socket);
+        const writer = new SafeSocketMessageWriter(socket);
 
         socket.on("error", (socketErr) => {
             options.logger?.error(`gradle-server task pipe error: ${socketErr.message}`);
