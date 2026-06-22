@@ -6,6 +6,7 @@ import { RootProject } from "../rootProject/RootProject";
 import * as fse from "fs-extra";
 import * as path from "path";
 import { findDefaultRuntimeFromSettings, getMajorVersion, listJdks } from "./jdkUtils";
+import { sendInfo } from "vscode-extension-telemetry-wrapper";
 type AutoDetect = "on" | "off";
 export const REQUIRED_JDK_VERSION = 17;
 
@@ -59,7 +60,18 @@ export async function findValidJavaHome(): Promise<string | undefined> {
 
     // Search valid JDKs from env.JAVA_HOME, env.PATH, SDKMAN, jEnv, jabba, common directories
     const javaRuntimes = await listJdks();
-    const validJdks = javaRuntimes.find((r) => r.version!.major >= REQUIRED_JDK_VERSION);
+    // Some discovered JDKs report an unparseable version (`version` is
+    // undefined). Reading `.major` off them previously threw and aborted
+    // extension activation, so the gradle-server never started. Track how
+    // often this happens so the failure mode stays visible after the fix.
+    const unresolvedVersionCount = javaRuntimes.filter((r) => r.version?.major === undefined).length;
+    if (unresolvedVersionCount > 0) {
+        sendInfo("", {
+            kind: "jdkVersionUnresolved",
+            dataMsg: JSON.stringify({ unresolved: unresolvedVersionCount, total: javaRuntimes.length }),
+        });
+    }
+    const validJdks = javaRuntimes.find((r) => (r.version?.major ?? 0) >= REQUIRED_JDK_VERSION);
     if (validJdks !== undefined) {
         return validJdks.homedir;
     }
