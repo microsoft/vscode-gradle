@@ -34,10 +34,12 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 30_000;
  * through the writer's error event, so callers and in-flight requests settle via
  * the normal connection-close path instead of crashing the extension host.
  *
- * The same tear-down previously surfaced as an `unhandlederror` crash rather
- * than a clean socket `error` event, so the disconnect went unrecorded by
- * {@link reportPipeFailure}. We emit `taskPipeWriteAfterEnd` once per writer to
- * keep that signal observable after the crash is suppressed.
+ * The same tear-down previously crashed the extension host: the synchronous
+ * `socket.write()` throw escaped as an unhandled promise rejection and surfaced
+ * in telemetry as an `unhandlederror` event rather than a clean socket `error`
+ * event, so the disconnect went unrecorded by {@link reportPipeFailure}. We emit
+ * `taskPipeWriteAfterEnd` once per writer to keep that signal observable after
+ * the crash is suppressed.
  */
 export class SafeSocketMessageWriter extends SocketMessageWriter {
     private writeFailureReported = false;

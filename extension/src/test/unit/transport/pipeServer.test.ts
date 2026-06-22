@@ -242,15 +242,17 @@ describe(suiteName("SafeSocketMessageWriter"), () => {
 
     const ping: Message = { jsonrpc: "2.0", method: "ping" } as Message;
 
-    afterEach(() => {
+    afterEach(async () => {
         for (const sock of pairSocks) {
             if (!sock.destroyed) {
                 sock.destroy();
             }
         }
         pairSocks = [];
-        server?.close();
-        server = undefined;
+        if (server) {
+            await new Promise<void>((resolve) => server!.close(() => resolve()));
+            server = undefined;
+        }
         sinon.restore();
     });
 
