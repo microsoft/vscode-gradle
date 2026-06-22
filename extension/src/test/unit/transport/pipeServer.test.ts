@@ -22,6 +22,11 @@ function frame(body: string): string {
 describe(suiteName("createPipeListener"), () => {
     let listener: PipeListener | undefined;
     let clientSocks: net.Socket[] = [];
+    let sendInfoStub: sinon.SinonStub;
+
+    beforeEach(() => {
+        sendInfoStub = sinon.stub(telemetry, "sendInfo");
+    });
 
     afterEach(() => {
         for (const clientSock of clientSocks) {
@@ -32,6 +37,7 @@ describe(suiteName("createPipeListener"), () => {
         clientSocks = [];
         listener?.dispose();
         listener = undefined;
+        sinon.restore();
     });
 
     it("binds a task pipe and resolves the connection promise on first inbound socket", async () => {
@@ -168,6 +174,52 @@ describe(suiteName("createPipeListener"), () => {
 
         connection.dispose();
     });
+
+    it("emits taskPipeDisconnected with outcome 'disposed' when the listener is torn down", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        await connectClient(listener.pipePath);
+        await listener.connection;
+
+        listener.dispose();
+        listener = undefined;
+
+        await waitFor(() => disconnectCalls().length >= 1);
+        const last = disconnectCalls().pop()!;
+        assert.strictEqual(last.outcome, "disposed", "expected an extension-initiated teardown to be classified");
+        assert.strictEqual(typeof last.durationMs, "number", "expected the connection lifetime to be recorded");
+    });
+
+    it("emits taskPipeDisconnected when the JVM side closes the task socket", async () => {
+        listener = await createPipeListener({ connectTimeoutMs: 2_000 });
+        const clientSock = await connectClient(listener.pipePath);
+        await listener.connection;
+
+        clientSock.end();
+
+        await waitFor(() => disconnectCalls().some((d) => d.outcome !== "disposed"));
+        const drop = disconnectCalls().find((d) => d.outcome !== "disposed")!;
+        assert.ok(
+            drop.outcome === "peerClosed" || drop.outcome === "error",
+            `expected a peer-initiated drop, got outcome=${drop.outcome}`
+        );
+    });
+
+    function disconnectCalls(): Array<{ outcome: string; durationMs: number; hadError: boolean }> {
+        return sendInfoStub
+            .getCalls()
+            .filter((call) => (call.args[1] as { kind?: string } | undefined)?.kind === "taskPipeDisconnected")
+            .map((call) => JSON.parse((call.args[1] as { dataMsg: string }).dataMsg));
+    }
+
+    async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
+        const start = Date.now();
+        while (!predicate()) {
+            if (Date.now() - start > timeoutMs) {
+                throw new Error("timed out waiting for the expected telemetry");
+            }
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+    }
 
     async function connectClient(pipePath: string): Promise<net.Socket> {
         const socket = net.connect(pipePath);

@@ -126,6 +126,9 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
     let disposed = false;
     let disposedReason: Error | undefined;
     let hasAcceptedConnection = false;
+    // Sockets we intentionally tear down to accept a fresh reconnect; tracked so
+    // their close is classified as an expected handover rather than a drop.
+    const supersededSockets = new WeakSet<net.Socket>();
     const pendingConnections: MessageConnection[] = [];
     const pendingWaiters: Array<{
         resolve: (connection: MessageConnection) => void;
@@ -171,22 +174,31 @@ export async function createPipeListener(options: PipeListenerOptions = {}): Pro
         hasAcceptedConnection = true;
 
         if (activeSocket && !activeSocket.destroyed) {
+            supersededSockets.add(activeSocket);
             activeSocket.destroy();
         }
         activeSocket = socket;
 
         const reader = new SocketMessageReader(socket);
         const writer = new SafeSocketMessageWriter(socket);
+        const connectedAt = Date.now();
+        let lastSocketError: Error | undefined;
 
         socket.on("error", (socketErr) => {
+            lastSocketError = socketErr;
             options.logger?.error(`gradle-server task pipe error: ${socketErr.message}`);
-            reportPipeFailure("taskPipeConnectionClosed", socketErr.message);
         });
         socket.on("close", (hadError) => {
             if (activeSocket === socket) {
                 activeSocket = undefined;
             }
             options.logger?.info(`gradle-server task pipe closed${hadError ? " after error" : ""}`);
+            reportPipeDisconnect({
+                outcome: classifyDisconnect(disposed, supersededSockets.has(socket), hadError),
+                hadError,
+                durationMs: Date.now() - connectedAt,
+                reason: lastSocketError?.message,
+            });
         });
 
         const conn = createMessageConnection(reader, writer, options.logger);
@@ -283,6 +295,46 @@ function reportPipeFailure(kind: string, message: string): void {
     sendInfo("", {
         kind,
         dataMsg: message,
+        transport: "pipe",
+    });
+}
+
+/**
+ * Classification of how a task pipe socket ended, recorded with every
+ * {@link reportPipeDisconnect} so post-release dashboards can separate expected
+ * teardown from genuine drops:
+ * - `disposed`: the extension tore the listener down (shutdown / reload).
+ * - `superseded`: replaced by a fresh JVM reconnect on the same listener.
+ * - `error`: the socket closed after an I/O error (ECONNRESET, EPIPE, ...).
+ * - `peerClosed`: the JVM closed the stream cleanly (FIN) without an error.
+ */
+type DisconnectOutcome = "disposed" | "superseded" | "error" | "peerClosed";
+
+function classifyDisconnect(disposed: boolean, superseded: boolean, hadError: boolean): DisconnectOutcome {
+    if (disposed) {
+        return "disposed";
+    }
+    if (superseded) {
+        return "superseded";
+    }
+    return hadError ? "error" : "peerClosed";
+}
+
+/**
+ * Record that a task pipe socket ended. The structured payload is stringified
+ * into `dataMsg` because the filtered telemetry cluster drops arbitrary custom
+ * fields; only `kind` and `dataMsg` survive. `reason` carries the Node error
+ * code (e.g. `read ECONNRESET`) and never a user path.
+ */
+function reportPipeDisconnect(detail: {
+    outcome: DisconnectOutcome;
+    hadError: boolean;
+    durationMs: number;
+    reason?: string;
+}): void {
+    sendInfo("", {
+        kind: "taskPipeDisconnected",
+        dataMsg: JSON.stringify(detail),
         transport: "pipe",
     });
 }
