@@ -154,7 +154,7 @@ public class JpmsUtils {
 
     private static String getAggregatedValue(Set<String> availableModules, JpmsArguments jpmsArgs, JpmsArgType type) {
         StringBuilder sb = new StringBuilder();
-        for (Iterator<Entry<String, Set<String>>> it = jpmsArgs.getGroupedArgumentsByType(JpmsArgType.ADD_EXPORTS).entrySet().iterator(); it.hasNext();) {
+        for (Iterator<Entry<String, Set<String>>> it = jpmsArgs.getGroupedArgumentsByType(type).entrySet().iterator(); it.hasNext();) {
             Entry<String, Set<String>> valueEntry = it.next();
             String moduleName = valueEntry.getKey();
             Set<String> values = valueEntry.getValue();
