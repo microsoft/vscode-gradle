@@ -8,12 +8,14 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
-import { extensionInstalled } from "../util/config";
+import { extensionInstalled, getEnvJavaMajorVersion } from "../util/config";
+import { getMajorVersion } from "../util/jdkUtils";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 import { createPipeListener, PipeListener } from "../transport/jsonrpc";
 import { shouldAutoRestart } from "./autoRestartPolicy";
-import { buildServerProcessExitInfo } from "./serverProcessExitInfo";
+import { buildServerProcessExitInfo, classifyServerStderr, JavaSource } from "./serverProcessExitInfo";
+const REQUIRED_JDK_VERSION = 17;
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
 const STDERR_TAIL_LINES = 40;
@@ -43,6 +45,12 @@ export class GradleServer {
     private disposing = false;
     private autoRestartCount = 0;
     private autoRestartTimer: NodeJS.Timeout | undefined;
+    // Startup diagnostics for the most recent spawn, surfaced on serverProcessExit
+    // so an unexpected exit (notably code=1 before connecting) can be attributed
+    // to the resolved JDK in field telemetry.
+    private resolvedJavaMajor = 0;
+    private resolvedJavaSource: JavaSource = "unknown";
+    private connectedBeforeExit = false;
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -61,6 +69,50 @@ export class GradleServer {
             info: (message: string) => this.transportLogger.info(message),
             log: (message: string) => this.transportLogger.info(message),
         };
+    }
+
+    /**
+     * Resolve and record which JDK the launcher will use, so a later
+     * unexpected exit can be attributed. Logs to the output channel (full
+     * detail) and emits a low-cardinality `gradleServerJavaResolved` telemetry
+     * event. The `pathFallback` source and any version below
+     * {@link REQUIRED_JDK_VERSION} are called out explicitly because they
+     * directly explain a startup `code=1`.
+     */
+    private async logResolvedJava(javaHome: string | undefined, javaSource: JavaSource): Promise<void> {
+        let javaMajor = 0;
+        if (javaHome) {
+            javaMajor = await getMajorVersion(javaHome);
+        } else if (javaSource === "pathFallback") {
+            // No VSCODE_JAVA_HOME was set; probe the JAVA_HOME/PATH java the
+            // launcher will actually use.
+            javaMajor = getEnvJavaMajorVersion();
+        }
+        this.resolvedJavaMajor = javaMajor;
+        this.resolvedJavaSource = javaSource;
+        this.logger.info(
+            `Gradle server JDK resolved: source=${javaSource}, major=${javaMajor || "unknown"}, home=${
+                javaHome ?? "(JAVA_HOME/PATH)"
+            }`
+        );
+        if (javaSource === "pathFallback") {
+            this.logger.warn(
+                "No validated JDK >= 17 was found; falling back to JAVA_HOME/PATH 'java'. If that Java is older than 17 the gradle-server will exit with code 1 before connecting."
+            );
+        }
+        if (javaMajor > 0 && javaMajor < REQUIRED_JDK_VERSION) {
+            this.logger.error(
+                `Resolved Java major version ${javaMajor} is below the required ${REQUIRED_JDK_VERSION}; the gradle-server jar is compiled for Java ${REQUIRED_JDK_VERSION} and will exit with code 1.`
+            );
+        }
+        sendInfo("", {
+            kind: "gradleServerJavaResolved",
+            dataMsg: JSON.stringify({
+                javaSource,
+                javaMajor,
+                belowRequired: javaMajor > 0 && javaMajor < REQUIRED_JDK_VERSION,
+            }),
+        });
     }
 
     private setLanguageServerPipePath(): void {
@@ -93,8 +145,11 @@ export class GradleServer {
         this.bspProxy.start();
         const cwd = this.context.asAbsolutePath("lib");
         const cmd = path.join(cwd, getGradleServerCommand());
-        const env = await getGradleServerEnv();
-        if (!env) {
+        const serverEnv = await getGradleServerEnv();
+        if (!serverEnv) {
+            this.logger.error(
+                "Gradle server will not start: no Java executable could be resolved (no Red Hat embedded JRE, no JDK>=17, and no 'java' on PATH)"
+            );
             sendInfo("", {
                 kind: "GradleServerEnvMissing",
             });
@@ -106,6 +161,8 @@ export class GradleServer {
             });
             return;
         }
+        const { env, javaHome, javaSource } = serverEnv;
+        await this.logResolvedJava(javaHome, javaSource);
         // The JVM connects back as a named-pipe / UDS client over JSON-RPC.
         // Bind the pipe BEFORE spawning the JVM so the JVM never sees a
         // connection race against our listener. The listener is created AFTER
@@ -113,6 +170,13 @@ export class GradleServer {
         // on the no-Java path.
         this.pipeListener?.dispose();
         this.pipeListener = await createPipeListener({ logger: this.buildJsonRpcLogger() });
+        this.connectedBeforeExit = false;
+        this.pipeListener.onConnection(() => {
+            if (!this.connectedBeforeExit) {
+                this.connectedBeforeExit = true;
+                this.logger.debug("Gradle server connected to the task pipe");
+            }
+        });
         const taskServerPipePath = this.pipeListener.pipePath;
         const args = [
             quoteArg(`--pipe=${taskServerPipePath}`),
@@ -144,13 +208,22 @@ export class GradleServer {
                 this.logger.error(err.message);
                 this.cleanupProcessState();
             })
-            .on("exit", async (code, signal) => {
+            // Use 'close' rather than 'exit': 'close' is emitted only after the
+            // process has ended AND its stdio streams have drained, so the
+            // stderr line that explains a startup code=1 (e.g.
+            // UnsupportedClassVersionError or "Could not create the Java Virtual
+            // Machine") is guaranteed to be captured before we classify it.
+            // 'exit' can fire while that final stderr chunk is still buffered.
+            .on("close", async (code, signal) => {
                 this.flushPendingStderrLine();
                 const durationMs = Date.now() - this.processStartedAt;
+                const stderrSignature = classifyServerStderr(this.stderrTail);
                 this.logger.warn(
                     `Gradle server stopped (exitCode=${code ?? "null"}, signal=${
                         signal ?? "none"
-                    }, durationMs=${durationMs})`
+                    }, durationMs=${durationMs}, connected=${this.connectedBeforeExit}, javaSource=${
+                        this.resolvedJavaSource
+                    }, javaMajor=${this.resolvedJavaMajor || "unknown"}, stderr=${stderrSignature})`
                 );
                 if (this.stderrTail.length > 0) {
                     this.logger.warn("Gradle server stderr tail:");
@@ -171,13 +244,22 @@ export class GradleServer {
                     // signal and recovery outcome are JSON-encoded into dataMsg
                     // because the telemetry sink only persists kind and dataMsg;
                     // the exit code previously lived in data3 and was dropped, so
-                    // unexpected exits could not be attributed. None of these
-                    // fields carry user data.
+                    // unexpected exits could not be attributed. The startup
+                    // diagnostics (duration, whether the JVM connected, resolved
+                    // JDK source/version, classified stderr) let us split a
+                    // before-connect code=1 (incompatible JDK) from other exits.
+                    // None of these fields carry user data.
                     const willAutoRestart = this.tryAutoRestart(code, signal);
                     sendInfo("", {
                         kind: "serverProcessExit",
                         dataMsg: JSON.stringify(
-                            buildServerProcessExitInfo(code, signal, willAutoRestart ? this.autoRestartCount : 0)
+                            buildServerProcessExitInfo(code, signal, willAutoRestart ? this.autoRestartCount : 0, {
+                                durationMs,
+                                connected: this.connectedBeforeExit,
+                                javaMajor: this.resolvedJavaMajor,
+                                javaSource: this.resolvedJavaSource,
+                                stderrSignature,
+                            })
                         ),
                         transport: "pipe",
                     });
