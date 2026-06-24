@@ -110,30 +110,25 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
 /** The environment variables the launcher resolves a Java home from, in precedence order. */
 export type JavaHomeEnvVar = "VSCODE_JAVA_HOME" | "JAVA_HOME";
 
-/** Trim surrounding whitespace/quotes from an env value; `undefined` when unset/empty. */
-function normalizeEnvJavaHome(value: string | undefined): string | undefined {
-    const normalized = value
-        ?.trim()
-        .replace(/^"+|"+$/g, "")
-        .trim();
-    return normalized ? normalized : undefined;
-}
-
 /**
  * The effective Java home the gradle-server launcher will use, mirroring its
  * `VSCODE_JAVA_HOME` > `JAVA_HOME` precedence (Unix `${VSCODE_JAVA_HOME:-$JAVA_HOME}`;
- * Windows overrides `_JAVA_HOME` with `VSCODE_JAVA_HOME` when defined). Returns the
- * resolved value together with which env var supplied it, or `undefined` when
- * neither is set.
+ * Windows overrides `_JAVA_HOME` with `VSCODE_JAVA_HOME` when defined). The value is
+ * read exactly as the launcher reads it—verbatim on Unix, with quotes stripped on
+ * Windows (`%_JAVA_HOME:"=%`)—and is deliberately NOT trimmed: a whitespace-polluted
+ * home is reported here just as the launcher would (mis)use it, so the gate predicts
+ * the launcher instead of silently "rescuing" a value the launcher will choke on.
+ * Returns the resolved value together with which env var supplied it, or `undefined`
+ * when neither is set.
  */
 function resolveLauncherJavaHome(): { value: string; envVar: JavaHomeEnvVar } | undefined {
-    const vscodeJavaHome = normalizeEnvJavaHome(process.env.VSCODE_JAVA_HOME);
-    if (vscodeJavaHome) {
-        return { value: vscodeJavaHome, envVar: "VSCODE_JAVA_HOME" };
-    }
-    const javaHome = normalizeEnvJavaHome(process.env.JAVA_HOME);
-    if (javaHome) {
-        return { value: javaHome, envVar: "JAVA_HOME" };
+    for (const envVar of ["VSCODE_JAVA_HOME", "JAVA_HOME"] as const) {
+        const raw = process.env[envVar];
+        if (!raw) {
+            continue;
+        }
+        const value = process.platform === "win32" ? raw.replace(/"/g, "") : raw;
+        return { value, envVar };
     }
     return undefined;
 }
