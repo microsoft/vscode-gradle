@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
@@ -129,14 +129,19 @@ export function checkEnvJavaExecutable(): boolean {
 export function getEnvJavaMajorVersion(): number {
     try {
         const javaHome = process.env.JAVA_HOME?.replace(/^"+|"+$/g, "");
-        let javaCmd = "java";
+        let javaExe = "java";
         if (javaHome) {
-            const javaExe = path.join(javaHome, "bin", JAVA_FILENAME);
-            if (fse.existsSync(javaExe)) {
-                javaCmd = `"${javaExe}"`;
+            const candidate = path.join(javaHome, "bin", JAVA_FILENAME);
+            if (fse.existsSync(candidate)) {
+                javaExe = candidate;
             }
         }
-        const output = execSync(`${javaCmd} -version 2>&1`, { encoding: "utf8" });
+        // Invoke without a shell and pass arguments as an array so a JAVA_HOME
+        // containing spaces or shell metacharacters cannot break or inject into
+        // the command. `java -version` prints its banner to stderr, but read
+        // both streams in case a JDK ever writes it to stdout.
+        const result = spawnSync(javaExe, ["-version"], { encoding: "utf8" });
+        const output = `${result.stderr ?? ""}${result.stdout ?? ""}`;
         const match = output.match(/version "(\d+)(?:\.(\d+))?/);
         if (!match) {
             return 0;
