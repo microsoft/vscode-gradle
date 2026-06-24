@@ -84,6 +84,17 @@ describe(suiteName("classifyServerStderr"), () => {
         );
     });
 
+    it("detects a main-class load failure", () => {
+        assert.strictEqual(
+            classifyServerStderr(["Error: Could not find or load main class com.github.badsyntax.gradle.GradleServer"]),
+            "mainClassError"
+        );
+    });
+
+    it("detects an out-of-memory exit", () => {
+        assert.strictEqual(classifyServerStderr(["java.lang.OutOfMemoryError: Java heap space"]), "outOfMemory");
+    });
+
     it("detects a missing required launcher param", () => {
         assert.strictEqual(
             classifyServerStderr(["java.lang.IllegalArgumentException: pipe is required and can not be empty"]),

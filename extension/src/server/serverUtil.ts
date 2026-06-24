@@ -1,6 +1,6 @@
 import { checkEnvJavaExecutable, findValidJavaHome, getRedHatJavaEmbeddedJRE } from "../util/config";
 import { GRADLE_SERVER_BASE_JVM_OPTS } from "../constant";
-import { JavaSource } from "./serverProcessExitInfo";
+import type { JavaSource } from "./serverProcessExitInfo";
 
 export function getGradleServerCommand(): string {
     const platform = process.platform;
