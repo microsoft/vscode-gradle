@@ -10,7 +10,12 @@ import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import * as telemetry from "vscode-extension-telemetry-wrapper";
 import * as jdkUtils from "../../util/jdkUtils";
-import { checkEnvJavaExecutable, findValidJavaHome, getMissingJavaInfo } from "../../util/config";
+import {
+    checkEnvJavaExecutable,
+    findValidJavaHome,
+    getMissingJavaInfo,
+    readLauncherJavaHomeValue,
+} from "../../util/config";
 
 function suiteName(name: string): string {
     const prefix = process.env.SUITE_NAME ? `${process.env.SUITE_NAME} - ` : "";
@@ -22,16 +27,6 @@ function restoreEnv(key: string, saved: string | undefined): void {
         delete process.env[key];
     } else {
         process.env[key] = saved;
-    }
-}
-
-function withPlatform(platform: NodeJS.Platform, fn: () => void): void {
-    const original = Object.getOwnPropertyDescriptor(process, "platform")!;
-    Object.defineProperty(process, "platform", { ...original, value: platform });
-    try {
-        fn();
-    } finally {
-        Object.defineProperty(process, "platform", original);
     }
 }
 
@@ -125,30 +120,15 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
         assert.strictEqual(checkEnvJavaExecutable(), false);
     });
 
-    it("probes JAVA_HOME verbatim on Unix, without trimming whitespace", () => {
-        withPlatform("linux", () => {
-            process.env.JAVA_HOME = " /opt/jdk17 ";
-            const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
+    it("probes JAVA_HOME verbatim, without trimming surrounding whitespace", () => {
+        process.env.JAVA_HOME = " /opt/jdk17 ";
+        const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
-            checkEnvJavaExecutable();
-            assert.ok(
-                accessStub.calledOnceWith(path.join(" /opt/jdk17 ", "bin", JAVA_FILENAME)),
-                "expected the probe to use the untrimmed JAVA_HOME, mirroring the Unix launcher"
-            );
-        });
-    });
-
-    it('strips quotes but not whitespace from JAVA_HOME on Windows, mirroring %_JAVA_HOME:"=%', () => {
-        withPlatform("win32", () => {
-            process.env.JAVA_HOME = '"C:\\jdk17"';
-            const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
-
-            assert.strictEqual(checkEnvJavaExecutable(), true);
-            assert.ok(
-                accessStub.calledOnceWith(path.join("C:\\jdk17", "bin", JAVA_FILENAME)),
-                "expected Windows quote-stripping to mirror the launcher"
-            );
-        });
+        checkEnvJavaExecutable();
+        assert.ok(
+            accessStub.calledOnceWith(path.join(" /opt/jdk17 ", "bin", JAVA_FILENAME)),
+            "expected the probe to use the untrimmed JAVA_HOME, mirroring the launcher"
+        );
     });
 
     it("prefers VSCODE_JAVA_HOME over JAVA_HOME, mirroring the launcher precedence", () => {
@@ -190,40 +170,24 @@ describe(suiteName("getMissingJavaInfo"), () => {
         sinon.restore();
     });
 
-    it("attributes a set JAVA_HOME to an invalid directory, reporting it verbatim on Unix", () => {
-        withPlatform("linux", () => {
-            process.env.JAVA_HOME = " /opt/broken ";
+    it("attributes a set JAVA_HOME to an invalid directory, reporting it verbatim without trimming", () => {
+        process.env.JAVA_HOME = " /opt/broken ";
 
-            assert.deepStrictEqual(getMissingJavaInfo(), {
-                reason: "javaHomeInvalidDir",
-                javaHome: " /opt/broken ",
-                envVar: "JAVA_HOME",
-            });
-        });
-    });
-
-    it("strips quotes from a Windows JAVA_HOME when attributing an invalid directory", () => {
-        withPlatform("win32", () => {
-            process.env.JAVA_HOME = '"C:\\broken"';
-
-            assert.deepStrictEqual(getMissingJavaInfo(), {
-                reason: "javaHomeInvalidDir",
-                javaHome: "C:\\broken",
-                envVar: "JAVA_HOME",
-            });
+        assert.deepStrictEqual(getMissingJavaInfo(), {
+            reason: "javaHomeInvalidDir",
+            javaHome: " /opt/broken ",
+            envVar: "JAVA_HOME",
         });
     });
 
     it("attributes a set VSCODE_JAVA_HOME to an invalid directory, taking precedence over JAVA_HOME", () => {
-        withPlatform("linux", () => {
-            process.env.VSCODE_JAVA_HOME = "/opt/vscode-broken";
-            process.env.JAVA_HOME = "/opt/jdk17";
+        process.env.VSCODE_JAVA_HOME = "/opt/vscode-broken";
+        process.env.JAVA_HOME = "/opt/jdk17";
 
-            assert.deepStrictEqual(getMissingJavaInfo(), {
-                reason: "javaHomeInvalidDir",
-                javaHome: "/opt/vscode-broken",
-                envVar: "VSCODE_JAVA_HOME",
-            });
+        assert.deepStrictEqual(getMissingJavaInfo(), {
+            reason: "javaHomeInvalidDir",
+            javaHome: "/opt/vscode-broken",
+            envVar: "VSCODE_JAVA_HOME",
         });
     });
 
@@ -232,5 +196,20 @@ describe(suiteName("getMissingJavaInfo"), () => {
         delete process.env.VSCODE_JAVA_HOME;
 
         assert.deepStrictEqual(getMissingJavaInfo(), { reason: "noJavaOnPath" });
+    });
+});
+
+describe(suiteName("readLauncherJavaHomeValue"), () => {
+    it("reads the value verbatim on Unix, preserving quotes and whitespace", () => {
+        assert.strictEqual(readLauncherJavaHomeValue('  "/opt/jdk17"  ', "linux"), '  "/opt/jdk17"  ');
+    });
+
+    it('strips quotes but preserves whitespace on Windows, mirroring %_JAVA_HOME:"=%', () => {
+        assert.strictEqual(readLauncherJavaHomeValue('  "C:\\jdk17"  ', "win32"), "  C:\\jdk17  ");
+    });
+
+    it("never trims whitespace on either platform", () => {
+        assert.strictEqual(readLauncherJavaHomeValue(" /opt/jdk17 ", "linux"), " /opt/jdk17 ");
+        assert.strictEqual(readLauncherJavaHomeValue(" C:\\jdk17 ", "win32"), " C:\\jdk17 ");
     });
 });

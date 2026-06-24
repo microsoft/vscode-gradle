@@ -111,15 +111,23 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
 export type JavaHomeEnvVar = "VSCODE_JAVA_HOME" | "JAVA_HOME";
 
 /**
+ * Read an env Java home exactly as the gradle-server launcher does: on Windows it
+ * strips quotes (`%_JAVA_HOME:"=%`); on every other platform it is used verbatim
+ * (`${VSCODE_JAVA_HOME:-$JAVA_HOME}`). It deliberately does NOT trim whitespace on
+ * any platform, so a whitespace-polluted home is reported just as the launcher would
+ * (mis)use it, keeping the gate's prediction aligned with the launcher.
+ */
+export function readLauncherJavaHomeValue(raw: string, platform: NodeJS.Platform = process.platform): string {
+    return platform === "win32" ? raw.replace(/"/g, "") : raw;
+}
+
+/**
  * The effective Java home the gradle-server launcher will use, mirroring its
  * `VSCODE_JAVA_HOME` > `JAVA_HOME` precedence (Unix `${VSCODE_JAVA_HOME:-$JAVA_HOME}`;
  * Windows overrides `_JAVA_HOME` with `VSCODE_JAVA_HOME` when defined). The value is
- * read exactly as the launcher reads it—verbatim on Unix, with quotes stripped on
- * Windows (`%_JAVA_HOME:"=%`)—and is deliberately NOT trimmed: a whitespace-polluted
- * home is reported here just as the launcher would (mis)use it, so the gate predicts
- * the launcher instead of silently "rescuing" a value the launcher will choke on.
- * Returns the resolved value together with which env var supplied it, or `undefined`
- * when neither is set.
+ * read via {@link readLauncherJavaHomeValue} (verbatim on Unix, quotes stripped on
+ * Windows, never trimmed). Returns the resolved value together with which env var
+ * supplied it, or `undefined` when neither is set.
  */
 function resolveLauncherJavaHome(): { value: string; envVar: JavaHomeEnvVar } | undefined {
     for (const envVar of ["VSCODE_JAVA_HOME", "JAVA_HOME"] as const) {
@@ -127,8 +135,7 @@ function resolveLauncherJavaHome(): { value: string; envVar: JavaHomeEnvVar } | 
         if (!raw) {
             continue;
         }
-        const value = process.platform === "win32" ? raw.replace(/"/g, "") : raw;
-        return { value, envVar };
+        return { value: readLauncherJavaHomeValue(raw), envVar };
     }
     return undefined;
 }
