@@ -120,27 +120,39 @@ export function checkEnvJavaExecutable(): boolean {
  * Best-effort major version of the `java` the launcher will actually use on the
  * fallback path, purely for diagnostics. Mirrors gradle-server(.bat): with
  * `VSCODE_JAVA_HOME` unset the launcher runs `%JAVA_HOME%\bin\java` when
- * `JAVA_HOME` is set, otherwise `java` from `PATH`. Probing the same executable
- * keeps the reported version matched to the one running the server jar. Returns
- * 0 when no `java` is reachable or its version banner cannot be parsed.
- * `java -version` prints to stderr (e.g. `openjdk version "11.0.20"` or
- * `"1.8.0_392"`).
+ * `JAVA_HOME` is set (and aborts, rather than using `PATH`, if that file is
+ * missing), otherwise `java` from `PATH`. Probing the same executable keeps the
+ * reported version matched to the one that would run the server jar. Returns 0
+ * when the launcher's java is unreachable (no `JAVA_HOME` java, no `PATH` java,
+ * the probe timed out, or its version banner cannot be parsed). `java -version`
+ * prints to stderr (e.g. `openjdk version "11.0.20"` or `"1.8.0_392"`).
  */
 export function getEnvJavaMajorVersion(): number {
     try {
         const javaHome = process.env.JAVA_HOME?.replace(/^"+|"+$/g, "");
-        let javaExe = "java";
+        let javaExe: string;
         if (javaHome) {
+            // JAVA_HOME is set: the launcher runs %JAVA_HOME%/bin/java and aborts
+            // (it does NOT fall back to PATH) when that file is missing. Mirror
+            // that so javaMajor reflects the java that would actually run - probe
+            // exactly that executable, and report unknown (0) if it is absent,
+            // rather than misattributing a PATH java the launcher would not use.
             const candidate = path.join(javaHome, "bin", JAVA_FILENAME);
-            if (fse.existsSync(candidate)) {
-                javaExe = candidate;
+            if (!fse.existsSync(candidate)) {
+                return 0;
             }
+            javaExe = candidate;
+        } else {
+            javaExe = "java";
         }
         // Invoke without a shell and pass arguments as an array so a JAVA_HOME
         // containing spaces or shell metacharacters cannot break or inject into
-        // the command. `java -version` prints its banner to stderr, but read
-        // both streams in case a JDK ever writes it to stdout.
-        const result = spawnSync(javaExe, ["-version"], { encoding: "utf8" });
+        // the command. Bound the call so a hung/slow `java` (network-mounted
+        // installs, AV hooks) cannot stall gradle-server startup; on timeout
+        // spawnSync returns with an error and we fall through to unknown (0).
+        // `java -version` prints its banner to stderr, but read both streams in
+        // case a JDK ever writes it to stdout.
+        const result = spawnSync(javaExe, ["-version"], { encoding: "utf8", timeout: 3000 });
         const output = `${result.stderr ?? ""}${result.stdout ?? ""}`;
         const match = output.match(/version "(\d+)(?:\.(\d+))?/);
         if (!match) {
