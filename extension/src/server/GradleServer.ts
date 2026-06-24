@@ -93,7 +93,7 @@ export class GradleServer {
         );
         if (javaSource === "pathFallback") {
             this.logger.warn(
-                "No validated JDK >= 17 was found; falling back to JAVA_HOME/PATH 'java'. If that Java is older than 17 the gradle-server will exit with code 1 before connecting."
+                `No validated JDK >= ${REQUIRED_JDK_VERSION} was found; falling back to JAVA_HOME/PATH 'java'. If that Java is older than ${REQUIRED_JDK_VERSION} the gradle-server will exit with code 1 before connecting.`
             );
         }
         if (javaMajor > 0 && javaMajor < REQUIRED_JDK_VERSION) {
@@ -144,7 +144,7 @@ export class GradleServer {
         const serverEnv = await getGradleServerEnv();
         if (!serverEnv) {
             this.logger.error(
-                "Gradle server will not start: no Java executable could be resolved (no Red Hat embedded JRE, no JDK>=17, and no 'java' on PATH)"
+                `Gradle server will not start: no Java executable could be resolved (no Red Hat embedded JRE, no JDK>=${REQUIRED_JDK_VERSION}, and no 'java' on PATH)`
             );
             sendInfo("", {
                 kind: "GradleServerEnvMissing",

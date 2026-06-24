@@ -117,7 +117,9 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
  * cryptic "invalid directory" error instead of surfacing the no-Java prompt.
  */
 export function checkEnvJavaExecutable(): boolean {
-    const javaHome = process.env.JAVA_HOME?.replace(/^"+|"+$/g, "");
+    const javaHome = process.env.JAVA_HOME?.trim()
+        .replace(/^"+|"+$/g, "")
+        .trim();
     if (javaHome) {
         return fse.existsSync(path.join(javaHome, "bin", JAVA_FILENAME));
     }
