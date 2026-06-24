@@ -107,13 +107,53 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
     return undefined;
 }
 
+/** Trim surrounding whitespace/quotes from `JAVA_HOME`; `undefined` when unset/empty. */
+function normalizeJavaHome(): string | undefined {
+    const javaHome = process.env.JAVA_HOME?.trim()
+        .replace(/^"+|"+$/g, "")
+        .trim();
+    return javaHome ? javaHome : undefined;
+}
+
+/**
+ * Whether the gradle-server launcher will find a usable `java`, mirroring
+ * gradle-server(.bat) precedence: when `JAVA_HOME` is set the launcher uses
+ * `%JAVA_HOME%/bin/java` and aborts if it is missing (it never falls back to
+ * `PATH`); only when `JAVA_HOME` is unset does it use `java` from `PATH`.
+ * Probing only `PATH` here would let {@link getGradleServerEnv} treat a
+ * set-but-broken `JAVA_HOME` as usable, spawn, and let the launcher fail with a
+ * cryptic "invalid directory" error instead of surfacing a clear prompt.
+ */
 export function checkEnvJavaExecutable(): boolean {
+    const javaHome = normalizeJavaHome();
+    if (javaHome) {
+        return fse.existsSync(path.join(javaHome, "bin", JAVA_FILENAME));
+    }
     try {
         execSync("java -version", { stdio: "pipe" });
     } catch (e) {
         return false;
     }
     return true;
+}
+
+export type MissingJavaReason = "javaHomeInvalidDir" | "noJavaOnPath";
+
+export interface MissingJavaInfo {
+    reason: MissingJavaReason;
+    /** The offending `JAVA_HOME` value; set only when `reason` is `javaHomeInvalidDir`. */
+    javaHome?: string;
+}
+
+/**
+ * Explains why {@link checkEnvJavaExecutable} found no usable `java`. Only valid
+ * on that path: a set `JAVA_HOME` means its `bin/java` is missing
+ * (`javaHomeInvalidDir`); otherwise no `java` was found on `PATH`
+ * (`noJavaOnPath`).
+ */
+export function getMissingJavaInfo(): MissingJavaInfo {
+    const javaHome = normalizeJavaHome();
+    return javaHome ? { reason: "javaHomeInvalidDir", javaHome } : { reason: "noJavaOnPath" };
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {
