@@ -107,27 +107,65 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
     return undefined;
 }
 
-/** Trim surrounding whitespace/quotes from `JAVA_HOME`; `undefined` when unset/empty. */
-function normalizeJavaHome(): string | undefined {
-    const javaHome = process.env.JAVA_HOME?.trim()
+/** The environment variables the launcher resolves a Java home from, in precedence order. */
+export type JavaHomeEnvVar = "VSCODE_JAVA_HOME" | "JAVA_HOME";
+
+/** Trim surrounding whitespace/quotes from an env value; `undefined` when unset/empty. */
+function normalizeEnvJavaHome(value: string | undefined): string | undefined {
+    const normalized = value
+        ?.trim()
         .replace(/^"+|"+$/g, "")
         .trim();
-    return javaHome ? javaHome : undefined;
+    return normalized ? normalized : undefined;
+}
+
+/**
+ * The effective Java home the gradle-server launcher will use, mirroring its
+ * `VSCODE_JAVA_HOME` > `JAVA_HOME` precedence (Unix `${VSCODE_JAVA_HOME:-$JAVA_HOME}`;
+ * Windows overrides `_JAVA_HOME` with `VSCODE_JAVA_HOME` when defined). Returns the
+ * resolved value together with which env var supplied it, or `undefined` when
+ * neither is set.
+ */
+function resolveLauncherJavaHome(): { value: string; envVar: JavaHomeEnvVar } | undefined {
+    const vscodeJavaHome = normalizeEnvJavaHome(process.env.VSCODE_JAVA_HOME);
+    if (vscodeJavaHome) {
+        return { value: vscodeJavaHome, envVar: "VSCODE_JAVA_HOME" };
+    }
+    const javaHome = normalizeEnvJavaHome(process.env.JAVA_HOME);
+    if (javaHome) {
+        return { value: javaHome, envVar: "JAVA_HOME" };
+    }
+    return undefined;
+}
+
+/**
+ * Whether `javaPath` looks usable to the launcher: it must exist and—on
+ * non-Windows, matching the launcher's `-x` test—be executable. On Windows the
+ * launcher only checks for existence.
+ */
+function isUsableJavaExecutable(javaPath: string): boolean {
+    try {
+        fse.accessSync(javaPath, process.platform === "win32" ? fse.constants.F_OK : fse.constants.X_OK);
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 /**
  * Whether the gradle-server launcher will find a usable `java`, mirroring
- * gradle-server(.bat) precedence: when `JAVA_HOME` is set the launcher uses
- * `%JAVA_HOME%/bin/java` and aborts if it is missing (it never falls back to
- * `PATH`); only when `JAVA_HOME` is unset does it use `java` from `PATH`.
- * Probing only `PATH` here would let {@link getGradleServerEnv} treat a
- * set-but-broken `JAVA_HOME` as usable, spawn, and let the launcher fail with a
- * cryptic "invalid directory" error instead of surfacing a clear prompt.
+ * gradle-server(.bat) precedence: when `VSCODE_JAVA_HOME`/`JAVA_HOME` is set the
+ * launcher uses `<home>/bin/java` and aborts if it is missing or (on Unix) not
+ * executable (it never falls back to `PATH`); only when neither is set does it
+ * use `java` from `PATH`. Probing only `PATH` here would let
+ * {@link getGradleServerEnv} treat a set-but-broken home as usable, spawn, and
+ * let the launcher fail with a cryptic "invalid directory" error instead of
+ * surfacing a clear prompt.
  */
 export function checkEnvJavaExecutable(): boolean {
-    const javaHome = normalizeJavaHome();
+    const javaHome = resolveLauncherJavaHome();
     if (javaHome) {
-        return fse.existsSync(path.join(javaHome, "bin", JAVA_FILENAME));
+        return isUsableJavaExecutable(path.join(javaHome.value, "bin", JAVA_FILENAME));
     }
     try {
         execSync("java -version", { stdio: "pipe" });
@@ -141,19 +179,26 @@ export type MissingJavaReason = "javaHomeInvalidDir" | "noJavaOnPath";
 
 export interface MissingJavaInfo {
     reason: MissingJavaReason;
-    /** The offending `JAVA_HOME` value; set only when `reason` is `javaHomeInvalidDir`. */
+    /**
+     * The offending effective Java home value; set only when `reason` is
+     * `javaHomeInvalidDir`. Reflects `VSCODE_JAVA_HOME` when set, otherwise `JAVA_HOME`.
+     */
     javaHome?: string;
+    /** Which env var supplied {@link javaHome}; set only when `reason` is `javaHomeInvalidDir`. */
+    envVar?: JavaHomeEnvVar;
 }
 
 /**
  * Explains why {@link checkEnvJavaExecutable} found no usable `java`. Only valid
- * on that path: a set `JAVA_HOME` means its `bin/java` is missing
- * (`javaHomeInvalidDir`); otherwise no `java` was found on `PATH`
- * (`noJavaOnPath`).
+ * on that path: when the launcher's effective Java home is set (`VSCODE_JAVA_HOME`
+ * if present, otherwise `JAVA_HOME`) its `bin/java` is missing or not executable
+ * (`javaHomeInvalidDir`); otherwise no `java` was found on `PATH` (`noJavaOnPath`).
  */
 export function getMissingJavaInfo(): MissingJavaInfo {
-    const javaHome = normalizeJavaHome();
-    return javaHome ? { reason: "javaHomeInvalidDir", javaHome } : { reason: "noJavaOnPath" };
+    const javaHome = resolveLauncherJavaHome();
+    return javaHome
+        ? { reason: "javaHomeInvalidDir", javaHome: javaHome.value, envVar: javaHome.envVar }
+        : { reason: "noJavaOnPath" };
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {

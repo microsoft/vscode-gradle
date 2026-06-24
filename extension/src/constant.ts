@@ -21,9 +21,9 @@ export const GRADLE_BUILD_FILE_NAMES = ["build.gradle", "settings.gradle", "buil
 export const NO_JAVA_EXECUTABLE =
     "JDK 17 or higher is required. Please set a valid Java home path to 'java.jdt.ls.java.home' setting or JAVA_HOME environment variable. Or ensure a valid Java executable is in your PATH.";
 
-export const javaHomeInvalidDirMessage = (javaHome: string): string =>
-    `JAVA_HOME is set to '${javaHome}', but it does not contain a Java executable. ` +
-    "Point JAVA_HOME at a valid JDK 17 or higher, set the 'java.jdt.ls.java.home' setting, or unset JAVA_HOME to use a 'java' from your PATH.";
+export const javaHomeInvalidDirMessage = (javaHome: string, envVar = "JAVA_HOME"): string =>
+    `${envVar} is set to '${javaHome}', but it does not contain a Java executable. ` +
+    `Point ${envVar} at a valid JDK 17 or higher, set the 'java.jdt.ls.java.home' setting, or unset ${envVar} to use a 'java' from your PATH.`;
 
 export const OPT_RESTART = "Restart";
 

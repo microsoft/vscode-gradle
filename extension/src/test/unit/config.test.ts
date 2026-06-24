@@ -17,6 +17,14 @@ function suiteName(name: string): string {
     return `${prefix}${name}`;
 }
 
+function restoreEnv(key: string, saved: string | undefined): void {
+    if (saved === undefined) {
+        delete process.env[key];
+    } else {
+        process.env[key] = saved;
+    }
+}
+
 describe(suiteName("findValidJavaHome"), () => {
     let savedJavaHome: string | undefined;
 
@@ -77,57 +85,80 @@ describe(suiteName("findValidJavaHome"), () => {
 
 describe(suiteName("checkEnvJavaExecutable"), () => {
     let savedJavaHome: string | undefined;
+    let savedVscodeJavaHome: string | undefined;
 
     beforeEach(() => {
         savedJavaHome = process.env.JAVA_HOME;
+        savedVscodeJavaHome = process.env.VSCODE_JAVA_HOME;
+        delete process.env.JAVA_HOME;
+        delete process.env.VSCODE_JAVA_HOME;
     });
 
     afterEach(() => {
-        if (savedJavaHome === undefined) {
-            delete process.env.JAVA_HOME;
-        } else {
-            process.env.JAVA_HOME = savedJavaHome;
-        }
+        restoreEnv("JAVA_HOME", savedJavaHome);
+        restoreEnv("VSCODE_JAVA_HOME", savedVscodeJavaHome);
         sinon.restore();
     });
 
     it("returns true when JAVA_HOME contains a java executable", () => {
         process.env.JAVA_HOME = "/opt/jdk17";
-        const existsStub = sinon.stub(fse, "existsSync").returns(true);
+        const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
         assert.strictEqual(checkEnvJavaExecutable(), true);
-        assert.ok(existsStub.calledOnceWithExactly(path.join("/opt/jdk17", "bin", JAVA_FILENAME)));
+        assert.ok(accessStub.calledOnceWith(path.join("/opt/jdk17", "bin", JAVA_FILENAME)));
     });
 
-    it("returns false when JAVA_HOME is set but its bin/java is missing", () => {
+    it("returns false when JAVA_HOME is set but its bin/java is missing or not executable", () => {
         process.env.JAVA_HOME = "/opt/broken";
-        sinon.stub(fse, "existsSync").returns(false);
+        sinon.stub(fse, "accessSync").throws(new Error("ENOENT"));
 
         assert.strictEqual(checkEnvJavaExecutable(), false);
     });
 
     it("trims surrounding quotes and whitespace from JAVA_HOME before probing", () => {
         process.env.JAVA_HOME = '  "/opt/jdk17"  ';
-        const existsStub = sinon.stub(fse, "existsSync").returns(true);
+        const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
         assert.strictEqual(checkEnvJavaExecutable(), true);
-        assert.ok(existsStub.calledOnceWithExactly(path.join("/opt/jdk17", "bin", JAVA_FILENAME)));
+        assert.ok(accessStub.calledOnceWith(path.join("/opt/jdk17", "bin", JAVA_FILENAME)));
+    });
+
+    it("prefers VSCODE_JAVA_HOME over JAVA_HOME, mirroring the launcher precedence", () => {
+        process.env.VSCODE_JAVA_HOME = "/opt/vscode-jdk";
+        process.env.JAVA_HOME = "/opt/broken";
+        const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
+
+        assert.strictEqual(checkEnvJavaExecutable(), true);
+        assert.ok(
+            accessStub.calledOnceWith(path.join("/opt/vscode-jdk", "bin", JAVA_FILENAME)),
+            "expected the probe to target VSCODE_JAVA_HOME, not JAVA_HOME"
+        );
+    });
+
+    it("returns false when a set VSCODE_JAVA_HOME has no usable java, even if JAVA_HOME is valid", () => {
+        process.env.VSCODE_JAVA_HOME = "/opt/broken";
+        process.env.JAVA_HOME = "/opt/jdk17";
+        const accessStub = sinon.stub(fse, "accessSync").throws(new Error("ENOENT"));
+
+        assert.strictEqual(checkEnvJavaExecutable(), false);
+        assert.ok(accessStub.calledOnceWith(path.join("/opt/broken", "bin", JAVA_FILENAME)));
     });
 });
 
 describe(suiteName("getMissingJavaInfo"), () => {
     let savedJavaHome: string | undefined;
+    let savedVscodeJavaHome: string | undefined;
 
     beforeEach(() => {
         savedJavaHome = process.env.JAVA_HOME;
+        savedVscodeJavaHome = process.env.VSCODE_JAVA_HOME;
+        delete process.env.JAVA_HOME;
+        delete process.env.VSCODE_JAVA_HOME;
     });
 
     afterEach(() => {
-        if (savedJavaHome === undefined) {
-            delete process.env.JAVA_HOME;
-        } else {
-            process.env.JAVA_HOME = savedJavaHome;
-        }
+        restoreEnv("JAVA_HOME", savedJavaHome);
+        restoreEnv("VSCODE_JAVA_HOME", savedVscodeJavaHome);
         sinon.restore();
     });
 
@@ -137,11 +168,24 @@ describe(suiteName("getMissingJavaInfo"), () => {
         assert.deepStrictEqual(getMissingJavaInfo(), {
             reason: "javaHomeInvalidDir",
             javaHome: "/opt/broken",
+            envVar: "JAVA_HOME",
         });
     });
 
-    it("attributes an unset JAVA_HOME to no java on PATH", () => {
+    it("attributes a set VSCODE_JAVA_HOME to an invalid directory, taking precedence over JAVA_HOME", () => {
+        process.env.VSCODE_JAVA_HOME = '  "/opt/vscode-broken"  ';
+        process.env.JAVA_HOME = "/opt/jdk17";
+
+        assert.deepStrictEqual(getMissingJavaInfo(), {
+            reason: "javaHomeInvalidDir",
+            javaHome: "/opt/vscode-broken",
+            envVar: "VSCODE_JAVA_HOME",
+        });
+    });
+
+    it("attributes an unset effective Java home to no java on PATH", () => {
         delete process.env.JAVA_HOME;
+        delete process.env.VSCODE_JAVA_HOME;
 
         assert.deepStrictEqual(getMissingJavaInfo(), { reason: "noJavaOnPath" });
     });
