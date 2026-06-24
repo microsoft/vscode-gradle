@@ -107,7 +107,20 @@ export function getRedHatJavaEmbeddedJRE(): string | undefined {
     return undefined;
 }
 
+/**
+ * Whether the gradle-server launcher will find a usable `java`, mirroring
+ * gradle-server(.bat) precedence: when `JAVA_HOME` is set the launcher uses
+ * `%JAVA_HOME%/bin/java` and aborts if it is missing (it never falls back to
+ * `PATH`); only when `JAVA_HOME` is unset does it use `java` from `PATH`.
+ * Probing only `PATH` here would let {@link getGradleServerEnv} treat a
+ * set-but-broken `JAVA_HOME` as usable, spawn, and let the launcher fail with a
+ * cryptic "invalid directory" error instead of surfacing the no-Java prompt.
+ */
 export function checkEnvJavaExecutable(): boolean {
+    const javaHome = process.env.JAVA_HOME?.replace(/^"+|"+$/g, "");
+    if (javaHome) {
+        return fse.existsSync(path.join(javaHome, "bin", JAVA_FILENAME));
+    }
     try {
         execSync("java -version", { stdio: "pipe" });
     } catch (e) {
