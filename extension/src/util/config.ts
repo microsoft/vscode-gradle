@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "child_process";
+import { execSync } from "child_process";
 import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
 import { GradleConfig } from "../proto/gradle_pb";
@@ -127,59 +127,6 @@ export function checkEnvJavaExecutable(): boolean {
         return false;
     }
     return true;
-}
-
-/**
- * Best-effort major version of the `java` the launcher will actually use on the
- * fallback path, purely for diagnostics. Mirrors gradle-server(.bat): with
- * `VSCODE_JAVA_HOME` unset the launcher runs `%JAVA_HOME%\bin\java` when
- * `JAVA_HOME` is set (and aborts, rather than using `PATH`, if that file is
- * missing), otherwise `java` from `PATH`. Probing the same executable keeps the
- * reported version matched to the one that would run the server jar. Returns 0
- * when the launcher's java is unreachable (no `JAVA_HOME` java, no `PATH` java,
- * the probe timed out, or its version banner cannot be parsed). `java -version`
- * prints to stderr (e.g. `openjdk version "11.0.20"` or `"1.8.0_392"`).
- */
-export function getEnvJavaMajorVersion(): number {
-    try {
-        const javaHome = process.env.JAVA_HOME?.replace(/^"+|"+$/g, "");
-        let javaExe: string;
-        if (javaHome) {
-            // JAVA_HOME is set: the launcher runs %JAVA_HOME%/bin/java and aborts
-            // (it does NOT fall back to PATH) when that file is missing. Mirror
-            // that so javaMajor reflects the java that would actually run - probe
-            // exactly that executable, and report unknown (0) if it is absent,
-            // rather than misattributing a PATH java the launcher would not use.
-            const candidate = path.join(javaHome, "bin", JAVA_FILENAME);
-            if (!fse.existsSync(candidate)) {
-                return 0;
-            }
-            javaExe = candidate;
-        } else {
-            javaExe = "java";
-        }
-        // Invoke without a shell and pass arguments as an array so a JAVA_HOME
-        // containing spaces or shell metacharacters cannot break or inject into
-        // the command. Bound the call so a hung/slow `java` (network-mounted
-        // installs, AV hooks) cannot stall gradle-server startup; on timeout
-        // spawnSync returns with an error and we fall through to unknown (0).
-        // `java -version` prints its banner to stderr, but read both streams in
-        // case a JDK ever writes it to stdout.
-        const result = spawnSync(javaExe, ["-version"], { encoding: "utf8", timeout: 3000 });
-        const output = `${result.stderr ?? ""}${result.stdout ?? ""}`;
-        const match = output.match(/version "(\d+)(?:\.(\d+))?/);
-        if (!match) {
-            return 0;
-        }
-        const major = parseInt(match[1], 10);
-        // Java 8 and earlier report as 1.x; map "1.8" -> 8.
-        if (major === 1 && match[2]) {
-            return parseInt(match[2], 10);
-        }
-        return Number.isNaN(major) ? 0 : major;
-    } catch (e) {
-        return 0;
-    }
 }
 
 export function getConfigJavaImportGradleUserHome(): string | null {

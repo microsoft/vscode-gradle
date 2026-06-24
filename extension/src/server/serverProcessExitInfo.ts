@@ -58,9 +58,10 @@ export interface ServerProcessExitInfo {
      */
     connected?: boolean;
     /**
-     * Resolved JDK major version handed to the launcher (0 = unknown, e.g. the
-     * PATH-fallback java could not be probed). A value `> 0 && < 17` explains a
-     * startup `code=1` directly.
+     * Major version of the JDK the extension resolved for the launcher (0 =
+     * unknown). On the PATH-fallback path the extension does not resolve the
+     * launcher's java, so this stays 0 there; use `stderrSignature` to attribute
+     * those exits. A value `> 0 && < 17` explains a startup `code=1` directly.
      */
     javaMajor?: number;
     /** Where the JDK came from; see {@link JavaSource}. */

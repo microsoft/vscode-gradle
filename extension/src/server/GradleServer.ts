@@ -8,7 +8,7 @@ import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
 import { Logger } from "../logger/index";
 import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
-import { extensionInstalled, getEnvJavaMajorVersion, REQUIRED_JDK_VERSION } from "../util/config";
+import { extensionInstalled, REQUIRED_JDK_VERSION } from "../util/config";
 import { getMajorVersion } from "../util/jdkUtils";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
@@ -82,10 +82,6 @@ export class GradleServer {
         let javaMajor = 0;
         if (javaHome) {
             javaMajor = await getMajorVersion(javaHome);
-        } else if (javaSource === "pathFallback") {
-            // No VSCODE_JAVA_HOME was set; probe the JAVA_HOME/PATH java the
-            // launcher will actually use.
-            javaMajor = getEnvJavaMajorVersion();
         }
         this.resolvedJavaMajor = javaMajor;
         this.resolvedJavaSource = javaSource;
