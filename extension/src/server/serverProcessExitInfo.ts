@@ -11,12 +11,16 @@
  * diagnostics and never carry user data.
  */
 /**
- * Low-cardinality classification of the gradle-server JVM stderr tail.
+ * Low-cardinality classification of why the gradle-server process exited,
+ * derived from its captured output.
  *
- * The raw stderr can contain user file paths, so it is never sent to telemetry
+ * Most values come from the JVM stderr tail. The `javaHome*` values come from
+ * the launcher (gradle-server[.bat]) start script, which echoes fatal JAVA_HOME
+ * errors to stdout and exits before the JVM runs. The raw output can contain
+ * user file paths (e.g. the JAVA_HOME value), so it is never sent to telemetry
  * directly. Instead we map it to one of these stable categories so a `code=1`
- * exit can be attributed (e.g. an incompatible JDK vs. an out-of-memory) from
- * field telemetry without leaking user data.
+ * exit can be attributed (e.g. an incompatible JDK vs. an invalid JAVA_HOME vs.
+ * an out-of-memory) from field telemetry without leaking user data.
  */
 export type ServerStderrSignature =
     | "none"
@@ -26,6 +30,8 @@ export type ServerStderrSignature =
     | "mainClassError"
     | "outOfMemory"
     | "missingRequiredParam"
+    | "javaHomeInvalidDir"
+    | "javaUnresolvedByLauncher"
     | "other";
 
 /**
@@ -121,6 +127,29 @@ export function classifyServerStderr(stderrTail: ReadonlyArray<string>): ServerS
         return "missingRequiredParam";
     }
     return "other";
+}
+
+/**
+ * Classify a fatal launcher (gradle-server[.bat]) error. The start scripts echo
+ * these to *stdout* - not stderr - and exit before the JVM starts, so they are
+ * captured separately from the JVM stderr tail and classified here. Returns
+ * `undefined` when no known launcher error is present, so the caller can fall
+ * back to {@link classifyServerStderr}. The matched line can contain the user's
+ * JAVA_HOME path, so - like {@link classifyServerStderr} - only the stable
+ * category is returned, never the raw text.
+ */
+export function classifyLauncherError(launcherTail: ReadonlyArray<string>): ServerStderrSignature | undefined {
+    if (!launcherTail || launcherTail.length === 0) {
+        return undefined;
+    }
+    const text = launcherTail.join("\n");
+    if (/JAVA_HOME is set to an invalid directory/.test(text)) {
+        return "javaHomeInvalidDir";
+    }
+    if (/JAVA_HOME is not set and no 'java' command could be found/.test(text)) {
+        return "javaUnresolvedByLauncher";
+    }
+    return undefined;
 }
 
 /**

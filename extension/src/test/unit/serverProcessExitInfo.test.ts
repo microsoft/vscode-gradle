@@ -2,7 +2,11 @@
 // Licensed under the MIT license.
 
 import * as assert from "assert";
-import { buildServerProcessExitInfo, classifyServerStderr } from "../../server/serverProcessExitInfo";
+import {
+    buildServerProcessExitInfo,
+    classifyServerStderr,
+    classifyLauncherError,
+} from "../../server/serverProcessExitInfo";
 
 function suiteName(name: string): string {
     const prefix = process.env.SUITE_NAME ? `${process.env.SUITE_NAME} - ` : "";
@@ -112,5 +116,29 @@ describe(suiteName("classifyServerStderr"), () => {
 
     it("falls back to 'other' for unrecognized output", () => {
         assert.strictEqual(classifyServerStderr(["some unrelated warning"]), "other");
+    });
+});
+
+describe(suiteName("classifyLauncherError"), () => {
+    it("returns undefined for empty launcher output", () => {
+        assert.strictEqual(classifyLauncherError([]), undefined);
+    });
+
+    it("detects an invalid JAVA_HOME directory", () => {
+        assert.strictEqual(
+            classifyLauncherError(["ERROR: JAVA_HOME is set to an invalid directory: /no/such/jdk"]),
+            "javaHomeInvalidDir"
+        );
+    });
+
+    it("detects an unresolved java launcher", () => {
+        assert.strictEqual(
+            classifyLauncherError(["ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH."]),
+            "javaUnresolvedByLauncher"
+        );
+    });
+
+    it("returns undefined for unrelated launcher output", () => {
+        assert.strictEqual(classifyLauncherError(["ERROR: JAVA_HOME some other problem"]), undefined);
     });
 });

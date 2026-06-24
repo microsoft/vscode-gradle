@@ -14,7 +14,7 @@ import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 import { createPipeListener, PipeListener } from "../transport/jsonrpc";
 import { shouldAutoRestart } from "./autoRestartPolicy";
-import { buildServerProcessExitInfo, classifyServerStderr } from "./serverProcessExitInfo";
+import { buildServerProcessExitInfo, classifyServerStderr, classifyLauncherError } from "./serverProcessExitInfo";
 import type { JavaSource } from "./serverProcessExitInfo";
 const SERVER_LOGLEVEL_REGEX = /^\[([A-Z]+)\](.*)$/;
 const DOWNLOAD_PROGRESS_CHAR = ".";
@@ -42,6 +42,11 @@ export class GradleServer {
     private processStartedAt = 0;
     private stderrTail: string[] = [];
     private pendingStderrLine = "";
+    // The launcher (gradle-server[.bat]) echoes fatal JAVA_HOME errors to stdout
+    // and exits before the JVM runs, so they never reach stderrTail; capture just
+    // those lines here so such exits can still be attributed.
+    private launcherErrorTail: string[] = [];
+    private pendingStdoutLine = "";
     private disposing = false;
     private autoRestartCount = 0;
     private autoRestartTimer: NodeJS.Timeout | undefined;
@@ -191,12 +196,15 @@ export class GradleServer {
         this.processStartedAt = Date.now();
         this.stderrTail = [];
         this.pendingStderrLine = "";
+        this.launcherErrorTail = [];
+        this.pendingStdoutLine = "";
         this.process = cp.spawn(`"${cmd}"`, args, {
             cwd,
             env,
             shell: true,
         });
         this.process.stdout.on("data", this.logOutput);
+        this.process.stdout.on("data", this.captureLauncherError);
         this.process.stderr.on("data", this.logOutput);
         this.process.stderr.on("data", this.captureStderrTail);
         this.process
@@ -212,8 +220,12 @@ export class GradleServer {
             // 'exit' can fire while that final stderr chunk is still buffered.
             .on("close", async (code, signal) => {
                 this.flushPendingStderrLine();
+                this.flushPendingStdoutLine();
                 const durationMs = Date.now() - this.processStartedAt;
-                const stderrSignature = classifyServerStderr(this.stderrTail);
+                // A launcher error (echoed to stdout) means the JVM never
+                // started, so it takes precedence over any JVM stderr signature.
+                const stderrSignature =
+                    classifyLauncherError(this.launcherErrorTail) ?? classifyServerStderr(this.stderrTail);
                 this.logger.warn(
                     `Gradle server stopped (exitCode=${code ?? "null"}, signal=${
                         signal ?? "none"
@@ -331,6 +343,39 @@ export class GradleServer {
         this.stderrTail.push(line);
         if (this.stderrTail.length > STDERR_TAIL_LINES) {
             this.stderrTail.shift();
+        }
+    }
+
+    private captureLauncherError = (data: Buffer | string): void => {
+        const text = this.pendingStdoutLine + (typeof data === "string" ? data : data.toString());
+        const lines = text.split(/\r?\n/);
+        // The last element is either an incomplete line (no trailing newline)
+        // or an empty string (chunk ended on a newline). Either way it cannot
+        // be pushed yet; keep it for the next chunk.
+        this.pendingStdoutLine = lines.pop() ?? "";
+        for (const rawLine of lines) {
+            this.pushLauncherErrorLine(rawLine);
+        }
+    };
+
+    private flushPendingStdoutLine(): void {
+        const line = this.pendingStdoutLine;
+        this.pendingStdoutLine = "";
+        this.pushLauncherErrorLine(line);
+    }
+
+    private pushLauncherErrorLine(rawLine: string): void {
+        const line = rawLine.trim();
+        // Keep only the launcher's own fatal JAVA_HOME errors (echoed to stdout)
+        // and ignore the rest of the chatty stdout, so the buffer stays small and
+        // free of unrelated lines. The line can carry the user's JAVA_HOME path,
+        // so it is only used to derive a stable signature, never sent to telemetry.
+        if (!line.startsWith("ERROR: JAVA_HOME")) {
+            return;
+        }
+        this.launcherErrorTail.push(line);
+        if (this.launcherErrorTail.length > STDERR_TAIL_LINES) {
+            this.launcherErrorTail.shift();
         }
     }
 
