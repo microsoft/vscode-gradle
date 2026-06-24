@@ -48,9 +48,10 @@ export async function getGradleServerEnv(): Promise<GradleServerEnv | undefined>
     } else if (!checkEnvJavaExecutable()) {
         return undefined;
     } else {
-        // No validated JDK >= 17 was resolved, but a `java` is on PATH. The
-        // launcher will use JAVA_HOME/PATH java, which may be too old for the
-        // Java 17 server jar -> startup code=1 before connecting.
+        // No validated JDK >= 17 was resolved, but the launcher's java is
+        // reachable (JAVA_HOME/bin/java exists, or JAVA_HOME is unset and `java`
+        // is on PATH). That java may be too old for the Java 17 server jar ->
+        // startup code=1 before connecting.
         javaSource = "pathFallback";
     }
     if (env["DEBUG_GRADLE_SERVER"] === "true") {

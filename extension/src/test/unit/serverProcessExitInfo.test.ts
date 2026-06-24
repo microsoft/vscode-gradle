@@ -91,6 +91,14 @@ describe(suiteName("classifyServerStderr"), () => {
         );
     });
 
+    it("prefers mainClassError over noClassDefFound when both appear", () => {
+        const tail = [
+            "Error: Could not find or load main class com.github.badsyntax.gradle.GradleServer",
+            "Caused by: java.lang.ClassNotFoundException: com.github.badsyntax.gradle.GradleServer",
+        ];
+        assert.strictEqual(classifyServerStderr(tail), "mainClassError");
+    });
+
     it("detects an out-of-memory exit", () => {
         assert.strictEqual(classifyServerStderr(["java.lang.OutOfMemoryError: Java heap space"]), "outOfMemory");
     });

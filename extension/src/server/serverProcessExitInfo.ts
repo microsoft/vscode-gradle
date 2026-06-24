@@ -102,15 +102,20 @@ export function classifyServerStderr(stderrTail: ReadonlyArray<string>): ServerS
     if (/OutOfMemoryError/.test(text)) {
         return "outOfMemory";
     }
-    if (/NoClassDefFoundError|ClassNotFoundException/.test(text)) {
-        return "noClassDefFound";
-    }
+    // Check the specific main-class load failure before the generic
+    // NoClassDefFoundError/ClassNotFoundException below: a "could not find or
+    // load main class" failure usually also prints a `Caused by:
+    // ClassNotFoundException` line, which would otherwise be misclassified as
+    // noClassDefFound.
     if (
         /Could not find or load main class|LinkageError occurred while loading main class|Main method not found/.test(
             text
         )
     ) {
         return "mainClassError";
+    }
+    if (/NoClassDefFoundError|ClassNotFoundException/.test(text)) {
+        return "noClassDefFound";
     }
     if (/is required and can not be empty/.test(text)) {
         return "missingRequiredParam";
