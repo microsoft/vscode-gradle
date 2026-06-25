@@ -6,9 +6,9 @@ import { commands } from "vscode";
 import type { Logger as JsonRpcLogger, MessageConnection } from "vscode-jsonrpc";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { getGradleServerCommand, getGradleServerEnv, quoteArg } from "./serverUtil";
-import { Logger } from "../logger/index";
-import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK } from "../constant";
-import { extensionInstalled } from "../util/config";
+import { Logger, LogVerbosity } from "../logger/index";
+import { NO_JAVA_EXECUTABLE, OPT_RESTART, INSTALL_JDK, javaHomeInvalidDirMessage } from "../constant";
+import { extensionInstalled, getMissingJavaInfo } from "../util/config";
 import { BspProxy } from "../bs/BspProxy";
 import { getRandomPipeName } from "../util/generateRandomPipeName";
 import { createPipeListener, PipeListener } from "../transport/jsonrpc";
@@ -95,11 +95,22 @@ export class GradleServer {
         const cmd = path.join(cwd, getGradleServerCommand());
         const env = await getGradleServerEnv();
         if (!env) {
+            const missingJava = getMissingJavaInfo();
+            const message =
+                missingJava.reason === "javaHomeInvalidDir"
+                    ? javaHomeInvalidDirMessage(missingJava.javaHome, missingJava.envVar)
+                    : NO_JAVA_EXECUTABLE;
             sendInfo("", {
                 kind: "GradleServerEnvMissing",
+                dataMsg: JSON.stringify({ reason: missingJava.reason }),
             });
+            // Log to the Output channel at ERROR verbosity, but bypass logger.error()
+            // so the message (which may contain the user's JAVA_HOME path) is not sent
+            // as telemetry. Telemetry attribution comes from the low-cardinality
+            // GradleServerEnvMissing event above instead.
+            this.logger.log(message, LogVerbosity.ERROR);
             const choice = extensionInstalled("vscjava.vscode-java-pack") ? [INSTALL_JDK] : [];
-            vscode.window.showErrorMessage(NO_JAVA_EXECUTABLE, ...choice).then((selection) => {
+            vscode.window.showErrorMessage(message, ...choice).then((selection) => {
                 if (selection === INSTALL_JDK) {
                     vscode.commands.executeCommand("java.installJdk");
                 }
