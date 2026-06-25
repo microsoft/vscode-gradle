@@ -23,7 +23,7 @@ export const NO_JAVA_EXECUTABLE =
 
 export const javaHomeInvalidDirMessage = (javaHome: string, envVar = "JAVA_HOME"): string =>
     `${envVar} is set to '${javaHome}', but it does not contain a usable Java executable. ` +
-    `Point ${envVar} at a valid JDK 17 or higher, set the 'java.jdt.ls.java.home' setting, or unset ${envVar} to use a 'java' from your PATH.`;
+    `Point ${envVar} at a valid JDK 17 or higher, set the 'java.jdt.ls.java.home' setting, or clear your Java home env vars to use a 'java' from your PATH.`;
 
 export const OPT_RESTART = "Restart";
 

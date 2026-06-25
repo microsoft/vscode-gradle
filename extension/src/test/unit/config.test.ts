@@ -108,6 +108,7 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
 
     it("returns true when JAVA_HOME contains a java executable", () => {
         process.env.JAVA_HOME = "/opt/jdk17";
+        sinon.stub(fse, "statSync").returns({ isFile: () => true } as fs.Stats);
         const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
         assert.strictEqual(checkEnvJavaExecutable(), true);
@@ -116,6 +117,7 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
 
     it("returns false when JAVA_HOME is set but its bin/java is missing or not executable", () => {
         process.env.JAVA_HOME = "/opt/broken";
+        sinon.stub(fse, "statSync").returns({ isFile: () => true } as fs.Stats);
         sinon.stub(fse, "accessSync").throws(new Error("ENOENT"));
 
         assert.strictEqual(checkEnvJavaExecutable(), false);
@@ -131,6 +133,7 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
 
     it("probes JAVA_HOME verbatim, without trimming surrounding whitespace", () => {
         process.env.JAVA_HOME = " /opt/jdk17 ";
+        sinon.stub(fse, "statSync").returns({ isFile: () => true } as fs.Stats);
         const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
         checkEnvJavaExecutable();
@@ -143,6 +146,7 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
     it("prefers VSCODE_JAVA_HOME over JAVA_HOME, mirroring the launcher precedence", () => {
         process.env.VSCODE_JAVA_HOME = "/opt/vscode-jdk";
         process.env.JAVA_HOME = "/opt/broken";
+        sinon.stub(fse, "statSync").returns({ isFile: () => true } as fs.Stats);
         const accessStub = sinon.stub(fse, "accessSync").returns(undefined);
 
         assert.strictEqual(checkEnvJavaExecutable(), true);
@@ -155,6 +159,7 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
     it("returns false when a set VSCODE_JAVA_HOME has no usable java, even if JAVA_HOME is valid", () => {
         process.env.VSCODE_JAVA_HOME = "/opt/broken";
         process.env.JAVA_HOME = "/opt/jdk17";
+        sinon.stub(fse, "statSync").returns({ isFile: () => true } as fs.Stats);
         const accessStub = sinon.stub(fse, "accessSync").throws(new Error("ENOENT"));
 
         assert.strictEqual(checkEnvJavaExecutable(), false);
