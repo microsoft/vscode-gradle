@@ -9,9 +9,7 @@ import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 const GRADLE_DEFAULT_BUILD_FILE_NAMES = GRADLE_BUILD_FILE_NAMES.filter((fileName) =>
     fileName.startsWith("build.gradle")
 );
-const GRADLE_SETTINGS_FILE_NAMES = GRADLE_BUILD_FILE_NAMES.filter((fileName) =>
-    fileName.startsWith("settings.gradle")
-);
+const GRADLE_SETTINGS_FILE_NAMES = GRADLE_BUILD_FILE_NAMES.filter((fileName) => fileName.startsWith("settings.gradle"));
 
 function hasAncestorFolder(folder: string, ancestorFolders: Set<string>): boolean {
     let current = folder;
