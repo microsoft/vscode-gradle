@@ -182,16 +182,22 @@ export function checkEnvJavaExecutable(): boolean {
 
 export type MissingJavaReason = "javaHomeInvalidDir" | "noJavaOnPath";
 
-export interface MissingJavaInfo {
-    reason: MissingJavaReason;
+export interface JavaHomeInvalidDirInfo {
+    reason: "javaHomeInvalidDir";
     /**
-     * The offending effective Java home value; set only when `reason` is
-     * `javaHomeInvalidDir`. Reflects `VSCODE_JAVA_HOME` when set, otherwise `JAVA_HOME`.
+     * The offending effective Java home value. Reflects `VSCODE_JAVA_HOME` when
+     * set, otherwise `JAVA_HOME`.
      */
-    javaHome?: string;
-    /** Which env var supplied {@link javaHome}; set only when `reason` is `javaHomeInvalidDir`. */
-    envVar?: JavaHomeEnvVar;
+    javaHome: string;
+    /** Which env var supplied {@link javaHome}. */
+    envVar: JavaHomeEnvVar;
 }
+
+export interface NoJavaOnPathInfo {
+    reason: "noJavaOnPath";
+}
+
+export type MissingJavaInfo = JavaHomeInvalidDirInfo | NoJavaOnPathInfo;
 
 /**
  * Explains why {@link checkEnvJavaExecutable} found no usable `java`. Only valid

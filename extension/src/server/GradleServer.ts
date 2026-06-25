@@ -98,7 +98,7 @@ export class GradleServer {
             const missingJava = getMissingJavaInfo();
             const message =
                 missingJava.reason === "javaHomeInvalidDir"
-                    ? javaHomeInvalidDirMessage(missingJava.javaHome!, missingJava.envVar)
+                    ? javaHomeInvalidDirMessage(missingJava.javaHome, missingJava.envVar)
                     : NO_JAVA_EXECUTABLE;
             sendInfo("", {
                 kind: "GradleServerEnvMissing",
