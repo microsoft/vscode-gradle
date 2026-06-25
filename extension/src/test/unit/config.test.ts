@@ -5,6 +5,7 @@
 import * as assert from "assert";
 import * as sinon from "sinon";
 import * as path from "path";
+import * as fs from "fs";
 import * as fse from "fs-extra";
 import { JAVA_FILENAME } from "jdk-utils";
 import * as vscode from "vscode";
@@ -116,6 +117,14 @@ describe(suiteName("checkEnvJavaExecutable"), () => {
     it("returns false when JAVA_HOME is set but its bin/java is missing or not executable", () => {
         process.env.JAVA_HOME = "/opt/broken";
         sinon.stub(fse, "accessSync").throws(new Error("ENOENT"));
+
+        assert.strictEqual(checkEnvJavaExecutable(), false);
+    });
+
+    it("returns false when JAVA_HOME/bin/java is a directory", () => {
+        process.env.JAVA_HOME = "/opt/jdk17";
+        sinon.stub(fse, "statSync").returns({ isFile: () => false } as fs.Stats);
+        sinon.stub(fse, "accessSync").returns(undefined);
 
         assert.strictEqual(checkEnvJavaExecutable(), false);
     });

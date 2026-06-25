@@ -147,9 +147,12 @@ function resolveLauncherJavaHome(): { value: string; envVar: JavaHomeEnvVar } | 
  */
 function isUsableJavaExecutable(javaPath: string): boolean {
     try {
+        if (!fse.statSync(javaPath).isFile()) {
+            return false;
+        }
         fse.accessSync(javaPath, process.platform === "win32" ? fse.constants.F_OK : fse.constants.X_OK);
         return true;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
