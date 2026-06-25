@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { getNestedProjectsConfig } from "../util/config";
 import { StoreMap } from ".";
-import { isGradleRootProject } from "../util";
+import { hasGradleMarkerFile } from "../util";
 import { RootProject } from "../rootProject/RootProject";
 import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
@@ -46,14 +46,19 @@ function buildRootFolder(folderUri: vscode.Uri): RootProject {
 function getGradleProjectFoldersOutsideRoot(
     configNestedFolders: boolean | ReadonlyArray<string>,
     gradleProjectFolders: string[],
-    workspaceFolder: vscode.WorkspaceFolder
+    workspaceFolder: vscode.WorkspaceFolder,
+    includeDiscoveredNestedProjects: boolean
 ): string[] {
-    if (configNestedFolders === true) {
-        return gradleProjectFolders.filter((projectFolder) => projectFolder !== workspaceFolder.uri.fsPath);
-    } else if (Array.isArray(configNestedFolders)) {
+    if (Array.isArray(configNestedFolders)) {
         return configNestedFolders.map((nestedfolder) => {
             return path.join(workspaceFolder.uri.fsPath, nestedfolder);
         });
+    } else if (configNestedFolders === true || includeDiscoveredNestedProjects) {
+        const workspaceRoot = workspaceFolder.uri.fsPath;
+        return gradleProjectFolders.filter(
+            (projectFolder) =>
+                projectFolder !== workspaceRoot && hasAncestorFolder(projectFolder, new Set([workspaceRoot]))
+        );
     }
     return [];
 }
@@ -64,35 +69,42 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
 
     public async populate(): Promise<void> {
         const workspaceFolders: ReadonlyArray<vscode.WorkspaceFolder> = vscode.workspace.workspaceFolders || [];
-        const gradleProjectFolders = await getNestedRootProjectFolders();
+        const workspaceContexts = workspaceFolders.map((workspaceFolder) => {
+            const rootProject = buildRootFolder(workspaceFolder.uri);
+            return {
+                workspaceFolder,
+                rootProject,
+                configNestedFolders: getNestedProjectsConfig(workspaceFolder),
+                hasRootGradleMarker: hasGradleMarkerFile(rootProject),
+            };
+        });
+        let gradleProjectFolders: string[] | undefined;
+        const getGradleProjectFolders = async (): Promise<string[]> => {
+            if (!gradleProjectFolders) {
+                gradleProjectFolders = await getNestedRootProjectFolders();
+            }
+            return gradleProjectFolders;
+        };
 
-        for (const workspaceFolder of workspaceFolders) {
-            const configNestedFolders = getNestedProjectsConfig(workspaceFolder);
+        for (const { workspaceFolder, rootProject, configNestedFolders, hasRootGradleMarker } of workspaceContexts) {
+            if (hasRootGradleMarker) {
+                this.setRootProjectFolder(rootProject);
+            }
+            const shouldDiscoverNestedProjects =
+                configNestedFolders === true || (!Array.isArray(configNestedFolders) && !hasRootGradleMarker);
             const gradleProjectFoldersOutsideRoot = getGradleProjectFoldersOutsideRoot(
                 configNestedFolders,
-                gradleProjectFolders,
-                workspaceFolder
+                shouldDiscoverNestedProjects ? await getGradleProjectFolders() : [],
+                workspaceFolder,
+                shouldDiscoverNestedProjects
             );
-            if (gradleProjectFolders.includes(workspaceFolder.uri.fsPath)) {
-                const rootProject = buildRootFolder(workspaceFolder.uri);
-                if (isGradleRootProject(rootProject)) {
-                    this.setRootProjectFolder(rootProject);
-                }
-            }
             gradleProjectFoldersOutsideRoot
                 .map((folder) => buildRootFolder(vscode.Uri.file(folder)))
                 .forEach((project) => {
-                    if (isGradleRootProject(project)) {
+                    if (hasGradleMarkerFile(project)) {
                         this.setRootProjectFolder(project);
                     }
                 });
-        }
-        // for those workspace folders containing build files but no wrapper in the root,
-        // we also add them to rootProjects
-        for (const workspaceFolder of workspaceFolders) {
-            if (await RootProjectsStore.isGradleFileExists(workspaceFolder)) {
-                this.setRootProjectFolder(buildRootFolder(workspaceFolder.uri));
-            }
         }
         this.isPopulated = true;
         this.fireOnDidChange(null);
@@ -101,19 +113,6 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
     private setRootProjectFolder = (rootProject: RootProject): void => {
         this.setItem(rootProject.getProjectUri().fsPath, rootProject, false);
     };
-
-    private static async isGradleFileExists(folder: vscode.WorkspaceFolder): Promise<boolean> {
-        if (
-            (
-                await vscode.workspace.findFiles(
-                    new vscode.RelativePattern(folder, `{${GRADLE_BUILD_FILE_NAMES.join(",")}}`)
-                )
-            )?.length
-        ) {
-            return true;
-        }
-        return false;
-    }
 
     public async getProjectRoots(): Promise<RootProject[]> {
         if (!this.isPopulated) {

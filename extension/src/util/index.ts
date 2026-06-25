@@ -56,7 +56,7 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
     return tryConnect(host, port, Date.now());
 }
 
-export function isGradleRootProject(rootProject: RootProject): boolean {
+export function hasGradleMarkerFile(rootProject: RootProject): boolean {
     return GRADLE_BUILD_FILE_NAMES.some((fileName) =>
         fs.existsSync(path.join(rootProject.getProjectUri().fsPath, fileName))
     );
