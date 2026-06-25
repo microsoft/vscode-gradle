@@ -6,9 +6,34 @@ import { isGradleRootProject } from "../util";
 import { RootProject } from "../rootProject/RootProject";
 import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
+const GRADLE_DEFAULT_BUILD_FILE_NAMES = ["build.gradle", "build.gradle.kts"];
+const GRADLE_SETTINGS_FILE_NAMES = ["settings.gradle", "settings.gradle.kts"];
+
+function hasAncestorFolder(folder: string, ancestorFolders: Set<string>): boolean {
+    let current = folder;
+    let parent = path.dirname(current);
+    while (parent !== current) {
+        if (ancestorFolders.has(parent)) {
+            return true;
+        }
+        current = parent;
+        parent = path.dirname(current);
+    }
+    return false;
+}
+
 async function getNestedRootProjectFolders(): Promise<string[]> {
-    const matchingNestedWrapperFiles = await vscode.workspace.findFiles("**/{settings.gradle,settings.gradle.kts}");
-    return [...new Set(matchingNestedWrapperFiles.map((uri) => path.dirname(uri.fsPath)))];
+    const matchingNestedSettingsFiles = await vscode.workspace.findFiles(
+        `**/{${GRADLE_SETTINGS_FILE_NAMES.join(",")}}`
+    );
+    const nestedSettingsFolders = new Set(matchingNestedSettingsFiles.map((uri) => path.dirname(uri.fsPath)));
+    const matchingNestedBuildFiles = await vscode.workspace.findFiles(
+        `**/{${GRADLE_DEFAULT_BUILD_FILE_NAMES.join(",")}}`
+    );
+    const standaloneNestedBuildFolders = matchingNestedBuildFiles
+        .map((uri) => path.dirname(uri.fsPath))
+        .filter((folder) => !hasAncestorFolder(folder, nestedSettingsFolders));
+    return [...new Set([...nestedSettingsFolders, ...standaloneNestedBuildFolders])];
 }
 
 function buildRootFolder(folderUri: vscode.Uri): RootProject {

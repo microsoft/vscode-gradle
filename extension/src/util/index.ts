@@ -3,6 +3,7 @@ import * as net from "net";
 import * as path from "path";
 import * as fs from "fs";
 import { RootProject } from "../rootProject";
+import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
 export const isTest = (): boolean => process.env.VSCODE_TEST?.toLowerCase() === "true";
 
@@ -56,9 +57,8 @@ export function waitOnTcp(host: string, port: number): Promise<void> {
 }
 
 export function isGradleRootProject(rootProject: RootProject): boolean {
-    return (
-        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "settings.gradle")) ||
-        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, "settings.gradle.kts"))
+    return GRADLE_BUILD_FILE_NAMES.some((fileName) =>
+        fs.existsSync(path.join(rootProject.getProjectUri().fsPath, fileName))
     );
 }
 
