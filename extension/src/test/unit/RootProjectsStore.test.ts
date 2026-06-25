@@ -22,7 +22,7 @@ describe("RootProjectsStore", () => {
         sinon.stub(vscode.workspace, "workspaceFolders").value([workspaceFolder]);
         sinon.stub(vscode.workspace, "getWorkspaceFolder").returns(workspaceFolder);
         sinon.stub(vscode.workspace, "getConfiguration").returns({
-            get: sinon.stub().withArgs("nestedProjects").returns(true),
+            get: sinon.stub().withArgs("nestedProjects", false).returns(true),
         } as unknown as vscode.WorkspaceConfiguration);
         sinon.stub(vscode.workspace, "findFiles").callsFake((include) => {
             if (include === "**/{settings.gradle,settings.gradle.kts}") {
@@ -57,7 +57,7 @@ describe("RootProjectsStore", () => {
         sinon.stub(vscode.workspace, "workspaceFolders").value([workspaceFolder]);
         sinon.stub(vscode.workspace, "getWorkspaceFolder").returns(workspaceFolder);
         sinon.stub(vscode.workspace, "getConfiguration").returns({
-            get: sinon.stub().withArgs("nestedProjects").returns(true),
+            get: sinon.stub().withArgs("nestedProjects", false).returns(true),
         } as unknown as vscode.WorkspaceConfiguration);
         sinon.stub(vscode.workspace, "findFiles").callsFake((include) => {
             if (include === "**/{settings.gradle,settings.gradle.kts}") {

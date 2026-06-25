@@ -6,8 +6,12 @@ import { isGradleRootProject } from "../util";
 import { RootProject } from "../rootProject/RootProject";
 import { GRADLE_BUILD_FILE_NAMES } from "../constant";
 
-const GRADLE_DEFAULT_BUILD_FILE_NAMES = ["build.gradle", "build.gradle.kts"];
-const GRADLE_SETTINGS_FILE_NAMES = ["settings.gradle", "settings.gradle.kts"];
+const GRADLE_DEFAULT_BUILD_FILE_NAMES = GRADLE_BUILD_FILE_NAMES.filter((fileName) =>
+    fileName.startsWith("build.gradle")
+);
+const GRADLE_SETTINGS_FILE_NAMES = GRADLE_BUILD_FILE_NAMES.filter((fileName) =>
+    fileName.startsWith("settings.gradle")
+);
 
 function hasAncestorFolder(folder: string, ancestorFolders: Set<string>): boolean {
     let current = folder;
