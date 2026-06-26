@@ -93,7 +93,9 @@ export function stubWorkspaceFolders(workspaceFolders: vscode.WorkspaceFolder[])
     sinon
         .stub(vscode.workspace, "findFiles")
         .withArgs("**/{settings.gradle,settings.gradle.kts}")
-        .returns(Promise.resolve(workspaceFolders.map((folder) => folder.uri)));
+        .returns(Promise.resolve(workspaceFolders.map((folder) => folder.uri)))
+        .withArgs("**/{build.gradle,build.gradle.kts}")
+        .returns(Promise.resolve([]));
 }
 
 export function buildMockContext(): any {

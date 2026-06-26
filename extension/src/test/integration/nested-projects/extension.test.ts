@@ -31,11 +31,31 @@ describe(getSuiteName("Extension"), () => {
         assert.strictEqual(extension.isActive, true);
     });
 
+    async function fetchTasksUntilLoaded(expectedTaskNames: string[]): Promise<vscode.Task[]> {
+        let tasks: vscode.Task[] = [];
+        for (let i = 0; i < 5; i++) {
+            tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+            const loadedAll = expectedTaskNames.every((name) => tasks.some((task) => task.name === name));
+            if (loadedAll) {
+                break;
+            }
+            await sleep(5 * 1000);
+        }
+        return tasks;
+    }
+
     describe("Task provider", () => {
-        describe("Without nestedProjects enabled", () => {
-            it("should not load any tasks", async () => {
-                const tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                assert.strictEqual(tasks.length, 0);
+        describe("With nestedProjects disabled and a non-Gradle workspace root", () => {
+            let tasks: vscode.Task[] | undefined;
+
+            beforeEach(async () => {
+                tasks = await fetchTasksUntilLoaded(["helloGroovyDefault", "helloKotlinDefault", "helloGroovyCustom"]);
+            });
+
+            it("should load standalone nested Gradle project tasks", async () => {
+                assert.ok(tasks!.find(({ name }) => name === "helloGroovyDefault"));
+                assert.ok(tasks!.find(({ name }) => name === "helloKotlinDefault"));
+                assert.ok(tasks!.find(({ name }) => name === "helloGroovyCustom"));
             });
         });
 
@@ -47,21 +67,7 @@ describe(getSuiteName("Extension"), () => {
             });
 
             beforeEach(async () => {
-                // Nested projects load sequentially, so a non-empty task list
-                // does not mean every project finished configuring. Retry until
-                // the tasks this suite asserts on are actually present (or the
-                // budget is exhausted) instead of breaking on the first project
-                // that loads — otherwise a slow/contended agent surfaces a
-                // partial load as a hard assertion failure.
-                const expectedTaskNames = ["helloGroovyDefault", "helloKotlinDefault", "helloGroovyCustom"];
-                for (let i = 0; i < 5; i++) {
-                    tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                    const loadedAll = expectedTaskNames.every((name) => tasks!.some((task) => task.name === name));
-                    if (loadedAll) {
-                        break;
-                    }
-                    await sleep(5 * 1000);
-                }
+                tasks = await fetchTasksUntilLoaded(["helloGroovyDefault", "helloKotlinDefault", "helloGroovyCustom"]);
             });
 
             it("should load groovy default build file tasks", () => {
