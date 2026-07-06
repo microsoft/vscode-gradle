@@ -4,6 +4,26 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.18.0
+## What's Changed
+* feat - Discover nested Gradle build files in https://github.com/microsoft/vscode-gradle/pull/1889
+* enhancement - Migrate the Gradle task transport from gRPC to JSON-RPC over a named pipe (Windows) / Unix domain socket (macOS/Linux) in https://github.com/microsoft/vscode-gradle/pull/1863, https://github.com/microsoft/vscode-gradle/pull/1864, https://github.com/microsoft/vscode-gradle/pull/1875
+* enhancement - Load Gradle project dependencies lazily, resolving dependency nodes on expansion in https://github.com/microsoft/vscode-gradle/pull/1831
+* enhancement - Add an XML fallback for Gradle test delegation when BSP delegation is unavailable in https://github.com/microsoft/vscode-gradle/pull/1810
+* fix - Reject in-flight requests when the pipe connection closes, restoring fail-fast parity in https://github.com/microsoft/vscode-gradle/pull/1891
+* fix - Self-heal the JSON-RPC transport with keepalive and bounded auto-restart in https://github.com/microsoft/vscode-gradle/pull/1873
+* fix - Reconnect the task transport without a JVM exit in https://github.com/microsoft/vscode-gradle/pull/1879
+* fix - Prevent gradle-server crashes and add transport disconnect telemetry in https://github.com/microsoft/vscode-gradle/pull/1885
+* fix - Handle JSON-RPC connection death in https://github.com/microsoft/vscode-gradle/pull/1870
+* fix - Surface unexpected Gradle server exits with an actionable notification in https://github.com/microsoft/vscode-gradle/pull/1826
+* fix - Surface a clear prompt when JAVA_HOME points at an invalid directory in https://github.com/microsoft/vscode-gradle/pull/1888
+* fix - Recover from a spurious gRPC CANCELLED on the first Refresh in https://github.com/microsoft/vscode-gradle/pull/1832
+* fix - Create a fresh terminal per task execution so terminal reuse cannot cancel a re-run in https://github.com/microsoft/vscode-gradle/pull/1820
+* fix - Honor JPMS arg type when aggregating classpath attributes in https://github.com/microsoft/vscode-gradle/pull/1886
+* fix - Skip non-classpath artifacts in the BSP importer in https://github.com/microsoft/vscode-gradle/pull/1871
+* fix - Update protobuf-java and guava to address CVEs in https://github.com/microsoft/vscode-gradle/pull/1811
+* fix - Bump brace-expansion to 5.0.6 to address CVE-2026-45149 in https://github.com/microsoft/vscode-gradle/pull/1869
+
 ## 3.17.3
 ## What's Changed
 * perf - Batch BSP calls during import to reduce round-trips from ~4400 to 6 in https://github.com/microsoft/vscode-gradle/pull/1791
