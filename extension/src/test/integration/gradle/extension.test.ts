@@ -138,6 +138,71 @@ describe(getSuiteName("Extension"), () => {
         });
     });
 
+    describe("Task cancellation", () => {
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it("should cancel a running task over the pipe transport", async () => {
+            assert.ok(extension);
+            const api = extension.exports as ExtensionApi;
+            const loggerAppendLineSpy = sinon.spy(extension.exports.getLogger(), "appendLine");
+
+            let started = false;
+            let finished = false;
+            const cancellationKey = "integration-test-cancel-longRunning";
+            const runOpts: RunTaskOpts = {
+                projectFolder: fixturePath.fsPath,
+                taskName: "longRunning",
+                showOutputColors: false,
+                cancellationKey,
+                onOutput: (output: Output): void => {
+                    const message = new util.TextDecoder("utf-8").decode(output.getOutputBytes_asU8());
+                    if (message.includes("longRunning started")) {
+                        started = true;
+                    }
+                    if (message.includes("longRunning finished")) {
+                        finished = true;
+                    }
+                },
+            };
+
+            // Start the task but do not await completion — we want to cancel it mid-flight.
+            const runPromise = api.runTask(runOpts);
+
+            // Wait until the task action is actually executing on the server (its
+            // "started" marker has streamed back over the pipe) before cancelling.
+            const startDeadline = Date.now() + 25 * 1000;
+            while (!started && Date.now() < startDeadline) {
+                await sleep(500);
+            }
+            assert.ok(started, "the long-running task should have started before being cancelled");
+
+            // Cancel over the same transport using the matching cancellation key.
+            await api.cancelRunTask({
+                projectFolder: fixturePath.fsPath,
+                taskName: "longRunning",
+                cancellationKey,
+            });
+
+            // The run must settle because the server streams a terminal CANCELLED
+            // reply back over the pipe — not because the task's full sleep elapsed.
+            await runPromise.catch(() => undefined);
+
+            // Transport-level proof: the cancel request reached the server, it
+            // cancelled the build, and the CANCELLED terminal reply travelled back
+            // over the pipe to the client.
+            assert.ok(
+                loggerAppendLineSpy.calledWith(sinon.match("Build cancelled: longRunning")),
+                "expected the server to stream a CANCELLED reply back over the pipe"
+            );
+
+            // Semantic proof: the build was interrupted before completion, so the
+            // task's post-sleep marker must never have streamed back.
+            assert.ok(!finished, "a cancelled task must not run to completion");
+        });
+    });
+
     describe("Reuse terminals config", () => {
         const resetConfig = async (): Promise<void> =>
             await vscode.workspace.getConfiguration("gradle").update("reuseTerminals", "off");

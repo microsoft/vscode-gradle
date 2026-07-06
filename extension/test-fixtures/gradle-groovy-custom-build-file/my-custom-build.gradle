@@ -28,3 +28,11 @@ tasks.register("helloGroovyCustom") {
         println 'Hello, World!'
     }
 }
+
+tasks.register("longRunning") {
+    doLast {
+        println 'longRunning started'
+        Thread.sleep(20000)
+        println 'longRunning finished'
+    }
+}
