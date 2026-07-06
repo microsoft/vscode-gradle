@@ -38,3 +38,11 @@ tasks.register("longRunning") {
         println("longRunning finished")
     }
 }
+
+tasks.register("printLots") {
+    doLast {
+        for (i in 0 until 10000) {
+            println("printLots-line-$i")
+        }
+    }
+}

@@ -36,3 +36,11 @@ tasks.register("longRunning") {
         println 'longRunning finished'
     }
 }
+
+tasks.register("printLots") {
+    doLast {
+        for (int i = 0; i < 10000; i++) {
+            println "printLots-line-" + i
+        }
+    }
+}

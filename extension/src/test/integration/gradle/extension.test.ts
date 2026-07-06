@@ -136,6 +136,35 @@ describe(getSuiteName("Extension"), () => {
             await api.runTask(runTaskOpts);
             assert.ok(hasMessage);
         });
+
+        it("should stream large task output over the pipe without truncation", async () => {
+            assert.ok(extension);
+            const api = extension.exports as ExtensionApi;
+            const lineCount = 10000;
+            let buffer = "";
+            const runTaskOpts: RunTaskOpts = {
+                projectFolder: fixturePath.fsPath,
+                taskName: "printLots",
+                showOutputColors: false,
+                onOutput: (output: Output): void => {
+                    buffer += new util.TextDecoder("utf-8").decode(output.getOutputBytes_asU8());
+                },
+            };
+            await api.runTask(runTaskOpts);
+
+            // Concatenating every streamed chunk must reconstruct the byte stream
+            // exactly: all lines present, none dropped by backpressure, tail intact.
+            const matches = buffer.match(/printLots-line-\d+/g) || [];
+            assert.strictEqual(
+                matches.length,
+                lineCount,
+                `expected ${lineCount} streamed output lines, received ${matches.length}`
+            );
+            assert.ok(
+                buffer.includes(`printLots-line-${lineCount - 1}`),
+                "the final streamed output line must not be truncated"
+            );
+        });
     });
 
     describe("Task cancellation", () => {

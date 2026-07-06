@@ -58,38 +58,7 @@ export class BspProxy {
         if (!importerConnection || !buildServerConnection) {
             return;
         }
-        importerConnection.onRequest((method, params) => {
-            if (params !== null) {
-                return buildServerConnection.sendRequest(method, params);
-            }
-            return buildServerConnection.sendRequest(method);
-        });
-
-        buildServerConnection.onNotification((method, params) => {
-            if (params !== null) {
-                return importerConnection.sendNotification(method, params);
-            }
-            importerConnection.sendNotification(method);
-        });
-        importerConnection.onError(([error]) => {
-            this.logger.error(`Error on importerConnection: ${error.message}`);
-            sendInfo("", {
-                kind: "bspProxy-importerConnectionError",
-                message: error.message,
-                proxyErrorStack: error.stack ? error.stack.toString() : "",
-            });
-            // TODO: Implement more specific error handling logic here
-        });
-
-        buildServerConnection.onError(([error]) => {
-            this.logger.error(`Error on buildServerConnection: ${error.message}`);
-            sendInfo("", {
-                kind: "bspProxy-buildServerConnectionError",
-                message: error.message,
-                proxyErrorStack: error.stack ? error.stack.toString() : "",
-            });
-            // TODO: Implement more specific error handling logic here
-        });
+        forwardBspMessages(importerConnection, buildServerConnection, this.logger);
     }
     public setBuildServerStarted(started: boolean): void {
         this.buildServerStart = started;
@@ -104,4 +73,48 @@ export class BspProxy {
         }
         this.logger.info("Build Server connection closed");
     }
+}
+
+/**
+ * Wires bidirectional JSON-RPC forwarding between the JDT LS importer connection
+ * and the build server connection: importer requests are proxied to the build
+ * server (and its reply returned), and build server notifications are proxied
+ * back to the importer. Extracted from {@link BspProxy} so the forwarding
+ * contract can be unit tested without standing up real named pipes.
+ */
+export function forwardBspMessages(
+    importerConnection: rpc.MessageConnection,
+    buildServerConnection: rpc.MessageConnection,
+    logger: Logger
+): void {
+    importerConnection.onRequest((method, params) => {
+        if (params !== null) {
+            return buildServerConnection.sendRequest(method, params);
+        }
+        return buildServerConnection.sendRequest(method);
+    });
+
+    buildServerConnection.onNotification((method, params) => {
+        if (params !== null) {
+            return importerConnection.sendNotification(method, params);
+        }
+        importerConnection.sendNotification(method);
+    });
+    importerConnection.onError(([error]) => {
+        logger.error(`Error on importerConnection: ${error.message}`);
+        sendInfo("", {
+            kind: "bspProxy-importerConnectionError",
+            message: error.message,
+            proxyErrorStack: error.stack ? error.stack.toString() : "",
+        });
+    });
+
+    buildServerConnection.onError(([error]) => {
+        logger.error(`Error on buildServerConnection: ${error.message}`);
+        sendInfo("", {
+            kind: "bspProxy-buildServerConnectionError",
+            message: error.message,
+            proxyErrorStack: error.stack ? error.stack.toString() : "",
+        });
+    });
 }
