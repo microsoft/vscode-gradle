@@ -186,17 +186,22 @@ describe(getSuiteName("Extension"), () => {
             // Reuse a single decoder across streamed chunks, consistent with the
             // large-output test above, rather than allocating one per callback.
             const decoder = new util.TextDecoder("utf-8");
+            // Accumulate decoded output before matching: the server flushes on
+            // ByteBufferOutputStream.flush(), so flush boundaries need not align
+            // with line boundaries and a marker can be split across two chunks.
+            // Searching per-chunk would miss a split marker and flake.
+            let outputSoFar = "";
             const runOpts: RunTaskOpts = {
                 projectFolder: fixturePath.fsPath,
                 taskName: "longRunning",
                 showOutputColors: false,
                 cancellationKey,
                 onOutput: (output: Output): void => {
-                    const message = decoder.decode(output.getOutputBytes_asU8());
-                    if (message.includes("longRunning started")) {
+                    outputSoFar += decoder.decode(output.getOutputBytes_asU8());
+                    if (outputSoFar.includes("longRunning started")) {
                         started = true;
                     }
-                    if (message.includes("longRunning finished")) {
+                    if (outputSoFar.includes("longRunning finished")) {
                         finished = true;
                     }
                 },

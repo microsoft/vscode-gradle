@@ -88,14 +88,17 @@ export function forwardBspMessages(
     logger: Logger
 ): void {
     importerConnection.onRequest((method, params) => {
-        if (params !== null) {
+        // `params` is `undefined` (not `null`) for a no-params request; forwarding
+        // it verbatim would serialize `params: [null]` instead of omitting params
+        // and change the wire shape, so treat both as "no params".
+        if (params !== null && params !== undefined) {
             return buildServerConnection.sendRequest(method, params);
         }
         return buildServerConnection.sendRequest(method);
     });
 
     buildServerConnection.onNotification((method, params) => {
-        if (params !== null) {
+        if (params !== null && params !== undefined) {
             return importerConnection.sendNotification(method, params);
         }
         importerConnection.sendNotification(method);
