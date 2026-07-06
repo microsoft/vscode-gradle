@@ -142,12 +142,15 @@ describe(getSuiteName("Extension"), () => {
             const api = extension.exports as ExtensionApi;
             const lineCount = 10000;
             let buffer = "";
+            // Reuse a single decoder across every streamed chunk rather than
+            // allocating one per callback — the 10k-line fixture fires this often.
+            const decoder = new util.TextDecoder("utf-8");
             const runTaskOpts: RunTaskOpts = {
                 projectFolder: fixturePath.fsPath,
                 taskName: "printLots",
                 showOutputColors: false,
                 onOutput: (output: Output): void => {
-                    buffer += new util.TextDecoder("utf-8").decode(output.getOutputBytes_asU8());
+                    buffer += decoder.decode(output.getOutputBytes_asU8());
                 },
             };
             await api.runTask(runTaskOpts);
@@ -198,6 +201,13 @@ describe(getSuiteName("Extension"), () => {
 
             // Start the task but do not await completion — we want to cancel it mid-flight.
             const runPromise = api.runTask(runOpts);
+            // Attach a handler immediately so an early launch failure surfaces as a
+            // settled result here, not as an unhandled rejection during the ~25s wait
+            // for the "started" marker below (which would flake unrelated CI runs).
+            const runSettled = runPromise.then(
+                () => true,
+                () => true
+            );
 
             // Wait until the task action is actually executing on the server (its
             // "started" marker has streamed back over the pipe) before cancelling.
@@ -219,13 +229,7 @@ describe(getSuiteName("Extension"), () => {
             // elapsed. Race against a tight deadline so a cancellation regression
             // fails fast here instead of burning the whole Mocha timeout per matrix leg.
             const settleDeadlineMs = 15 * 1000;
-            const settled = await Promise.race([
-                runPromise.then(
-                    () => true,
-                    () => true
-                ),
-                sleep(settleDeadlineMs).then(() => false),
-            ]);
+            const settled = await Promise.race([runSettled, sleep(settleDeadlineMs).then(() => false)]);
             assert.ok(settled, "the cancelled run must settle promptly over the pipe, not hang");
 
             // Transport-level proof: the cancel request reached the server, it
