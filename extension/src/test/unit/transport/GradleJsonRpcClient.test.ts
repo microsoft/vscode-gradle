@@ -367,5 +367,44 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
                 }
             );
         });
+
+        it("rejects an in-flight streaming request when the transport dies mid-build", async () => {
+            // The server accepts the request but never answers (mid-build), so the
+            // runBuild call is still in flight when the gradle-server socket dies
+            // underneath it. Parity with the old gRPC transport, whose channel
+            // terminated every pending call with a status error rather than
+            // leaving it to hang. Holding the request open also avoids the server
+            // auto-replying "method not found" onto the torn-down stream.
+            let onServerReceived!: () => void;
+            const serverReceived = new Promise<void>((resolve) => {
+                onServerReceived = resolve;
+            });
+            wired.server.onRequest(RUN_BUILD, () => {
+                onServerReceived();
+                return new Promise<never>(() => undefined);
+            });
+            const inFlight = client.runBuild(new RunBuildRequest(), () => {
+                /* no stream replies expected */
+            });
+
+            // Sever the transport only once the server has provably received the
+            // request, so the call is genuinely pending — a bare setImmediate could
+            // race ahead of delivery and let the test pass without ever exercising
+            // the in-flight-hang path. The timeout guards a handshake that never fires.
+            let handshakeTimer: NodeJS.Timeout | undefined;
+            const handshakeTimeout = new Promise<never>((_, reject) => {
+                handshakeTimer = setTimeout(
+                    () => reject(new Error("server never received the in-flight runBuild request")),
+                    2000
+                );
+            });
+            await Promise.race([serverReceived, handshakeTimeout]);
+            clearTimeout(handshakeTimer);
+            wired.killTransport();
+
+            // The pending call must settle as a handled rejection rather than
+            // hanging forever or leaking an unhandled write-after-destroy error.
+            await assert.rejects(inFlight);
+        });
     });
 });

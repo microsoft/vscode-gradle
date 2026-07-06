@@ -30,3 +30,19 @@ tasks.register("helloProjectProperty") {
         println("Hello, Project Property!" + customProp)
     }
 }
+
+tasks.register("longRunning") {
+    doLast {
+        println("longRunning started")
+        Thread.sleep(20000)
+        println("longRunning finished")
+    }
+}
+
+tasks.register("printLots") {
+    doLast {
+        for (i in 0 until 10000) {
+            println("printLots-line-$i")
+        }
+    }
+}

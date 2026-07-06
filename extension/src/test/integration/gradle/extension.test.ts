@@ -136,6 +136,122 @@ describe(getSuiteName("Extension"), () => {
             await api.runTask(runTaskOpts);
             assert.ok(hasMessage);
         });
+
+        it("should stream large task output over the pipe without truncation", async () => {
+            assert.ok(extension);
+            const api = extension.exports as ExtensionApi;
+            const lineCount = 10000;
+            let buffer = "";
+            // Reuse a single decoder across every streamed chunk rather than
+            // allocating one per callback — the 10k-line fixture fires this often.
+            const decoder = new util.TextDecoder("utf-8");
+            const runTaskOpts: RunTaskOpts = {
+                projectFolder: fixturePath.fsPath,
+                taskName: "printLots",
+                showOutputColors: false,
+                onOutput: (output: Output): void => {
+                    buffer += decoder.decode(output.getOutputBytes_asU8());
+                },
+            };
+            await api.runTask(runTaskOpts);
+
+            // Concatenating every streamed chunk must reconstruct the byte stream
+            // exactly: all lines present, none dropped by backpressure, tail intact.
+            const matches = buffer.match(/printLots-line-\d+/g) || [];
+            assert.strictEqual(
+                matches.length,
+                lineCount,
+                `expected ${lineCount} streamed output lines, received ${matches.length}`
+            );
+            assert.ok(
+                buffer.includes(`printLots-line-${lineCount - 1}`),
+                "the final streamed output line must not be truncated"
+            );
+        });
+    });
+
+    describe("Task cancellation", () => {
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it("should cancel a running task over the pipe transport", async () => {
+            assert.ok(extension);
+            const api = extension.exports as ExtensionApi;
+            const loggerAppendLineSpy = sinon.spy(extension.exports.getLogger(), "appendLine");
+
+            let started = false;
+            let finished = false;
+            const cancellationKey = "integration-test-cancel-longRunning";
+            // Reuse a single decoder across streamed chunks, consistent with the
+            // large-output test above, rather than allocating one per callback.
+            const decoder = new util.TextDecoder("utf-8");
+            // Accumulate decoded output before matching: the server flushes on
+            // ByteBufferOutputStream.flush(), so flush boundaries need not align
+            // with line boundaries and a marker can be split across two chunks.
+            // Searching per-chunk would miss a split marker and flake.
+            let outputSoFar = "";
+            const runOpts: RunTaskOpts = {
+                projectFolder: fixturePath.fsPath,
+                taskName: "longRunning",
+                showOutputColors: false,
+                cancellationKey,
+                onOutput: (output: Output): void => {
+                    outputSoFar += decoder.decode(output.getOutputBytes_asU8());
+                    if (outputSoFar.includes("longRunning started")) {
+                        started = true;
+                    }
+                    if (outputSoFar.includes("longRunning finished")) {
+                        finished = true;
+                    }
+                },
+            };
+
+            // Start the task but do not await completion — we want to cancel it mid-flight.
+            const runPromise = api.runTask(runOpts);
+            // Attach a handler immediately so an early launch failure surfaces as a
+            // settled result here, not as an unhandled rejection during the ~25s wait
+            // for the "started" marker below (which would flake unrelated CI runs).
+            const runSettled = runPromise.then(
+                () => true,
+                () => true
+            );
+
+            // Wait until the task action is actually executing on the server (its
+            // "started" marker has streamed back over the pipe) before cancelling.
+            const startDeadline = Date.now() + 25 * 1000;
+            while (!started && Date.now() < startDeadline) {
+                await sleep(500);
+            }
+            assert.ok(started, "the long-running task should have started before being cancelled");
+
+            // Cancel over the same transport using the matching cancellation key.
+            await api.cancelRunTask({
+                projectFolder: fixturePath.fsPath,
+                taskName: "longRunning",
+                cancellationKey,
+            });
+
+            // The run must settle promptly because the server streams a terminal
+            // CANCELLED reply back over the pipe — not because the task's full sleep
+            // elapsed. Race against a tight deadline so a cancellation regression
+            // fails fast here instead of burning the whole Mocha timeout per matrix leg.
+            const settleDeadlineMs = 15 * 1000;
+            const settled = await Promise.race([runSettled, sleep(settleDeadlineMs).then(() => false)]);
+            assert.ok(settled, "the cancelled run must settle promptly over the pipe, not hang");
+
+            // Transport-level proof: the cancel request reached the server, it
+            // cancelled the build, and the CANCELLED terminal reply travelled back
+            // over the pipe to the client.
+            assert.ok(
+                loggerAppendLineSpy.calledWith(sinon.match("Build cancelled: longRunning")),
+                "expected the server to stream a CANCELLED reply back over the pipe"
+            );
+
+            // Semantic proof: the build was interrupted before completion, so the
+            // task's post-sleep marker must never have streamed back.
+            assert.ok(!finished, "a cancelled task must not run to completion");
+        });
     });
 
     describe("Reuse terminals config", () => {
