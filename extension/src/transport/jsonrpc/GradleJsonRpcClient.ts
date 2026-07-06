@@ -17,7 +17,7 @@ import {
     RunBuildRequest,
 } from "../../proto/gradle_pb";
 import { decodeProto, encodeProto } from "./protoCodec";
-import { toGradleRpcError } from "./JsonRpcErrors";
+import { GradleRpcError, toGradleRpcError } from "./JsonRpcErrors";
 import { nextStreamId } from "./streamId";
 import { GradleRequestParams, GradleResponse, GradleStreamPayload } from "./types";
 
@@ -63,6 +63,7 @@ export class GradleJsonRpcClient implements Disposable {
     private readonly runBuildSinks = new Map<number, StreamSink<RunBuildReply>>();
     private readonly disposables: Disposable[] = [];
     private readonly _onClosed = new Emitter<Error | undefined>();
+    private readonly pendingRejecters = new Set<(err: GradleRpcError) => void>();
     private closed = false;
     private lastError: Error | undefined;
 
@@ -153,6 +154,7 @@ export class GradleJsonRpcClient implements Disposable {
 
     public dispose(): void {
         this.closed = true;
+        this.rejectPending(undefined);
         for (const d of this.disposables) {
             try {
                 d.dispose();
@@ -181,7 +183,52 @@ export class GradleJsonRpcClient implements Disposable {
             return;
         }
         this.closed = true;
+        // Restore the gRPC transport's fail-fast semantics: a connection death
+        // (server exit / peer reset) terminated every in-flight call with a
+        // status error. vscode-jsonrpc leaves pending `sendRequest` promises
+        // unsettled on close, so we reject them explicitly here — otherwise an
+        // in-flight `runBuild`/`getBuild` would hang until the user gives up.
+        this.rejectPending(err);
         this._onClosed.fire(err);
+    }
+
+    /**
+     * Reject every request that is still awaiting a response so callers fail
+     * fast instead of hanging when the transport dies underneath them.
+     */
+    private rejectPending(err: Error | undefined): void {
+        if (this.pendingRejecters.size === 0) {
+            return;
+        }
+        const rpcErr = toGradleRpcError(
+            err ?? new Error("Gradle JSON-RPC connection closed before the request completed.")
+        );
+        // Snapshot before iterating: each request's `finally` mutates the set.
+        const rejecters = Array.from(this.pendingRejecters);
+        this.pendingRejecters.clear();
+        for (const reject of rejecters) {
+            reject(rpcErr);
+        }
+    }
+
+    /**
+     * Race the in-flight `sendRequest` against a connection-close signal so a
+     * transport death rejects the pending promise (see {@link rejectPending}).
+     * The close promise only ever rejects while a request is outstanding, and
+     * `Promise.race` always keeps a handler on it, so no unhandled rejection can
+     * escape once the request settles normally.
+     */
+    private async raceAgainstClose<T>(send: Promise<T>): Promise<T> {
+        let rejecter!: (err: GradleRpcError) => void;
+        const closed = new Promise<never>((_, reject) => {
+            rejecter = reject;
+        });
+        this.pendingRejecters.add(rejecter);
+        try {
+            return await Promise.race([send, closed]);
+        } finally {
+            this.pendingRejecters.delete(rejecter);
+        }
     }
 
     /**
@@ -202,10 +249,12 @@ export class GradleJsonRpcClient implements Disposable {
     ): Promise<TReply | null> {
         this.ensureOpen();
         try {
-            const response = await this.connection.sendRequest(type, {
-                request: encodeProto(request.serializeBinary()),
-                streamId: null,
-            });
+            const response = await this.raceAgainstClose(
+                this.connection.sendRequest(type, {
+                    request: encodeProto(request.serializeBinary()),
+                    streamId: null,
+                })
+            );
             return decodeReply(response, deserialize);
         } catch (err) {
             throw toGradleRpcError(err);
@@ -223,10 +272,12 @@ export class GradleJsonRpcClient implements Disposable {
         const streamId = nextStreamId();
         sinkMap.set(streamId, onReply);
         try {
-            const response = await this.connection.sendRequest(type, {
-                request: encodeProto(request.serializeBinary()),
-                streamId,
-            });
+            const response = await this.raceAgainstClose(
+                this.connection.sendRequest(type, {
+                    request: encodeProto(request.serializeBinary()),
+                    streamId,
+                })
+            );
             return decodeReply(response, deserialize);
         } catch (err) {
             throw toGradleRpcError(err);
