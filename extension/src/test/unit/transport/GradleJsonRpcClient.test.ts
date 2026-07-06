@@ -375,12 +375,31 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
             // terminated every pending call with a status error rather than
             // leaving it to hang. Holding the request open also avoids the server
             // auto-replying "method not found" onto the torn-down stream.
-            wired.server.onRequest(RUN_BUILD, () => new Promise<never>(() => undefined));
+            let onServerReceived!: () => void;
+            const serverReceived = new Promise<void>((resolve) => {
+                onServerReceived = resolve;
+            });
+            wired.server.onRequest(RUN_BUILD, () => {
+                onServerReceived();
+                return new Promise<never>(() => undefined);
+            });
             const inFlight = client.runBuild(new RunBuildRequest(), () => {
                 /* no stream replies expected */
             });
-            // Let the request reach the wire, then sever the transport.
-            await new Promise((resolve) => setImmediate(resolve));
+
+            // Sever the transport only once the server has provably received the
+            // request, so the call is genuinely pending — a bare setImmediate could
+            // race ahead of delivery and let the test pass without ever exercising
+            // the in-flight-hang path. The timeout guards a handshake that never fires.
+            let handshakeTimer: NodeJS.Timeout | undefined;
+            const handshakeTimeout = new Promise<never>((_, reject) => {
+                handshakeTimer = setTimeout(
+                    () => reject(new Error("server never received the in-flight runBuild request")),
+                    2000
+                );
+            });
+            await Promise.race([serverReceived, handshakeTimeout]);
+            clearTimeout(handshakeTimer);
             wired.killTransport();
 
             // The pending call must settle as a handled rejection rather than

@@ -183,13 +183,16 @@ describe(getSuiteName("Extension"), () => {
             let started = false;
             let finished = false;
             const cancellationKey = "integration-test-cancel-longRunning";
+            // Reuse a single decoder across streamed chunks, consistent with the
+            // large-output test above, rather than allocating one per callback.
+            const decoder = new util.TextDecoder("utf-8");
             const runOpts: RunTaskOpts = {
                 projectFolder: fixturePath.fsPath,
                 taskName: "longRunning",
                 showOutputColors: false,
                 cancellationKey,
                 onOutput: (output: Output): void => {
-                    const message = new util.TextDecoder("utf-8").decode(output.getOutputBytes_asU8());
+                    const message = decoder.decode(output.getOutputBytes_asU8());
                     if (message.includes("longRunning started")) {
                         started = true;
                     }
