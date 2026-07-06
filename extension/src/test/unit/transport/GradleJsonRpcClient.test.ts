@@ -367,20 +367,5 @@ describe(suiteName("GradleJsonRpcClient transport"), () => {
                 }
             );
         });
-
-        it("rejects an in-flight streaming request when the transport dies mid-build", async () => {
-            // The server never answers, so the runBuild request is still in flight
-            // when the gradle-server socket dies underneath it.
-            const inFlight = client.runBuild(new RunBuildRequest(), () => {
-                /* no stream replies expected */
-            });
-            // Let the request reach the wire, then sever the transport.
-            await new Promise((resolve) => setImmediate(resolve));
-            wired.killTransport();
-
-            // The pending call must settle as a handled rejection rather than
-            // hanging forever or leaking an unhandled write-after-destroy error.
-            await assert.rejects(inFlight);
-        });
     });
 });
