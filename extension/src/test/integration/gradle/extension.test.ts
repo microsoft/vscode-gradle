@@ -214,9 +214,19 @@ describe(getSuiteName("Extension"), () => {
                 cancellationKey,
             });
 
-            // The run must settle because the server streams a terminal CANCELLED
-            // reply back over the pipe — not because the task's full sleep elapsed.
-            await runPromise.catch(() => undefined);
+            // The run must settle promptly because the server streams a terminal
+            // CANCELLED reply back over the pipe — not because the task's full sleep
+            // elapsed. Race against a tight deadline so a cancellation regression
+            // fails fast here instead of burning the whole Mocha timeout per matrix leg.
+            const settleDeadlineMs = 15 * 1000;
+            const settled = await Promise.race([
+                runPromise.then(
+                    () => true,
+                    () => true
+                ),
+                sleep(settleDeadlineMs).then(() => false),
+            ]);
+            assert.ok(settled, "the cancelled run must settle promptly over the pipe, not hang");
 
             // Transport-level proof: the cancel request reached the server, it
             // cancelled the build, and the CANCELLED terminal reply travelled back
