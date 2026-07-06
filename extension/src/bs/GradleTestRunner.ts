@@ -9,6 +9,13 @@ import {
 } from "../java-test-runner.api";
 import { TaskServerClient } from "../client";
 import { parseTestResults, TestCaseResult } from "./testResultParser";
+import {
+    CoverageDescriptor,
+    JACOCO_REPORT_TASK,
+    collectCoverage,
+    createCoverageDescriptor,
+    getCoverageInitScriptLines,
+} from "./coverage";
 import * as getPort from "get-port";
 import { waitOnTcp } from "../util";
 import * as os from "os";
@@ -28,6 +35,13 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
+        // Coverage runs require our own init script (to inject JaCoCo) plus a
+        // report task in the same invocation, which the BSP delegate command does
+        // not expose. Route coverage straight to the init-script driven path.
+        if (isCoverageRun(context)) {
+            await this.launchXmlFallback(context);
+            return;
+        }
         try {
             await this.launchWithBsp(context);
         } catch (error) {
@@ -188,13 +202,24 @@ export class GradleTestRunner implements TestRunner {
             debugPort = await getPort();
         }
 
-        const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0;
+        // When this is a Coverage run, inject JaCoCo via the init script and run
+        // the report task in the same invocation so we can translate its output
+        // back into VS Code coverage. The report task must come after the
+        // `--tests` filters (it does not accept the `--tests` option).
+        const coverage: CoverageDescriptor | undefined = isCoverageRun(context)
+            ? createCoverageDescriptor()
+            : undefined;
+        if (coverage) {
+            gradleArgs.push(JACOCO_REPORT_TASK);
+        }
+
+        const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0 || !!coverage;
         let initScriptWritten = false;
         // Unique per launch so overlapping run/debug sessions never share the
         // same init script contents or cleanup target.
         const testInitScriptPath = createInitScriptPath();
         if (needsInitScript) {
-            const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
+            const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars, coverage);
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
             initScriptWritten = true;
             gradleArgs.unshift("--init-script", testInitScriptPath);
@@ -265,6 +290,7 @@ export class GradleTestRunner implements TestRunner {
                     requestedClassTestIds
                 );
                 this.finalizePendingItems(runningTestIds);
+                await this.collectCoverageIfNeeded(context, coverage);
                 this.finishTestRun(0);
             } catch (error) {
                 // Gradle exits with non-zero when tests fail — still parse results
@@ -290,6 +316,9 @@ export class GradleTestRunner implements TestRunner {
                 // Finalize any items that never got a result so they don't
                 // remain stuck in Running.
                 this.finalizePendingItems(runningTestIds);
+                // Coverage may still have been produced for the tests that did
+                // run before the build failed, so surface whatever exists.
+                await this.collectCoverageIfNeeded(context, coverage);
                 if (parsedAny) {
                     this.finishTestRun(0);
                 } else {
@@ -306,6 +335,34 @@ export class GradleTestRunner implements TestRunner {
                     /* best-effort */
                 }
             }
+            if (coverage) {
+                try {
+                    await vscode.workspace.fs.delete(vscode.Uri.file(coverage.reportDir), {
+                        recursive: true,
+                        useTrash: false,
+                    });
+                } catch {
+                    /* best-effort */
+                }
+            }
+        }
+    }
+
+    /**
+     * Translate the JaCoCo XML report produced by a coverage run into VS Code
+     * coverage attached to the current test run. No-op for non-coverage runs.
+     */
+    private async collectCoverageIfNeeded(
+        context: IRunTestContext,
+        coverage: CoverageDescriptor | undefined
+    ): Promise<void> {
+        if (!coverage || !context.testRun) {
+            return;
+        }
+        try {
+            await collectCoverage(coverage.reportDir, context.workspaceFolder, context.testRun, context.profile);
+        } catch (error) {
+            console.error("[gradle-test] Failed to collect coverage:", error);
         }
     }
 
@@ -456,7 +513,12 @@ export class GradleTestRunner implements TestRunner {
      * try to bind the same JDWP port. We allow the first Test task to run and
      * fail fast if the same Gradle invocation reaches another Test task.
      */
-    private getInitScriptContent(debugPort: number, vmArgs: string[], envVars: Record<string, string>): string {
+    private getInitScriptContent(
+        debugPort: number,
+        vmArgs: string[],
+        envVars: Record<string, string>,
+        coverage?: CoverageDescriptor
+    ): string {
         const lines: string[] = [];
         if (debugPort > 0) {
             lines.push(
@@ -485,8 +547,18 @@ export class GradleTestRunner implements TestRunner {
             lines.push(`        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'`);
         }
         lines.push("    }", "}");
+        if (coverage) {
+            lines.push(...getCoverageInitScriptLines(coverage));
+        }
         return lines.join("\n");
     }
+}
+
+/**
+ * A coverage run is one whose profile was registered with the Coverage kind.
+ */
+function isCoverageRun(context: IRunTestContext): boolean {
+    return context.profile?.kind === vscode.TestRunProfileKind.Coverage;
 }
 
 /**

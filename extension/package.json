@@ -17,7 +17,7 @@
   },
   "license": "SEE LICENSE IN LICENSE.md",
   "engines": {
-    "vscode": "^1.76.0",
+    "vscode": "^1.88.0",
     "node": ">=20.0.0",
     "npm": "^10.7.0"
   },
@@ -128,6 +128,11 @@
       ]
     },
     "commands": [
+      {
+        "command": "gradle.retryTestWithGradle",
+        "category": "Gradle",
+        "title": "Retry Test with Gradle"
+      },
       {
         "command": "gradle.runTask",
         "title": "Run Task",
@@ -989,7 +994,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^16.11.7",
     "@types/sinon": "^10.0.13",
-    "@types/vscode": "^1.76.0",
+    "@types/vscode": "^1.88.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vscode/test-electron": "^2.3.8",

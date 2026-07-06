@@ -37,6 +37,7 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
+import { RETRY_WITH_GRADLE_COMMAND } from "./bs/escalation";
 
 export class Extension {
     private readonly taskServerClient: TaskServerClient;
@@ -257,6 +258,19 @@ export class Extension {
 
     private registerCommands(): void {
         this.commands.register();
+        // "Retry with Gradle" escalation entry point (see bs/escalation.ts). When
+        // a default test run fails with a delegation-fixable signature, the user
+        // can re-run the tests through the Gradle delegate profile. Programmatic
+        // profile selection is not exposed by VS Code, so we guide the user to the
+        // Gradle profile and reveal the Testing view.
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand(RETRY_WITH_GRADLE_COMMAND, async () => {
+                await vscode.commands.executeCommand("workbench.view.testing.focus");
+                void vscode.window.showInformationMessage(
+                    'Re-run the tests using the "Delegate Test to Gradle" profile from the Testing view\'s run dropdown.'
+                );
+            })
+        );
     }
 
     private handleTaskTerminals(definition: GradleTaskDefinition, terminal: vscode.Terminal): void {
@@ -421,6 +435,13 @@ export class Extension {
                     vscode.TestRunProfileKind.Debug,
                     testRunner
                 );
+                if (vscode.TestRunProfileKind.Coverage !== undefined) {
+                    testRunnerApi.registerTestProfile(
+                        "Delegate Test to Gradle (Coverage)",
+                        vscode.TestRunProfileKind.Coverage,
+                        testRunner
+                    );
+                }
             }
         }
     }
