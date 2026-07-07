@@ -141,8 +141,21 @@ export async function collectCoverage(
             for (const line of sourceFile.lines) {
                 // A line is executed when it has at least one covered instruction.
                 const executed = line.coveredInstructions > 0;
+                const position = new vscode.Position(Math.max(0, line.number - 1), 0);
+                // JaCoCo reports covered/missed branch counts per line (cb/mb) but
+                // not per-branch detail, so synthesize one BranchCoverage entry per
+                // covered/missed branch to surface branch coverage in VS Code.
+                const branches: vscode.BranchCoverage[] = [];
+                for (let i = 0; i < line.coveredBranches; i++) {
+                    branches.push(new vscode.BranchCoverage(true, position));
+                }
+                for (let i = 0; i < line.missedBranches; i++) {
+                    branches.push(new vscode.BranchCoverage(false, position));
+                }
                 details.push(
-                    new vscode.StatementCoverage(executed, new vscode.Position(Math.max(0, line.number - 1), 0))
+                    branches.length > 0
+                        ? new vscode.StatementCoverage(executed, position, branches)
+                        : new vscode.StatementCoverage(executed, position)
                 );
             }
             detailsByUri.set(key, details);
@@ -167,7 +180,13 @@ export async function collectCoverage(
 interface JacocoSourceFile {
     packagePath: string;
     name: string;
-    lines: { number: number; coveredInstructions: number; missedInstructions: number }[];
+    lines: {
+        number: number;
+        coveredInstructions: number;
+        missedInstructions: number;
+        coveredBranches: number;
+        missedBranches: number;
+    }[];
 }
 
 /**
@@ -209,6 +228,8 @@ export function parseJacocoXml(xml: string): JacocoSourceFile[] {
                     number,
                     coveredInstructions: parseIntAttr(attrs, "ci") ?? 0,
                     missedInstructions: parseIntAttr(attrs, "mi") ?? 0,
+                    coveredBranches: parseIntAttr(attrs, "cb") ?? 0,
+                    missedBranches: parseIntAttr(attrs, "mb") ?? 0,
                 });
             }
             if (lines.length > 0) {
@@ -237,8 +258,29 @@ async function resolveSourceFileUri(
         return cache.get(relativePath);
     }
     const pattern = new vscode.RelativePattern(workspaceFolder, `**/${relativePath}`);
-    const matches = await vscode.workspace.findFiles(pattern, null, 1);
-    const uri = matches.length > 0 ? matches[0] : undefined;
+    // A workspace can contain the same package-relative path in several modules
+    // (e.g. multi-project builds) or under both main and test source roots. Fetch
+    // several candidates and prefer a main production source so coverage lands on
+    // the right file instead of an arbitrary first match.
+    const matches = await vscode.workspace.findFiles(pattern, null, 16);
+    const uri = pickBestSourceMatch(matches);
     cache.set(relativePath, uri);
     return uri;
+}
+
+/**
+ * Choose the most likely production source file among candidates that share the
+ * same package-relative path. Prefers a conventional main source root, then any
+ * source root, then the first match. Returns undefined when there are none.
+ */
+function pickBestSourceMatch(matches: readonly vscode.Uri[]): vscode.Uri | undefined {
+    if (matches.length === 0) {
+        return undefined;
+    }
+    const normalized = matches.map((uri) => ({ uri, p: uri.path.replace(/\\/g, "/") }));
+    return (
+        normalized.find((m) => /\/src\/main\//i.test(m.p))?.uri ??
+        normalized.find((m) => /\/src\//i.test(m.p))?.uri ??
+        normalized[0].uri
+    );
 }

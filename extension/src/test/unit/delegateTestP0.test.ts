@@ -25,8 +25,39 @@ describe(getSuiteName("Delegate test P0 helpers"), () => {
             assert.strictEqual(files[0].packagePath, "com/example");
             assert.strictEqual(files[0].name, "Foo.java");
             assert.strictEqual(files[0].lines.length, 2);
-            assert.deepStrictEqual(files[0].lines[0], { number: 3, coveredInstructions: 4, missedInstructions: 0 });
-            assert.deepStrictEqual(files[0].lines[1], { number: 4, coveredInstructions: 0, missedInstructions: 2 });
+            assert.deepStrictEqual(files[0].lines[0], {
+                number: 3,
+                coveredInstructions: 4,
+                missedInstructions: 0,
+                coveredBranches: 0,
+                missedBranches: 0,
+            });
+            assert.deepStrictEqual(files[0].lines[1], {
+                number: 4,
+                coveredInstructions: 0,
+                missedInstructions: 2,
+                coveredBranches: 0,
+                missedBranches: 0,
+            });
+        });
+
+        it("parses per-line covered/missed branches (cb/mb)", () => {
+            const xml = `<report>
+  <package name="com/example">
+    <sourcefile name="Branchy.java">
+      <line nr="10" mi="0" ci="6" mb="1" cb="3"/>
+    </sourcefile>
+  </package>
+</report>`;
+            const files = parseJacocoXml(xml);
+            assert.strictEqual(files.length, 1);
+            assert.deepStrictEqual(files[0].lines[0], {
+                number: 10,
+                coveredInstructions: 6,
+                missedInstructions: 0,
+                coveredBranches: 3,
+                missedBranches: 1,
+            });
         });
 
         it("handles multiple packages and source files", () => {
