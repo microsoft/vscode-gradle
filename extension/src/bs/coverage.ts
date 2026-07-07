@@ -51,7 +51,11 @@ function escapeGroovySingleQuoted(s: string): string {
  *
  * For each project that has the `java` plugin we:
  *  - apply the `jacoco` plugin (which auto-creates a `jacocoTestReport` task
- *    already wired to the project's `test` execution data and main source set);
+ *    already wired to the project's `test` execution data and main source set),
+ *    pinning a recent JaCoCo tool version so coverage still works on modern JDKs
+ *    (Gradle's bundled default is often too old and fails to instrument classes
+ *    compiled for newer bytecode). We only pin when we applied the plugin
+ *    ourselves, so a project that manages its own JaCoCo version is left intact;
  *  - enable XML output on that report task and redirect it to our per-run temp
  *    directory so we can read it back and translate it into VS Code coverage;
  *  - order the report after the Test tasks so the `.exec` data exists first.
@@ -66,6 +70,9 @@ export function getCoverageInitScriptLines(descriptor: CoverageDescriptor): stri
         "    p.plugins.withId('java') {",
         "        if (!p.plugins.hasPlugin('jacoco')) {",
         "            p.apply plugin: 'jacoco'",
+        // Pin a recent JaCoCo so instrumentation succeeds on current JDKs; only
+        // applied when we added the plugin, leaving user-managed versions alone.
+        "            p.jacoco { toolVersion = '0.8.15' }",
         "        }",
         "        p.tasks.matching { it.name == 'jacocoTestReport' }.configureEach { r ->",
         "            r.mustRunAfter(p.tasks.withType(Test))",
