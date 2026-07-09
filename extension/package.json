@@ -129,11 +129,6 @@
     },
     "commands": [
       {
-        "command": "gradle.retryTestWithGradle",
-        "category": "Gradle",
-        "title": "Retry Test with Gradle"
-      },
-      {
         "command": "gradle.runTask",
         "title": "Run Task",
         "icon": {

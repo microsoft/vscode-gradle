@@ -1,11 +1,10 @@
 import * as assert from "assert";
 import { parseJacocoXml } from "../../bs/coverage";
-import { describeDelegationFix, isDelegationFixableFailure } from "../../bs/escalation";
 import { getSuiteName } from "../testUtil";
 
 /**
  * Unit tests for the P0 "Delegate Test to Gradle" default-experience work
- * (vscode-gradle#1890): JaCoCo coverage parsing and failure-driven escalation.
+ * (vscode-gradle#1890): JaCoCo coverage parsing.
  */
 describe(getSuiteName("Delegate test P0 helpers"), () => {
     describe("parseJacocoXml", () => {
@@ -80,40 +79,6 @@ describe(getSuiteName("Delegate test P0 helpers"), () => {
         it("returns an empty array for a report with no line data", () => {
             const xml = `<report><package name="x"><sourcefile name="X.java"></sourcefile></package></report>`;
             assert.deepStrictEqual(parseJacocoXml(xml), []);
-        });
-    });
-
-    describe("isDelegationFixableFailure", () => {
-        it("matches JPMS module-access failures", () => {
-            assert.ok(
-                isDelegationFixableFailure(
-                    'java.lang.reflect.InaccessibleObjectException: Unable to make field accessible: module java.base does not "opens java.lang"'
-                )
-            );
-            assert.ok(isDelegationFixableFailure("IllegalAccessException: class Foo cannot access class Bar"));
-        });
-
-        it("matches missing/stale resource failures", () => {
-            assert.ok(isDelegationFixableFailure("Could not find application.properties on the classpath"));
-        });
-
-        it("does not match generic assertion failures", () => {
-            assert.strictEqual(
-                isDelegationFixableFailure("org.opentest4j.AssertionFailedError: expected <1> but was <2>"),
-                false
-            );
-            assert.strictEqual(isDelegationFixableFailure(undefined), false);
-        });
-    });
-
-    describe("describeDelegationFix", () => {
-        it("explains module-access failures", () => {
-            const reason = describeDelegationFix("module java.base does not open java.lang");
-            assert.ok(reason && reason.includes("module-access"));
-        });
-
-        it("returns undefined when nothing matches", () => {
-            assert.strictEqual(describeDelegationFix("some unrelated failure"), undefined);
         });
     });
 });

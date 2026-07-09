@@ -191,7 +191,111 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         assert.strictEqual(client.runBuild.called, false);
         assert.strictEqual(finishStatus, -1);
     });
+
+    it("runs coverage through BSP with the report as a test finalizer", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const client = buildClient();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+
+        const finishEvents: number[] = [];
+        runner.onDidFinishTestRun((event) => finishEvents.push(event.statusCode));
+
+        const context = buildRunContext(
+            testRunnerApi,
+            [
+                {
+                    id: "class",
+                    parts: { project: "demo", class: "com.example.AppTest" },
+                },
+            ],
+            {},
+            { kind: vscode.TestRunProfileKind.Coverage } as vscode.TestRunProfile
+        );
+
+        await runner.launch(context);
+
+        // Tests are delegated through BSP (not the task server), and the BSP
+        // test args carry the JaCoCo init script (which wires the report as a
+        // `test` finalizer, so no separate report build is needed).
+        assert.strictEqual(executeCommand.firstCall.args[1], "java.gradle.delegateTest");
+        const bspArgs = executeCommand.firstCall.args[4] as string[];
+        assert.strictEqual(bspArgs[0], "--init-script");
+        assert.strictEqual(client.runBuild.called, false);
+        // The run must NOT be finished until the server signals the streamed
+        // test run is done.
+        assert.strictEqual(finishEvents.length, 0);
+
+        // Simulate the server's onDidFinishTestRun notification.
+        runner.finishTestRun(0);
+        await waitUntil(() => finishEvents.length > 0);
+
+        // No separate task-server build runs for coverage; the report came from
+        // the BSP phase. The run is finished only after coverage is collected.
+        assert.strictEqual(client.runBuild.called, false);
+        assert.deepStrictEqual(finishEvents, [0]);
+        // Coverage collection resolves source files against the project's BSP
+        // source roots (queried via the delegate command).
+        assert.ok(
+            executeCommand.getCalls().some((call) => call.args[1] === "java.gradle.getBuildTargetSources"),
+            "expected java.gradle.getBuildTargetSources to be queried for coverage source resolution"
+        );
+    });
+
+    it("serializes overlapping delegated runs (second waits for the first to finish)", async () => {
+        // Run A's delegate command hangs until we resolve it, keeping A active.
+        let resolveFirstCommand!: () => void;
+        const firstCommand = new Promise<void>((resolve) => (resolveFirstCommand = resolve));
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        executeCommand.onFirstCall().returns(firstCommand as unknown as Thenable<unknown>);
+        executeCommand.returns(Promise.resolve(undefined) as unknown as Thenable<unknown>);
+
+        const client = buildClient();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+
+        const ctxA = buildRunContext(testRunnerApi, [
+            { id: "a", parts: { project: "demo", class: "com.example.ATest" } },
+        ]);
+        const ctxB = buildRunContext(testRunnerApi, [
+            { id: "b", parts: { project: "demo", class: "com.example.BTest" } },
+        ]);
+
+        const launchA = runner.launch(ctxA);
+        const launchB = runner.launch(ctxB);
+
+        // A hangs on its command; B is gated behind A and must not start.
+        await delay(20);
+        assert.strictEqual(executeCommand.callCount, 1, "B must not start while A's run is active");
+
+        // A's command completes, but A's run isn't "finished" until the server
+        // signals it — B must keep waiting.
+        resolveFirstCommand();
+        await launchA;
+        await delay(10);
+        assert.strictEqual(executeCommand.callCount, 1, "B still waits until A's run finishes");
+
+        // Finish A → releases the gate → B proceeds.
+        runner.finishTestRun(0);
+        await launchB;
+        await delay(10);
+        assert.strictEqual(executeCommand.callCount, 2, "B runs its delegate command only after A finishes");
+    });
 });
+
+async function delay(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitUntil(condition: () => boolean, timeoutMs: number = 2000): Promise<void> {
+    const start = Date.now();
+    while (!condition()) {
+        if (Date.now() - start > timeoutMs) {
+            throw new Error("Timed out waiting for condition");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+}
 
 function stubBspUnavailable(): void {
     sinon
@@ -235,7 +339,8 @@ function buildTestRunnerApi(): any {
 function buildRunContext(
     testRunnerApi: ReturnType<typeof buildTestRunnerApi>,
     items: Array<{ id: string; parts: TestIdParts }>,
-    testConfig: IRunTestContext["testConfig"] = {}
+    testConfig: IRunTestContext["testConfig"] = {},
+    profile?: vscode.TestRunProfile
 ): IRunTestContext {
     for (const item of items) {
         testRunnerApi.setParts(item.id, item.parts);
@@ -252,6 +357,7 @@ function buildRunContext(
             uri: vscode.Uri.file("C:\\workspace"),
         },
         testConfig,
+        profile,
     };
 }
 
