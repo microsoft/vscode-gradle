@@ -1,10 +1,14 @@
 package com.microsoft.gradle.bs.importer.handler;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Collections;
-import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IPath;
@@ -28,9 +32,7 @@ import ch.epfl.scala.bsp4j.SourcesItem;
 import ch.epfl.scala.bsp4j.SourcesParams;
 import ch.epfl.scala.bsp4j.SourcesResult;
 import ch.epfl.scala.bsp4j.TestParams;
-
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+import ch.epfl.scala.bsp4j.extended.JvmBuildTargetEx;
 
 public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
 
@@ -86,11 +88,7 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                 testParams.setData(scalaTestSuites);
                 buildServerConnection.buildTargetTest(testParams);
                 return null;
-            case "java.gradle.getBuildTargetSources": {
-                // Returns the source-root directory URIs for a project's build
-                // targets, so the client can resolve JaCoCo coverage source
-                // files against the authoritative source roots (scoped to this
-                // project) instead of globbing the whole workspace.
+            case "java.gradle.getBuildTargetInfo": {
                 String sourcesProjectName = (String) arguments.get(0);
                 IProject sourcesProject = ProjectUtils.getProject(sourcesProjectName);
                 if (sourcesProject == null) {
@@ -106,23 +104,48 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                     throw new IllegalStateException(
                         "Build server connection not found for project: " + sourcesProjectName);
                 }
-                List<BuildTargetIdentifier> sourcesBtIds = Utils
-                    .getBuildTargetsByProjectUri(sourcesConnection, sourcesProject.getLocationURI())
-                    .stream().map(BuildTarget::getId).collect(Collectors.toList());
+                List<BuildTarget> sourceTargets = Utils
+                    .getBuildTargetsByProjectUri(sourcesConnection, sourcesProject.getLocationURI());
+                List<BuildTargetIdentifier> sourcesBtIds = sourceTargets.stream()
+                    .map(BuildTarget::getId).collect(Collectors.toList());
                 if (sourcesBtIds.isEmpty()) {
-                    return Collections.emptyList();
+                    return Collections.emptyMap();
                 }
                 SourcesResult sourcesResult = sourcesConnection
                     .buildTargetSources(new SourcesParams(sourcesBtIds)).get(10, TimeUnit.SECONDS);
-                List<String> sourceRoots = new ArrayList<>();
-                for (SourcesItem item : sourcesResult.getItems()) {
-                    for (SourceItem source : item.getSources()) {
-                        if (source.getKind() == SourceItemKind.DIRECTORY) {
-                            sourceRoots.add(source.getUri());
+
+                Map<String, BuildTarget> targetsById = sourceTargets.stream().collect(
+                    Collectors.toMap(target -> target.getId().getUri(), target -> target));
+                String gradleVersion = null;
+                for (BuildTarget target : sourceTargets) {
+                    if ("jvm".equals(target.getDataKind())) {
+                        JvmBuildTargetEx jvmTarget = JSONUtility.toModel(target.getData(), JvmBuildTargetEx.class);
+                        if (jvmTarget.getGradleVersion() != null && !jvmTarget.getGradleVersion().isBlank()) {
+                            gradleVersion = jvmTarget.getGradleVersion();
+                            break;
                         }
                     }
                 }
-                return sourceRoots;
+
+                List<Map<String, Object>> sourceRoots = new ArrayList<>();
+                for (SourcesItem item : sourcesResult.getItems()) {
+                    BuildTarget target = targetsById.get(item.getTarget().getUri());
+                    boolean isTest = target != null && (target.getTags().contains(BuildTargetTag.TEST)
+                        || target.getTags().contains(BuildTargetTag.INTEGRATION_TEST));
+                    for (SourceItem source : item.getSources()) {
+                        if (source.getKind() == SourceItemKind.DIRECTORY) {
+                            Map<String, Object> sourceRoot = new HashMap<>();
+                            sourceRoot.put("uri", source.getUri());
+                            sourceRoot.put("isTest", isTest);
+                            sourceRoot.put("generated", Boolean.TRUE.equals(source.getGenerated()));
+                            sourceRoots.add(sourceRoot);
+                        }
+                    }
+                }
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("gradleVersion", gradleVersion);
+                result.put("sourceRoots", sourceRoots);
+                return result;
             }
             default:
                 break;

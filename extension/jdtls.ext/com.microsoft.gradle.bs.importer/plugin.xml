@@ -45,7 +45,7 @@
     <extension point="org.eclipse.jdt.ls.core.delegateCommandHandler">
         <delegateCommandHandler class="com.microsoft.gradle.bs.importer.handler.GradleDelegateCommandHandler">
             <command id="java.gradle.delegateTest" />
-            <command id="java.gradle.getBuildTargetSources" />
+            <command id="java.gradle.getBuildTargetInfo" />
         </delegateCommandHandler>
   </extension>
 </plugin>

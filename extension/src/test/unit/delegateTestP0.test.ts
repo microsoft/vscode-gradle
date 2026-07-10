@@ -1,5 +1,6 @@
 import * as assert from "assert";
-import { parseJacocoXml } from "../../bs/coverage";
+import * as vscode from "vscode";
+import { CoverageDescriptor, getCoverageInitScriptLines, parseJacocoXml, pickBestSourceMatch } from "../../bs/coverage";
 import { getSuiteName } from "../testUtil";
 
 /**
@@ -80,5 +81,33 @@ describe(getSuiteName("Delegate test P0 helpers"), () => {
             const xml = `<report><package name="x"><sourcefile name="X.java"></sourcefile></package></report>`;
             assert.deepStrictEqual(parseJacocoXml(xml), []);
         });
+    });
+
+    it("isolates execution data for each coverage run", () => {
+        const descriptor: CoverageDescriptor = {
+            rootDir: "C:\\temp\\coverage",
+            reportDir: "C:\\temp\\coverage\\reports",
+            executionDataDir: "C:\\temp\\coverage\\execution-data",
+        };
+        const script = getCoverageInitScriptLines(descriptor).join("\n");
+
+        assert.match(script, /coverageExecDir = new File\('C:\\\\temp\\\\coverage\\\\execution-data'/);
+        assert.match(script, /destinationFile = new File\(coverageExecDir/);
+        assert.match(script, /fileTree\(dir: coverageExecDir/);
+        assert.doesNotMatch(script, /buildDirectory\.dir\('jacoco'\)/);
+    });
+
+    it("prefers main sources over test and generated sources", () => {
+        const selected = pickBestSourceMatch([
+            { uri: vscode.Uri.file("C:\\workspace\\src\\test\\java\\Foo.java"), isTest: true, generated: false },
+            {
+                uri: vscode.Uri.file("C:\\workspace\\build\\generated\\sources\\Foo.java"),
+                isTest: false,
+                generated: true,
+            },
+            { uri: vscode.Uri.file("C:\\workspace\\src\\main\\java\\Foo.java"), isTest: false, generated: false },
+        ]);
+
+        assert.strictEqual(selected?.fsPath, vscode.Uri.file("C:\\workspace\\src\\main\\java\\Foo.java").fsPath);
     });
 });

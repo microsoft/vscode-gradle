@@ -6,92 +6,62 @@ import * as os from "os";
 import * as path from "path";
 import { escapeGroovySingleQuoted } from "./groovy";
 
-/**
- * The name of the Gradle task that produces the JaCoCo XML report. This is the
- * task auto-created by the `jacoco` plugin (`jacocoTestReport`), which we enable
- * XML output on and point at a per-run temp directory via the init script.
- */
 export const JACOCO_REPORT_TASK = "jacocoTestReport";
 
-/**
- * Describes the per-run temp locations used to carry JaCoCo coverage data out of
- * the delegated Gradle build and back into VS Code.
- */
 export interface CoverageDescriptor {
-    /**
-     * Directory the generated JaCoCo XML report(s) are written to. One file is
-     * produced per Gradle (sub)project so multi-project builds are supported.
-     */
+    rootDir: string;
     reportDir: string;
+    executionDataDir: string;
 }
 
-/**
- * Create a unique per-run {@link CoverageDescriptor}. The directory is created
- * lazily by Gradle when it writes the report, so we only compute the path here.
- */
+export interface CoverageSourceRoot {
+    uri: vscode.Uri;
+    isTest: boolean;
+    generated: boolean;
+}
+
 export function createCoverageDescriptor(): CoverageDescriptor {
-    const reportDir = path.join(
+    const rootDir = path.join(
         os.tmpdir(),
         `gradle-test-coverage-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    return { reportDir };
+    return {
+        rootDir,
+        reportDir: path.join(rootDir, "reports"),
+        executionDataDir: path.join(rootDir, "execution-data"),
+    };
 }
 
 /**
- * Groovy init-script lines that transparently enable JaCoCo coverage for every
- * Java (sub)project's test tasks — without editing the user's build.gradle.
- *
- * For each project that has the `java` plugin we:
- *  - apply the `jacoco` plugin (which auto-creates a `jacocoTestReport` task
- *    already wired to the project's `test` execution data and main source set),
- *    pinning a recent JaCoCo tool version so coverage still works on modern JDKs
- *    (Gradle's bundled default is often too old and fails to instrument classes
- *    compiled for newer bytecode). We only pin when we applied the plugin
- *    ourselves, so a project that manages its own JaCoCo version is left intact;
- *  - enable XML output on that report task and redirect it to our per-run temp
- *    directory so we can read it back and translate it into VS Code coverage;
- *  - order the report after the Test tasks so the `.exec` data exists first;
- *  - wire the report as a `finalizedBy` of every Test task, so the BSP path
- *    (whose TestLauncher can only run tests, not tasks) still produces the
- *    report in the same invocation.
- *
- * The task-server fallback path additionally appends {@link JACOCO_REPORT_TASK}
- * to the Gradle task list; the finalizer makes the report run on the BSP path
- * too, and Gradle de-duplicates so it executes exactly once either way.
+ * Enable JaCoCo without changing the user's build files.
  */
 export function getCoverageInitScriptLines(descriptor: CoverageDescriptor): string[] {
     const reportDir = escapeGroovySingleQuoted(descriptor.reportDir);
+    const executionDataDir = escapeGroovySingleQuoted(descriptor.executionDataDir);
     return [
         "allprojects { p ->",
         "    p.plugins.withId('java') {",
         "        if (!p.plugins.hasPlugin('jacoco')) {",
         "            p.apply plugin: 'jacoco'",
-        // Pin a recent JaCoCo so instrumentation succeeds on current JDKs; only
-        // applied when we added the plugin, leaving user-managed versions alone.
         "            p.jacoco { toolVersion = '0.8.15' }",
         "        }",
+        "        def coverageProjectId = p.path.replaceAll('[^A-Za-z0-9]', '_') + '_' + Integer.toHexString(p.path.hashCode())",
+        `        def coverageExecDir = new File('${executionDataDir}', coverageProjectId)`,
         "        p.tasks.matching { it.name == 'jacocoTestReport' }.configureEach { r ->",
         "            r.mustRunAfter(p.tasks.withType(Test))",
-        // Only feed the report execution data files that actually exist. The
-        // default report reads every Test task's `.exec`, which fails when a
-        // `--tests`-filtered run leaves some Test tasks unexecuted.
-        "            def execTree = p.fileTree(dir: p.layout.buildDirectory.dir('jacoco').get().asFile, include: '**/*.exec')",
+        "            def execTree = p.fileTree(dir: coverageExecDir, include: '**/*.exec')",
         "            r.executionData.setFrom(execTree)",
         "            r.onlyIf { !execTree.isEmpty() }",
         "            r.reports {",
         "                it.xml.required.set(true)",
         "                it.html.required.set(false)",
         "                it.csv.required.set(false)",
-        "                def reportName = p.path.replaceAll('[^A-Za-z0-9]', '_')",
-        `                it.xml.outputLocation.set(new File('${reportDir}', 'jacoco' + reportName + '.xml'))`,
+        `                it.xml.outputLocation.set(new File('${reportDir}', 'jacoco' + coverageProjectId + '.xml'))`,
         "            }",
         "        }",
-        // Wire the report as a finalizer of every Test task. This lets the BSP
-        // TestLauncher path — which can only run tests, not tasks — still emit
-        // the report in the same invocation: Gradle runs the finalizer once the
-        // tests finish. The task-server path also lists the report task
-        // explicitly; Gradle de-duplicates, so it still runs exactly once.
         "        p.tasks.withType(Test).configureEach { t ->",
+        "            def execName = t.name.replaceAll('[^A-Za-z0-9]', '_') + '_' + Integer.toHexString(t.path.hashCode())",
+        "            t.extensions.getByType(org.gradle.testing.jacoco.plugins.JacocoTaskExtension).destinationFile = new File(coverageExecDir, 'jacoco' + execName + '.exec')",
         "            t.finalizedBy(p.tasks.matching { it.name == 'jacocoTestReport' })",
         "        }",
         "    }",
@@ -99,21 +69,12 @@ export function getCoverageInitScriptLines(descriptor: CoverageDescriptor): stri
     ];
 }
 
-/**
- * Parse the JaCoCo XML report(s) produced by the delegated build and push the
- * resulting line coverage into the VS Code {@link vscode.TestRun}.
- *
- * Coverage is surfaced two ways so it works regardless of how VS Code chooses to
- * consume it: a {@link vscode.FileCoverage} summary is added eagerly via
- * {@link vscode.TestRun.addCoverage}, and the per-line detail is cached and
- * served from {@link vscode.TestRunProfile.loadDetailedCoverage}.
- */
 export async function collectCoverage(
     reportDir: string,
     workspaceFolder: vscode.WorkspaceFolder,
     testRun: vscode.TestRun,
     profile: vscode.TestRunProfile | undefined,
-    sourceRoots: vscode.Uri[] = []
+    sourceRoots: CoverageSourceRoot[] = []
 ): Promise<void> {
     let reportFiles: [string, vscode.FileType][];
     try {
@@ -178,10 +139,6 @@ export async function collectCoverage(
         return;
     }
 
-    // Cache this run's details keyed by the run itself so the lazily-invoked
-    // loadDetailedCoverage handler serves the right data even after later
-    // coverage runs. The handler is shared on the profile, but routes by the
-    // `run` argument; the WeakMap lets old runs' details be GC'd.
     detailsByRun.set(testRun, detailsByUri);
 
     for (const [uriString, details] of detailsByUri) {
@@ -189,19 +146,11 @@ export async function collectCoverage(
     }
 
     if (profile) {
-        // VS Code invokes this lazily when the user drills into a file's coverage.
-        // Route by `run` so a drill-in on an earlier run doesn't return a later
-        // run's data (the profile — and thus this handler — is shared across runs).
         profile.loadDetailedCoverage = async (run, fileCoverage) =>
             detailsByRun.get(run)?.get(fileCoverage.uri.toString()) ?? [];
     }
 }
 
-/**
- * Per-run cache of file coverage details, so {@link vscode.TestRunProfile.loadDetailedCoverage}
- * can serve the correct run's data. Keyed weakly by the run so entries are
- * collected once VS Code discards the run.
- */
 const detailsByRun = new WeakMap<vscode.TestRun, Map<string, vscode.FileCoverageDetail[]>>();
 
 interface JacocoSourceFile {
@@ -216,20 +165,6 @@ interface JacocoSourceFile {
     }[];
 }
 
-/**
- * Regex-based parser for a JaCoCo XML report. We deliberately avoid pulling in an
- * XML dependency to match the lightweight parsing used elsewhere in this module
- * (see testResultParser.ts).
- *
- * JaCoCo XML shape:
- *   <report name="...">
- *     <package name="com/example">
- *       <sourcefile name="Foo.java">
- *         <line nr="10" mi="0" ci="4" mb="0" cb="0"/>
- *       </sourcefile>
- *     </package>
- *   </report>
- */
 export function parseJacocoXml(xml: string): JacocoSourceFile[] {
     const sourceFiles: JacocoSourceFile[] = [];
     const packageRegex = /<package\s+name="([^"]*)"\s*>([\s\S]*?)<\/package>/g;
@@ -280,51 +215,55 @@ async function resolveSourceFileUri(
     relativePath: string,
     workspaceFolder: vscode.WorkspaceFolder,
     cache: Map<string, vscode.Uri | undefined>,
-    sourceRoots: vscode.Uri[]
+    sourceRoots: CoverageSourceRoot[]
 ): Promise<vscode.Uri | undefined> {
     if (cache.has(relativePath)) {
         return cache.get(relativePath);
     }
-    // Prefer the authoritative BSP source roots for this project (from
-    // `buildTarget/sources`). Resolving against them eliminates the multi-module
-    // ambiguity of a workspace-wide glob: the same package-relative path can
-    // exist in several modules, but only the module under coverage owns the file.
     const segments = relativePath.split("/");
+    const candidates: CoverageSourceRoot[] = [];
     for (const root of sourceRoots) {
-        const candidate = vscode.Uri.joinPath(root, ...segments);
+        const candidate = vscode.Uri.joinPath(root.uri, ...segments);
         try {
             await vscode.workspace.fs.stat(candidate);
-            cache.set(relativePath, candidate);
-            return candidate;
+            candidates.push({ ...root, uri: candidate });
         } catch {
-            // Not under this source root; try the next.
+            // Try the next source root.
         }
     }
-    // Fallback (e.g. BSP unavailable / task-server path): a workspace-wide glob.
-    // A workspace can contain the same package-relative path in several modules
-    // (e.g. multi-project builds) or under both main and test source roots. Fetch
-    // several candidates and prefer a main production source so coverage lands on
-    // the right file instead of an arbitrary first match.
+    if (candidates.length > 0) {
+        const uri = pickBestSourceMatch(candidates);
+        cache.set(relativePath, uri);
+        return uri;
+    }
+
     const pattern = new vscode.RelativePattern(workspaceFolder, `**/${relativePath}`);
     const matches = await vscode.workspace.findFiles(pattern, null, 16);
-    const uri = pickBestSourceMatch(matches);
+    const uri = pickBestSourceMatch(
+        matches.map((uri) => ({
+            uri,
+            isTest: /\/src\/test\//i.test(uri.path),
+            generated: /\/(?:build|generated)\//i.test(uri.path),
+        }))
+    );
     cache.set(relativePath, uri);
     return uri;
 }
 
-/**
- * Choose the most likely production source file among candidates that share the
- * same package-relative path. Prefers a conventional main source root, then any
- * source root, then the first match. Returns undefined when there are none.
- */
-function pickBestSourceMatch(matches: readonly vscode.Uri[]): vscode.Uri | undefined {
+export function pickBestSourceMatch(matches: readonly CoverageSourceRoot[]): vscode.Uri | undefined {
     if (matches.length === 0) {
         return undefined;
     }
-    const normalized = matches.map((uri) => ({ uri, p: uri.path.replace(/\\/g, "/") }));
+    return [...matches].sort(
+        (a, b) => sourceMatchScore(a) - sourceMatchScore(b) || a.uri.path.localeCompare(b.uri.path)
+    )[0].uri;
+}
+
+function sourceMatchScore(match: CoverageSourceRoot): number {
+    const normalizedPath = match.uri.path.replace(/\\/g, "/");
     return (
-        normalized.find((m) => /\/src\/main\//i.test(m.p))?.uri ??
-        normalized.find((m) => /\/src\//i.test(m.p))?.uri ??
-        normalized[0].uri
+        (match.isTest ? 100 : 0) +
+        (match.generated ? 10 : 0) +
+        (/\/src\/main\//i.test(normalizedPath) ? 0 : /\/src\//i.test(normalizedPath) ? 1 : 2)
     );
 }

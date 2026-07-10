@@ -11,6 +11,7 @@ import { TaskServerClient } from "../client";
 import { parseTestResults, TestCaseResult } from "./testResultParser";
 import {
     CoverageDescriptor,
+    CoverageSourceRoot,
     JACOCO_REPORT_TASK,
     collectCoverage,
     createCoverageDescriptor,
@@ -27,22 +28,10 @@ export class GradleTestRunner implements TestRunner {
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
     private testRunnerApi: any;
     private bspContext: IRunTestContext | undefined;
-    // Set while a BSP-delegated coverage run is in flight. The BSP path finishes
-    // asynchronously via the server's onDidFinishTestRun notification, so this
-    // lets finishTestRun() attach coverage before the run is actually ended.
     private pendingCoverageRun: PendingCoverageRun | undefined;
-    // Delegated runs share this singleton's state (bspContext,
-    // pendingCoverageRun) and receive results via global callbacks that carry no
-    // run id, so overlapping runs would route one run's results/coverage into
-    // another. Until per-run routing exists (needs an originId threaded through
-    // the server + jdtls), we serialize: `runChain` tails the latest run and a
-    // new launch awaits it; `releaseGate` releases the tail when the active run
-    // truly finishes (its onDidFinishTestRun is emitted). `rearmGateBackstop`
-    // resets an idle watchdog on every per-test update so a long-but-active run
-    // doesn't trip the safety release.
+    // BSP callbacks have no run id, so delegated runs must be serialized.
     private runChain: Promise<void> = Promise.resolve();
     private releaseGate: (() => void) | undefined;
-    private rearmGateBackstop: (() => void) | undefined;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
@@ -52,80 +41,45 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
-        // Serialize delegated runs (see runChain/releaseGate fields): a new run
-        // waits for the previous one to fully finish so their shared state and
-        // global result callbacks don't cross. This run holds the gate until it
-        // finishes (emitFinish) — which for BSP is a later server notification —
-        // so the next run can't start and clobber this run's state.
         const previous = this.runChain;
         let resolveChain!: () => void;
         this.runChain = new Promise<void>((resolve) => (resolveChain = resolve));
         try {
             await previous;
         } catch {
-            // A failed prior run must not block this one.
+            // Continue after a failed prior run.
         }
         let released = false;
-        let backstopTimer: NodeJS.Timeout | undefined;
         const release = () => {
             if (released) {
                 return;
             }
             released = true;
-            if (backstopTimer) {
-                clearTimeout(backstopTimer);
-            }
-            // Clear the shared gate/watchdog if they still point at this run, so
-            // a late, stray notification can't release a later run's gate.
             if (this.releaseGate === release) {
                 this.releaseGate = undefined;
             }
-            if (this.rearmGateBackstop === armBackstop) {
-                this.rearmGateBackstop = undefined;
-            }
             resolveChain();
         };
-        const armBackstop = () => {
-            if (released) {
-                return;
-            }
-            if (backstopTimer) {
-                clearTimeout(backstopTimer);
-            }
-            backstopTimer = setTimeout(release, RUN_FINISH_IDLE_TIMEOUT_MS);
-            backstopTimer.unref?.();
-        };
         this.releaseGate = release;
-        this.rearmGateBackstop = armBackstop;
         try {
             await this.doLaunch(context);
         } catch (error) {
             release();
             throw error;
         }
-        if (!released) {
-            // The delegate command only *dispatches* the BSP test run (it is not
-            // awaited server-side), so doLaunch returns while tests are still
-            // running; the run finishes later via an onDidFinishTestRun
-            // notification (-> emitFinish -> release). Arm an idle watchdog:
-            // every per-test status update resets it (see updateTestItem), so a
-            // long-but-active run never trips it, while a dead connection (no
-            // events, no finish) eventually releases the gate for future runs.
-            armBackstop();
-        }
     }
 
     private async doLaunch(context: IRunTestContext): Promise<void> {
         if (isCoverageRun(context)) {
-            // Coverage runs the tests through the BSP delegate (faithful
-            // execution + streamed per-test results) with a JaCoCo init script
-            // that instruments the test JVM and wires
-            // `test.finalizedBy(jacocoTestReport)`, so the report is produced in
-            // the same BSP invocation (TestLauncher cannot run tasks directly).
-            // When BSP is unavailable we fall back to the all-in-one
-            // task-server path.
+            const buildInfo = await this.getBuildTargetInfo(context.projectName);
+            const gradleVersion = buildInfo.gradleVersion ?? (await getWrapperGradleVersion(context));
+            const compatibilityError = getCoverageCompatibilityError(gradleVersion);
+            if (compatibilityError) {
+                this.finishTestRun(2, compatibilityError);
+                return;
+            }
             try {
-                await this.launchCoverageWithBsp(context);
+                await this.launchCoverageWithBsp(context, buildInfo.sourceRoots);
             } catch (error) {
                 if (!isBspUnavailableError(error)) {
                     this.finishTestRun(-1, getErrorMessage(error));
@@ -153,9 +107,6 @@ export class GradleTestRunner implements TestRunner {
         message?: string,
         duration?: number
     ): void {
-        // Activity from the in-flight BSP run: reset the serialization watchdog
-        // so a long-but-active run keeps holding the gate.
-        this.rearmGateBackstop?.();
         if (!this.bspContext) {
             return;
         }
@@ -241,25 +192,12 @@ export class GradleTestRunner implements TestRunner {
         return tests;
     }
 
-    /**
-     * Coverage on the BSP path: run the tests through the BSP delegate command
-     * (Tooling API TestLauncher — faithful execution + streamed results) with a
-     * JaCoCo init script. The init script both instruments the test JVM (so it
-     * produces `.exec` data) and wires `test.finalizedBy(jacocoTestReport)`, so
-     * the report is generated in the same invocation even though TestLauncher
-     * cannot run tasks directly. Coverage is collected in
-     * {@link finalizePendingCoverageRun} once the streamed run finishes
-     * (signalled by the server's onDidFinishTestRun -> {@link finishTestRun}).
-     */
-    private async launchCoverageWithBsp(context: IRunTestContext): Promise<void> {
+    private async launchCoverageWithBsp(context: IRunTestContext, sourceRoots: CoverageSourceRoot[]): Promise<void> {
         this.bspContext = context;
         const tests = this.buildTestsMap(context);
 
         const coverage = createCoverageDescriptor();
         const initScriptPath = createInitScriptPath();
-        // vmArgs/env are forwarded through the delegate command params (the
-        // server applies them to the forked test JVM), so the init script only
-        // needs the JaCoCo wiring here.
         const initScriptContent = this.getInitScriptContent(-1, [], {}, coverage);
         await vscode.workspace.fs.writeFile(vscode.Uri.file(initScriptPath), Buffer.from(initScriptContent));
 
@@ -268,13 +206,11 @@ export class GradleTestRunner implements TestRunner {
         const vmArgs = context.testConfig?.vmArgs;
         const env = context.testConfig?.env;
 
-        // The BSP run ends via the server's onDidFinishTestRun notification,
-        // which lands in finishTestRun(). Record this run so that callback can
-        // attach coverage BEFORE ending the run.
         this.pendingCoverageRun = {
             descriptor: coverage,
             initScriptPath,
             context,
+            sourceRoots,
         };
 
         try {
@@ -288,36 +224,24 @@ export class GradleTestRunner implements TestRunner {
                 env
             );
         } catch (error) {
-            // The test phase never produced results (e.g. BSP unavailable); drop
-            // the pending bookkeeping so the caller's fallback / error finish is
-            // clean and doesn't leave a stray coverage-collection deferral.
             await this.discardPendingCoverageRun();
             throw error;
         }
     }
 
-    /**
-     * Coverage on the BSP path (finalization): the JaCoCo report was already
-     * produced during the BSP test phase — the init script wires
-     * `test.finalizedBy(jacocoTestReport)`, so the TestLauncher run emits the
-     * report as a finalizer once the tests finish. Here we only parse it into
-     * VS Code coverage and then end the run. Deferring the finish until after
-     * coverage is attached guarantees it lands before the run is closed.
-     */
     private async finalizePendingCoverageRun(
         pending: PendingCoverageRun,
         statusCode: number,
         message?: string
     ): Promise<void> {
         try {
-            await this.collectCoverageIfNeeded(pending.context, pending.descriptor);
+            await this.collectCoverageIfNeeded(pending.context, pending.descriptor, pending.sourceRoots);
         } finally {
             await this.cleanupCoverageArtifacts(pending);
             this.emitFinish(statusCode, message);
         }
     }
 
-    /** Best-effort removal of a coverage run's per-run temp init script and report dir. */
     private async cleanupCoverageArtifacts(pending: PendingCoverageRun): Promise<void> {
         try {
             await vscode.workspace.fs.delete(vscode.Uri.file(pending.initScriptPath));
@@ -325,7 +249,7 @@ export class GradleTestRunner implements TestRunner {
             /* best-effort */
         }
         try {
-            await vscode.workspace.fs.delete(vscode.Uri.file(pending.descriptor.reportDir), {
+            await vscode.workspace.fs.delete(vscode.Uri.file(pending.descriptor.rootDir), {
                 recursive: true,
                 useTrash: false,
             });
@@ -334,7 +258,6 @@ export class GradleTestRunner implements TestRunner {
         }
     }
 
-    /** Clear pending coverage bookkeeping and clean up its artifacts (used when the BSP phase aborts). */
     private async discardPendingCoverageRun(): Promise<void> {
         const pending = this.pendingCoverageRun;
         if (!pending) {
@@ -427,6 +350,12 @@ export class GradleTestRunner implements TestRunner {
             ? createCoverageDescriptor()
             : undefined;
         if (coverage) {
+            const gradleVersion = await getWrapperGradleVersion(context);
+            const compatibilityError = getCoverageCompatibilityError(gradleVersion);
+            if (compatibilityError) {
+                this.finishTestRun(2, compatibilityError);
+                return;
+            }
             gradleArgs.push(JACOCO_REPORT_TASK);
         }
 
@@ -554,7 +483,7 @@ export class GradleTestRunner implements TestRunner {
             }
             if (coverage) {
                 try {
-                    await vscode.workspace.fs.delete(vscode.Uri.file(coverage.reportDir), {
+                    await vscode.workspace.fs.delete(vscode.Uri.file(coverage.rootDir), {
                         recursive: true,
                         useTrash: false,
                     });
@@ -571,13 +500,13 @@ export class GradleTestRunner implements TestRunner {
      */
     private async collectCoverageIfNeeded(
         context: IRunTestContext,
-        coverage: CoverageDescriptor | undefined
+        coverage: CoverageDescriptor | undefined,
+        sourceRoots: CoverageSourceRoot[] = []
     ): Promise<void> {
         if (!coverage || !context.testRun) {
             return;
         }
         try {
-            const sourceRoots = await this.getBuildTargetSourceRoots(context.projectName);
             await collectCoverage(
                 coverage.reportDir,
                 context.workspaceFolder,
@@ -590,30 +519,26 @@ export class GradleTestRunner implements TestRunner {
         }
     }
 
-    /**
-     * Query the BSP `buildTarget/sources` roots for a project (via the jdtls
-     * delegate command) so coverage can resolve source files against the
-     * authoritative, project-scoped source directories. Best-effort: returns an
-     * empty list when the project isn't a build-server project or the command is
-     * unavailable, in which case coverage falls back to a workspace-wide glob.
-     */
-    private async getBuildTargetSourceRoots(projectName: string): Promise<vscode.Uri[]> {
+    private async getBuildTargetInfo(projectName: string): Promise<BuildTargetInfo> {
         try {
-            // This query sits on the critical path to finishing a coverage run
-            // (coverage is collected before the run is ended), so bound it: a
-            // slow/hung jdtls round-trip must not block run completion. On
-            // timeout we fall back to a workspace-wide glob.
-            const uris = await withTimeout(
-                vscode.commands.executeCommand<string[]>(
+            const info = await withTimeout(
+                vscode.commands.executeCommand<SerializedBuildTargetInfo>(
                     "java.execute.workspaceCommand",
-                    "java.gradle.getBuildTargetSources",
+                    "java.gradle.getBuildTargetInfo",
                     projectName
                 ),
-                BUILD_TARGET_SOURCES_TIMEOUT_MS
+                BUILD_TARGET_INFO_TIMEOUT_MS
             );
-            return (uris ?? []).map((uri) => vscode.Uri.parse(uri));
+            return {
+                gradleVersion: info?.gradleVersion,
+                sourceRoots: (info?.sourceRoots ?? []).map((root) => ({
+                    uri: vscode.Uri.parse(root.uri),
+                    isTest: root.isTest,
+                    generated: root.generated,
+                })),
+            };
         } catch {
-            return [];
+            return { sourceRoots: [] };
         }
     }
 
@@ -697,11 +622,6 @@ export class GradleTestRunner implements TestRunner {
         this.emitFinish(statusCode, message);
     }
 
-    /**
-     * Fire the run-finished event and release the serialization gate so the next
-     * queued run can start. This is the single point where a run is considered
-     * fully done.
-     */
     private emitFinish(statusCode: number, message?: string): void {
         this._onDidFinishTestRun.fire({
             statusCode,
@@ -834,23 +754,25 @@ interface PendingCoverageRun {
     descriptor: CoverageDescriptor;
     initScriptPath: string;
     context: IRunTestContext;
+    sourceRoots: CoverageSourceRoot[];
 }
 
-/**
- * Upper bound for the `buildTarget/sources` query used to resolve coverage
- * source files. Kept small because it runs on the critical path to finishing a
- * coverage run; on timeout we fall back to a workspace-wide glob.
- */
-const BUILD_TARGET_SOURCES_TIMEOUT_MS = 5000;
+const BUILD_TARGET_INFO_TIMEOUT_MS = 5000;
+const MINIMUM_COVERAGE_GRADLE_VERSION = "6.1";
 
-/**
- * Idle timeout for the serialization watchdog: how long the runner waits with no
- * per-test activity and no onDidFinishTestRun before releasing the gate for the
- * next queued run. Reset on every per-test update, so it only fires when a run's
- * result stream has gone silent (e.g. a dropped BSP connection), never during an
- * actively-reporting run — however long that run takes.
- */
-const RUN_FINISH_IDLE_TIMEOUT_MS = 300000;
+interface SerializedBuildTargetInfo {
+    gradleVersion?: string;
+    sourceRoots?: {
+        uri: string;
+        isTest: boolean;
+        generated: boolean;
+    }[];
+}
+
+interface BuildTargetInfo {
+    gradleVersion?: string;
+    sourceRoots: CoverageSourceRoot[];
+}
 
 /**
  * Reject with an Error if `promise` does not settle within `timeoutMs`.
@@ -870,6 +792,53 @@ function withTimeout<T>(promise: Thenable<T>, timeoutMs: number): Promise<T> {
             }
         );
     });
+}
+
+function getCoverageCompatibilityError(gradleVersion: string | undefined): string | undefined {
+    if (gradleVersion && compareVersions(gradleVersion, MINIMUM_COVERAGE_GRADLE_VERSION) < 0) {
+        return `Gradle coverage requires Gradle ${MINIMUM_COVERAGE_GRADLE_VERSION} or newer (project uses ${gradleVersion}).`;
+    }
+    return undefined;
+}
+
+function compareVersions(left: string, right: string): number {
+    const leftParts = left.split(/[.-]/).map((part) => parseInt(part, 10) || 0);
+    const rightParts = right.split(/[.-]/).map((part) => parseInt(part, 10) || 0);
+    const length = Math.max(leftParts.length, rightParts.length);
+    for (let i = 0; i < length; i++) {
+        const difference = (leftParts[i] ?? 0) - (rightParts[i] ?? 0);
+        if (difference !== 0) {
+            return difference;
+        }
+    }
+    return 0;
+}
+
+async function getWrapperGradleVersion(context: IRunTestContext): Promise<string | undefined> {
+    try {
+        const wrappers = await vscode.workspace.findFiles(
+            new vscode.RelativePattern(context.workspaceFolder, "**/gradle/wrapper/gradle-wrapper.properties"),
+            null,
+            20
+        );
+        if (wrappers.length === 0) {
+            return undefined;
+        }
+        const testPath = context.testItems.find((item) => item.uri)?.uri?.fsPath ?? context.workspaceFolder.uri.fsPath;
+        const wrapper =
+            [...wrappers]
+                .filter((uri) => isPathWithin(testPath, path.resolve(uri.fsPath, "..", "..", "..")))
+                .sort((a, b) => b.fsPath.length - a.fsPath.length)[0] ?? wrappers[0];
+        const content = Buffer.from(await vscode.workspace.fs.readFile(wrapper)).toString("utf-8");
+        return /gradle-([0-9][0-9A-Za-z.-]*)-(?:bin|all)\.zip/.exec(content)?.[1];
+    } catch {
+        return undefined;
+    }
+}
+
+function isPathWithin(candidate: string, parent: string): boolean {
+    const relative = path.relative(parent, candidate);
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 /**

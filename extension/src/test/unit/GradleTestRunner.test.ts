@@ -193,7 +193,11 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
     });
 
     it("runs coverage through BSP with the report as a test finalizer", async () => {
-        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        executeCommand
+            .withArgs("java.execute.workspaceCommand", "java.gradle.getBuildTargetInfo", "demo")
+            .resolves({ gradleVersion: "8.5", sourceRoots: [] });
+        executeCommand.resolves();
         const client = buildClient();
         const testRunnerApi = buildTestRunnerApi();
         const runner = new GradleTestRunner(testRunnerApi, client);
@@ -218,8 +222,9 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         // Tests are delegated through BSP (not the task server), and the BSP
         // test args carry the JaCoCo init script (which wires the report as a
         // `test` finalizer, so no separate report build is needed).
-        assert.strictEqual(executeCommand.firstCall.args[1], "java.gradle.delegateTest");
-        const bspArgs = executeCommand.firstCall.args[4] as string[];
+        const delegateCall = executeCommand.getCalls().find((call) => call.args[1] === "java.gradle.delegateTest");
+        assert.ok(delegateCall);
+        const bspArgs = delegateCall.args[4] as string[];
         assert.strictEqual(bspArgs[0], "--init-script");
         assert.strictEqual(client.runBuild.called, false);
         // The run must NOT be finished until the server signals the streamed
@@ -234,11 +239,36 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         // the BSP phase. The run is finished only after coverage is collected.
         assert.strictEqual(client.runBuild.called, false);
         assert.deepStrictEqual(finishEvents, [0]);
-        // Coverage collection resolves source files against the project's BSP
-        // source roots (queried via the delegate command).
         assert.ok(
-            executeCommand.getCalls().some((call) => call.args[1] === "java.gradle.getBuildTargetSources"),
-            "expected java.gradle.getBuildTargetSources to be queried for coverage source resolution"
+            executeCommand.getCalls().some((call) => call.args[1] === "java.gradle.getBuildTargetInfo"),
+            "expected java.gradle.getBuildTargetInfo to be queried"
+        );
+    });
+
+    it("rejects coverage on unsupported Gradle versions", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        executeCommand
+            .withArgs("java.execute.workspaceCommand", "java.gradle.getBuildTargetInfo", "demo")
+            .resolves({ gradleVersion: "6.0", sourceRoots: [] });
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        let finishEvent: { statusCode: number; message?: string } | undefined;
+        runner.onDidFinishTestRun((event) => (finishEvent = event));
+
+        await runner.launch(
+            buildRunContext(
+                testRunnerApi,
+                [{ id: "class", parts: { project: "demo", class: "com.example.AppTest" } }],
+                {},
+                { kind: vscode.TestRunProfileKind.Coverage } as vscode.TestRunProfile
+            )
+        );
+
+        assert.strictEqual(finishEvent?.statusCode, 2);
+        assert.match(finishEvent?.message ?? "", /requires Gradle 6\.1 or newer/);
+        assert.strictEqual(
+            executeCommand.getCalls().some((call) => call.args[1] === "java.gradle.delegateTest"),
+            false
         );
     });
 
@@ -281,13 +311,36 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         await delay(10);
         assert.strictEqual(executeCommand.callCount, 2, "B runs its delegate command only after A finishes");
     });
+
+    it("does not release serialization based on elapsed time", async () => {
+        const clock = sinon.useFakeTimers();
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const ctxA = buildRunContext(testRunnerApi, [
+            { id: "a", parts: { project: "demo", class: "com.example.ATest" } },
+        ]);
+        const ctxB = buildRunContext(testRunnerApi, [
+            { id: "b", parts: { project: "demo", class: "com.example.BTest" } },
+        ]);
+
+        await runner.launch(ctxA);
+        const launchB = runner.launch(ctxB);
+        await clock.tickAsync(600000);
+        assert.strictEqual(executeCommand.callCount, 1);
+
+        runner.finishTestRun(0);
+        await launchB;
+        assert.strictEqual(executeCommand.callCount, 2);
+        runner.finishTestRun(0);
+    });
 });
 
 async function delay(ms: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitUntil(condition: () => boolean, timeoutMs: number = 2000): Promise<void> {
+async function waitUntil(condition: () => boolean, timeoutMs = 2000): Promise<void> {
     const start = Date.now();
     while (!condition()) {
         if (Date.now() - start > timeoutMs) {
