@@ -112,7 +112,7 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                     return Collections.emptyMap();
                 }
                 SourcesResult sourcesResult = sourcesConnection
-                    .buildTargetSources(new SourcesParams(sourcesBtIds)).get(10, TimeUnit.SECONDS);
+                    .buildTargetSources(new SourcesParams(sourcesBtIds)).get(5, TimeUnit.SECONDS);
 
                 Map<String, BuildTarget> targetsById = sourceTargets.stream().collect(
                     Collectors.toMap(target -> target.getId().getUri(), target -> target));
