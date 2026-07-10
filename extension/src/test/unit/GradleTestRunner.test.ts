@@ -272,6 +272,29 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         );
     });
 
+    it("rejects prerelease versions below the coverage minimum", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        executeCommand
+            .withArgs("java.execute.workspaceCommand", "java.gradle.getBuildTargetInfo", "demo")
+            .resolves({ gradleVersion: "6.1-rc-1", sourceRoots: [] });
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        let finishEvent: { statusCode: number; message?: string } | undefined;
+        runner.onDidFinishTestRun((event) => (finishEvent = event));
+
+        await runner.launch(
+            buildRunContext(
+                testRunnerApi,
+                [{ id: "class", parts: { project: "demo", class: "com.example.AppTest" } }],
+                {},
+                { kind: vscode.TestRunProfileKind.Coverage } as vscode.TestRunProfile
+            )
+        );
+
+        assert.strictEqual(finishEvent?.statusCode, 2);
+        assert.match(finishEvent?.message ?? "", /requires Gradle 6\.1 or newer/);
+    });
+
     it("serializes overlapping delegated runs (second waits for the first to finish)", async () => {
         // Run A's delegate command hangs until we resolve it, keeping A active.
         let resolveFirstCommand!: () => void;
@@ -295,25 +318,23 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         const launchB = runner.launch(ctxB);
 
         // A hangs on its command; B is gated behind A and must not start.
-        await delay(20);
+        await flushPromises();
         assert.strictEqual(executeCommand.callCount, 1, "B must not start while A's run is active");
 
         // A's command completes, but A's run isn't "finished" until the server
         // signals it — B must keep waiting.
         resolveFirstCommand();
         await launchA;
-        await delay(10);
         assert.strictEqual(executeCommand.callCount, 1, "B still waits until A's run finishes");
 
         // Finish A → releases the gate → B proceeds.
         runner.finishTestRun(0);
         await launchB;
-        await delay(10);
         assert.strictEqual(executeCommand.callCount, 2, "B runs its delegate command only after A finishes");
     });
 
     it("does not release serialization based on elapsed time", async () => {
-        const clock = sinon.useFakeTimers();
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
         const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
         const testRunnerApi = buildTestRunnerApi();
         const runner = new GradleTestRunner(testRunnerApi, buildClient());
@@ -340,13 +361,18 @@ async function delay(ms: number): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function flushPromises(): Promise<void> {
+    await Promise.resolve();
+    await Promise.resolve();
+}
+
 async function waitUntil(condition: () => boolean, timeoutMs = 2000): Promise<void> {
     const start = Date.now();
     while (!condition()) {
         if (Date.now() - start > timeoutMs) {
             throw new Error("Timed out waiting for condition");
         }
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        await delay(10);
     }
 }
 

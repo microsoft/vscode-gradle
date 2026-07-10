@@ -802,16 +802,36 @@ function getCoverageCompatibilityError(gradleVersion: string | undefined): strin
 }
 
 function compareVersions(left: string, right: string): number {
-    const leftParts = left.split(/[.-]/).map((part) => parseInt(part, 10) || 0);
-    const rightParts = right.split(/[.-]/).map((part) => parseInt(part, 10) || 0);
-    const length = Math.max(leftParts.length, rightParts.length);
+    const leftVersion = parseVersion(left);
+    const rightVersion = parseVersion(right);
+    const length = Math.max(leftVersion.parts.length, rightVersion.parts.length);
     for (let i = 0; i < length; i++) {
-        const difference = (leftParts[i] ?? 0) - (rightParts[i] ?? 0);
+        const difference = (leftVersion.parts[i] ?? 0) - (rightVersion.parts[i] ?? 0);
         if (difference !== 0) {
             return difference;
         }
     }
-    return 0;
+    if (leftVersion.suffix === rightVersion.suffix) {
+        return 0;
+    }
+    if (!leftVersion.suffix) {
+        return 1;
+    }
+    if (!rightVersion.suffix) {
+        return -1;
+    }
+    return leftVersion.suffix.localeCompare(rightVersion.suffix);
+}
+
+function parseVersion(version: string): { parts: number[]; suffix: string } {
+    const match = /^(\d+(?:\.\d+)*)(.*)$/.exec(version.trim());
+    if (!match) {
+        return { parts: [0], suffix: version };
+    }
+    return {
+        parts: match[1].split(".").map(Number),
+        suffix: match[2],
+    };
 }
 
 async function getWrapperGradleVersion(context: IRunTestContext): Promise<string | undefined> {

@@ -421,13 +421,11 @@ export class Extension {
                     vscode.TestRunProfileKind.Debug,
                     testRunner
                 );
-                if (vscode.TestRunProfileKind.Coverage !== undefined) {
-                    testRunnerApi.registerTestProfile(
-                        "Delegate Test to Gradle (Coverage)",
-                        vscode.TestRunProfileKind.Coverage,
-                        testRunner
-                    );
-                }
+                testRunnerApi.registerTestProfile(
+                    "Delegate Test to Gradle (Coverage)",
+                    vscode.TestRunProfileKind.Coverage,
+                    testRunner
+                );
             }
         }
     }
