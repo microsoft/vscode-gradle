@@ -10,29 +10,29 @@ jobs:
     name: Build & Analyse
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0 # required by sonarqube
       - name: Use Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           java-version: "21"
           distribution: "temurin"
       - name: Use Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
           cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Cache npm cache directory
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
       - name: Checkout microsoft/build-server-for-gradle
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           repository: microsoft/build-server-for-gradle
           path: extension/build-server-for-gradle
@@ -69,18 +69,18 @@ jobs:
           ../gradlew buildJars
         working-directory: extension/
       - name: Lint
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: lint
       - name: Build & Analyse Gradle Server
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: build
         env:
           JAVA_HOME: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
       - name: Upload lib
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: lib
           path: |
@@ -101,15 +101,15 @@ jobs:
         java-version: ["21"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Use Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node-version }}
           cache-dependency-path: extension/package-lock.json
           cache: npm
       - name: Use Java ${{ matrix.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           java-version: ${{ matrix.java-version }}
           distribution: "temurin"
@@ -127,7 +127,7 @@ jobs:
           }
           Set-Content -Path $properties -Value $content -NoNewline
       - name: Cache vscode
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             extension/.vscode-test
@@ -135,7 +135,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-vscode-
       - name: Download lib
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: lib
           path: extension/
@@ -149,23 +149,23 @@ jobs:
           unset npm_config_prefix
         if: matrix.os != 'windows-latest'
       - name: Test Gradle Language Server
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: gradle-language-server:test
         env:
           JAVA_HOME: ""
       - name: Prepare gradle-groovy-custom-build-file
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-custom-build-file
       - name: Prepare gradle-groovy-default-build-file
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-groovy-default-build-file
       - name: Prepare gradle-kotlin-default-build-file
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         with:
           arguments: build
           build-root-directory: extension/test-fixtures/gradle-kotlin-default-build-file
@@ -173,7 +173,7 @@ jobs:
         working-directory: extension/
         run: npm ci
       - name: Test extension
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         continue-on-error: true
         id: test
         with:
@@ -182,7 +182,7 @@ jobs:
           DISPLAY: ":99.0"
           CI: "true"
       - name: Retry test extension attempt 1
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         continue-on-error: true
         if: steps.test.outcome=='failure'
         id: retry1
@@ -193,7 +193,7 @@ jobs:
           CI: "true"
 
       - name: Retry test extension attempt 2
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@a8f75513eafdebd8141bd1cd4e30fcd194af8dfa # v2.12.0
         continue-on-error: true
         if: steps.retry1.outcome=='failure'
         id: retry2
