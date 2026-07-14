@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.internal.resources.Project;
@@ -63,6 +64,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
     public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
+
+    /**
+     * jdt.ls creates a fresh importer instance for every workspace root, so
+     * this guard must be static to deduplicate the workspace-level
+     * {@code hasMultipleGradleRoots} fallback telemetry across the per-root
+     * {@code applies()} calls. It is sent at most once per session.
+     */
+    private static final AtomicBoolean multipleGradleRootsTelemetrySent = new AtomicBoolean(false);
+
     private boolean isResolved = true;
 
     @Override
@@ -81,9 +91,11 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         // build (docs, scripts, ...) are fine.
         Collection<IPath> rootPaths = getPreferences().getRootPaths();
         if (rootPaths.size() != 1 && hasMultipleGradleRoots(rootPaths, monitor)) {
-            Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
-            Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
-                    telemetry);
+            if (multipleGradleRootsTelemetrySent.compareAndSet(false, true)) {
+                Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
+            }
             return false;
         }
 
