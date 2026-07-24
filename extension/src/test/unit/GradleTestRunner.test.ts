@@ -192,7 +192,7 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         assert.strictEqual(finishStatus, -1);
     });
 
-    it("runs coverage through BSP with the report as a test finalizer", async () => {
+    it("runs coverage through BSP, writing exec data via the init script", async () => {
         const executeCommand = sinon.stub(vscode.commands, "executeCommand");
         executeCommand
             .withArgs("java.execute.workspaceCommand", "java.gradle.getBuildTargetInfo", "demo")
@@ -220,8 +220,9 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         await runner.launch(context);
 
         // Tests are delegated through BSP (not the task server), and the BSP
-        // test args carry the JaCoCo init script (which wires the report as a
-        // `test` finalizer, so no separate report build is needed).
+        // test args carry the JaCoCo init script (which attaches the agent so
+        // each Test JVM writes `.exec` data; JDTLS analyzes it, so no separate
+        // report build is needed).
         const delegateCall = executeCommand.getCalls().find((call) => call.args[1] === "java.gradle.delegateTest");
         assert.ok(delegateCall);
         const bspArgs = delegateCall.args[4] as string[];
@@ -235,8 +236,9 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         runner.finishTestRun(0);
         await waitUntil(() => finishEvents.length > 0);
 
-        // No separate task-server build runs for coverage; the report came from
-        // the BSP phase. The run is finished only after coverage is collected.
+        // No separate task-server build runs for coverage. The run finishes when
+        // the server signals the streamed test run is done; JDTLS then analyzes
+        // the `.exec` files out of band.
         assert.strictEqual(client.runBuild.called, false);
         assert.deepStrictEqual(finishEvents, [0]);
         assert.ok(
@@ -424,7 +426,7 @@ function buildRunContext(
     for (const item of items) {
         testRunnerApi.setParts(item.id, item.parts);
     }
-    return {
+    const context: IRunTestContext = {
         isDebug: false,
         kind: 0,
         projectName: "demo",
@@ -438,6 +440,10 @@ function buildRunContext(
         testConfig,
         profile,
     };
+    if (profile?.kind === vscode.TestRunProfileKind.Coverage) {
+        context.coverage = { outputDirectory: path.join(os.tmpdir(), "gradle-cov-exec-test") };
+    }
+    return context;
 }
 
 function captureStatusEvents(
