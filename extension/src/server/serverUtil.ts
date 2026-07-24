@@ -20,6 +20,10 @@ export function quoteArg(arg: string): string {
     return `"${arg}"`;
 }
 
+export function appendGradleServerOpts(existingOpts: string | undefined, requiredOpts: string): string {
+    return existingOpts ? `${existingOpts} ${requiredOpts}` : requiredOpts;
+}
+
 export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
     const javaHome = getRedHatJavaEmbeddedJRE() || (await findValidJavaHome());
     const env = { ...process.env };
@@ -31,10 +35,12 @@ export async function getGradleServerEnv(): Promise<ProcessEnv | undefined> {
         return undefined;
     }
     if (env["DEBUG_GRADLE_SERVER"] === "true") {
-        env.GRADLE_SERVER_OPTS =
-            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8089 " + GRADLE_SERVER_BASE_JVM_OPTS;
+        env.GRADLE_SERVER_OPTS = appendGradleServerOpts(
+            env.GRADLE_SERVER_OPTS,
+            "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8089 " + GRADLE_SERVER_BASE_JVM_OPTS
+        );
     } else {
-        env.GRADLE_SERVER_OPTS = GRADLE_SERVER_BASE_JVM_OPTS;
+        env.GRADLE_SERVER_OPTS = appendGradleServerOpts(env.GRADLE_SERVER_OPTS, GRADLE_SERVER_BASE_JVM_OPTS);
     }
     return env;
 }
