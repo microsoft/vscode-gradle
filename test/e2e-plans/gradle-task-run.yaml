@@ -40,6 +40,6 @@ steps:
   - id: "run-tasks-report"
     action: "doubleClick tasks tree item"
     verifyTerminal:
-      contains: "Tasks runnable from root project 'gradle'"
+      contains: "Displays the tasks runnable from root project 'gradle'."
       notContains: "BUILD FAILED"
     timeout: 120
