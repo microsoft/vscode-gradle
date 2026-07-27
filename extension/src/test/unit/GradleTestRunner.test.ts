@@ -189,9 +189,134 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         );
 
         assert.strictEqual(client.runBuild.called, false);
-        assert.strictEqual(finishStatus, -1);
+        assert.strictEqual(finishStatus, 2);
     });
 });
+
+describe(getSuiteName("Gradle test runner run lifecycle"), () => {
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it("finishes the run when the build server never reports a result", async () => {
+        // A Gradle version the build server cannot drive, a dropped connection or a
+        // target with nothing to run all end the request without any test report.
+        sinon.stub(vscode.commands, "executeCommand").resolves(2);
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const finishes = captureFinishEvents(runner);
+
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+
+        assert.deepStrictEqual(finishes, [{ statusCode: 2, message: undefined }]);
+    });
+
+    it("prefers the build server's own report over the end of the request", async () => {
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const finishes = captureFinishEvents(runner);
+        sinon.stub(vscode.commands, "executeCommand").callsFake(async (...args: any[]) => {
+            runner.finishTestRun(2, "3 tests failed", args[7]);
+            return 1;
+        });
+
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+
+        assert.deepStrictEqual(finishes, [{ statusCode: 2, message: "3 tests failed" }]);
+    });
+
+    it("ignores a report belonging to a run that already ended", async () => {
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        sinon.stub(vscode.commands, "executeCommand").resolves(1);
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+
+        const finishes = captureFinishEvents(runner);
+        let staleReportDelivered = false;
+        sinon.restore();
+        sinon.stub(vscode.commands, "executeCommand").callsFake(async () => {
+            // The previous run's report, arriving while its successor is in flight.
+            runner.finishTestRun(2, "stale", "vscode-gradle-test-stale");
+            staleReportDelivered = true;
+            return 1;
+        });
+
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+
+        assert.strictEqual(staleReportDelivered, true);
+        assert.deepStrictEqual(finishes, [{ statusCode: 1, message: undefined }]);
+    });
+
+    it("runs one test run at a time", async () => {
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        let inFlight = 0;
+        let overlapped = false;
+        sinon.stub(vscode.commands, "executeCommand").callsFake(async () => {
+            overlapped = overlapped || ++inFlight > 1;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            inFlight--;
+            return 1;
+        });
+
+        await Promise.all([
+            runner.launch(buildRunContext(testRunnerApi, [singleTestItem()])),
+            runner.launch(buildRunContext(testRunnerApi, [singleTestItem()])),
+        ]);
+
+        assert.strictEqual(overlapped, false);
+    });
+
+    it("does not launch a run that was cancelled while queued", async () => {
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves(1);
+        const context = buildRunContext(testRunnerApi, [singleTestItem()]);
+        context.cancellationToken = { isCancellationRequested: true } as vscode.CancellationToken;
+        const finishes = captureFinishEvents(runner);
+
+        await runner.launch(context);
+
+        assert.strictEqual(executeCommand.called, false);
+        // The run still has to be reported, otherwise the queue never advances.
+        assert.deepStrictEqual(finishes, [{ statusCode: 3, message: undefined }]);
+    });
+
+    it("keeps the queue moving after a run fails", async () => {
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        executeCommand.onFirstCall().rejects(new Error("Gradle test execution failed"));
+        executeCommand.onSecondCall().resolves(1);
+        const finishes = captureFinishEvents(runner);
+
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+        await runner.launch(buildRunContext(testRunnerApi, [singleTestItem()]));
+
+        assert.strictEqual(finishes.length, 2);
+        assert.strictEqual(finishes[0].statusCode, 2);
+        assert.strictEqual(finishes[1].statusCode, 1);
+    });
+});
+
+function singleTestItem(): { id: string; parts: TestIdParts } {
+    return {
+        id: "method",
+        parts: {
+            project: "demo",
+            class: "com.example.AppTest",
+            invocations: ["shouldPass"],
+        },
+    };
+}
+
+function captureFinishEvents(runner: GradleTestRunner): Array<{ statusCode: number; message?: string }> {
+    const finishes: Array<{ statusCode: number; message?: string }> = [];
+    runner.onDidFinishTestRun((event) => {
+        finishes.push({ statusCode: event.statusCode, message: event.message });
+    });
+    return finishes;
+}
 
 function stubBspUnavailable(): void {
     sinon

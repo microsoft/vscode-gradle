@@ -88,8 +88,8 @@ export class BuildServerController implements Disposable {
             }),
             commands.registerCommand(
                 "java.gradle.buildServer.onDidFinishTestRun",
-                (status: number, message?: string) => {
-                    this.gradleTestRunner?.finishTestRun(status, message);
+                (status: number, message?: string, originId?: string) => {
+                    this.gradleTestRunner?.finishTestRun(status, message, originId);
                 }
             ),
             commands.registerCommand(
