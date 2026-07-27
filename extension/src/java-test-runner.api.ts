@@ -216,8 +216,10 @@ export interface IRunTestContext {
      */
     coverage?: {
         /**
-         * Directory where the delegated test JVM should write JaCoCo `.exec`
-         * execution data. JDTLS loads and analyzes these files after the run.
+         * Directory holding this run's JaCoCo `.exec` execution data. A delegated
+         * runner must write its execution data here. JDTLS merges every `.exec`
+         * file below this directory and analyzes it after the run, so the
+         * directory is specific to the runner that produced the data.
          */
         outputDirectory: string;
     };
