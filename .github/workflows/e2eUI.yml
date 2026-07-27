@@ -183,7 +183,7 @@ jobs:
           sleep 2
 
       - name: Install AutoTest
-        run: npm install -g @vscjava/vscode-autotest
+        run: npm install -g @vscjava/vscode-autotest@latest
 
       - name: Download VSIX
         uses: actions/download-artifact@v4

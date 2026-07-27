@@ -1,7 +1,7 @@
 name: "Gradle Projects — Discover Task"
 description: |
   Opens the Gradle Projects view for the existing Groovy fixture and verifies
-  that its custom hello task is visible.
+  that the extension discovers its Gradle tasks.
 
 setup:
   extension: "vscjava.vscode-gradle"
@@ -15,26 +15,15 @@ setup:
 
 steps:
   - id: "open-gradle-view"
-    action: "executeVSCodeCommand workbench.view.extension.gradleContainerView"
-
-  - id: "use-flat-task-layout"
-    action: "executeVSCodeCommand gradle.explorerFlat"
+    action: "click side tab Gradle"
 
   - id: "refresh-gradle-projects"
     action: "executeVSCodeCommand gradle.refresh"
 
-  - id: "expand-project"
-    action: "expandTreeItem gradle"
-    waitBefore: 2
-
-  - id: "expand-tasks"
-    action: "expandTreeItem Tasks"
-
-  - id: "verify-hello-task"
+  - id: "verify-task-discovery"
     action: "wait"
-    verifyTreeItem:
-      name: "hello"
-      visible: true
-      exact: true
-      inView: "Gradle Projects"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found 22 tasks"
+      notContains: "CONFIGURE FAILED"
     timeout: 120

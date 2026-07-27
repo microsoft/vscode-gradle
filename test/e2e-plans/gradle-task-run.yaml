@@ -1,6 +1,6 @@
 name: "Gradle Projects — Run Task"
 description: |
-  Runs the hello task from the visible Gradle Projects tree and verifies its
+  Runs the standard tasks report from the Gradle Projects tree and verifies its
   output in the integrated terminal.
 
 setup:
@@ -15,24 +15,31 @@ setup:
 
 steps:
   - id: "open-gradle-view"
-    action: "executeVSCodeCommand workbench.view.extension.gradleContainerView"
-
-  - id: "use-flat-task-layout"
-    action: "executeVSCodeCommand gradle.explorerFlat"
+    action: "click side tab Gradle"
 
   - id: "refresh-gradle-projects"
     action: "executeVSCodeCommand gradle.refresh"
 
+  - id: "wait-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found 22 tasks"
+      notContains: "CONFIGURE FAILED"
+    timeout: 120
+
   - id: "expand-project"
     action: "expandTreeItem gradle"
-    waitBefore: 2
 
   - id: "expand-tasks"
     action: "expandTreeItem Tasks"
 
-  - id: "run-hello-task"
-    action: "click hello tree item exact"
+  - id: "expand-help-group"
+    action: "expandTreeItem help"
+
+  - id: "run-tasks-report"
+    action: "doubleClick tasks tree item"
     verifyTerminal:
-      contains: "Hello, World!"
+      contains: "Tasks runnable from root project 'gradle'"
       notContains: "BUILD FAILED"
     timeout: 120

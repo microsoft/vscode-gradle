@@ -24,13 +24,21 @@ write deterministic `results.json` plus screenshots.
 
 ## Actions
 
-- Open the Gradle side bar with
-  `executeVSCodeCommand workbench.view.extension.gradleContainerView`.
+- Open the Gradle side bar with `click side tab Gradle`; this waits for the
+  contributed activity tab instead of racing command registration at startup.
 - Prefer stable command IDs such as `gradle.refresh`, `gradle.explorerFlat`,
   and `gradle.explorerTree` over localized Command Palette labels.
-- The task tree normally contains the project, a `Tasks` node, optional task
-  groups, and task rows. Expand each parent explicitly before clicking a task.
-- Use `click <task> tree item exact` to exercise a task through the visible UI.
+- Prefer `verifyOutputChannel` on `Gradle for Java` when the assertion is task
+  discovery itself. The extension swaps two providers with the same
+  `Gradle Projects` title during startup, so output evidence avoids binding a
+  discovery check to a transient provider.
+- Run tasks from the visible Gradle Projects tree after discovery completes.
+  Expand every parent explicitly, then double-click the exact task row. Do not
+  use `gradle.runTasks`: it is hidden from the Command Palette and its URI-based
+  filtering depends on Java Project menu context that standalone fixtures do
+  not provide reliably.
+- Use `doubleClick <task> tree item` to exercise a task through the visible UI;
+  AutoTest prefers an exact visible label before falling back to fuzzy matching.
 - Do not use `waitForLanguageServer` as proof that Gradle task discovery
   completed. The Gradle task server is separate from the Java language server.
   Let `verifyTreeItem` poll for the expected task instead.
