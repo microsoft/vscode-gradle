@@ -21,6 +21,26 @@ export type parseTestIdFromParts = (parts: TestIdParts) => string;
  */
 export type parsePartsFromTestId = (id: string) => TestIdParts;
 
+/**
+ * @todo Proposed API
+ * The optional features this extension supports, so that consumers can
+ * feature-detect before relying on them. Versions released before capability
+ * declaration expose no `capabilities` member at all, so consumers must treat
+ * an absent member as "no optional capability supported".
+ */
+export type capabilities = readonly string[];
+
+/**
+ * @todo Proposed API
+ * Capability name: this extension populates {@link IRunTestContext.coverage}
+ * for Coverage-kind runs and analyzes the JaCoCo `.exec` files that a
+ * delegated runner writes to `coverage.outputDirectory`.
+ *
+ * A delegated runner must not register a Coverage test profile unless the
+ * host advertises this capability, otherwise the profile can only fail.
+ */
+export const DELEGATED_TEST_COVERAGE_CAPABILITY: string = 'delegatedTestCoverage';
+
 
 /**
  * @todo Proposed API

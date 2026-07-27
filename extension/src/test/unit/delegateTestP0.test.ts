@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { getCoverageInitScriptLines } from "../../bs/coverage";
+import { getCoverageInitScriptLines, supportsDelegatedTestCoverage } from "../../bs/coverage";
 import { getSuiteName } from "../testUtil";
 
 /**
@@ -39,6 +39,24 @@ describe(getSuiteName("Delegate test P0 helpers"), () => {
             const script = getCoverageInitScriptLines("/tmp/wei's cov").join("\n");
 
             assert.match(script, /new File\('\/tmp\/wei\\'s cov'/);
+        });
+    });
+
+    describe("supportsDelegatedTestCoverage", () => {
+        it("reports support when the host advertises the capability", () => {
+            assert.strictEqual(supportsDelegatedTestCoverage({ capabilities: ["delegatedTestCoverage"] }), true);
+        });
+
+        it("reports no support for hosts released before capability declaration", () => {
+            assert.strictEqual(supportsDelegatedTestCoverage({}), false);
+        });
+
+        it("reports no support when the capability is absent from the list", () => {
+            assert.strictEqual(supportsDelegatedTestCoverage({ capabilities: ["someOtherCapability"] }), false);
+        });
+
+        it("reports no support when the extension API is unavailable", () => {
+            assert.strictEqual(supportsDelegatedTestCoverage(undefined), false);
         });
     });
 });

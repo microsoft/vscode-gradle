@@ -2,6 +2,31 @@
 // Licensed under the MIT license.
 
 import { escapeGroovySingleQuoted } from "./groovy";
+import { DELEGATED_TEST_COVERAGE_CAPABILITY } from "../java-test-runner.api";
+
+/**
+ * The subset of the Test Runner for Java extension API that this module
+ * inspects. Versions released before capability declaration expose no
+ * `capabilities` member at all.
+ */
+export interface JavaTestRunnerCapabilities {
+    capabilities?: readonly string[];
+}
+
+/**
+ * Whether the installed Test Runner for Java extension drives delegated
+ * coverage runs, that is, whether it hands the runner an output directory
+ * through `IRunTestContext.coverage` and analyzes the `.exec` files written
+ * there once the run finishes.
+ *
+ * Both halves of the feature ship separately, so registering the Coverage
+ * profile against a host that lacks this capability would surface a run
+ * profile that can only fail. Keeping the profile hidden until the host
+ * advertises support removes that ordering hazard entirely.
+ */
+export function supportsDelegatedTestCoverage(api: JavaTestRunnerCapabilities | undefined): boolean {
+    return api?.capabilities?.includes(DELEGATED_TEST_COVERAGE_CAPABILITY) === true;
+}
 
 /**
  * Enable JaCoCo on every `Test` task without changing the user's build files,
