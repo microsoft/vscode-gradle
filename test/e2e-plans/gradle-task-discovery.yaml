@@ -1,0 +1,40 @@
+name: "Gradle Projects — Discover Task"
+description: |
+  Opens the Gradle Projects view for the existing Groovy fixture and verifies
+  that its custom hello task is visible.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-groovy-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "executeVSCodeCommand workbench.view.extension.gradleContainerView"
+
+  - id: "use-flat-task-layout"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "expand-project"
+    action: "expandTreeItem gradle"
+    waitBefore: 2
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "verify-hello-task"
+    action: "wait"
+    verifyTreeItem:
+      name: "hello"
+      visible: true
+      exact: true
+      inView: "Gradle Projects"
+    timeout: 120

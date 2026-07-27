@@ -36,3 +36,8 @@ gradle-server/src/main/resources/*.jar
 
 # Local-only working notes (never commit)
 *.local.md
+
+# AutoTest UI/E2E outputs
+/.vscode-test/
+/test-results/
+/vscode-gradle.vsix

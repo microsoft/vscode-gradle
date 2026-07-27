@@ -1,0 +1,214 @@
+name: E2E UI Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      plans:
+        description: JSON array of E2E plan basenames to run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  discover-plans:
+    name: Discover E2E Plans
+    runs-on: ubuntu-latest
+    outputs:
+      plans: ${{ steps.discover.outputs.plans }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve plan matrix
+        id: discover
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_PLANS: ${{ inputs.plans }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          root = Path("test/e2e-plans")
+          files = sorted(
+              (*root.rglob("*.yaml"), *root.rglob("*.yml")),
+              key=lambda path: path.as_posix().casefold(),
+          )
+          plans = {}
+          for path in files:
+              key = path.stem.casefold()
+              if key in plans:
+                  raise SystemExit(
+                      f"Duplicate case-insensitive plan basename: "
+                      f"{plans[key]['path']} and {path.as_posix()}"
+                  )
+              plans[key] = {"stem": path.stem, "path": path.as_posix()}
+
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+              try:
+                  requested = json.loads(os.environ.get("REQUESTED_PLANS") or "")
+              except json.JSONDecodeError as exc:
+                  raise SystemExit(f"plans must be valid JSON: {exc}") from exc
+              if not isinstance(requested, list) or not requested:
+                  raise SystemExit("plans must be a non-empty JSON array")
+
+              selected = []
+              seen = set()
+              for value in requested:
+                  if not isinstance(value, str) or not re.fullmatch(
+                      r"[A-Za-z0-9._-]+", value
+                  ):
+                      raise SystemExit(f"Invalid plan basename: {value!r}")
+                  key = value.casefold()
+                  if key in seen:
+                      continue
+                  seen.add(key)
+                  if key not in plans:
+                      raise SystemExit(f"Unknown E2E plan: {value}")
+                  selected.append(plans[key])
+          else:
+              selected = list(plans.values())
+
+          if not selected:
+              raise SystemExit("No E2E plans were found")
+
+          payload = json.dumps(selected, separators=(",", ":"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"plans={payload}\n")
+          print(f"Selected plans: {payload}")
+          PY
+
+  build-vsix:
+    name: Build VSIX
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Checkout Gradle Build Server
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/build-server-for-gradle
+          path: extension/build-server-for-gradle
+
+      - name: Build server dependencies
+        working-directory: extension
+        run: |
+          configure_gradle_wrapper() {
+            local properties="$1"
+            sed -i 's#https\\://services.gradle.org/distributions/#https\\://downloads.gradle.org/distributions/#' "$properties"
+            sed -i 's#https://services.gradle.org/distributions/#https://downloads.gradle.org/distributions/#' "$properties"
+            if grep -q '^networkTimeout=' "$properties"; then
+              sed -i 's/^networkTimeout=.*/networkTimeout=60000/' "$properties"
+            else
+              printf '\nnetworkTimeout=60000\n' >> "$properties"
+            fi
+          }
+
+          configure_gradle_wrapper ../gradle/wrapper/gradle-wrapper.properties
+          configure_gradle_wrapper build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
+          ../gradlew buildJars
+
+      - name: Build extension
+        run: ./gradlew build
+        env:
+          JAVA_HOME: ""
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Package VSIX
+        working-directory: extension
+        run: npx @vscode/vsce@latest package -o ../vscode-gradle.vsix
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-gradle-vsix
+          path: vscode-gradle.vsix
+          retention-days: 1
+
+  e2e:
+    name: E2E ${{ matrix.platform.name }} (${{ matrix.plan.stem }})
+    needs: [discover-plans, build-vsix]
+    runs-on: ${{ matrix.platform.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: linux
+            runner: ubuntu-latest
+          - name: windows
+            runner: windows-latest
+        plan: ${{ fromJson(needs.discover-plans.outputs.plans) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up virtual display
+        if: matrix.platform.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
+          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          sleep 2
+
+      - name: Install AutoTest
+        run: npm install -g @vscjava/vscode-autotest
+
+      - name: Download VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: vscode-gradle-vsix
+          path: .
+
+      - name: Run ${{ matrix.plan.stem }}
+        shell: pwsh
+        run: |
+          $vsix = (Resolve-Path "vscode-gradle.vsix").Path
+          $output = "test-results/${{ matrix.plan.stem }}"
+          & autotest run "${{ matrix.plan.path }}" `
+            --vsix $vsix `
+            --no-llm `
+            --output $output
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Upload deterministic evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.platform.name }}-${{ matrix.plan.stem }}
+          path: test-results/${{ matrix.plan.stem }}
+          if-no-files-found: warn
+          retention-days: 7

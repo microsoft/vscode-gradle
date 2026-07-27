@@ -1,0 +1,35 @@
+apiVersion: v1alpha1
+kind: AutoTestAgentProfile
+capability: vscode-autotest-plan
+trigger:
+  issueLabel: agent:test-plan
+task:
+  defaultMode: verify
+  allowedModes:
+    - verify
+permissions:
+  writeGlobs:
+    - test/e2e-plans/**
+    - test/e2e-fixtures/**
+plans:
+  globs:
+    - test/e2e-plans/**/*.yaml
+    - test/e2e-plans/**/*.yml
+context:
+  instructionPaths:
+    - .github/instructions/uitest-plan.instructions.md
+preflight:
+  workflow:
+    name: E2E UI Tests
+    path: .github/workflows/e2eUI.yml
+    plansInput: plans
+  requiredPlatforms:
+    - linux
+    - windows
+  artifactNameTemplate: e2e-results-{platform}-{plan}
+pullRequest:
+  requiredWorkflows:
+    - .github/workflows/main.yml
+    - .github/workflows/e2eUI.yml
+repair:
+  maxAttempts: 3

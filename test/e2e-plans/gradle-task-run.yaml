@@ -1,0 +1,38 @@
+name: "Gradle Projects — Run Task"
+description: |
+  Runs the hello task from the visible Gradle Projects tree and verifies its
+  output in the integrated terminal.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-groovy-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "executeVSCodeCommand workbench.view.extension.gradleContainerView"
+
+  - id: "use-flat-task-layout"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "expand-project"
+    action: "expandTreeItem gradle"
+    waitBefore: 2
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "run-hello-task"
+    action: "click hello tree item exact"
+    verifyTerminal:
+      contains: "Hello, World!"
+      notContains: "BUILD FAILED"
+    timeout: 120
