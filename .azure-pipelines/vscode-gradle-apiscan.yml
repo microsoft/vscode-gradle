@@ -1,4 +1,7 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
+variables:
+  - name: npm_config_userconfig
+    value: $(Agent.TempDirectory)/.npmrc
 resources:
   repositories:
     - repository: self
@@ -48,6 +51,7 @@ extends:
                 displayName: Install Node 20.x
                 inputs:
                   versionSpec: 20.x
+              - template: /.azure-pipelines/npm-cfs.yml@self
               - task: DownloadPipelineArtifact@2
                 displayName: 'Download Build Server Artifacts'
                 inputs:
