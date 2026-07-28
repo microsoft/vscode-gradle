@@ -54,13 +54,14 @@ write deterministic `results.json` plus screenshots.
 - Use `verifyTerminal` for Gradle task output and `verifyOutputChannel` for
   extension logs.
 - Keep every `verifyTerminal.contains` **short and anchored at column 0**
-  (`BUILD SUCCESSFUL`, `gradle: <task>`). Terminal text is read as xterm
-  *physical* rows joined with newlines, so a substring longer than the terminal
-  is wide is split by a soft wrap and can never match. The CI layout leaves the
-  terminal around 44 columns, so a 55-character sentence fails deterministically
-  on Windows while passing on Linux. Run
+  (`BUILD SUCCESSFUL`, `To see all tasks`) and assert only on text that is still
+  in the *visible* terminal viewport when the step runs. Terminal text is read
+  from the rendered xterm rows, so anything that has scrolled out of view (a
+  task's `Executing task:` header, for example) is not assertable, and a
+  substring longer than the terminal is wide is split by a soft wrap and can
+  never match. Run
   `executeVSCodeCommand workbench.action.closeAuxiliaryBar` early in the plan to
-  widen it, and still keep the assertion short.
+  widen the terminal, and still keep the assertion short.
 - `verifyTerminal` and `verifyOutputChannel` accept a single `contains` and a
   single `notContains` string — no arrays and no regex. Split additional
   assertions into their own `wait` step.

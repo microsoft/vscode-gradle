@@ -40,16 +40,20 @@ steps:
   - id: "expand-help-group"
     action: "expandTreeItem help"
 
-  # Terminal assertions are matched against xterm physical rows joined with
-  # newlines, so any substring longer than the terminal is wide can never
-  # match. Keep every `contains` short and anchored at column 0.
+  # Terminal text is captured from the *visible* xterm viewport, so anything
+  # that has already scrolled away (the `Executing task:` header) is not
+  # assertable. Assert only on the tail of the report, and keep each substring
+  # short and anchored at column 0 so a soft wrap can never split it.
   - id: "run-tasks-report"
     action: "doubleClick tasks tree item"
-    verifyTerminal:
-      contains: "gradle: tasks"
-    timeout: 120
 
   - id: "verify-tasks-report-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "To see all tasks"
+    timeout: 120
+
+  - id: "verify-tasks-report-succeeded"
     action: "wait"
     verifyTerminal:
       contains: "BUILD SUCCESSFUL"
