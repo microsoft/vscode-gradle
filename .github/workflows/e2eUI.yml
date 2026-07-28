@@ -115,6 +115,9 @@ jobs:
           bash "$GITHUB_WORKSPACE/.github/scripts/configure-gradle-wrapper.sh" \
             ../gradle/wrapper/gradle-wrapper.properties \
             build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
+          bash "$GITHUB_WORKSPACE/.github/scripts/warm-gradle-wrapper.sh" \
+            ../gradlew \
+            build-server-for-gradle/gradlew
           ../gradlew buildJars
 
       - name: Build extension
@@ -173,7 +176,27 @@ jobs:
           sleep 2
 
       - name: Install AutoTest
-        run: npm install -g @vscjava/vscode-autotest@latest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+
+          npm install -g @vscjava/vscode-autotest@latest
+          if ($LASTEXITCODE -ne 0) {
+            throw "npm install failed with exit code $LASTEXITCODE"
+          }
+
+          # The CLI's own `--version` is hardcoded and does not track the
+          # package version, so read what npm actually resolved. `@latest`
+          # floats, so without this line a red run cannot be told apart from a
+          # runner that simply picked up a newer AutoTest.
+          $tree = npm ls -g @vscjava/vscode-autotest --depth=0 --json | ConvertFrom-Json
+          $version = $tree.dependencies."@vscjava/vscode-autotest".version
+          if (-not $version) {
+            throw "Could not resolve the installed @vscjava/vscode-autotest version"
+          }
+
+          Write-Host "@vscjava/vscode-autotest resolved to $version"
+          "AutoTest version: $version" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Download VSIX
         uses: actions/download-artifact@v4
