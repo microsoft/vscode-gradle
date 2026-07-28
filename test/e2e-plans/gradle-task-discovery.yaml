@@ -20,10 +20,14 @@ steps:
   - id: "refresh-gradle-projects"
     action: "executeVSCodeCommand gradle.refresh"
 
+  # `Found <n> tasks` is the only success-path log line in GradleTaskProvider;
+  # the failure path logs `Unable to refresh tasks` instead. Asserting on the
+  # prefix plus `Found 0 tasks` keeps the check independent of the Gradle
+  # version's built-in task count.
   - id: "verify-task-discovery"
     action: "wait"
     verifyOutputChannel:
       channel: "Gradle for Java"
-      contains: "Found 22 tasks"
-      notContains: "CONFIGURE FAILED"
+      contains: "Found "
+      notContains: "Found 0 tasks"
     timeout: 120

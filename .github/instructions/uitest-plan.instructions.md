@@ -32,6 +32,10 @@ write deterministic `results.json` plus screenshots.
   discovery itself. The extension swaps two providers with the same
   `Gradle Projects` title during startup, so output evidence avoids binding a
   discovery check to a transient provider.
+- Never assert on a task *count* (`Found 22 tasks`). The built-in task list
+  changes with the Gradle version. Assert `contains: "Found "` plus
+  `notContains: "Found 0 tasks"` instead: `GradleTaskProvider` only logs
+  `Found <n> tasks` on the success path.
 - Run tasks from the visible Gradle Projects tree after discovery completes.
   Expand every parent explicitly, then double-click the exact task row. Do not
   use `gradle.runTasks`: it is hidden from the Command Palette and its URI-based
@@ -49,6 +53,17 @@ write deterministic `results.json` plus screenshots.
 - Use `verifyTreeItem` with `inView: "Gradle Projects"` for task-tree state.
 - Use `verifyTerminal` for Gradle task output and `verifyOutputChannel` for
   extension logs.
+- Keep every `verifyTerminal.contains` **short and anchored at column 0**
+  (`BUILD SUCCESSFUL`, `gradle: <task>`). Terminal text is read as xterm
+  *physical* rows joined with newlines, so a substring longer than the terminal
+  is wide is split by a soft wrap and can never match. The CI layout leaves the
+  terminal around 44 columns, so a 55-character sentence fails deterministically
+  on Windows while passing on Linux. Run
+  `executeVSCodeCommand workbench.action.closeAuxiliaryBar` early in the plan to
+  widen it, and still keep the assertion short.
+- `verifyTerminal` and `verifyOutputChannel` accept a single `contains` and a
+  single `notContains` string — no arrays and no regex. Split additional
+  assertions into their own `wait` step.
 - Natural-language `verify` text is diagnostic context only. CI runs with
   `--no-llm`, so it cannot determine pass or fail.
 - Prefer polling verifiers over fixed waits. A short wait is acceptable only

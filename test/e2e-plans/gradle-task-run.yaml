@@ -17,6 +17,9 @@ steps:
   - id: "open-gradle-view"
     action: "click side tab Gradle"
 
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
   - id: "refresh-gradle-projects"
     action: "executeVSCodeCommand gradle.refresh"
 
@@ -24,8 +27,8 @@ steps:
     action: "wait"
     verifyOutputChannel:
       channel: "Gradle for Java"
-      contains: "Found 22 tasks"
-      notContains: "CONFIGURE FAILED"
+      contains: "Found "
+      notContains: "Found 0 tasks"
     timeout: 120
 
   - id: "expand-project"
@@ -37,9 +40,18 @@ steps:
   - id: "expand-help-group"
     action: "expandTreeItem help"
 
+  # Terminal assertions are matched against xterm physical rows joined with
+  # newlines, so any substring longer than the terminal is wide can never
+  # match. Keep every `contains` short and anchored at column 0.
   - id: "run-tasks-report"
     action: "doubleClick tasks tree item"
     verifyTerminal:
-      contains: "Displays the tasks runnable from root project 'gradle'."
+      contains: "gradle: tasks"
+    timeout: 120
+
+  - id: "verify-tasks-report-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
       notContains: "BUILD FAILED"
     timeout: 120

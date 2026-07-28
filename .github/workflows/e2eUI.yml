@@ -112,19 +112,9 @@ jobs:
       - name: Build server dependencies
         working-directory: extension
         run: |
-          configure_gradle_wrapper() {
-            local properties="$1"
-            sed -i 's#https\\://services.gradle.org/distributions/#https\\://downloads.gradle.org/distributions/#' "$properties"
-            sed -i 's#https://services.gradle.org/distributions/#https://downloads.gradle.org/distributions/#' "$properties"
-            if grep -q '^networkTimeout=' "$properties"; then
-              sed -i 's/^networkTimeout=.*/networkTimeout=60000/' "$properties"
-            else
-              printf '\nnetworkTimeout=60000\n' >> "$properties"
-            fi
-          }
-
-          configure_gradle_wrapper ../gradle/wrapper/gradle-wrapper.properties
-          configure_gradle_wrapper build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
+          bash "$GITHUB_WORKSPACE/.github/scripts/configure-gradle-wrapper.sh" \
+            ../gradle/wrapper/gradle-wrapper.properties \
+            build-server-for-gradle/gradle/wrapper/gradle-wrapper.properties
           ../gradlew buildJars
 
       - name: Build extension
