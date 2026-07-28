@@ -60,37 +60,6 @@ Open the Debug panel, and select one of the `debug` tasks, for example `Debug Ex
 
 You can also run `./gradlew build testVsCode` to run all tests.
 
-### UI / E2E tests
-
-The API-level integration suite above runs inside the Extension Development
-Host. User-visible Workbench behavior is covered separately by declarative
-AutoTest plans under `test/e2e-plans/`.
-
-Build and package the extension, then validate and run a plan from the
-repository root:
-
-```powershell
-cd extension
-git clone https://github.com/microsoft/build-server-for-gradle.git
-..\gradlew.bat buildJars
-cd ..
-.\gradlew.bat build
-cd extension
-npx @vscode/vsce package -o ..\vscode-gradle.vsix
-cd ..
-
-npx -y @vscjava/vscode-autotest validate test\e2e-plans\gradle-task-discovery.yaml
-npx -y @vscjava/vscode-autotest run test\e2e-plans\gradle-task-discovery.yaml `
-  --vsix .\vscode-gradle.vsix `
-  --no-llm `
-  --output test-results\gradle-task-discovery
-```
-
-The run is accepted only from structured verifiers in `results.json`; CI also
-uploads the screenshots for diagnosis. See
-`.github/instructions/uitest-plan.instructions.md` for repository-specific
-authoring rules.
-
 ### Code Style
 
 Prettier is used to lint & format most files.
