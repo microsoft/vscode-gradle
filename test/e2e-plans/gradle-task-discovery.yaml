@@ -1,0 +1,33 @@
+name: "Gradle Projects — Discover Task"
+description: |
+  Opens the Gradle Projects view for the existing Groovy fixture and verifies
+  that the extension discovers its Gradle tasks.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-groovy-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  # `Found <n> tasks` is the only success-path log line in GradleTaskProvider;
+  # the failure path logs `Unable to refresh tasks` instead. Asserting on the
+  # prefix plus `Found 0 tasks` keeps the check independent of the Gradle
+  # version's built-in task count.
+  - id: "verify-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120

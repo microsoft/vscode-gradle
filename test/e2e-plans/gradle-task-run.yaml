@@ -1,0 +1,61 @@
+name: "Gradle Projects — Run Task"
+description: |
+  Runs the standard tasks report from the Gradle Projects tree and verifies its
+  output in the integrated terminal.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-groovy-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "wait-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "expand-project"
+    action: "expandTreeItem gradle"
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "expand-help-group"
+    action: "expandTreeItem help"
+
+  # Terminal text is captured from the *visible* xterm viewport, so anything
+  # that has already scrolled away (the `Executing task:` header) is not
+  # assertable. Assert only on the tail of the report, and keep each substring
+  # short and anchored at column 0 so a soft wrap can never split it.
+  - id: "run-tasks-report"
+    action: "doubleClick tasks tree item"
+
+  - id: "verify-tasks-report-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "To see all tasks"
+    timeout: 120
+
+  - id: "verify-tasks-report-succeeded"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
+      notContains: "BUILD FAILED"
+    timeout: 120
