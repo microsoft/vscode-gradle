@@ -5,8 +5,9 @@ schedules:
       include:
         - develop
 variables:
-  system.debug: true
-  npm_config_userconfig: $(Agent.TempDirectory)/.npmrc
+  - template: /.azure-pipelines/npm-cfs-variables.yml@self
+  - name: system.debug
+    value: 'true'
 resources:
   repositories:
     - repository: self
