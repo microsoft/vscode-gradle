@@ -5,7 +5,9 @@ schedules:
       include:
         - develop
 variables:
-  system.debug: true
+  - template: /.azure-pipelines/npm-cfs-variables.yml@self
+  - name: system.debug
+    value: 'true'
 resources:
   repositories:
     - repository: self
@@ -69,6 +71,7 @@ extends:
                 displayName: Install Node 20.x
                 inputs:
                   versionSpec: 20.x
+              - template: /.azure-pipelines/npm-cfs.yml@self
               - task: MicroBuildSigningPlugin@4
                 displayName: 'Install Signing Plugin'
                 inputs:
