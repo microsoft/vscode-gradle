@@ -92,7 +92,7 @@ export class GradleTestRunner implements TestRunner {
             debugPort = await getPort();
             testInitScriptPath = createInitScriptPath();
             const initScriptContent = this.getInitScriptContent(debugPort, [], {});
-            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
+            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), new Uint8Array(Buffer.from(initScriptContent)));
             args.unshift("--init-script", testInitScriptPath);
         }
 
@@ -195,7 +195,7 @@ export class GradleTestRunner implements TestRunner {
         const testInitScriptPath = createInitScriptPath();
         if (needsInitScript) {
             const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
-            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
+            await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), new Uint8Array(Buffer.from(initScriptContent)));
             initScriptWritten = true;
             gradleArgs.unshift("--init-script", testInitScriptPath);
         }

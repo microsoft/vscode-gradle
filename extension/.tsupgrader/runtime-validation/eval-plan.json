@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-07-31T10:40:00Z",
+  "generatedOnPlatform": "win32",
+  "projectType": "plugin",
+  "setup": [
+    { "command": "npm", "args": ["install"] }
+  ],
+  "assertions": [
+    {
+      "name": "tsc-no-emit",
+      "kind": "process",
+      "command": "npx",
+      "args": ["tsc", "--noEmit"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 180
+    },
+    {
+      "name": "vsce-package",
+      "kind": "process",
+      "command": "npx",
+      "args": ["@vscode/vsce", "package", "--no-dependencies", "--out", "test-package.vsix"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 120
+    }
+  ]
+}
