@@ -9,9 +9,16 @@ on:
         description: JSON array of E2E plan basenames to run
         required: true
         type: string
+      head_sha:
+        description: Exact commit SHA to check out and test
+        required: true
+        type: string
 
 permissions:
   contents: read
+
+env:
+  TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.head_sha || github.sha }}
 
 jobs:
   discover-plans:
@@ -21,6 +28,14 @@ jobs:
       plans: ${{ steps.discover.outputs.plans }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
       - name: Resolve plan matrix
         id: discover
@@ -89,6 +104,14 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -154,6 +177,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - name: Verify exact checkout
+        shell: pwsh
+        run: |
+          $actual = git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $actual -ne $env:TARGET_SHA) {
+            throw "Expected checkout $env:TARGET_SHA but found $actual"
+          }
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
