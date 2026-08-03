@@ -1,0 +1,86 @@
+name: "Gradle Projects — Run Kotlin DSL Custom Task"
+description: |
+  Discovers and runs the Kotlin DSL fixture's ungrouped custom task from the
+  visible Gradle Projects tree.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-kotlin-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
+  # Flat mode exposes ungrouped tasks directly beneath the Tasks container.
+  - id: "show-flat-task-tree"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  # Select the intended output channel before clearing it, so the later
+  # discovery assertion cannot match output from an earlier refresh.
+  - id: "select-gradle-output-channel"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "wait-for-output-channel"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "clear-gradle-output"
+    action: "executeVSCodeCommand workbench.output.action.clearOutput"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "verify-fresh-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "expand-kotlin-project"
+    action: "expandTreeItem gradle-kotlin"
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "verify-kotlin-custom-task"
+    action: "wait"
+    verifyTreeItem:
+      label: "helloKotlinDefault"
+      inView: "Gradle Projects"
+    timeout: 120
+
+  # Disabling reuse alone is insufficient evidence isolation; close terminals
+  # immediately before the task starts so its output must come from this run.
+  - id: "close-existing-terminals"
+    action: "executeVSCodeCommand workbench.action.terminal.killAll"
+
+  - id: "run-kotlin-custom-task"
+    action: "doubleClick helloKotlinDefault tree item"
+
+  - id: "verify-kotlin-task-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "Hello, helloKotlinDefault!"
+    timeout: 120
+
+  - id: "verify-kotlin-task-succeeded"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
+      notContains: "BUILD FAILED"
+    timeout: 120
