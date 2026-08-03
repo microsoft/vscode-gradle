@@ -1,0 +1,64 @@
+name: "Gradle Projects — Kotlin DSL Custom Task"
+description: |
+  Refreshes the Kotlin DSL fixture, proves its custom task appears in Gradle Projects,
+  and runs that task from the visible tree.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-kotlin-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
+  - id: "show-flat-task-tree"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "wait-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "expand-kotlin-project"
+    action: "expandTreeItem gradle-kotlin"
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "verify-kotlin-custom-task"
+    action: "wait"
+    verifyTreeItem:
+      label: "helloKotlinDefault"
+      inView: "Gradle Projects"
+    timeout: 120
+
+  - id: "run-kotlin-custom-task"
+    action: "doubleClick helloKotlinDefault tree item"
+
+  - id: "verify-kotlin-custom-task-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "Hello, helloKotlinDefault!"
+    timeout: 120
+
+  - id: "verify-kotlin-custom-task-succeeded"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
+      notContains: "BUILD FAILED"
+    timeout: 120
