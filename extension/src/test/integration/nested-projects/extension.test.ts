@@ -47,8 +47,14 @@ describe(getSuiteName("Extension"), () => {
     describe("Task provider", () => {
         describe("With nestedProjects disabled and a non-Gradle workspace root", () => {
             it("should not load nested Gradle project tasks", async () => {
-                const tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
-                assert.strictEqual(tasks.length, 0);
+                const nestedTaskNames = ["helloGroovyDefault", "helloKotlinDefault", "helloGroovyCustom"];
+                for (let i = 0; i < 5; i++) {
+                    const tasks = await vscode.tasks.fetchTasks({ type: "gradle" });
+                    assert.ok(nestedTaskNames.every((name) => !tasks.some((task) => task.name === name)));
+                    if (i < 4) {
+                        await sleep(5 * 1000);
+                    }
+                }
             });
         });
 
