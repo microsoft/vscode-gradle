@@ -1,7 +1,8 @@
 name: "Gradle Projects — Kotlin DSL Custom Task"
 description: |
-  Refreshes the Kotlin DSL fixture, proves its custom task appears in Gradle Projects,
-  and runs that task from the visible tree.
+  Covers #1914 by refreshing the Kotlin DSL fixture, proving its custom task appears
+  in Gradle Projects, and running that task from the visible tree. The target-row
+  and final terminal verification steps provide the runner's screenshot evidence.
 
 setup:
   extension: "vscjava.vscode-gradle"
@@ -47,6 +48,8 @@ steps:
       inView: "Gradle Projects"
     timeout: 120
 
+  # Capture target-interaction evidence while the exact task is visibly available,
+  # before double-clicking it in the Gradle Projects tree.
   - id: "run-kotlin-custom-task"
     action: "doubleClick helloKotlinDefault tree item"
 
