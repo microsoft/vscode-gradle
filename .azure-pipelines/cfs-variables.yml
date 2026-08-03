@@ -1,0 +1,35 @@
+# Non-secret half of the Central Feed Service (CFS) wiring, shared by the Gradle and
+# Maven halves of this build.
+#
+# SFI Network Isolation requires builds to resolve artifacts through CFS instead of
+# reaching a public host. This repository restores packages three different ways, and
+# each needs its own redirect:
+#
+#   * npm    -- see npm-cfs-variables.yml / npm-cfs.yml
+#   * Gradle -- cfs-init.gradle, applied to the Gradle tasks via --init-script, reads
+#               CFS_MAVEN_URL below
+#   * Maven  -- extension/jdtls.ext is a Tycho build invoked by the :extension:
+#               buildJdtlsPlugin Gradle task, so it inherits this environment. MAVEN_ARGS
+#               points it at cfs-settings.xml, and MVNW_REPOURL redirects the wrapper's
+#               own download of the Maven distribution, which no settings file can reach
+#               because it happens before Maven exists.
+#
+# The credential is deliberately absent. System.AccessToken is a secret, and Azure
+# Pipelines does not export secret variables to the environment -- not even through a
+# variable that merely references one -- so SYSTEM_ACCESSTOKEN and MVNW_PASSWORD are
+# mapped in `env:` blocks on the steps that actually run Gradle. Keeping them there also
+# limits the token to the steps that need it.
+#
+# Nothing here is secret, and none of it applies off the agents: a developer running
+# ./gradlew or ./mvnw locally never applies cfs-init.gradle and never sees MAVEN_ARGS,
+# so they keep resolving from Maven Central exactly as before.
+
+variables:
+  - name: CFS_MAVEN_URL
+    value: https://pkgs.dev.azure.com/mseng/VSJava/_packaging/vscjava/maven/v1
+  - name: MAVEN_ARGS
+    value: -s $(Build.SourcesDirectory)/.azure-pipelines/cfs-settings.xml
+  - name: MVNW_REPOURL
+    value: $(CFS_MAVEN_URL)
+  - name: MVNW_USERNAME
+    value: AzureDevOps

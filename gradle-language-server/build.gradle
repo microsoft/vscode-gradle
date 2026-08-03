@@ -49,6 +49,12 @@ sourceSets {
 
 test {
   useJUnitPlatform()
+  // The completion tests assert on suggestions that the bundled index in
+  // MavenIndexCompletionHandler already provides. Leaving the Maven Central search
+  // endpoint enabled would add a live call to search.maven.org on every run, which
+  // makes the tests depend on a third party service they do not need and which the
+  // build pipelines are not allowed to reach.
+  systemProperty 'gradle.languageServer.mavenCentralSearchUrl', ''
 }
 
 spotless {
