@@ -28,21 +28,12 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 public class MavenCentralCompletionHandler {
 	private static String sequence = "2";
-	public static final String SEARCH_URL_PROPERTY = "gradle.languageServer.mavenCentralSearchUrl";
-	private static final String DEFAULT_URL_BASIC_SEARCH = "https://search.maven.org/solrsearch/select?q=";
-	// Overridable so tests can opt out of reaching Maven Central. What this
-	// handler contributes is an addition to the offline index in
-	// MavenIndexCompletionHandler, so setting the property to an empty value
-	// still exercises completion, just without a network round trip.
-	private static String URL_BASIC_SEARCH = System.getProperty(SEARCH_URL_PROPERTY, DEFAULT_URL_BASIC_SEARCH);
+	private static String URL_BASIC_SEARCH = "https://search.maven.org/solrsearch/select?q=";
 	private enum DependencyCompletionKind {
 		GROUPID, ARTIFACTID, VERSION
 	}
 
 	public List<CompletionItem> getDependencyCompletionItems(DependencyItem dependency, Position position) {
-		if (URL_BASIC_SEARCH.isEmpty()) {
-			return Collections.emptyList();
-		}
 		Range range = new Range(dependency.getRange().getStart(), position);
 		String validText = LSPUtils.getStringBeforePosition(dependency.getText(), dependency.getRange(), position);
 		String[] validTexts = validText.split(":", -1);
