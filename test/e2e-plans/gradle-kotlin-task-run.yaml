@@ -1,0 +1,81 @@
+name: "Gradle Projects — Run Kotlin DSL Custom Task"
+description: |
+  Discovers and runs the Kotlin DSL fixture's ungrouped custom task from the
+  visible Gradle Projects tree, then verifies its fresh terminal output.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-kotlin-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
+  # Select the intended shared channel before clearing it, so subsequent
+  # discovery evidence can only have been written by this refresh.
+  - id: "select-gradle-output-channel"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "clear-gradle-output"
+    action: "executeVSCodeCommand workbench.output.action.clearOutput"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  - id: "verify-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "show-flat-task-tree"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  - id: "expand-kotlin-project"
+    action: "expandTreeItem gradle"
+
+  - id: "expand-kotlin-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "verify-kotlin-custom-task"
+    action: "wait"
+    verifyTreeItem:
+      label: "helloKotlinDefault"
+      inView: "Gradle Projects"
+    timeout: 120
+
+  # Terminals are shared UI state. Close them immediately before the run so
+  # the terminal verifiers below can only observe this task invocation.
+  - id: "close-existing-terminals"
+    action: "executeVSCodeCommand workbench.action.terminal.killAll"
+
+  - id: "run-kotlin-custom-task"
+    action: "doubleClick helloKotlinDefault tree item"
+
+  - id: "verify-kotlin-task-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "Hello, helloKotlinDefault!"
+    timeout: 120
+
+  - id: "verify-kotlin-task-succeeded"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
+      notContains: "BUILD FAILED"
+    timeout: 120
