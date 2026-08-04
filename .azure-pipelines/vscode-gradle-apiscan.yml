@@ -1,6 +1,7 @@
 name: $(Date:yyyyMMdd).$(Rev:r)
 variables:
   - template: /.azure-pipelines/npm-cfs-variables.yml@self
+  - template: /.azure-pipelines/cfs-variables.yml@self
 resources:
   repositories:
     - repository: self
@@ -80,14 +81,22 @@ extends:
                   TargetFolder: $(Build.SourcesDirectory)/gradle-server/build/libs/runtime
               - task: Gradle@3
                 displayName: Build
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                  MVNW_PASSWORD: $(System.AccessToken)
                 inputs:
                   gradleWrapperFile: 'gradlew'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'build'
               - task: Gradle@3
                 displayName: PrepareForRelease
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                  MVNW_PASSWORD: $(System.AccessToken)
                 inputs:
                   gradleWrapperFile: 'gradlew'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'prepareForRelease'
               - bash: chmod +x gradle-server
@@ -95,8 +104,12 @@ extends:
                 displayName: Set permission
               - task: Gradle@3
                 displayName: Build Gradle Build Server Importer
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                  MVNW_PASSWORD: $(System.AccessToken)
                 inputs:
                   gradleWrapperFile: 'gradlew'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
                   gradleOptions: '-Xmx3072m'
                   tasks: ':extension:copyJdtlsPluginJar'
               - bash: npx @vscode/vsce@latest package

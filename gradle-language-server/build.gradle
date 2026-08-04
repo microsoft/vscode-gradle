@@ -49,6 +49,18 @@ sourceSets {
 
 test {
   useJUnitPlatform()
+  // MavenCentralCompletionHandler calls search.maven.org on every completion.
+  // The assertions here are satisfied by the offline index that
+  // MavenIndexCompletionHandler ships, so that call is dead weight for the tests
+  // and it is unreachable from a network isolated build agent anyway.
+  // Routing HTTP through a closed loopback port keeps the request on the machine.
+  // The handler already treats a failed lookup as "no suggestions", so this
+  // reproduces exactly what the shipped code does without a network round trip.
+  systemProperty 'http.proxyHost', '127.0.0.1'
+  systemProperty 'http.proxyPort', '1'
+  systemProperty 'https.proxyHost', '127.0.0.1'
+  systemProperty 'https.proxyPort', '1'
+  systemProperty 'http.nonProxyHosts', ''
 }
 
 spotless {
