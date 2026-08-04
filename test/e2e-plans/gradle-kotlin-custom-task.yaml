@@ -1,0 +1,74 @@
+name: "Gradle Projects — Run Kotlin Custom Task"
+description: |
+  Discovers and runs the Kotlin DSL fixture's ungrouped custom task from the
+  visible Gradle Projects tree.
+
+setup:
+  extension: "vscjava.vscode-gradle"
+  vscodeVersion: "stable"
+  workspace: "../../extension/test-fixtures/gradle-kotlin-default-build-file"
+  workspaceTrust: "disabled"
+  settings:
+    workbench.startupEditor: "none"
+    gradle.nestedProjects: false
+    gradle.reuseTerminals: "off"
+
+steps:
+  - id: "open-gradle-view"
+    action: "click side tab Gradle"
+
+  - id: "widen-terminal"
+    action: "executeVSCodeCommand workbench.action.closeAuxiliaryBar"
+
+  # Flat mode puts this ungrouped custom task directly under Tasks.
+  - id: "use-flat-task-tree"
+    action: "executeVSCodeCommand gradle.explorerFlat"
+
+  # Selecting this output channel makes the following clear apply to the
+  # provider used by the refresh, rather than to another Gradle Projects view.
+  - id: "select-gradle-output-channel"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+    timeout: 120
+
+  - id: "clear-gradle-output-channel"
+    action: "executeVSCodeCommand workbench.output.action.clearOutput"
+
+  - id: "refresh-gradle-projects"
+    action: "executeVSCodeCommand gradle.refresh"
+
+  # This success-path log line is fresh because the selected channel was
+  # cleared immediately before refresh, while remaining Gradle-version agnostic.
+  - id: "verify-kotlin-task-discovery"
+    action: "wait"
+    verifyOutputChannel:
+      channel: "Gradle for Java"
+      contains: "Found "
+      notContains: "Found 0 tasks"
+    timeout: 120
+
+  - id: "expand-kotlin-project"
+    action: "expandTreeItem gradle-kotlin"
+
+  - id: "expand-tasks"
+    action: "expandTreeItem Tasks"
+
+  - id: "close-existing-terminals"
+    action: "executeVSCodeCommand workbench.action.terminal.killAll"
+
+  - id: "run-kotlin-custom-task"
+    action: "doubleClick helloKotlinDefault tree item"
+
+  - id: "verify-kotlin-custom-task-output"
+    action: "wait"
+    verifyTerminal:
+      contains: "Hello, helloKotlinDefault!"
+    timeout: 120
+
+  - id: "verify-kotlin-custom-task-succeeded"
+    action: "wait"
+    verifyTerminal:
+      contains: "BUILD SUCCESSFUL"
+      notContains: "BUILD FAILED"
+    timeout: 120
