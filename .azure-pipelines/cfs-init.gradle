@@ -1,0 +1,104 @@
+/*
+ * Gradle settings for the build pipelines in this directory. SFI Network Isolation
+ * requires builds to resolve artifacts through the Central Feed Service (CFS) instead
+ * of reaching a public host, and this file is the Gradle half of that. The Maven half
+ * lives in cfs-settings.xml and the npm half in npm-cfs.yml.
+ *
+ * It is an init script rather than an edit to build.gradle on purpose. Gradle has no
+ * mirror concept, so redirecting mavenCentral() means replacing the repository list,
+ * and doing that in build.gradle would point every external contributor at a feed they
+ * cannot authenticate against. Passing this file through --init-script keeps the change
+ * confined to the agents: anyone running ./gradlew locally never applies it and keeps
+ * resolving from Maven Central exactly as before.
+ *
+ * repositoriesMode is PREFER_SETTINGS, which makes Gradle ignore the repositories
+ * declared in the build scripts in favour of the ones below. Prepending the feed
+ * instead would leave the public hosts as a fallback, so a single artifact missing from
+ * CFS would quietly reach one of them and reintroduce the violation this file exists to
+ * fix. It also removes the redundant maven-central.storage-download.googleapis.com
+ * mirror from the resolution path without having to touch build.gradle.
+ *
+ * Neither of the values read below is a secret in this file. Both arrive from the
+ * environment and are only set on the agents; see cfs-variables.yml for the non-secret
+ * half and the `env:` block on the Gradle steps for the credential.
+ */
+
+def cfsUrl = System.getenv('CFS_MAVEN_URL')
+def cfsToken = System.getenv('SYSTEM_ACCESSTOKEN')
+
+if (!cfsUrl?.trim() || !cfsToken?.trim()) {
+    throw new GradleException(
+        'CFS_MAVEN_URL and SYSTEM_ACCESSTOKEN must both be set when cfs-init.gradle is applied. ' +
+        'Failing here rather than resolving from a public repository, which is the outcome ' +
+        'this script exists to prevent.')
+}
+
+// Two dependencies cannot come from the feed, and both are narrowed by a content filter
+// so they cannot serve anything else:
+//
+//   org.gradle:gradle-tooling-api is published only to repo.gradle.org. It is absent
+//   from Maven Central and 404s through the feed.
+//
+//   org.codehaus.groovy:groovy-eclipse-batch is published only to the Groovy
+//   Artifactory instance and likewise 404s through the feed.
+//
+// Azure Artifacts Maven upstreams can only be chosen from a fixed set of presets, so
+// neither host can be proxied. Neither blocks the exit criteria: repo.gradle.org and
+// groovy.jfrog.io only trigger DefaultDeny on these pipelines, which is not counted.
+def externalRepositories = [
+    [name: 'gradleLibsReleases', url: 'https://repo.gradle.org/gradle/libs-releases', group: 'org.gradle'],
+    [name: 'groovyPluginsRelease', url: 'https://groovy.jfrog.io/artifactory/plugins-release', group: 'org.codehaus.groovy'],
+]
+
+def addCfsRepository = { handler ->
+    handler.maven { repo ->
+        repo.name = 'vscjava'
+        repo.setUrl(cfsUrl)
+        repo.credentials { credentials ->
+            credentials.username = 'AzureDevOps'
+            credentials.password = cfsToken
+        }
+    }
+}
+
+def addExternalRepositories = { handler ->
+    externalRepositories.each { spec ->
+        handler.maven { repo ->
+            repo.name = spec.name
+            repo.setUrl(spec.url)
+            repo.content { content ->
+                content.includeGroup(spec.group)
+            }
+        }
+    }
+}
+
+beforeSettings { settings ->
+    settings.pluginManagement { pluginManagement ->
+        pluginManagement.repositories { handler ->
+            handler.clear()
+            addCfsRepository(handler)
+        }
+    }
+
+    settings.dependencyResolutionManagement { management ->
+        management.repositoriesMode.set(org.gradle.api.initialization.resolve.RepositoriesMode.PREFER_SETTINGS)
+        management.repositories { handler ->
+            handler.clear()
+            addCfsRepository(handler)
+            addExternalRepositories(handler)
+            // build.gradle lists mavenLocal() among the project repositories. It is kept
+            // so that replacing that list does not change which artifacts resolve, which
+            // matters on a pool whose agents are not guaranteed to start from an empty
+            // ~/.m2.
+            handler.mavenLocal()
+        }
+    }
+}
+
+allprojects { project ->
+    project.buildscript.repositories { handler ->
+        handler.clear()
+        addCfsRepository(handler)
+    }
+}
