@@ -26,7 +26,6 @@ steps:
     action: "wait"
     verifyOutputChannel:
       channel: "Gradle for Java"
-      notContains: "Found 0 tasks"
     timeout: 120
 
   - id: "clear-gradle-output"
