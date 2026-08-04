@@ -5,7 +5,7 @@
   of reaching a public host, and this file is the artifact-resolution half of that.
 
   It is applied through MAVEN_ARGS rather than by passing -s at each call site; see
-  maven-cfs-variables.yml for why. Because MAVEN_ARGS is set only on the build agents,
+  cfs-variables.yml for why. Because MAVEN_ARGS is set only on the build agents,
   a developer running ./mvnw locally is unaffected and keeps using their own settings.
 
   The mirror is scoped to `central` rather than `external:*` deliberately. Tycho
