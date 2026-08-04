@@ -54,6 +54,13 @@ steps:
   - id: "expand-tasks"
     action: "expandTreeItem Tasks"
 
+  - id: "wait-kotlin-custom-task-visible"
+    action: "wait"
+    verifyTreeItem:
+      label: "helloKotlinDefault"
+      inView: "Gradle Projects"
+    timeout: 120
+
   - id: "close-existing-terminals"
     action: "executeVSCodeCommand workbench.action.terminal.killAll"
 
