@@ -1,0 +1,7 @@
+version: 1
+
+instructions:
+  duplicate_detection:
+    path: .github/issuelens/duplicates.md
+  labeling:
+    path: .github/llms.md
