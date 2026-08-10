@@ -69,7 +69,8 @@ jobs:
           input+="Find high-confidence duplicate issues and useful related issues across every repository listed by the configured duplicate-detection policy. "
           input+="Analyze the likely affected component, probable root cause, and reproduction evidence using the issue, its comments, related issues, and repository code when available; state uncertainty rather than guessing. "
           input+="Apply appropriate existing labels using the repository's configured labeling policy, including 'duplicate' only when the duplicate evidence threshold is met. "
-          input+="Do not close, assign, or comment on the issue. Return concise comment-ready Markdown with sections for summary, duplicates or related issues, likely component and root cause, reproduction or missing information, and labels applied. Include links to supporting GitHub evidence."
+          input+="Do not close or assign the issue. After completing the analysis and label writes, use the available GitHub issue-comment tool to post the triage result on the target issue. "
+          input+="The comment must contain concise Markdown sections for summary, duplicates or related issues, likely component and root cause, reproduction or missing information, and labels applied. Include links to supporting GitHub evidence and state uncertainty rather than guessing."
 
           payload=$(ISSUELENS_INPUT="$input" python3 - <<'PY'
           import json
@@ -87,98 +88,7 @@ jobs:
             --query accessToken \
             -o tsv)
 
-          response_file=$(mktemp)
-          if ! curl --fail-with-body -sS -N -X POST "$AGENT_URL" \
+          curl --fail-with-body -sS -N -X POST "$AGENT_URL" \
             -H "Authorization: Bearer $agent_token" \
             -H "Content-Type: application/json" \
-            -d "$payload" \
-            -o "$response_file"; then
-            cat "$response_file" >&2
-            exit 1
-          fi
-
-          triage=$(python3 - "$response_file" <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          final_messages = []
-          fallback_messages = []
-          for line in pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").splitlines():
-              if not line.startswith("data: "):
-                  continue
-              try:
-                  event = json.loads(line.removeprefix("data: "))
-              except json.JSONDecodeError:
-                  continue
-              if event.get("type") != "assistant.message":
-                  continue
-              data = event.get("data") or {}
-              content = data.get("content")
-              if not isinstance(content, str) or not content:
-                  continue
-              fallback_messages.append(content)
-              if data.get("phase") == "final_answer":
-                  final_messages.append(content)
-
-          messages = final_messages or fallback_messages
-          if messages:
-              print(messages[-1], end="")
-          PY
-          )
-
-          if [ -z "$triage" ]; then
-            echo "IssueLens returned no final triage message." >&2
-            exit 1
-          fi
-
-          printf '%s\n' "$triage" > "$RUNNER_TEMP/issuelens-triage.md"
-
-      - name: Publish IssueLens triage comment
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ github.repository }}
-          ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
-          BOT_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
-        run: |
-          set -euo pipefail
-
-          marker='<!-- issuelens-triage -->'
-          TRIAGE=$(cat "$RUNNER_TEMP/issuelens-triage.md")
-          comment_body=$(printf '%s\n## IssueLens triage\n\n%s\n' "$marker" "$TRIAGE")
-
-          comments_file=$(mktemp)
-          gh api "repos/${REPO}/issues/${ISSUE}/comments?per_page=100" \
-            > "$comments_file"
-          comment_id=$(python3 - "$comments_file" "$BOT_LOGIN" "$marker" <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          comments = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-          bot_login = sys.argv[2]
-          marker = sys.argv[3]
-          matches = [
-              comment["id"]
-              for comment in comments
-              if comment.get("user", {}).get("login") == bot_login
-              and comment.get("body", "").startswith(marker)
-          ]
-          if matches:
-              print(matches[-1])
-          PY
-          )
-
-          if [ -n "$comment_id" ]; then
-            gh api \
-              --method PATCH \
-              "repos/${REPO}/issues/comments/${comment_id}" \
-              -f body="$comment_body" \
-              > /dev/null
-          else
-            gh api \
-              --method POST \
-              "repos/${REPO}/issues/${ISSUE}/comments" \
-              -f body="$comment_body" \
-              > /dev/null
-          fi
+            -d "$payload"
