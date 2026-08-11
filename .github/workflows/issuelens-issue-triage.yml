@@ -1,0 +1,78 @@
+# IssueLens labels new issues and publishes its triage analysis as a bot comment.
+# Repository-specific labeling guidance is configured in .github/issuelens.yml.
+#
+# Required repository or organization configuration:
+#   Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#            ISSUELENS_AGENT_URL, ISSUELENS_AGENT_SCOPE
+#
+# The hosted agent owns its Key Vault-backed GitHub App identity and mints
+# repository-scoped tokens internally. This repository stores no App private key.
+# The App must be installed on this repository and every related repository that
+# IssueLens is expected to search. Agent endpoint access uses Azure OIDC.
+
+name: IssueLens issue triage
+
+on:
+  issues:
+    types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to triage
+        required: true
+        type: string
+
+run-name: >-
+  IssueLens triage for #${{ github.event.issue.number || inputs.issue_number }}
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: issuelens-triage-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login (OIDC) for the agent endpoint
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Invoke IssueLens agent
+        env:
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
+          AGENT_URL: ${{ secrets.ISSUELENS_AGENT_URL }}
+          AGENT_SCOPE: ${{ secrets.ISSUELENS_AGENT_SCOPE }}
+        run: |
+          set -euo pipefail
+
+          if ! [[ "$ISSUE" =~ ^[1-9][0-9]*$ ]]; then
+            echo "Issue number must be a positive integer." >&2
+            exit 1
+          fi
+
+          input="Triage GitHub issue ${REPO}#${ISSUE}. "
+          input+="Find high-confidence duplicate issues and useful related issues across every repository listed by the configured duplicate-detection policy. "
+          input+="Analyze the likely affected component, probable root cause, and reproduction evidence using the issue, its comments, related issues, and repository code when available; state uncertainty rather than guessing. "
+          input+="Apply appropriate existing labels using the repository's configured labeling policy, including 'duplicate' only when the duplicate evidence threshold is met. "
+          input+="Do not close or assign the issue. After completing the analysis and label writes, use the available GitHub issue-comment tool to post the triage result on the target issue. "
+          input+="The comment must contain concise Markdown sections for summary, duplicates or related issues, likely component and root cause, reproduction or missing information, and labels applied. Include links to supporting GitHub evidence and state uncertainty rather than guessing."
+
+          payload=$(jq -cn --arg input "$input" '{input:$input}')
+
+          agent_token=$(az account get-access-token \
+            --scope "$AGENT_SCOPE" \
+            --query accessToken \
+            -o tsv)
+
+          curl --fail-with-body -sS -N -X POST "$AGENT_URL" \
+            -H "Authorization: Bearer $agent_token" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

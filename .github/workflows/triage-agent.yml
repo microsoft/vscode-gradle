@@ -1,7 +1,7 @@
-name: AI Triage
+name: Legacy AI Triage (manual)
 on:
-  issues:
-    types: [opened]
+  # Automatic issue triage is handled by issuelens-issue-triage.yml. Keep this
+  # workflow dispatch entry for manual fallback and triage-all-open-issues.yml.
   workflow_dispatch:
     inputs:
       issue_number:
