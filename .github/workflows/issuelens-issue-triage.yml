@@ -2,10 +2,13 @@
 # Repository-specific labeling guidance is configured in .github/issuelens.yml.
 #
 # Required repository or organization configuration:
-#   Variable: ISSUELENS_APP_ID
-#   Secrets:  ISSUELENS_APP_PRIVATE_KEY, AZURE_CLIENT_ID, AZURE_TENANT_ID,
-#             AZURE_SUBSCRIPTION_ID, ISSUELENS_AGENT_URL,
-#             ISSUELENS_AGENT_SCOPE
+#   Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
+#            ISSUELENS_AGENT_URL, ISSUELENS_AGENT_SCOPE
+#
+# The hosted agent owns its Key Vault-backed GitHub App identity and mints
+# repository-scoped tokens internally. This repository stores no App private key.
+# The App must be installed on this repository and every related repository that
+# IssueLens is expected to search. Agent endpoint access uses Azure OIDC.
 
 name: IssueLens issue triage
 
@@ -34,15 +37,6 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-      - name: Mint GitHub App installation token
-        id: app-token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ vars.ISSUELENS_APP_ID }}
-          private-key: ${{ secrets.ISSUELENS_APP_PRIVATE_KEY }}
-          permission-contents: read
-          permission-issues: write
-
       - name: Azure login (OIDC) for the agent endpoint
         uses: azure/login@v3
         with:
@@ -54,7 +48,6 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
-          GH_APP_TOKEN: ${{ steps.app-token.outputs.token }}
           AGENT_URL: ${{ secrets.ISSUELENS_AGENT_URL }}
           AGENT_SCOPE: ${{ secrets.ISSUELENS_AGENT_SCOPE }}
         run: |
@@ -72,16 +65,7 @@ jobs:
           input+="Do not close or assign the issue. After completing the analysis and label writes, use the available GitHub issue-comment tool to post the triage result on the target issue. "
           input+="The comment must contain concise Markdown sections for summary, duplicates or related issues, likely component and root cause, reproduction or missing information, and labels applied. Include links to supporting GitHub evidence and state uncertainty rather than guessing."
 
-          payload=$(ISSUELENS_INPUT="$input" python3 - <<'PY'
-          import json
-          import os
-
-          print(json.dumps({
-              "input": os.environ["ISSUELENS_INPUT"],
-              "github_token": os.environ["GH_APP_TOKEN"],
-          }))
-          PY
-          )
+          payload=$(jq -cn --arg input "$input" '{input:$input}')
 
           agent_token=$(az account get-access-token \
             --scope "$AGENT_SCOPE" \
