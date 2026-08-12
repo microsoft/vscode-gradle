@@ -24,9 +24,13 @@ related issues:
 - A candidate in another repository may be the canonical issue when its
   component owns the failing behavior and the technical evidence meets the
   built-in threshold.
-- Do not label a target issue as `duplicate` for a merely related cross-project
-  issue. Require the same error signature, stack signature, or reproduction
-  trigger plus the required supporting evidence.
+- Repository location does not change duplicate classification. When a
+  candidate in any configured repository meets the built-in duplicate evidence
+  threshold, treat the target as a duplicate and apply its existing
+  `duplicate` label.
+- Do not apply `duplicate` to a merely related cross-project issue that does not
+  meet that threshold. Require the same error signature, stack signature, or
+  reproduction trigger plus the required supporting evidence.
 
 ## Component Routing Evidence
 

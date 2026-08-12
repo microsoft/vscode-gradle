@@ -36,4 +36,7 @@ When labeling an issue, follow the rules below per label category:
 - [enhancement]: Primary label for enhancement issues 
 - [documentation]: Primary label for documentation issues 
 - [question]: Primary label for question issues
+- [duplicate]: Apply when a specific issue in this repository or any related
+    repository configured by IssueLens meets the duplicate-detection evidence
+    threshold. A cross-repository canonical issue is still a duplicate.
 - [needs more info]: Apply when the issue lacks sufficient information for proper triage or resolution. Use this label when the issue description is too vague or ambiguous to understand the problem
