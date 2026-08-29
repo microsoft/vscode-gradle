@@ -246,12 +246,22 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
 
+        Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            projectDependencies.addAll(buildTarget.getDependencies());
+        }
+        Set<IPath> projectDependencyLocations =
+                getProjectDependencyLocations(project, projectDependencies);
+
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
             DependencyModulesResult dependencyModuleResult = connection.buildTargetDependencyModules(
                     new DependencyModulesParams(Arrays.asList(buildTarget.getId()))).join();
             List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest, isModular);
             for (IClasspathEntry entry : dependencyEntries) {
+                if (isArtifactFromProjectDependency(entry, projectDependencyLocations)) {
+                    continue;
+                }
                 classpathMap.putIfAbsent(entry.getPath(), entry);
             }
         }
@@ -271,10 +281,6 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         // Add project dependency entries into the same classpathMap so that
         // everything is written in a single setRawClasspath() call.
-        Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
-        for (BuildTarget buildTarget : buildTargets) {
-            projectDependencies.addAll(buildTarget.getDependencies());
-        }
         for (IClasspathEntry entry : getProjectDependencyEntries(project, projectDependencies)) {
             classpathMap.putIfAbsent(entry.getPath(), entry);
         }
@@ -448,6 +454,13 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
 
         setProjectJdk(classpathMap, buildTargets, javaProject, isModular);
 
+        Set<BuildTargetIdentifier> projectDependencies = new LinkedHashSet<>();
+        for (BuildTarget buildTarget : buildTargets) {
+            projectDependencies.addAll(buildTarget.getDependencies());
+        }
+        Set<IPath> projectDependencyLocations =
+                getProjectDependencyLocations(project, projectDependencies);
+
         for (BuildTarget buildTarget : buildTargets) {
             boolean isTest = buildTarget.getTags().contains(BuildTargetTag.TEST);
             String targetUri = buildTarget.getId().getUri();
@@ -457,6 +470,9 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             DependencyModulesResult dependencyModuleResult = new DependencyModulesResult(depItems);
             List<IClasspathEntry> dependencyEntries = getDependencyJars(dependencyModuleResult, isTest, isModular);
             for (IClasspathEntry entry : dependencyEntries) {
+                if (isArtifactFromProjectDependency(entry, projectDependencyLocations)) {
+                    continue;
+                }
                 classpathMap.putIfAbsent(entry.getPath(), entry);
             }
         }
@@ -519,14 +535,44 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
     }
 
+    private Set<IPath> getProjectDependencyLocations(IProject project,
+            Set<BuildTargetIdentifier> projectDependencies) {
+        Set<IPath> locations = new LinkedHashSet<>();
+        for (BuildTargetIdentifier dependency : projectDependencies) {
+            URI uri = Utils.getUriWithoutQuery(dependency.getUri());
+            IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
+            if (dependencyProject != null && !Objects.equals(project, dependencyProject)
+                    && dependencyProject.getLocation() != null) {
+                locations.add(dependencyProject.getLocation());
+            }
+        }
+        return locations;
+    }
+
+    private boolean isArtifactFromProjectDependency(IClasspathEntry entry,
+            Set<IPath> projectDependencyLocations) {
+        if (entry.getEntryKind() != IClasspathEntry.CPE_LIBRARY) {
+            return false;
+        }
+        IPath artifactPath = entry.getPath();
+        for (IPath projectLocation : projectDependencyLocations) {
+            if (projectLocation.isPrefixOf(artifactPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Collection<IClasspathEntry> getProjectDependencyEntries(IProject project, Set<BuildTargetIdentifier> projectDependencies) {
         Map<String, IClasspathEntry> projectEntryMap = new LinkedHashMap<>();
         for (BuildTargetIdentifier dependency : projectDependencies) {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
+            if (dependencyProject == null || Objects.equals(project, dependencyProject)) {
+                continue;
+            }
             String projectName = dependencyProject.getName();
-            if (dependencyProject != null && !Objects.equals(project, dependencyProject) &&
-                    !projectEntryMap.containsKey(projectName)) {
+            if (!projectEntryMap.containsKey(projectName)) {
                 projectEntryMap.put(projectName, JavaCore.newProjectEntry(
                     dependencyProject.getFullPath(),
                     ClasspathEntry.NO_ACCESS_RULES,
