@@ -783,6 +783,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
 
             JvmBuildTargetEx rawJvmTarget = JSONUtility.toModel(buildTarget.getData(), JvmBuildTargetEx.class);
+            if (rawJvmTarget == null) {
+                JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server JVM target "
+                        + buildTarget.getId() + " because its JVM metadata is missing or invalid.");
+                continue;
+            }
             if (StringUtils.isNotBlank(rawJvmTarget.getJavaHome()) && StringUtils.isBlank(jvmTarget.getJavaHome())) {
                 jvmTarget.setJavaHome(rawJvmTarget.getJavaHome());
             }
