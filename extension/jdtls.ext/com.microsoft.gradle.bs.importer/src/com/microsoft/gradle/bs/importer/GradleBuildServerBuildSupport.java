@@ -524,9 +524,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         for (BuildTargetIdentifier dependency : projectDependencies) {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
+            if (dependencyProject == null) {
+                JavaLanguageServerPlugin.logError("Cannot add Gradle Build Server project dependency "
+                        + dependency.getUri() + " to project " + project.getName()
+                        + " because no matching workspace project was found.");
+                continue;
+            }
             String projectName = dependencyProject.getName();
-            if (dependencyProject != null && !Objects.equals(project, dependencyProject) &&
-                    !projectEntryMap.containsKey(projectName)) {
+            if (!Objects.equals(project, dependencyProject) && !projectEntryMap.containsKey(projectName)) {
                 projectEntryMap.put(projectName, JavaCore.newProjectEntry(
                     dependencyProject.getFullPath(),
                     ClasspathEntry.NO_ACCESS_RULES,
