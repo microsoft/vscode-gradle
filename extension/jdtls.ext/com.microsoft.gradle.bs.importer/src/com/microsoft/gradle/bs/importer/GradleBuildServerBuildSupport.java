@@ -861,6 +861,12 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
                 MavenDependencyModule mavenDependencyModule =
                         JSONUtility.toModel(module.getData(), MavenDependencyModule.class);
+                if (mavenDependencyModule == null) {
+                    JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server Maven dependency "
+                            + module.getName() + ":" + module.getVersion()
+                            + " because its Maven metadata is missing or invalid.");
+                    continue;
+                }
                 List<MavenDependencyModuleArtifact> artifacts = mavenDependencyModule.getArtifacts();
                 if (artifacts == null) {
                     continue;
