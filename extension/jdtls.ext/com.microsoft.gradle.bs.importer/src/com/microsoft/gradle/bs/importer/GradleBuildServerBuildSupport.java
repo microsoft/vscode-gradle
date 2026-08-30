@@ -689,6 +689,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         IPath sourceOutputPath = ResourceUtils.filePathFromURI(Utils.getUriWithoutQuery(outputUri).toString());
+        if (sourceOutputPath == null) {
+            JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server output path "
+                    + outputUri + " because it is not a file URI.");
+            return null;
+        }
         File outputDirectory = sourceOutputPath.toFile();
         if (!outputDirectory.exists()) {
             outputDirectory.mkdirs();
