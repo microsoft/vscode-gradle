@@ -31,6 +31,7 @@ pr:
       - gradle-plugin-api/build.gradle
       - gradle-language-server/build.gradle
       - extension/build.gradle
+      - extension/.npmrc
       - extension/package.json
       - extension/package-lock.json
       - extension/jdtls.ext/**/pom.xml
@@ -39,6 +40,7 @@ pr:
       - extension/jdtls.ext/mvnw
       - extension/jdtls.ext/mvnw.cmd
       - npm-package/build.gradle
+      - npm-package/.npmrc
       - npm-package/package.json
       - npm-package/package-lock.json
       - .azure-pipelines/vscode-gradle-ci.yml
