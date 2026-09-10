@@ -34,6 +34,7 @@ pr:
       - extension/package.json
       - extension/package-lock.json
       - extension/jdtls.ext/**/pom.xml
+      - extension/jdtls.ext/com.microsoft.gradle.bs.importer.target/com.microsoft.gradle.bs.importer.tp.target
       - extension/jdtls.ext/.mvn/wrapper/maven-wrapper.properties
       - extension/jdtls.ext/mvnw
       - extension/jdtls.ext/mvnw.cmd
