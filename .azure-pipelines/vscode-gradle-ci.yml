@@ -6,7 +6,7 @@ resources:
   repositories:
     - repository: self
       type: git
-      ref: refs/heads/main
+      ref: refs/heads/develop
     - repository: 1esPipelines
       type: git
       name: 1ESPipelineTemplates/1ESPipelineTemplates
@@ -15,6 +15,37 @@ trigger:
   branches:
     include:
       - develop
+pr:
+  branches:
+    include:
+      - develop
+  paths:
+    include:
+      - build.gradle
+      - settings.gradle
+      - gradlew
+      - gradlew.bat
+      - gradle/wrapper/**
+      - gradle-server/build.gradle
+      - gradle-plugin/build.gradle
+      - gradle-plugin-api/build.gradle
+      - gradle-language-server/build.gradle
+      - extension/build.gradle
+      - extension/package.json
+      - extension/package-lock.json
+      - extension/jdtls.ext/**/pom.xml
+      - extension/jdtls.ext/.mvn/wrapper/maven-wrapper.properties
+      - extension/jdtls.ext/mvnw
+      - extension/jdtls.ext/mvnw.cmd
+      - npm-package/build.gradle
+      - npm-package/package.json
+      - npm-package/package-lock.json
+      - .azure-pipelines/vscode-gradle-ci.yml
+      - .azure-pipelines/npm-cfs.yml
+      - .azure-pipelines/npm-cfs-variables.yml
+      - .azure-pipelines/cfs-init.gradle
+      - .azure-pipelines/cfs-settings.xml
+      - .azure-pipelines/cfs-variables.yml
 extends:
   template: v1/1ES.Unofficial.PipelineTemplate.yml@1esPipelines
   parameters:
@@ -30,8 +61,53 @@ extends:
     stages:
       - stage: Build
         jobs:
+          - job: CFSValidation
+            displayName: Validate dependencies from CFS
+            condition: eq(variables['Build.Reason'], 'PullRequest')
+            steps:
+              - checkout: self
+                fetchTags: false
+              - task: JavaToolInstaller@0
+                displayName: Use Java 21
+                inputs:
+                  versionSpec: '21'
+                  jdkArchitectureOption: 'x64'
+                  jdkSourceOption: 'PreInstalled'
+              - task: NodeTool@0
+                displayName: Use Node 20.x
+                inputs:
+                  versionSpec: 20.x
+              - template: /.azure-pipelines/npm-cfs.yml@self
+              - script: npm ci --ignore-scripts --prefer-online --cache "$(Agent.TempDirectory)/npm-cache"
+                displayName: Validate extension npm dependencies from CFS
+                workingDirectory: $(Build.SourcesDirectory)/extension
+              - script: npm ci --ignore-scripts --prefer-online --cache "$(Agent.TempDirectory)/npm-cache"
+                displayName: Validate npm package dependencies from CFS
+                workingDirectory: $(Build.SourcesDirectory)/npm-package
+              - task: Gradle@3
+                displayName: Validate Gradle dependencies from CFS
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                  MVNW_PASSWORD: $(System.AccessToken)
+                inputs:
+                  gradleWrapperFile: 'gradlew'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle --refresh-dependencies'
+                  gradleOptions: '-Xmx3072m'
+                  tasks: ':gradle-server:dependencies :gradle-plugin:dependencies :gradle-plugin-api:dependencies :gradle-language-server:dependencies :extension:dependencies :npm-package:dependencies'
+              - task: Gradle@3
+                displayName: Validate Maven dependencies from CFS
+                env:
+                  SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+                  MVNW_PASSWORD: $(System.AccessToken)
+                  MAVEN_REPO_LOCAL: $(Agent.TempDirectory)/m2/repository
+                inputs:
+                  gradleWrapperFile: 'gradlew'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
+                  gradleOptions: '-Xmx3072m'
+                  tasks: ':extension:buildJdtlsPlugin'
           - job: Job_1
             displayName: VSCode-Gradle-CI
+            condition: ne(variables['Build.Reason'], 'PullRequest')
             templateContext:
               outputs:
                 - output: pipelineArtifact
