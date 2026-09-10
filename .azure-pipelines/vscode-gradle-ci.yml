@@ -90,21 +90,26 @@ extends:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   MVNW_PASSWORD: $(System.AccessToken)
+                  GRADLE_USER_HOME: $(Agent.TempDirectory)/gradle
+                  MAVEN_USER_HOME: $(Agent.TempDirectory)/m2
+                  MAVEN_REPO_LOCAL: $(Agent.TempDirectory)/m2/repository
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle --refresh-dependencies'
-                  gradleOptions: '-Xmx3072m'
+                  gradleOptions: '-Xmx3072m -Dmaven.repo.local=$(Agent.TempDirectory)/m2/repository'
                   tasks: ':gradle-server:dependencies :gradle-plugin:dependencies :gradle-plugin-api:dependencies :gradle-language-server:dependencies :extension:dependencies :npm-package:dependencies'
               - task: Gradle@3
                 displayName: Validate Maven dependencies from CFS
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   MVNW_PASSWORD: $(System.AccessToken)
+                  GRADLE_USER_HOME: $(Agent.TempDirectory)/gradle
+                  MAVEN_USER_HOME: $(Agent.TempDirectory)/m2
                   MAVEN_REPO_LOCAL: $(Agent.TempDirectory)/m2/repository
                 inputs:
                   gradleWrapperFile: 'gradlew'
-                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
-                  gradleOptions: '-Xmx3072m'
+                  options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle --refresh-dependencies'
+                  gradleOptions: '-Xmx3072m -Dmaven.repo.local=$(Agent.TempDirectory)/m2/repository'
                   tasks: ':extension:buildJdtlsPlugin'
           - job: Job_1
             displayName: VSCode-Gradle-CI
