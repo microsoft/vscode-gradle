@@ -37,6 +37,7 @@ import {
 import { instrumentOperation, sendInfo } from "vscode-extension-telemetry-wrapper";
 import { GradleBuildContentProvider } from "./client/GradleBuildContentProvider";
 import { BuildServerController } from "./bs/BuildServerController";
+import { supportsDelegatedTestCoverage } from "./bs/coverage";
 
 export class Extension {
     private readonly taskServerClient: TaskServerClient;
@@ -421,6 +422,17 @@ export class Extension {
                     vscode.TestRunProfileKind.Debug,
                     testRunner
                 );
+                // Delegated coverage needs the Test Runner for Java extension to
+                // supply an output directory and to analyze the `.exec` files the
+                // Gradle test JVM writes there. Without that half of the feature
+                // the profile could only fail, so it stays hidden.
+                if (supportsDelegatedTestCoverage(testRunnerApi)) {
+                    testRunnerApi.registerTestProfile(
+                        "Delegate Test to Gradle (Coverage)",
+                        vscode.TestRunProfileKind.Coverage,
+                        testRunner
+                    );
+                }
             }
         }
     }
