@@ -49,6 +49,7 @@ import ch.epfl.scala.bsp4j.TaskDataKind;
 import ch.epfl.scala.bsp4j.TaskFinishParams;
 import ch.epfl.scala.bsp4j.TaskProgressParams;
 import ch.epfl.scala.bsp4j.TaskStartParams;
+import ch.epfl.scala.bsp4j.TestReport;
 import ch.epfl.scala.bsp4j.extended.TestFinishEx;
 import ch.epfl.scala.bsp4j.extended.TestName;
 import ch.epfl.scala.bsp4j.extended.TestStartEx;
@@ -244,13 +245,32 @@ public class GradleBuildClient implements BuildClient {
                 Arrays.asList(testParts, testStatus.getValue(), null, testFinishEx.getStackTrace()))); // TODO: test duration is missing
         } else if (Objects.equals(params.getDataKind(), TaskDataKind.TEST_REPORT)) {
             lsClient.sendNotification(new ExecuteCommandParams("java.gradle.buildServer.onDidFinishTestRun",
-                    Arrays.asList(params.getStatus().getValue(), params.getMessage())));
+                    Arrays.asList(params.getStatus().getValue(), params.getMessage(), getOriginId(params))));
         } else {
             Either<String, Integer> id = Either.forLeft(params.getTaskId().getId());
             WorkDoneProgressEnd workDoneProgressEnd = new WorkDoneProgressEnd();
             workDoneProgressEnd.setMessage(StringUtils.isBlank(params.getMessage()) ? BUILD_SERVER_TASK :
                     BUILD_SERVER_TASK + " - " + params.getMessage());
             lsClient.notifyProgress(new ProgressParams(id, Either.forLeft(workDoneProgressEnd)));
+        }
+    }
+
+    /**
+     * The id the client attached to the test request this report belongs to, or
+     * {@code null} when the build server did not echo one back.
+     *
+     * <p>The client uses it to tell a report for the run it is waiting on from a
+     * report for a run that has already ended.</p>
+     */
+    private String getOriginId(TaskFinishParams params) {
+        if (params.getData() == null) {
+            return null;
+        }
+        try {
+            TestReport testReport = JSONUtility.toModel(params.getData(), TestReport.class);
+            return testReport == null ? null : testReport.getOriginId();
+        } catch (Exception e) {
+            return null;
         }
     }
 
