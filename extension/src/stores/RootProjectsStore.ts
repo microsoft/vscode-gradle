@@ -90,8 +90,7 @@ export class RootProjectsStore extends StoreMap<string, RootProject> {
             if (hasRootGradleMarker) {
                 this.setRootProjectFolder(rootProject);
             }
-            const shouldDiscoverNestedProjects =
-                configNestedFolders === true || (!Array.isArray(configNestedFolders) && !hasRootGradleMarker);
+            const shouldDiscoverNestedProjects = configNestedFolders === true;
             const gradleProjectFoldersOutsideRoot = getGradleProjectFoldersOutsideRoot(
                 configNestedFolders,
                 shouldDiscoverNestedProjects ? await getGradleProjectFolders() : [],

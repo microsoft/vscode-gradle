@@ -10,38 +10,26 @@ describe("RootProjectsStore", () => {
         sinon.restore();
     });
 
-    it("discovers standalone nested projects when the workspace root is not a Gradle project", async () => {
+    it("does not scan for nested projects when the workspace root is not a Gradle project and nestedProjects is disabled", async () => {
         const workspaceFolder = {
             index: 0,
             name: "workspace",
             uri: vscode.Uri.file(path.join("workspace")),
         };
-        const nestedProjectFolder = path.join(workspaceFolder.uri.fsPath, "nested-gradle-project");
-        const nestedBuildFile = vscode.Uri.file(path.join(nestedProjectFolder, "build.gradle"));
 
         sinon.stub(vscode.workspace, "workspaceFolders").value([workspaceFolder]);
         sinon.stub(vscode.workspace, "getWorkspaceFolder").returns(workspaceFolder);
         sinon.stub(vscode.workspace, "getConfiguration").returns({
             get: sinon.stub().withArgs("nestedProjects", false).returns(false),
         } as unknown as vscode.WorkspaceConfiguration);
-        sinon.stub(vscode.workspace, "findFiles").callsFake((include) => {
-            if (include === "**/{settings.gradle,settings.gradle.kts}") {
-                return Promise.resolve([]);
-            }
-            if (include === "**/{build.gradle,build.gradle.kts}") {
-                return Promise.resolve([nestedBuildFile]);
-            }
-            return Promise.resolve([]);
-        });
-        sinon.stub(fs, "existsSync").callsFake((filePath) => filePath === nestedBuildFile.fsPath);
+        const findFilesStub = sinon.stub(vscode.workspace, "findFiles").returns(Promise.resolve([]));
+        sinon.stub(fs, "existsSync").returns(false);
 
         const store = new RootProjectsStore();
         const projectRoots = await store.getProjectRoots();
 
-        assert.deepStrictEqual(
-            projectRoots.map((project) => project.getProjectUri().fsPath),
-            [nestedProjectFolder]
-        );
+        assert.deepStrictEqual(projectRoots, []);
+        assert.strictEqual(findFilesStub.called, false);
     });
 
     it("does not scan for nested projects when the workspace root is a Gradle project and nestedProjects is disabled", async () => {
