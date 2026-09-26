@@ -31,8 +31,8 @@ public class PluginUtils {
 			// handle init script
 			String pluginJarUnixPath = pluginJarFile.getAbsolutePath().replace("\\", "/");
 			String initScriptContent = "initscript {\n" + "	dependencies {\n" + "		classpath files('"
-					+ pluginJarUnixPath + "')\n" + "	}\n" + "}\n" + "\n" + "allprojects {\n"
-					+ "	apply plugin: com.microsoft.gradle.GradlePlugin\n" + "}\n";
+					+ pluginJarUnixPath + "')\n" + "	}\n" + "}\n" + "\n" + "gradle.lifecycle.beforeProject { project ->\n"
+					+ "	project.apply plugin: com.microsoft.gradle.GradlePlugin\n" + "}\n";
 			byte[] initScriptBytes = initScriptContent.getBytes();
 			byte[] initScriptDigest = getContentDigest(initScriptBytes);
 			String initScriptName = bytesToHex(initScriptDigest) + ".gradle";
