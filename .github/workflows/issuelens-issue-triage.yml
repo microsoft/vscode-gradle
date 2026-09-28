@@ -1,5 +1,7 @@
 # IssueLens labels new issues and publishes its triage analysis as a bot comment.
 # Repository-specific labeling guidance is configured in .github/issuelens.yml.
+# A direct task preserves the explicit no-assignment/no-closing triage contract.
+# Action completion confirms the response stream, not successful triage writes.
 #
 # Required repository or organization configuration:
 #   Secrets: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID,
@@ -26,9 +28,7 @@ on:
 run-name: >-
   IssueLens triage for #${{ github.event.issue.number || inputs.issue_number }}
 
-permissions:
-  contents: read
-  id-token: write
+permissions: {}
 
 concurrency:
   group: issuelens-triage-${{ github.event.issue.number || inputs.issue_number }}
@@ -36,21 +36,17 @@ concurrency:
 
 jobs:
   triage:
+    if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Azure login (OIDC) for the agent endpoint
-        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Invoke IssueLens agent
+      - name: Validate issue number
+        shell: bash
         env:
-          REPO: ${{ github.repository }}
           ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
-          AGENT_URL: ${{ secrets.ISSUELENS_AGENT_URL }}
-          AGENT_SCOPE: ${{ secrets.ISSUELENS_AGENT_SCOPE }}
         run: |
           set -euo pipefail
 
@@ -59,16 +55,20 @@ jobs:
             exit 1
           fi
 
-          input="Triage GitHub issue ${REPO}#${ISSUE}. Find duplicates and related issues using the repository's configured scope, analyze the likely component and root cause, and apply appropriate existing labels. Do not assign or close the issue. Post one helpful comment to the reporter with your findings and practical next steps."
-
-          payload=$(jq -cn --arg input "$input" '{input:$input}')
-
-          agent_token=$(az account get-access-token \
-            --scope "$AGENT_SCOPE" \
-            --query accessToken \
-            -o tsv)
-
-          curl --fail-with-body -sS -N -X POST "$AGENT_URL" \
-            -H "Authorization: Bearer $agent_token" \
-            -H "Content-Type: application/json" \
-            -d "$payload"
+      - name: Invoke IssueLens agent
+        uses: microsoft/IssueLens/.github/actions/issuelens@532d3f7934f394d817402b46c90cb36388a12e02
+        with:
+          request-type: task
+          input: >-
+            Triage GitHub issue ${{ github.repository }}#${{ github.event.issue.number || inputs.issue_number }}.
+            Find duplicates and related issues using the repository's configured scope,
+            analyze the likely component and root cause, and apply appropriate existing labels.
+            Do not assign or close the issue.
+            Post one helpful comment to the reporter with your findings and practical next steps.
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          agent-url: ${{ secrets.ISSUELENS_AGENT_URL }}
+          agent-scope: ${{ secrets.ISSUELENS_AGENT_SCOPE }}
+          output-mode: activity
+          summary-mode: status

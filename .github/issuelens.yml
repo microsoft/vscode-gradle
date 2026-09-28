@@ -5,3 +5,6 @@ instructions:
     path: .github/issuelens/duplicates.md
   labeling:
     path: .github/llms.md
+  team_memory:
+    path: .github/issuelens/team-memory.md
+    wiki_repository: microsoft/vscode-java-pack
