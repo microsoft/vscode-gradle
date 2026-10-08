@@ -4,6 +4,9 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+* fix - Update BSP fallback JDK selection for Gradle 8.10 through 9.8.x and Java 23 through 27, preserving project source/target compatibility.
+
 ## 3.18.0
 ## What's Changed
 * feat - Discover nested Gradle build files in https://github.com/microsoft/vscode-gradle/pull/1889

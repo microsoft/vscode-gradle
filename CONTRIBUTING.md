@@ -27,6 +27,13 @@ Before proceeding with the build steps for Build Task Server & Language Server, 
 2. `git clone https://github.com/microsoft/build-server-for-gradle.git `
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
 
+Run the BSP importer's Java regression tests from the repository root:
+
+```powershell
+$env:MAVEN_OPTS = '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
+.\extension\jdtls.ext\mvnw.cmd -B -ntp -f .\extension\jdtls.ext\pom.xml -Declipse.p2.mirrors=false verify
+```
+
 ### Build Task Server & Language Server
 After building the Gradle Build Server and its client, proceed with the following steps.
 
