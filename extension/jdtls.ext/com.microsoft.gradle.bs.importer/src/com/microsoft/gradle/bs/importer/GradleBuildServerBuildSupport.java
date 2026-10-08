@@ -924,15 +924,25 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
     }
 
     /**
-     * Get the highest compatible Java version for the current Gradle version, according
+     * Get the highest Java version supported for running the current Gradle version, according
      * to https://docs.gradle.org/current/userguide/compatibility.html
      *
-     * <p>If none of the compatible Java versions is found, then return the Java version
-     * that is used to launch Gradle.
+     * <p>This bounds fallback VM selection, not the project's source/target compatibility
+     * or an exact match for its target Java version.
      */
     private String getHighestCompatibleJavaVersion(String gradleVersion) {
       GradleVersion version = GradleVersion.version(gradleVersion);
-      if (version.compareTo(GradleVersion.version("8.8")) >= 0) {
+      if (version.compareTo(GradleVersion.version("9.8.0")) >= 0) {
+        return "27";
+      } else if (version.compareTo(GradleVersion.version("9.4.0")) >= 0) {
+        return "26";
+      } else if (version.compareTo(GradleVersion.version("9.1.0")) >= 0) {
+        return "25";
+      } else if (version.compareTo(GradleVersion.version("8.14")) >= 0) {
+        return "24";
+      } else if (version.compareTo(GradleVersion.version("8.10")) >= 0) {
+        return "23";
+      } else if (version.compareTo(GradleVersion.version("8.8")) >= 0) {
         return JavaCore.VERSION_22;
       } else if (version.compareTo(GradleVersion.version("8.5")) >= 0) {
         return JavaCore.VERSION_21;
