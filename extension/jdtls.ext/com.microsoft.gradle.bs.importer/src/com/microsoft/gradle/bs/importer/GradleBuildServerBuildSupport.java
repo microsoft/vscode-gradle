@@ -524,9 +524,14 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         for (BuildTargetIdentifier dependency : projectDependencies) {
             URI uri = Utils.getUriWithoutQuery(dependency.getUri());
             IProject dependencyProject = ProjectUtils.getProjectFromUri(uri.toString());
+            if (dependencyProject == null) {
+                JavaLanguageServerPlugin.logError("Cannot add Gradle Build Server project dependency "
+                        + dependency.getUri() + " to project " + project.getName()
+                        + " because no matching workspace project was found.");
+                continue;
+            }
             String projectName = dependencyProject.getName();
-            if (dependencyProject != null && !Objects.equals(project, dependencyProject) &&
-                    !projectEntryMap.containsKey(projectName)) {
+            if (!Objects.equals(project, dependencyProject) && !projectEntryMap.containsKey(projectName)) {
                 projectEntryMap.put(projectName, JavaCore.newProjectEntry(
                     dependencyProject.getFullPath(),
                     ClasspathEntry.NO_ACCESS_RULES,
@@ -684,6 +689,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
         }
 
         IPath sourceOutputPath = ResourceUtils.filePathFromURI(Utils.getUriWithoutQuery(outputUri).toString());
+        if (sourceOutputPath == null) {
+            JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server output path "
+                    + outputUri + " because it is not a file URI.");
+            return null;
+        }
         File outputDirectory = sourceOutputPath.toFile();
         if (!outputDirectory.exists()) {
             outputDirectory.mkdirs();
@@ -778,6 +788,11 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
             }
 
             JvmBuildTargetEx rawJvmTarget = JSONUtility.toModel(buildTarget.getData(), JvmBuildTargetEx.class);
+            if (rawJvmTarget == null) {
+                JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server JVM target "
+                        + buildTarget.getId() + " because its JVM metadata is missing or invalid.");
+                continue;
+            }
             if (StringUtils.isNotBlank(rawJvmTarget.getJavaHome()) && StringUtils.isBlank(jvmTarget.getJavaHome())) {
                 jvmTarget.setJavaHome(rawJvmTarget.getJavaHome());
             }
@@ -851,6 +866,12 @@ public class GradleBuildServerBuildSupport implements IBuildSupport {
                 }
                 MavenDependencyModule mavenDependencyModule =
                         JSONUtility.toModel(module.getData(), MavenDependencyModule.class);
+                if (mavenDependencyModule == null) {
+                    JavaLanguageServerPlugin.logError("Cannot process Gradle Build Server Maven dependency "
+                            + module.getName() + ":" + module.getVersion()
+                            + " because its Maven metadata is missing or invalid.");
+                    continue;
+                }
                 List<MavenDependencyModuleArtifact> artifacts = mavenDependencyModule.getArtifacts();
                 if (artifacts == null) {
                     continue;
