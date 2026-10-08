@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+* enhancement - Refresh the default Gradle distribution and Tooling API to 9.8.1, and add live Java 27 import, task, dependency, test and debugger compatibility coverage alongside existing Gradle 8.x scenarios.
 * fix - Update BSP fallback JDK selection for Gradle 8.10 through 9.8.x and Java 23 through 27, preserving project source/target compatibility.
 
 ## 3.18.0
