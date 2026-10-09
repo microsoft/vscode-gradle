@@ -16,6 +16,13 @@ const NL = "\n";
 const CR = "\r";
 const nlRegExp = new RegExp(`${NL}([^${CR}]|$)`, "g");
 
+export interface GradleRunnerTerminalOptions {
+    /** Directory to run the build in, the root project directory by default (for example a subproject) */
+    projectDir?: string;
+    /** Environment variables for the build, such as JAVA_HOME */
+    environment?: { [name: string]: string };
+}
+
 export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     private readonly writeEmitter = new vscode.EventEmitter<string>();
     private stdOutLoggerStream: LoggerStream | undefined;
@@ -28,7 +35,8 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         private readonly rootProject: RootProject,
         private readonly args: string[],
         private readonly cancellationKey: string,
-        private readonly client: TaskServerClient
+        private readonly client: TaskServerClient,
+        private readonly options: GradleRunnerTerminalOptions = {}
     ) {
         if (isTest()) {
             // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
@@ -100,7 +108,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             ).join(" ");
 
             const runTask = this.client.runBuild(
-                this.rootProject.getProjectUri().fsPath,
+                this.options.projectDir ?? this.rootProject.getProjectUri().fsPath,
                 this.cancellationKey,
                 this.args,
                 "",
@@ -108,7 +116,10 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 this.task,
                 this.handleOutput,
                 true,
-                additionalToolOptions
+                additionalToolOptions,
+                undefined,
+                undefined,
+                this.options.environment
             );
             await runTask;
             this.closeEmitter.fire(0);

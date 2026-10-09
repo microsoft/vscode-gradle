@@ -79,6 +79,7 @@ public class GradleBuildRunner {
 	private ProgressListener progressListener;
 	private Boolean javaDebugCleanOutputCache;
 	private String additionalToolOptions;
+	private Map<String, String> environment = Map.of();
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
 			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
@@ -94,6 +95,15 @@ public class GradleBuildRunner {
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
 		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false, "");
+	}
+
+	/**
+	 * Environment variables for the build, added to the environment of the server
+	 * process.
+	 */
+	public GradleBuildRunner setEnvironment(Map<String, String> environment) {
+		this.environment = environment == null ? Map.of() : environment;
+		return this;
 	}
 
 	public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -152,7 +162,7 @@ public class GradleBuildRunner {
 			build.setStandardInput(standardInputStream);
 		}
 
-		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(additionalToolOptions);
+		Map<String, String> envVars = buildEnvVars(additionalToolOptions, environment);
 
 		if (envVars != null) {
 			build.setEnvironmentVariables(envVars);
@@ -265,18 +275,26 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * Builds environment variables with JAVA_TOOL_OPTIONS for additional tool
-	 * options. Note: Debug agent is no longer set via JAVA_TOOL_OPTIONS to prevent
-	 * it from being applied to all Java processes (e.g., compilation). Instead,
-	 * debugging is configured via Gradle init script to target only JavaExec and
-	 * Test tasks.
+	 * The environment variables for the build, or null if the build is to run with
+	 * the default environment (the one of the server process). Additional tool
+	 * options are set as JAVA_TOOL_OPTIONS. Note: the debug agent is not set via
+	 * JAVA_TOOL_OPTIONS to prevent it from being applied to all Java processes
+	 * (e.g., compilation); debugging is configured via Gradle init script to target
+	 * only JavaExec and Test tasks.
 	 */
-	private static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions) {
-		if (additionalToolOptions == null || additionalToolOptions.isEmpty()) {
+	static Map<String, String> buildEnvVars(String additionalToolOptions, Map<String, String> environment) {
+		boolean hasToolOptions = additionalToolOptions != null && !additionalToolOptions.isEmpty();
+		boolean hasEnvironment = environment != null && !environment.isEmpty();
+		if (!hasToolOptions && !hasEnvironment) {
 			return null;
 		}
 		HashMap<String, String> envVars = new HashMap<>(System.getenv());
-		envVars.put(JAVA_TOOL_OPTIONS_ENV, additionalToolOptions);
+		if (hasEnvironment) {
+			envVars.putAll(environment);
+		}
+		if (hasToolOptions) {
+			envVars.put(JAVA_TOOL_OPTIONS_ENV, additionalToolOptions);
+		}
 		return envVars;
 	}
 }
