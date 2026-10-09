@@ -210,6 +210,16 @@ export interface IRunTestContext {
      * The configuration for this test run.
      */
     testConfig?: IExecutionConfig;
+
+    /**
+     * Cancelled when the user cancels the test run. Absent on hosts released
+     * before this member existed, where {@link testRun}'s own token is the
+     * closest equivalent.
+     *
+     * A runner must observe this and must still report the run as finished
+     * afterwards, so a cancelled run releases whatever the runner serializes on.
+     */
+    cancellationToken?: vscode.CancellationToken;
 }
 
 /**
