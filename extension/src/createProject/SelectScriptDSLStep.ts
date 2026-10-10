@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { selectTestFrameworkStep } from "./SelectTestFrameworkStep";
 import { specifyProjectNameStep } from "./SpecifyProjectNameStep";
 import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "./types";
+import { createQuickInputButtons, switchToAdvancedLabel, updateTotalSteps } from "./utils";
 
 export class SelectScriptDSLStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -19,16 +20,7 @@ export class SelectScriptDSLStep implements IProjectCreationStep {
             pickBox.matchOnDescription = true;
             pickBox.ignoreFocusOut = true;
             pickBox.items = this.getScriptDSLPickItems();
-            if (metadata.steps.length) {
-                pickBox.buttons = [vscode.QuickInputButtons.Back];
-                disposables.push(
-                    pickBox.onDidTriggerButton((item) => {
-                        if (item === vscode.QuickInputButtons.Back) {
-                            resolve(StepResult.PREVIOUS);
-                        }
-                    })
-                );
-            }
+            pickBox.buttons = createQuickInputButtons(metadata);
             disposables.push(
                 pickBox.onDidAccept(() => {
                     const selectedScriptDSL = pickBox.selectedItems[0];
@@ -50,6 +42,15 @@ export class SelectScriptDSLStep implements IProjectCreationStep {
                             metadata.nextStep = selectTestFrameworkStep;
                         }
                         resolve(StepResult.NEXT);
+                    }
+                }),
+                pickBox.onDidTriggerButton((item) => {
+                    if (item === vscode.QuickInputButtons.Back) {
+                        resolve(StepResult.PREVIOUS);
+                    } else if (item.tooltip === switchToAdvancedLabel) {
+                        metadata.isAdvanced = true;
+                        updateTotalSteps(metadata);
+                        resolve(StepResult.RESTART);
                     }
                 }),
                 pickBox.onDidHide(() => {
