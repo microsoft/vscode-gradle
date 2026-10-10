@@ -88,3 +88,41 @@ Prettier is used to lint & format most files.
 
 - Lint: `./gradlew lint`
 - Fix linting issues: `./gradlew format`
+
+## IssueLens team-memory queue
+
+`.github/workflows/team-memory-post-merge.yml` queues ordinary, non-forced pushes
+to this repository's default branch, `develop`, only when the existing
+`ISSUELENS_TEAM_MEMORY_ENABLED` variable is `true`. It dispatches
+`team-memory-coordinator.yml` in `microsoft/vscode-java-pack` at `main`, independently
+of the source branch. The coordinator invokes IssueLens, validates source evidence
+and final receipts, and serializes shared-wiki maintenance. Issue triage is unchanged.
+
+Configure the following prerequisites before merging this migration if the
+existing source opt-in is already `true`; the migration does not change its value:
+
+- In `microsoft/vscode-gradle`, configure the proposed repository variable
+  `ISSUELENS_DISPATCH_APP_CLIENT_ID` and secret
+  `ISSUELENS_DISPATCH_APP_PRIVATE_KEY` for a dedicated dispatch App installed only
+  on `microsoft/vscode-java-pack`, with **Contents: read** and **Actions: write**.
+  The caller's `GITHUB_TOKEN` cannot dispatch across repositories. Do not reuse
+  the hosted IssueLens App or the central source-read App credentials.
+- In `microsoft/vscode-java-pack`, configure the separate
+  `ISSUELENS_SOURCE_READ_APP_CLIENT_ID` and
+  `ISSUELENS_SOURCE_READ_APP_PRIVATE_KEY` secrets for the central source-read App,
+  with **Actions: read**, **Contents: read**, and **Pull requests: read** access
+  to the selected external source, `microsoft/vscode-gradle`. This source is already
+  allowlisted; a successful coordinator run against Java Pack itself does not
+  verify external-source authentication.
+
+For manual maintenance of a merged PR, use **Run workflow** on Java Pack's
+coordinator at `main`, with `source_repository=microsoft/vscode-gradle` and
+`pull_request_number` set to the merged PR number. There is no local manual path.
+Automatic requests carry five string inputs: the source repository, run ID,
+run attempt, `push_before`, and `push_after`. The coordinator verifies the source
+run and its head SHA; `push_before` is an authorized reconciliation ancestor,
+not attested original-event provenance.
+
+The dispatcher validates the target and sends one bounded POST without retrying.
+An accepted dispatch does not confirm coordinator execution or wiki completion.
+Inspect central runs before retrying a failed or unknown dispatch outcome.
