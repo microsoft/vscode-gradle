@@ -9,6 +9,8 @@ import {
 } from "../java-test-runner.api";
 import { TaskServerClient } from "../client";
 import { parseTestResults, TestCaseResult } from "./testResultParser";
+import { getCoverageInitScriptLines } from "./coverage";
+import { escapeGroovySingleQuoted } from "./groovy";
 import * as getPort from "get-port";
 import { waitOnTcp } from "../util";
 import * as os from "os";
@@ -19,6 +21,13 @@ export class GradleTestRunner implements TestRunner {
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
     private testRunnerApi: any;
     private bspContext: IRunTestContext | undefined;
+    // A BSP-delegated coverage run's JaCoCo init script must outlive the async
+    // delegate dispatch (which returns before Gradle reads it), so it is deleted
+    // only once the streamed run finishes.
+    private pendingCoverageInitScript: string | undefined;
+    // BSP callbacks have no run id, so delegated runs must be serialized.
+    private runChain: Promise<void> = Promise.resolve();
+    private releaseGate: (() => void) | undefined;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
@@ -28,6 +37,54 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public async launch(context: IRunTestContext): Promise<void> {
+        const previous = this.runChain;
+        let resolveChain!: () => void;
+        this.runChain = new Promise<void>((resolve) => (resolveChain = resolve));
+        try {
+            await previous;
+        } catch {
+            // Continue after a failed prior run.
+        }
+        let released = false;
+        const release = () => {
+            if (released) {
+                return;
+            }
+            released = true;
+            if (this.releaseGate === release) {
+                this.releaseGate = undefined;
+            }
+            resolveChain();
+        };
+        this.releaseGate = release;
+        try {
+            await this.doLaunch(context);
+        } catch (error) {
+            release();
+            throw error;
+        }
+    }
+
+    private async doLaunch(context: IRunTestContext): Promise<void> {
+        if (isCoverageRun(context)) {
+            const buildInfo = await this.getBuildTargetInfo(context.projectName);
+            const gradleVersion = buildInfo.gradleVersion ?? (await getWrapperGradleVersion(context));
+            const compatibilityError = getCoverageCompatibilityError(gradleVersion);
+            if (compatibilityError) {
+                this.finishTestRun(2, compatibilityError);
+                return;
+            }
+            try {
+                await this.launchCoverageWithBsp(context);
+            } catch (error) {
+                if (!isBspUnavailableError(error)) {
+                    this.finishTestRun(-1, getErrorMessage(error));
+                    return;
+                }
+                await this.launchViaTaskServer(context);
+            }
+            return;
+        }
         try {
             await this.launchWithBsp(context);
         } catch (error) {
@@ -35,7 +92,7 @@ export class GradleTestRunner implements TestRunner {
                 this.finishTestRun(-1, getErrorMessage(error));
                 return;
             }
-            await this.launchXmlFallback(context);
+            await this.launchViaTaskServer(context);
         }
     }
 
@@ -68,19 +125,7 @@ export class GradleTestRunner implements TestRunner {
 
     private async launchWithBsp(context: IRunTestContext): Promise<void> {
         this.bspContext = context;
-        const tests: Map<string, string[]> = new Map();
-        context.testItems.forEach((testItem) => {
-            const id = testItem.id;
-            const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(id);
-            if (!parts.class) {
-                return;
-            }
-            const testMethods = tests.get(parts.class) || [];
-            if (parts.invocations?.length) {
-                testMethods.push(normalizeTestMethodName(parts.invocations[0]));
-            }
-            tests.set(parts.class, testMethods);
-        });
+        const tests = this.buildTestsMap(context);
 
         const args = [...(context.testConfig?.args ?? [])];
         const vmArgs = context.testConfig?.vmArgs;
@@ -122,7 +167,78 @@ export class GradleTestRunner implements TestRunner {
         }
     }
 
-    private async launchXmlFallback(context: IRunTestContext): Promise<void> {
+    /**
+     * Group the requested test items into a `class -> [methods]` map, as the
+     * BSP delegate command expects. A class with no listed methods runs all of
+     * its tests.
+     */
+    private buildTestsMap(context: IRunTestContext): Map<string, string[]> {
+        const tests: Map<string, string[]> = new Map();
+        context.testItems.forEach((testItem) => {
+            const parts: TestIdParts = this.testRunnerApi.parsePartsFromTestId(testItem.id);
+            if (!parts.class) {
+                return;
+            }
+            const testMethods = tests.get(parts.class) || [];
+            if (parts.invocations?.length) {
+                testMethods.push(normalizeTestMethodName(parts.invocations[0]));
+            }
+            tests.set(parts.class, testMethods);
+        });
+        return tests;
+    }
+
+    private async launchCoverageWithBsp(context: IRunTestContext): Promise<void> {
+        this.bspContext = context;
+        const outputDirectory = context.coverage?.outputDirectory;
+        if (!outputDirectory) {
+            this.finishTestRun(2, COVERAGE_OUTPUT_DIRECTORY_MISSING_MESSAGE);
+            return;
+        }
+        const tests = this.buildTestsMap(context);
+
+        const initScriptPath = createInitScriptPath();
+        const initScriptContent = this.getInitScriptContent(-1, [], {}, outputDirectory);
+        await vscode.workspace.fs.writeFile(vscode.Uri.file(initScriptPath), Buffer.from(initScriptContent));
+
+        const args = [...(context.testConfig?.args ?? [])];
+        args.unshift("--init-script", initScriptPath);
+        const vmArgs = context.testConfig?.vmArgs;
+        const env = context.testConfig?.env;
+
+        // The delegate command dispatches the BSP test run and returns before
+        // Gradle reads the init script, so keep it on disk until the streamed
+        // run finishes (see finishTestRun). JDTLS analyzes the `.exec` files
+        // written under `outputDirectory` once the run completes.
+        this.pendingCoverageInitScript = initScriptPath;
+
+        try {
+            await vscode.commands.executeCommand(
+                "java.execute.workspaceCommand",
+                "java.gradle.delegateTest",
+                context.projectName,
+                JSON.stringify([...tests]),
+                args,
+                vmArgs,
+                env
+            );
+        } catch (error) {
+            this.pendingCoverageInitScript = undefined;
+            await deleteFileIfExists(initScriptPath);
+            throw error;
+        }
+    }
+
+    /**
+     * Run tests through the Gradle task server (`cleanTest test --tests …`,
+     * plus `jacocoTestReport` for coverage), parsing JUnit XML for results.
+     *
+     * This is used in two situations: as the fallback when the BSP delegate is
+     * unavailable (any run kind), and — historically — as the coverage path.
+     * Coverage now prefers {@link launchCoverageWithBsp}; this remains its
+     * fallback. It still handles coverage inline so the fallback keeps working.
+     */
+    private async launchViaTaskServer(context: IRunTestContext): Promise<void> {
         // Build --tests filter arguments from test items, and collect the set of
         // classes under test so we can later match their result XML files.
         const testFilters: string[] = [];
@@ -188,13 +304,32 @@ export class GradleTestRunner implements TestRunner {
             debugPort = await getPort();
         }
 
-        const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0;
+        // When this is a Coverage run, inject the JaCoCo agent via the init
+        // script so each Test JVM writes `.exec` files into the java-test
+        // provided output directory. No report task runs here: JDTLS loads and
+        // analyzes the `.exec` files after the run finishes.
+        let coverageOutputDir: string | undefined;
+        if (isCoverageRun(context)) {
+            coverageOutputDir = context.coverage?.outputDirectory;
+            if (!coverageOutputDir) {
+                this.finishTestRun(2, COVERAGE_OUTPUT_DIRECTORY_MISSING_MESSAGE);
+                return;
+            }
+            const gradleVersion = await getWrapperGradleVersion(context);
+            const compatibilityError = getCoverageCompatibilityError(gradleVersion);
+            if (compatibilityError) {
+                this.finishTestRun(2, compatibilityError);
+                return;
+            }
+        }
+
+        const needsInitScript = isDebug || vmArgs.length > 0 || Object.keys(envVars).length > 0 || !!coverageOutputDir;
         let initScriptWritten = false;
         // Unique per launch so overlapping run/debug sessions never share the
         // same init script contents or cleanup target.
         const testInitScriptPath = createInitScriptPath();
         if (needsInitScript) {
-            const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars);
+            const initScriptContent = this.getInitScriptContent(debugPort, vmArgs, envVars, coverageOutputDir);
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
             initScriptWritten = true;
             gradleArgs.unshift("--init-script", testInitScriptPath);
@@ -309,6 +444,24 @@ export class GradleTestRunner implements TestRunner {
         }
     }
 
+    private async getBuildTargetInfo(projectName: string): Promise<BuildTargetInfo> {
+        try {
+            const info = await withTimeout(
+                vscode.commands.executeCommand<SerializedBuildTargetInfo>(
+                    "java.execute.workspaceCommand",
+                    "java.gradle.getBuildTargetInfo",
+                    projectName
+                ),
+                BUILD_TARGET_INFO_TIMEOUT_MS
+            );
+            return {
+                gradleVersion: info?.gradleVersion,
+            };
+        } catch {
+            return {};
+        }
+    }
+
     /**
      * Emit results for tests we have XML for, and remove those ids from the
      * pending set so {@link finalizePendingItems} knows what's still unresolved.
@@ -377,10 +530,25 @@ export class GradleTestRunner implements TestRunner {
     }
 
     public finishTestRun(statusCode: number, message?: string): void {
+        // A BSP-delegated coverage run leaves its JaCoCo init script on disk
+        // until the streamed run finishes (the delegate command returns before
+        // Gradle reads it). Clean it up now; JDTLS analyzes the `.exec` files.
+        const initScript = this.pendingCoverageInitScript;
+        this.pendingCoverageInitScript = undefined;
+        this.emitFinish(statusCode, message);
+        if (initScript) {
+            void deleteFileIfExists(initScript);
+        }
+    }
+
+    private emitFinish(statusCode: number, message?: string): void {
         this._onDidFinishTestRun.fire({
             statusCode,
             message,
         });
+        const release = this.releaseGate;
+        this.releaseGate = undefined;
+        release?.();
     }
 
     private filterStackTrace(stackTrace: string): string {
@@ -456,7 +624,12 @@ export class GradleTestRunner implements TestRunner {
      * try to bind the same JDWP port. We allow the first Test task to run and
      * fail fast if the same Gradle invocation reaches another Test task.
      */
-    private getInitScriptContent(debugPort: number, vmArgs: string[], envVars: Record<string, string>): string {
+    private getInitScriptContent(
+        debugPort: number,
+        vmArgs: string[],
+        envVars: Record<string, string>,
+        coverageOutputDir?: string
+    ): string {
         const lines: string[] = [];
         if (debugPort > 0) {
             lines.push(
@@ -485,16 +658,118 @@ export class GradleTestRunner implements TestRunner {
             lines.push(`        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,address=${debugPort},suspend=y'`);
         }
         lines.push("    }", "}");
+        if (coverageOutputDir) {
+            lines.push(...getCoverageInitScriptLines(coverageOutputDir));
+        }
         return lines.join("\n");
     }
 }
 
+const BUILD_TARGET_INFO_TIMEOUT_MS = 5000;
+const MINIMUM_COVERAGE_GRADLE_VERSION = "6.1";
+const COVERAGE_OUTPUT_DIRECTORY_MISSING_MESSAGE =
+    "Coverage run is missing an output directory. Update the Test Runner for Java extension to a version that provides one.";
+
+interface SerializedBuildTargetInfo {
+    gradleVersion?: string;
+}
+
+interface BuildTargetInfo {
+    gradleVersion?: string;
+}
+
 /**
- * Escape a string so it can be embedded inside a Groovy single-quoted literal.
- * Only backslashes and single quotes need escaping.
+ * Reject with an Error if `promise` does not settle within `timeoutMs`.
+ * `vscode.commands.executeCommand` returns a Thenable, which this accepts.
  */
-function escapeGroovySingleQuoted(s: string): string {
-    return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+function withTimeout<T>(promise: Thenable<T>, timeoutMs: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Timed out")), timeoutMs);
+        Promise.resolve(promise).then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            (error) => {
+                clearTimeout(timer);
+                reject(error);
+            }
+        );
+    });
+}
+
+function getCoverageCompatibilityError(gradleVersion: string | undefined): string | undefined {
+    if (gradleVersion && compareVersions(gradleVersion, MINIMUM_COVERAGE_GRADLE_VERSION) < 0) {
+        return `Gradle coverage requires Gradle ${MINIMUM_COVERAGE_GRADLE_VERSION} or newer (project uses ${gradleVersion}).`;
+    }
+    return undefined;
+}
+
+function compareVersions(left: string, right: string): number {
+    const leftVersion = parseVersion(left);
+    const rightVersion = parseVersion(right);
+    const length = Math.max(leftVersion.parts.length, rightVersion.parts.length);
+    for (let i = 0; i < length; i++) {
+        const difference = (leftVersion.parts[i] ?? 0) - (rightVersion.parts[i] ?? 0);
+        if (difference !== 0) {
+            return difference;
+        }
+    }
+    if (leftVersion.suffix === rightVersion.suffix) {
+        return 0;
+    }
+    if (!leftVersion.suffix) {
+        return 1;
+    }
+    if (!rightVersion.suffix) {
+        return -1;
+    }
+    return leftVersion.suffix.localeCompare(rightVersion.suffix);
+}
+
+function parseVersion(version: string): { parts: number[]; suffix: string } {
+    const match = /^(\d+(?:\.\d+)*)(.*)$/.exec(version.trim());
+    if (!match) {
+        return { parts: [0], suffix: version };
+    }
+    return {
+        parts: match[1].split(".").map(Number),
+        suffix: match[2],
+    };
+}
+
+async function getWrapperGradleVersion(context: IRunTestContext): Promise<string | undefined> {
+    try {
+        const wrappers = await vscode.workspace.findFiles(
+            new vscode.RelativePattern(context.workspaceFolder, "**/gradle/wrapper/gradle-wrapper.properties"),
+            null,
+            20
+        );
+        if (wrappers.length === 0) {
+            return undefined;
+        }
+        const testPath = context.testItems.find((item) => item.uri)?.uri?.fsPath ?? context.workspaceFolder.uri.fsPath;
+        const wrapper =
+            [...wrappers]
+                .filter((uri) => isPathWithin(testPath, path.resolve(uri.fsPath, "..", "..", "..")))
+                .sort((a, b) => b.fsPath.length - a.fsPath.length)[0] ?? wrappers[0];
+        const content = Buffer.from(await vscode.workspace.fs.readFile(wrapper)).toString("utf-8");
+        return /gradle-([0-9][0-9A-Za-z.-]*)-(?:bin|all)\.zip/.exec(content)?.[1];
+    } catch {
+        return undefined;
+    }
+}
+
+function isPathWithin(candidate: string, parent: string): boolean {
+    const relative = path.relative(parent, candidate);
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+/**
+ * A coverage run is one whose profile was registered with the Coverage kind.
+ */
+function isCoverageRun(context: IRunTestContext): boolean {
+    return context.profile?.kind === vscode.TestRunProfileKind.Coverage;
 }
 
 function normalizeTestMethodName(methodName: string): string {
@@ -549,6 +824,14 @@ function createInitScriptPath(): string {
         os.tmpdir(),
         `gradle-test-init-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.gradle`
     );
+}
+
+async function deleteFileIfExists(filePath: string): Promise<void> {
+    try {
+        await vscode.workspace.fs.delete(vscode.Uri.file(filePath));
+    } catch {
+        /* best-effort */
+    }
 }
 
 function mergeTestResultState(current: TestResultState | undefined, next: TestResultState): TestResultState {
