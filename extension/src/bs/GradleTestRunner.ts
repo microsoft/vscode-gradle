@@ -14,11 +14,26 @@ import { waitOnTcp } from "../util";
 import * as os from "os";
 import * as path from "path";
 
+/** Build server status codes, as reported by BSP's `StatusCode`. */
+const STATUS_CODE_OK = 1;
+const STATUS_CODE_ERROR = 2;
+const STATUS_CODE_CANCELLED = 3;
+
+interface ActiveRun {
+    readonly id: number;
+    readonly originId: string;
+    reported: boolean;
+}
+
 export class GradleTestRunner implements TestRunner {
     private readonly _onDidChangeTestItemStatus = new vscode.EventEmitter<TestItemStatusChangeEvent>();
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
     private testRunnerApi: any;
     private bspContext: IRunTestContext | undefined;
+    /** Resolves once the run in flight has been reported as finished. See {@link launch}. */
+    private runChain: Promise<void> = Promise.resolve();
+    private activeRun: ActiveRun | undefined;
+    private runCounter = 0;
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
@@ -27,16 +42,92 @@ export class GradleTestRunner implements TestRunner {
         this.testRunnerApi = testRunnerApi;
     }
 
+    /**
+     * Runs one test run, once every run requested before it has finished.
+     *
+     * Test results and completion arrive from the build server through
+     * extension-wide commands that carry no run identity, and are resolved
+     * against the single run this class tracks. Two overlapping runs would
+     * therefore report into each other's test items, so runs are queued instead
+     * of interleaved.
+     */
     public async launch(context: IRunTestContext): Promise<void> {
+        const predecessor = this.runChain;
+        const current = predecessor.then(
+            () => this.runQueued(context),
+            () => this.runQueued(context)
+        );
+        // The queue has to survive a failed run, otherwise one failure would block
+        // every run after it.
+        this.runChain = current.catch(() => undefined);
+        return current;
+    }
+
+    private async runQueued(context: IRunTestContext): Promise<void> {
+        const runId = this.beginRun(context);
         try {
-            await this.launchWithBsp(context);
-        } catch (error) {
-            if (!isBspUnavailableError(error)) {
-                this.finishTestRun(-1, getErrorMessage(error));
+            if (context.cancellationToken?.isCancellationRequested) {
+                // Cancelled while queued behind an earlier run, so nothing was launched.
+                this.reportFinished(runId, STATUS_CODE_CANCELLED);
                 return;
             }
-            await this.launchXmlFallback(context);
+            const statusCode = await this.doLaunch(context);
+            // The build server reports a run as finished only once it has actually
+            // started one, so a request that ends without a report still has to end
+            // the run. Reporting is idempotent, so the build server's own report wins
+            // whenever it arrives.
+            this.reportFinished(runId, statusCode);
+        } catch (error) {
+            this.reportFinished(runId, STATUS_CODE_ERROR, getErrorMessage(error));
+        } finally {
+            this.endRun(runId);
         }
+    }
+
+    private async doLaunch(context: IRunTestContext): Promise<number> {
+        try {
+            return await this.launchWithBsp(context);
+        } catch (error) {
+            if (!isBspUnavailableError(error)) {
+                throw error;
+            }
+            await this.launchXmlFallback(context);
+            return STATUS_CODE_OK;
+        }
+    }
+
+    private beginRun(context: IRunTestContext): number {
+        const id = ++this.runCounter;
+        this.activeRun = { id, originId: `vscode-gradle-test-${id}-${Date.now()}`, reported: false };
+        this.bspContext = context;
+        return id;
+    }
+
+    private endRun(id: number): void {
+        if (this.activeRun?.id === id) {
+            this.activeRun = undefined;
+            // Reports that arrive after a run has ended belong to nothing, and
+            // {@link updateTestItem} drops them for want of a context to resolve against.
+            this.bspContext = undefined;
+        }
+    }
+
+    /**
+     * Reports a run as finished, at most once.
+     *
+     * The build server's report and the end of the request race each other, and a
+     * report belonging to a run that has already ended must never close the run
+     * that replaced it.
+     */
+    private reportFinished(id: number, statusCode: number, message?: string): void {
+        if (this.activeRun?.id !== id || this.activeRun.reported) {
+            return;
+        }
+        this.activeRun.reported = true;
+        this._onDidFinishTestRun.fire({
+            statusCode,
+            message,
+        });
     }
 
     public updateTestItem(
@@ -66,8 +157,7 @@ export class GradleTestRunner implements TestRunner {
         });
     }
 
-    private async launchWithBsp(context: IRunTestContext): Promise<void> {
-        this.bspContext = context;
+    private async launchWithBsp(context: IRunTestContext): Promise<number> {
         const tests: Map<string, string[]> = new Map();
         context.testItems.forEach((testItem) => {
             const id = testItem.id;
@@ -97,20 +187,26 @@ export class GradleTestRunner implements TestRunner {
         }
 
         try {
-            await vscode.commands.executeCommand(
+            // The debugger has to be attached while the run is in flight: the request
+            // below now completes only once the tests are over, and the test JVM is
+            // waiting on the debug port until something connects to it.
+            const request = vscode.commands.executeCommand<number | null>(
                 "java.execute.workspaceCommand",
                 "java.gradle.delegateTest",
                 context.projectName,
                 JSON.stringify([...tests]),
                 args,
                 vmArgs,
-                env
+                env,
+                this.activeRun?.originId
             );
             if (isDebug) {
                 this.startJavaDebug(context, debugPort).catch((err) => {
                     console.error("[gradle-test] Failed to attach debugger:", err);
                 });
             }
+            const statusCode = await request;
+            return typeof statusCode === "number" ? statusCode : STATUS_CODE_OK;
         } finally {
             if (testInitScriptPath) {
                 try {
@@ -376,11 +472,16 @@ export class GradleTestRunner implements TestRunner {
         pending.clear();
     }
 
-    public finishTestRun(statusCode: number, message?: string): void {
-        this._onDidFinishTestRun.fire({
-            statusCode,
-            message,
-        });
+    public finishTestRun(statusCode: number, message?: string, originId?: string): void {
+        if (!this.activeRun) {
+            return;
+        }
+        if (originId && originId !== this.activeRun.originId) {
+            // A report for a run that has already ended. Closing the run that replaced
+            // it would report someone else's result and cut its tests short.
+            return;
+        }
+        this.reportFinished(this.activeRun.id, statusCode, message);
     }
 
     private filterStackTrace(stackTrace: string): string {

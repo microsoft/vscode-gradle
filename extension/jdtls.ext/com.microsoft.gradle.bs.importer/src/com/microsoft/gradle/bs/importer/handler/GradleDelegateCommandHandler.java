@@ -23,6 +23,7 @@ import ch.epfl.scala.bsp4j.BuildTargetTag;
 import ch.epfl.scala.bsp4j.ScalaTestSuiteSelection;
 import ch.epfl.scala.bsp4j.ScalaTestSuites;
 import ch.epfl.scala.bsp4j.TestParams;
+import ch.epfl.scala.bsp4j.TestResult;
 
 public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
 
@@ -60,6 +61,7 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                     btIds = btIds.subList(0, 1);
                 }
                 TestParams testParams = new TestParams(btIds);
+                testParams.setOriginId(getOriginId(arguments));
                 testParams.setDataKind("scala-test-suites-selection");
                 testParams.setArguments(getArguments(arguments));
                 List<ScalaTestSuiteSelection> testSelections = new LinkedList<>();
@@ -76,12 +78,31 @@ public class GradleDelegateCommandHandler implements IDelegateCommandHandler {
                     getEnvVarPairs(arguments)
                 );
                 testParams.setData(scalaTestSuites);
-                buildServerConnection.buildTargetTest(testParams);
-                return null;
+                // Waiting for the result rather than dispatching and returning is what makes
+                // the end of this request the end of the run. The build server only reports a
+                // run as finished once it has actually started one, so a Gradle version it
+                // cannot drive, a dropped connection or a target with nothing to run would
+                // otherwise leave the client waiting for a report that never comes. It also
+                // keeps any per-run file the client passed in, such as an init script, alive
+                // until Gradle has actually read it.
+                TestResult testResult = buildServerConnection.buildTargetTest(testParams).join();
+                return testResult.getStatusCode().getValue();
             default:
                 break;
         }
         throw new UnsupportedOperationException("The command: " + commandId + "is not supported.");
+    }
+
+    /**
+     * The client's identifier for this test request. The build server echoes it back
+     * on the test report, which is how the client tells a report for the run it is
+     * waiting on from a report for a run that has already ended.
+     */
+    private String getOriginId(List<Object> arguments) {
+        if (arguments.size() < 6 || arguments.get(5) == null) {
+            return null;
+        }
+        return (String) arguments.get(5);
     }
 
     private List<String> getArguments(List<Object> arguments) {
