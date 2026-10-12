@@ -36,6 +36,35 @@ async function stopDaemons(userHome: string, serviceHome: string): Promise<void>
     throw new Error(`Cannot locate the Gradle 9.8.1 launcher in ${distributions}`);
 }
 
+async function logCleanupDiagnostics(tempDir: string, failedPath: string): Promise<void> {
+    if (process.platform !== "linux") {
+        console.error(`Cleanup process diagnostics are only available on Linux; current platform: ${process.platform}`);
+        return;
+    }
+    for (let snapshot = 1; snapshot <= 2; snapshot++) {
+        if (snapshot === 2) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+        }
+        console.error(`Cleanup snapshot ${snapshot} at ${new Date().toISOString()}: ${failedPath}`);
+        await Promise.all([
+            exec("ps", ["-eo", "pid,ppid,stat,etimes,args"], { timeout: 10000 }).then(
+                ({ stdout }) => {
+                    const processes = stdout
+                        .split(/\r?\n/)
+                        .filter((line) => line.includes(tempDir) || line.includes("/bin/java"));
+                    console.error("PID PPID STAT ELAPSED COMMAND");
+                    console.error(processes.join("\n") || "No workspace or Java processes remain.");
+                },
+                (error: unknown) => console.error("Failed to capture cleanup process diagnostics:", error)
+            ),
+            exec("find", [failedPath, "-maxdepth", "2", "-printf", "%y %T@ %s %p\\n"], { timeout: 10000 }).then(
+                ({ stdout }) => console.error(`Remaining entries (type, mtime, size, path):\n${stdout}`),
+                (error: unknown) => console.error("Failed to capture cleanup directory diagnostics:", error)
+            ),
+        ]);
+    }
+}
+
 async function main(): Promise<void> {
     const jdk25 = await javaHome("25");
     const jdk27 = await javaHome("27");
@@ -132,7 +161,20 @@ async function main(): Promise<void> {
             await stopDaemons(gradleHome, jdk25);
         }
     }
-    await fs.remove(tempDir);
+    try {
+        await fs.remove(tempDir);
+    } catch (error: unknown) {
+        if (
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "ENOTEMPTY" &&
+            "path" in error &&
+            typeof error.path === "string"
+        ) {
+            await logCleanupDiagnostics(tempDir, error.path);
+        }
+        throw error;
+    }
 }
 
 main().catch((error: unknown) => {

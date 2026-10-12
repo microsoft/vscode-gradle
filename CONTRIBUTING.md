@@ -82,6 +82,8 @@ On headless Linux, use `xvfb-run -a node out/test/runCompatibilityTests.js`. Set
 
 Keep `build.gradle`'s `toolingAPIVersion` and `GradleProjectConnector.TOOLING_API_VERSION` synchronized; `GradleToolingApiVersionTest` checks the resolved artifact's manifest against the fallback. Do not replace the older Gradle 8.5 / Java 21 fixtures when updating the new compatibility scenario.
 
+For cleanup diagnosis, CI runs three independent samples of each daemon scenario. If workspace removal fails with `ENOTEMPTY` on Linux, the runner logs remaining workspace/Java processes and entries in the failing directory twice, one second apart. Diagnostics run only after removal fails; the original error still fails the job.
+
 ### Code Style
 
 Prettier is used to lint & format most files.
