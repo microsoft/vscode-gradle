@@ -60,5 +60,3 @@ Getting started on this extension is as simple as `./gradlew build`.
 # Gradle Project Importer
 
 The Gradle project importer works as a client of the [Gradle Build Server](https://github.com/microsoft/build-server-for-gradle). The importer communicates with the Gradle build server via Build Server Protocol, and convert the build targets into Java Projects of JDT Language Server.
-
-`BuildServerBuilder` delegates explicit Eclipse builds to the Gradle build server. Before returning, it refreshes the output folders of the built project and its transitive Gradle build server project dependencies, since Gradle may compile those dependencies without invoking their Eclipse builders. The importer determines the refresh scope and uses Eclipse's resource refresh API, allowing the debugger to detect changed class files through the workspace's `POST_BUILD` event for hot code replace.
