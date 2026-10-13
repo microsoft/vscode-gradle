@@ -196,8 +196,6 @@ jobs:
       fail-fast: false
       matrix:
         daemon: ["25", "27"]
-    env:
-      TRACE_JAVA27_TEARDOWN: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1960 && matrix.daemon == '27' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -224,36 +222,13 @@ jobs:
       - name: Install extension dependencies
         working-directory: extension
         run: npm ci
-      - name: Prepare temporary Java 27 teardown tracing
-        if: env.TRACE_JAVA27_TEARDOWN == 'true'
-        run: |
-          if ! command -v strace >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --no-install-recommends -y strace
-          fi
-          strace --version
       - name: Run live import, tasks, dependencies, tests and debugging
         working-directory: extension
         run: |
           chmod +x lib/gradle-server
-          if [ "$TRACE_JAVA27_TEARDOWN" = "true" ]; then
-            mkdir -p "$RUNNER_TEMP/java27-teardown-trace"
-            xvfb-run -a strace -ff -ttt -T -yy -s 512 \
-              -e trace=%process,%file,getdents64 \
-              -o "$RUNNER_TEMP/java27-teardown-trace/syscalls" \
-              node out/test/runCompatibilityTests.js
-          else
-            xvfb-run -a node out/test/runCompatibilityTests.js
-          fi
+          xvfb-run -a node out/test/runCompatibilityTests.js
         env:
           JDK25_HOME: ${{ steps.jdk25.outputs.path }}
           JDK27_HOME: ${{ steps.jdk27.outputs.path }}
           GRADLE_COMPATIBILITY_DAEMON: ${{ matrix.daemon }}
           CI: "true"
-      - name: Upload temporary Java 27 teardown trace
-        if: always() && env.TRACE_JAVA27_TEARDOWN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: java27-teardown-trace
-          path: ${{ runner.temp }}/java27-teardown-trace
-          if-no-files-found: error
