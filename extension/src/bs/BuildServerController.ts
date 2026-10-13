@@ -92,6 +92,9 @@ export class BuildServerController implements Disposable {
                     this.gradleTestRunner?.finishTestRun(status, message);
                 }
             ),
+            commands.registerCommand("java.gradle.buildServer.onDidCompleteTestRequest", (initScriptPath: string) =>
+                this.gradleTestRunner?.completeBspTestRequest(initScriptPath)
+            ),
             commands.registerCommand(
                 "java.gradle.buildServer.onDidChangeTestItemStatus",
                 (testParts: string[], state: number, displayName?: string, message?: string, duration?: number) => {
