@@ -7,8 +7,9 @@ import { logger } from "../logger";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
 import { TaskServerClient } from "../client";
-import { findRootProject, getBuildDirectory } from "../rootProject";
-import { parseRunBuildArgs, RunBuildEnvironment, RunBuildOptions } from "./runBuildArgs";
+import { findRootProject } from "../client/utils";
+import { getBuildDirectory } from "../util";
+import { RunBuildArgs, RunBuildEnvironment, RunBuildOptions } from "./types";
 export const COMMAND_RUN_BUILD = "gradle.runBuild";
 const JAVA_UPDATE_PROJECT_COMMAND = "java.projectConfiguration.update";
 
@@ -45,7 +46,7 @@ export class RunBuildCommand extends Command {
         let rootProject;
         if (buildFile) {
             projectDir = getBuildDirectory(buildFile);
-            rootProject = findRootProject(await this.rootProjectsStore.getProjectRoots(), projectDir);
+            rootProject = await findRootProject(this.rootProjectsStore, projectDir);
             if (!rootProject) {
                 throw new Error(`No Gradle project found for: ${buildFile}`);
             }
@@ -122,4 +123,38 @@ export class RunBuildCommand extends Command {
             });
         });
     }
+}
+
+/**
+ * The arguments of the `gradle.runBuild` command, which are optional: without them the user is asked.
+ *
+ * Commands are registered such that an empty list of parameters is passed after the arguments of the caller
+ * (see `Commands.registerCommand`). Whatever is not of the expected type is therefore ignored, instead of being
+ * mistaken for an argument (an empty list is not a path).
+ */
+export function parseRunBuildArgs(args: ReadonlyArray<unknown>): RunBuildArgs {
+    const [buildFile, command, environment, options] = args;
+    return {
+        buildFile: typeof buildFile === "string" && buildFile.trim() ? buildFile : undefined,
+        command: typeof command === "string" && command.trim() ? command : undefined,
+        environment: isEnvironment(environment) ? environment : undefined,
+        options: parseOptions(options),
+    };
+}
+
+function parseOptions(value: unknown): RunBuildOptions | undefined {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return undefined;
+    }
+    const { refreshJavaProject } = value as { refreshJavaProject?: unknown };
+    return { refreshJavaProject: refreshJavaProject === true };
+}
+
+function isEnvironment(value: unknown): value is RunBuildEnvironment {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.values(value).every((v) => typeof v === "string")
+    );
 }

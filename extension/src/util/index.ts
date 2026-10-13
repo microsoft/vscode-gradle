@@ -65,3 +65,18 @@ export function hasGradleMarkerFile(rootProject: RootProject): boolean {
 export function isWorkspaceFolder(value: unknown): value is vscode.WorkspaceFolder {
     return !!value && typeof value !== "number";
 }
+
+/**
+ * The directory of the Gradle build for a path, which can be the path of a build file (the directory
+ * of the file is returned) or the path of a directory (returned as it is).
+ */
+export function getBuildDirectory(fsPath: string): string {
+    try {
+        if (fs.statSync(fsPath).isDirectory()) {
+            return fsPath;
+        }
+    } catch {
+        // the path does not exist, take it as the path of a file
+    }
+    return path.dirname(fsPath);
+}
