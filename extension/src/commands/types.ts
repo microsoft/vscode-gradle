@@ -9,6 +9,14 @@ export interface RunBuildArgs {
     options?: RunBuildOptions;
 }
 
+/**
+ * The outcome of a build that was run with arguments and was not a failure. A failure rejects the command,
+ * which the caller of the command sees as no result.
+ */
+export interface RunBuildResult {
+    status: "succeeded" | "cancelled";
+}
+
 export type RunBuildEnvironment = { [name: string]: string };
 
 export interface RunBuildOptions {

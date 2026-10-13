@@ -9,7 +9,7 @@ import { RootProjectsStore } from "../stores";
 import { TaskServerClient } from "../client";
 import { findRootProject } from "../client/utils";
 import { getBuildDirectory } from "../util";
-import { RunBuildArgs, RunBuildEnvironment, RunBuildOptions } from "./types";
+import { RunBuildArgs, RunBuildEnvironment, RunBuildOptions, RunBuildResult } from "./types";
 export const COMMAND_RUN_BUILD = "gradle.runBuild";
 const JAVA_UPDATE_PROJECT_COMMAND = "java.projectConfiguration.update";
 
@@ -31,13 +31,16 @@ export class RunBuildCommand extends Command {
      * @param environment environment variables for the build, on top of the environment of the Gradle
      * server. `JAVA_HOME` is used as the Java home to run Gradle with.
      * @param options `refreshJavaProject: true` reloads the Java project of the build after the build succeeded
+     * @returns with arguments, whether the build succeeded or was cancelled. The command fails if the build
+     * fails or if there is no project to run it in, which the caller of the command sees as no result.
+     * Otherwise nothing.
      */
     async run(
         buildFile?: string,
         command?: string,
         environment?: RunBuildEnvironment,
         options?: RunBuildOptions
-    ): Promise<void> {
+    ): Promise<RunBuildResult | undefined> {
         // the registered command appends an empty list of parameters after the arguments of the caller, so the
         // arguments that were not passed are not necessarily undefined
         const args = parseRunBuildArgs([buildFile, command, environment, options]);
@@ -91,10 +94,11 @@ export class RunBuildCommand extends Command {
         const finished = interactive ? undefined : this.whenBuildEnded(terminal, gradleCommand);
         finished?.catch(() => undefined);
         await vscode.tasks.executeTask(task);
-        await finished;
-        if (options?.refreshJavaProject) {
+        const result = await finished;
+        if (result?.status === "succeeded" && options?.refreshJavaProject) {
             await this.refreshJavaProject(buildDir);
         }
+        return result;
     }
 
     private async refreshJavaProject(projectDir: string): Promise<void> {
@@ -111,12 +115,14 @@ export class RunBuildCommand extends Command {
         }
     }
 
-    private whenBuildEnded(terminal: GradleRunnerTerminal, gradleCommand: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
+    private whenBuildEnded(terminal: GradleRunnerTerminal, gradleCommand: string): Promise<RunBuildResult> {
+        return new Promise<RunBuildResult>((resolve, reject) => {
             const listener = terminal.onDidClose((exitCode) => {
                 listener.dispose();
-                if (exitCode === 0) {
-                    resolve();
+                if (terminal.wasCancelled()) {
+                    resolve({ status: "cancelled" });
+                } else if (exitCode === 0) {
+                    resolve({ status: "succeeded" });
                 } else {
                     reject(new Error(`Gradle build '${gradleCommand}' failed`));
                 }

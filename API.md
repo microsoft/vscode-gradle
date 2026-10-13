@@ -56,7 +56,9 @@ await vscode.commands.executeCommand(
   The build runs in the directory of the build file, as `cd subproject && gradle <tasks>` would.
 - `JAVA_HOME` of the environment is the Java home that Gradle runs with, it wins over the one of the extension settings
   (`java.import.gradle.java.home`). All other variables are added to the environment of the Gradle server process.
-- With arguments the command completes when the build has ended and fails if the build did not succeed.
+- With arguments the command completes when the build has ended and resolves to `{ status: "succeeded" }`, or to
+  `{ status: "cancelled" }` if the build was cancelled. If the build fails the command fails, but a failing command
+  resolves to `undefined` for its caller (the failure is only recorded in the telemetry), so no result means failure.
 - `refreshJavaProject: true` reloads the Java project of the build (the "Update Project" of the Java extension) after the
   build succeeded, for builds that generate sources, for example. If that fails (the Java extension is not installed) it
   is only logged.
