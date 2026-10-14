@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.internal.resources.Project;
@@ -63,6 +64,15 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
     public static final String SETTINGS_GRADLE_DESCRIPTOR = "settings.gradle";
     public static final String SETTINGS_GRADLE_KTS_DESCRIPTOR = "settings.gradle.kts";
     public static final String ANDROID_MANIFEST = "AndroidManifest.xml";
+
+    /**
+     * jdt.ls creates a fresh importer instance for every workspace root, so
+     * this guard must be static to deduplicate the workspace-level
+     * {@code hasMultipleGradleRoots} fallback telemetry across the per-root
+     * {@code applies()} calls. It is sent at most once per session.
+     */
+    private static final AtomicBoolean multipleGradleRootsTelemetrySent = new AtomicBoolean(false);
+
     private boolean isResolved = true;
 
     @Override
@@ -71,12 +81,21 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
             return false;
         }
 
-        //TODO: support multi-root workspaces
-        if (getPreferences().getRootPaths().size() != 1) {
+        if (!Utils.isBuildServerEnabled(getPreferences())) {
             return false;
         }
 
-        if (!Utils.isBuildServerEnabled(getPreferences())) {
+        // The build server supports a single connection per workspace, so
+        // multi-root workspaces can only be handled when at most one root
+        // contains a Gradle build. Additional roots without any Gradle
+        // build (docs, scripts, ...) are fine.
+        Collection<IPath> rootPaths = getPreferences().getRootPaths();
+        if (rootPaths.size() != 1 && hasMultipleGradleRoots(rootPaths, monitor)) {
+            if (multipleGradleRootsTelemetrySent.compareAndSet(false, true)) {
+                Telemetry telemetry = new Telemetry("hasMultipleGradleRoots", "true");
+                Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
+                        telemetry);
+            }
             return false;
         }
 
@@ -124,6 +143,29 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
         Utils.sendTelemetry(JavaLanguageServerPlugin.getProjectsManager().getConnection(),
                 telemetry);
         return true;
+    }
+
+    /**
+     * Check whether more than one of the given workspace roots contains a
+     * Gradle build. Roots that do not contain any Gradle build file do not
+     * prevent the build server from handling the workspace.
+     */
+    private boolean hasMultipleGradleRoots(Collection<IPath> rootPaths, IProgressMonitor monitor) throws CoreException {
+        int gradleRoots = 0;
+        for (IPath rootPath : rootPaths) {
+            BasicFileDetector gradleDetector = new BasicFileDetector(rootPath.toFile().toPath(), BUILD_GRADLE_DESCRIPTOR,
+                    SETTINGS_GRADLE_DESCRIPTOR, BUILD_GRADLE_KTS_DESCRIPTOR, SETTINGS_GRADLE_KTS_DESCRIPTOR)
+                    .includeNested(false)
+                    .addExclusions("**/build") //default gradle build dir
+                    .addExclusions("**/bin");
+            if (!gradleDetector.scan(monitor).isEmpty()) {
+                gradleRoots++;
+                if (gradleRoots > 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -292,7 +334,12 @@ public class GradleBuildServerProjectImporter extends AbstractProjectImporter {
 
     @Override
     public void reset() {
-        // do nothing
+        // jdt.ls creates a fresh importer instance for every workspace root,
+        // but initialize() calls reset() whenever the root folder changes.
+        // Clear all root-scoped state here as a defensive guard in case an
+        // instance is ever reused for a different root.
+        directories = null;
+        isResolved = true;
     }
 
     /**

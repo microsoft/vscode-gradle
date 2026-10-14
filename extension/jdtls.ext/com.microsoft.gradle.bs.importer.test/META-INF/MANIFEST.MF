@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Gradle Build Server Importer Tests
+Bundle-SymbolicName: com.microsoft.gradle.bs.importer.test
+Bundle-Version: 0.5.4
+Fragment-Host: com.microsoft.gradle.bs.importer
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: org.junit
