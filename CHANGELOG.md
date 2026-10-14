@@ -4,8 +4,6 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
-
 ## 3.18.1
 ## What's Changed
 * fix - Update the default Gradle distribution and Tooling API to 9.8.1 for Java 27 compatibility, while continuing to honor the project wrapper and explicit Gradle settings in https://github.com/microsoft/vscode-gradle/pull/1953
