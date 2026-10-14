@@ -39,7 +39,7 @@ Refer to [vscode-spotless-gradle](https://github.com/badsyntax/vscode-spotless-g
 
 ## The `gradle.runBuild` command
 
-The command runs a Gradle build in a task terminal. Without arguments (from the command palette) it asks for the root
+The command runs a Gradle build in a task terminal. Without a command line (from the command palette) it asks for the root
 project and the command line. Other extensions can pass the arguments to run a build without any interaction:
 
 ```ts
@@ -47,8 +47,7 @@ await vscode.commands.executeCommand(
   "gradle.runBuild",
   "/absolute/path/to/project/build.gradle", // build file (or directory) of the project, may be of a subproject
   "classes aotClasses", // the Gradle command line: tasks and options
-  { JAVA_HOME: "/path/to/jdk" }, // optional environment variables for the build
-  { refreshJavaProject: true } // optional, see below
+  { JAVA_HOME: "/path/to/jdk" } // optional environment variables for the build
 );
 ```
 
@@ -56,9 +55,6 @@ await vscode.commands.executeCommand(
   The build runs in the directory of the build file, as `cd subproject && gradle <tasks>` would.
 - `JAVA_HOME` of the environment is the Java home that Gradle runs with, it wins over the one of the extension settings
   (`java.import.gradle.java.home`). All other variables are added to the environment of the Gradle server process.
-- With arguments the command completes when the build has ended and resolves to `{ status: "succeeded" }`, or to
-  `{ status: "cancelled" }` if the build was cancelled. If the build fails the command fails, but a failing command
-  resolves to `undefined` for its caller (the failure is only recorded in the telemetry), so no result means failure.
-- `refreshJavaProject: true` reloads the Java project of the build (the "Update Project" of the Java extension) after the
-  build succeeded, for builds that generate sources, for example. If that fails (the Java extension is not installed) it
-  is only logged.
+- The command completes when the build has finished. It does not tell how the build ended.
+- A build that is already running (same project and same command line) is not started again. The command completes
+  when that build has finished.

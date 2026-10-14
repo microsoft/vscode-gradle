@@ -77,8 +77,9 @@ public class RunBuildHandler {
 		GradleBuildRunner gradleRunner = new GradleBuildRunner(req.getProjectDir(), req.getArgsList(),
 				req.getGradleConfig(), req.getCancellationKey(), req.getShowOutputColors(), req.getJavaDebugPort(),
 				req.getJavaDebugCleanOutputCache(), req.getAdditionalToolOptions());
-		gradleRunner.setEnvironment(req.getEnvironmentMap()).setProgressListener(progressListener)
-				.setStandardOutputStream(standardOutputListener).setStandardErrorStream(standardErrorListener);
+		gradleRunner.setEnvironment(req.getEnvironmentMap());
+		gradleRunner.setProgressListener(progressListener).setStandardOutputStream(standardOutputListener)
+				.setStandardErrorStream(standardErrorListener);
 
 		if (!Strings.isNullOrEmpty(req.getInput())) {
 			gradleRunner.setStandardInputStream(new ByteArrayInputStream(req.getInput().getBytes()));

@@ -28,7 +28,6 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     private stdOutLoggerStream: LoggerStream | undefined;
     private readonly closeEmitter = new vscode.EventEmitter<number>();
     private task?: vscode.Task;
-    private cancelled = false;
     public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
     public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
 
@@ -51,11 +50,6 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
 
     public setTask(task: vscode.Task): void {
         this.task = task;
-    }
-
-    /** Whether the build was cancelled, in which case the terminal closes as for a build that has ended */
-    public wasCancelled(): boolean {
-        return this.cancelled;
     }
 
     public async close(): Promise<void> {
@@ -125,8 +119,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 additionalToolOptions,
                 undefined,
                 undefined,
-                this.options.environment,
-                () => (this.cancelled = true)
+                this.options.environment
             );
             await runTask;
             this.closeEmitter.fire(0);

@@ -163,6 +163,12 @@ describe("findRootProject", () => {
         assert.strictEqual(await findRootProject(store, path.resolve("elsewhere")), undefined);
     });
 
+    it("does not find a root project for a sibling directory with the same name prefix", async () => {
+        // "workspace-other" starts with "workspace" but is not inside of it
+        const store = storeOf(rootProject("workspace"));
+        assert.strictEqual(await findRootProject(store, path.resolve("workspace-other", "sub")), undefined);
+    });
+
     it("prefers the closest of nested root projects", async () => {
         const workspace = rootProject("workspace");
         const nested = rootProject("workspace", "nested");

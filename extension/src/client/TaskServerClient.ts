@@ -304,8 +304,7 @@ export class TaskServerClient implements vscode.Disposable {
         additionalToolOptions = "",
         title?: string,
         location?: vscode.ProgressLocation,
-        environment?: { [name: string]: string },
-        onCancelled?: () => void
+        environment?: { [name: string]: string }
     ): Promise<void> {
         await this.connectWaiter.wait();
         this.statusBarItem.hide();
@@ -364,7 +363,7 @@ export class TaskServerClient implements vscode.Disposable {
                                 }
                                 break;
                             case RunBuildReply.KindCase.CANCELLED:
-                                this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task, onCancelled);
+                                this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
                                 break;
                         }
                     };
@@ -434,14 +433,8 @@ export class TaskServerClient implements vscode.Disposable {
         }
     }
 
-    private handleRunBuildCancelled = (
-        args: ReadonlyArray<string>,
-        cancelled: Cancelled,
-        task?: vscode.Task,
-        onCancelled?: () => void
-    ): void => {
+    private handleRunBuildCancelled = (args: ReadonlyArray<string>, cancelled: Cancelled, task?: vscode.Task): void => {
         logger.info(`Build cancelled: ${args.join(" ")}: ${cancelled.getMessage()}`);
-        onCancelled?.();
         if (task) {
             removeCancellingTask(task);
         }

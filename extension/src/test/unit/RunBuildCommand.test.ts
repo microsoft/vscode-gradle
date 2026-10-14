@@ -1,16 +1,14 @@
 import * as assert from "assert";
 import * as path from "path";
-import { parseRunBuildArgs } from "../../commands/RunBuildCommand";
-import { getBuildDirectory } from "../../util";
+import { getBuildDirectory, parseRunBuildArgs } from "../../commands/RunBuildCommand";
 
 describe("parseRunBuildArgs", () => {
     it("takes the build file, the command and the environment", () => {
-        const args = parseRunBuildArgs(["/project/build.gradle", "classes aotClasses", { JAVA_HOME: "/jdk" }, []]);
+        const args = parseRunBuildArgs(["/project/build.gradle", "classes aotClasses", { JAVA_HOME: "/jdk" }]);
         assert.deepStrictEqual(args, {
             buildFile: "/project/build.gradle",
             command: "classes aotClasses",
             environment: { JAVA_HOME: "/jdk" },
-            options: undefined,
         });
     });
 
@@ -20,13 +18,11 @@ describe("parseRunBuildArgs", () => {
             buildFile: undefined,
             command: undefined,
             environment: undefined,
-            options: undefined,
         });
         assert.deepStrictEqual(parseRunBuildArgs([]), {
             buildFile: undefined,
             command: undefined,
             environment: undefined,
-            options: undefined,
         });
     });
 
@@ -44,24 +40,6 @@ describe("parseRunBuildArgs", () => {
 
     it("accepts an empty environment", () => {
         assert.deepStrictEqual(parseRunBuildArgs(["/p/build.gradle", "build", {}]).environment, {});
-    });
-
-    it("takes the option to refresh the Java project", () => {
-        const args = parseRunBuildArgs(["/p/build.gradle", "build", {}, { refreshJavaProject: true }, []]);
-        assert.deepStrictEqual(args.options, { refreshJavaProject: true });
-    });
-
-    it("does not refresh the Java project unless asked to, and ignores options of another type", () => {
-        assert.deepStrictEqual(parseRunBuildArgs(["/p/build.gradle", "build", {}, {}]).options, {
-            refreshJavaProject: false,
-        });
-        assert.deepStrictEqual(
-            parseRunBuildArgs(["/p/build.gradle", "build", {}, { refreshJavaProject: "yes" }]).options,
-            {
-                refreshJavaProject: false,
-            }
-        );
-        assert.strictEqual(parseRunBuildArgs(["/p/build.gradle", "build", {}, []]).options, undefined);
     });
 });
 

@@ -162,7 +162,7 @@ public class GradleBuildRunner {
 			build.setStandardInput(standardInputStream);
 		}
 
-		Map<String, String> envVars = buildEnvVars(additionalToolOptions, environment);
+		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(additionalToolOptions, environment);
 
 		if (envVars != null) {
 			build.setEnvironmentVariables(envVars);
@@ -275,14 +275,17 @@ public class GradleBuildRunner {
 	}
 
 	/**
-	 * The environment variables for the build, or null if the build is to run with
-	 * the default environment (the one of the server process). Additional tool
-	 * options are set as JAVA_TOOL_OPTIONS. Note: the debug agent is not set via
-	 * JAVA_TOOL_OPTIONS to prevent it from being applied to all Java processes
-	 * (e.g., compilation); debugging is configured via Gradle init script to target
-	 * only JavaExec and Test tasks.
+	 * Builds environment variables with JAVA_TOOL_OPTIONS for additional tool
+	 * options. Note: Debug agent is no longer set via JAVA_TOOL_OPTIONS to prevent
+	 * it from being applied to all Java processes (e.g., compilation). Instead,
+	 * debugging is configured via Gradle init script to target only JavaExec and
+	 * Test tasks.
+	 *
+	 * The given environment variables are added to the environment of the server
+	 * process. Returns null if there is nothing to add to it.
 	 */
-	static Map<String, String> buildEnvVars(String additionalToolOptions, Map<String, String> environment) {
+	static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions,
+			Map<String, String> environment) {
 		boolean hasToolOptions = additionalToolOptions != null && !additionalToolOptions.isEmpty();
 		boolean hasEnvironment = environment != null && !environment.isEmpty();
 		if (!hasToolOptions && !hasEnvironment) {

@@ -10,13 +10,13 @@ public class GradleBuildRunnerEnvironmentTest {
 
 	@Test
 	public void noToolOptionsAndNoEnvironmentKeepsTheDefaultEnvironment() {
-		assertNull(GradleBuildRunner.buildEnvVars("", Map.of()));
-		assertNull(GradleBuildRunner.buildEnvVars(null, null));
+		assertNull(GradleBuildRunner.buildJavaEnvVarsWithToolOptions("", Map.of()));
+		assertNull(GradleBuildRunner.buildJavaEnvVarsWithToolOptions(null, null));
 	}
 
 	@Test
 	public void environmentIsAddedToTheEnvironmentOfTheServerProcess() {
-		Map<String, String> envVars = GradleBuildRunner.buildEnvVars("",
+		Map<String, String> envVars = GradleBuildRunner.buildJavaEnvVarsWithToolOptions("",
 				Map.of("JAVA_HOME", "/custom/jdk", "MY_VAR", "1"));
 
 		assertEquals("/custom/jdk", envVars.get("JAVA_HOME"));
@@ -33,14 +33,16 @@ public class GradleBuildRunnerEnvironmentTest {
 		// whatever variable the server process has, such that the test does not depend
 		// on the machine
 		String inherited = System.getenv().keySet().iterator().next();
-		Map<String, String> envVars = GradleBuildRunner.buildEnvVars("", Map.of(inherited, "overridden"));
+		Map<String, String> envVars = GradleBuildRunner.buildJavaEnvVarsWithToolOptions("",
+				Map.of(inherited, "overridden"));
 
 		assertEquals("overridden", envVars.get(inherited));
 	}
 
 	@Test
 	public void environmentOverridesAndToolOptionsAreCombined() {
-		Map<String, String> envVars = GradleBuildRunner.buildEnvVars("-Dtool=1", Map.of("JAVA_HOME", "/custom/jdk"));
+		Map<String, String> envVars = GradleBuildRunner.buildJavaEnvVarsWithToolOptions("-Dtool=1",
+				Map.of("JAVA_HOME", "/custom/jdk"));
 
 		assertEquals("/custom/jdk", envVars.get("JAVA_HOME"));
 		assertEquals("-Dtool=1", envVars.get("JAVA_TOOL_OPTIONS"));
@@ -48,7 +50,7 @@ public class GradleBuildRunnerEnvironmentTest {
 
 	@Test
 	public void toolOptionsWinOverTheGivenEnvironment() {
-		Map<String, String> envVars = GradleBuildRunner.buildEnvVars("-Dtool=1",
+		Map<String, String> envVars = GradleBuildRunner.buildJavaEnvVarsWithToolOptions("-Dtool=1",
 				Map.of("JAVA_TOOL_OPTIONS", "-Dother=2", "MY_VAR", "1"));
 
 		assertEquals("-Dtool=1", envVars.get("JAVA_TOOL_OPTIONS"));
@@ -57,7 +59,8 @@ public class GradleBuildRunnerEnvironmentTest {
 
 	@Test
 	public void toolOptionsAloneStillWork() {
-		assertEquals("-Dtool=1", GradleBuildRunner.buildEnvVars("-Dtool=1", Map.of()).get("JAVA_TOOL_OPTIONS"));
+		assertEquals("-Dtool=1",
+				GradleBuildRunner.buildJavaEnvVarsWithToolOptions("-Dtool=1", Map.of()).get("JAVA_TOOL_OPTIONS"));
 	}
 
 }

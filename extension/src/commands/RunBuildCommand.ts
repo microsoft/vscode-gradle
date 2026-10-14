@@ -1,17 +1,16 @@
+import * as fs from "fs";
+import * as path from "path";
 import * as vscode from "vscode";
 import { parseArgsStringToArgv } from "string-argv";
 import { getGradleCommand, getRootProjectFolder } from "../util/input";
 import { GradleRunnerTerminal } from "../terminal";
 import { getRunBuildCancellationKey } from "../client/CancellationKeys";
-import { logger } from "../logger";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
 import { TaskServerClient } from "../client";
 import { findRootProject } from "../client/utils";
-import { getBuildDirectory } from "../util";
-import { RunBuildArgs, RunBuildEnvironment, RunBuildOptions, RunBuildResult } from "./types";
+import { RunBuildArgs, RunBuildEnvironment } from "./types";
 export const COMMAND_RUN_BUILD = "gradle.runBuild";
-const JAVA_UPDATE_PROJECT_COMMAND = "java.projectConfiguration.update";
 
 export class RunBuildCommand extends Command {
     constructor(private rootProjectsStore: RootProjectsStore, private client: TaskServerClient) {
@@ -21,30 +20,21 @@ export class RunBuildCommand extends Command {
     /**
      * Runs a Gradle build in a task terminal.
      *
-     * Without arguments the user is asked for the root project and the command. The arguments allow other
-     * extensions to run a build without any interaction. In that case the command completes when the
-     * build has ended, and fails if the build did not succeed.
+     * Without a command the user is asked for it, and for the root project. The arguments allow other
+     * extensions to run a build without any interaction. The command completes when the build has finished.
+     * A build that is running already (same project and same command line) is not run again, the command
+     * completes when that build has finished.
      *
      * @param buildFile path of the build file (or of the directory) of the project to run the build in,
      * for example a subproject. The root project is determined from it.
      * @param command the Gradle command line, tasks and options, for example `clean build --info`
      * @param environment environment variables for the build, on top of the environment of the Gradle
      * server. `JAVA_HOME` is used as the Java home to run Gradle with.
-     * @param options `refreshJavaProject: true` reloads the Java project of the build after the build succeeded
-     * @returns with arguments, whether the build succeeded or was cancelled. The command fails if the build
-     * fails or if there is no project to run it in, which the caller of the command sees as no result.
-     * Otherwise nothing.
      */
-    async run(
-        buildFile?: string,
-        command?: string,
-        environment?: RunBuildEnvironment,
-        options?: RunBuildOptions
-    ): Promise<RunBuildResult | undefined> {
+    async run(buildFile?: string, command?: string, environment?: RunBuildEnvironment): Promise<void> {
         // the registered command appends an empty list of parameters after the arguments of the caller, so the
         // arguments that were not passed are not necessarily undefined
-        const args = parseRunBuildArgs([buildFile, command, environment, options]);
-        ({ buildFile, command, environment, options } = args);
+        ({ buildFile, command, environment } = parseRunBuildArgs([buildFile, command, environment]));
         let projectDir: string | undefined;
         let rootProject;
         if (buildFile) {
@@ -64,14 +54,13 @@ export class RunBuildCommand extends Command {
             return;
         }
 
-        const gradleArgs: string[] = parseArgsStringToArgv(gradleCommand.trim());
+        const args: string[] = parseArgsStringToArgv(gradleCommand.trim());
         const buildDir = projectDir ?? rootProject.getProjectUri().fsPath;
-        const cancellationKey = getRunBuildCancellationKey(buildDir, gradleArgs);
-        const terminal = new GradleRunnerTerminal(rootProject, gradleArgs, cancellationKey, this.client, {
+        const cancellationKey = getRunBuildCancellationKey(buildDir, args);
+        const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, this.client, {
             projectDir: buildDir,
             environment,
         });
-        const interactive = !buildFile;
         const task = new vscode.Task(
             {
                 type: "gradle",
@@ -86,49 +75,45 @@ export class RunBuildCommand extends Command {
             showReuseMessage: false,
             clear: true,
             echo: true,
-            focus: interactive,
+            // the user that enters the command gets the focus, not the extension that runs a build
+            focus: !command,
             panel: vscode.TaskPanelKind.Shared,
             reveal: vscode.TaskRevealKind.Always,
         };
-        // listen before the task starts such that the end of the build cannot be missed
-        const finished = interactive ? undefined : this.whenBuildEnded(terminal, gradleCommand);
-        finished?.catch(() => undefined);
-        await vscode.tasks.executeTask(task);
-        const result = await finished;
-        if (result?.status === "succeeded" && options?.refreshJavaProject) {
-            await this.refreshJavaProject(buildDir);
-        }
-        return result;
+        await executeTaskAndWait(task);
     }
+}
 
-    private async refreshJavaProject(projectDir: string): Promise<void> {
-        try {
-            // "Update Project" of the Java extension
-            if (!(await vscode.commands.getCommands(true)).includes(JAVA_UPDATE_PROJECT_COMMAND)) {
-                logger.warn(`Unable to refresh the Java project ${projectDir}: the Java extension is not available`);
-                return;
-            }
-            await vscode.commands.executeCommand(JAVA_UPDATE_PROJECT_COMMAND, [vscode.Uri.file(projectDir)]);
-        } catch (e) {
-            // the build itself succeeded
-            logger.warn(`Unable to refresh the Java project ${projectDir}: ${e}`);
-        }
-    }
-
-    private whenBuildEnded(terminal: GradleRunnerTerminal, gradleCommand: string): Promise<RunBuildResult> {
-        return new Promise<RunBuildResult>((resolve, reject) => {
-            const listener = terminal.onDidClose((exitCode) => {
+/**
+ * Starts the task and resolves when its execution has ended, however it ended. VS Code does not run a task again
+ * that is active already: it returns the execution that is running, so the call ends with that execution. It
+ * listens before the task starts such that the end of a short build cannot be missed.
+ */
+function executeTaskAndWait(task: vscode.Task): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        const ended = new Set<vscode.TaskExecution>();
+        let started: vscode.TaskExecution | undefined;
+        const resolveIfEnded = (): void => {
+            if (started && ended.has(started)) {
                 listener.dispose();
-                if (terminal.wasCancelled()) {
-                    resolve({ status: "cancelled" });
-                } else if (exitCode === 0) {
-                    resolve({ status: "succeeded" });
-                } else {
-                    reject(new Error(`Gradle build '${gradleCommand}' failed`));
-                }
-            });
+                resolve();
+            }
+        };
+        const listener = vscode.tasks.onDidEndTask((e) => {
+            ended.add(e.execution);
+            resolveIfEnded();
         });
-    }
+        vscode.tasks.executeTask(task).then(
+            (execution) => {
+                started = execution;
+                resolveIfEnded();
+            },
+            (e) => {
+                listener.dispose();
+                reject(e);
+            }
+        );
+    });
 }
 
 /**
@@ -139,21 +124,12 @@ export class RunBuildCommand extends Command {
  * mistaken for an argument (an empty list is not a path).
  */
 export function parseRunBuildArgs(args: ReadonlyArray<unknown>): RunBuildArgs {
-    const [buildFile, command, environment, options] = args;
+    const [buildFile, command, environment] = args;
     return {
         buildFile: typeof buildFile === "string" && buildFile.trim() ? buildFile : undefined,
         command: typeof command === "string" && command.trim() ? command : undefined,
         environment: isEnvironment(environment) ? environment : undefined,
-        options: parseOptions(options),
     };
-}
-
-function parseOptions(value: unknown): RunBuildOptions | undefined {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-        return undefined;
-    }
-    const { refreshJavaProject } = value as { refreshJavaProject?: unknown };
-    return { refreshJavaProject: refreshJavaProject === true };
 }
 
 function isEnvironment(value: unknown): value is RunBuildEnvironment {
@@ -163,4 +139,19 @@ function isEnvironment(value: unknown): value is RunBuildEnvironment {
         !Array.isArray(value) &&
         Object.values(value).every((v) => typeof v === "string")
     );
+}
+
+/**
+ * The directory of the Gradle build for a path, which can be the path of a build file (the directory
+ * of the file is returned) or the path of a directory (returned as it is).
+ */
+export function getBuildDirectory(fsPath: string): string {
+    try {
+        if (fs.statSync(fsPath).isDirectory()) {
+            return fsPath;
+        }
+    } catch {
+        // the path does not exist, take it as the path of a file
+    }
+    return path.dirname(fsPath);
 }
