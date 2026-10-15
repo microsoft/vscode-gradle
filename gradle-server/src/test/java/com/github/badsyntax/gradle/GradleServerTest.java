@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.*;
 
+import com.github.badsyntax.gradle.handlers.CancelBuildHandler;
 import com.github.badsyntax.gradle.handlers.GetBuildHandler;
 import com.github.badsyntax.gradle.handlers.RunBuildHandler;
 import com.github.badsyntax.gradle.transport.jsonrpc.GradleClient;
@@ -27,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.gradle.tooling.events.OperationType;
 import org.junit.After;
 import org.junit.Before;
@@ -159,6 +162,54 @@ public class GradleServerTest {
 		CompletableFuture<GradleResponse> future = new CompletableFuture<>();
 		new RunBuildHandler(req, future, mockClient, 1L).run();
 		return future;
+	}
+
+	@Test
+	public void runBuild_cancellationMustRetryUntilConnectionRegistersToken() throws Exception {
+		String key = "delayed-connection-cancellation";
+		CountDownLatch connecting = new CountDownLatch(1);
+		CountDownLatch allowConnection = new CountDownLatch(1);
+		CountDownLatch running = new CountDownLatch(1);
+		CountDownLatch allowCompletion = new CountDownLatch(1);
+		when(mockConnector.connect()).thenAnswer(invocation -> {
+			connecting.countDown();
+			assertTrue(allowConnection.await(5, TimeUnit.SECONDS));
+			return mockConnection;
+		});
+		doAnswer(invocation -> {
+			running.countDown();
+			assertTrue(allowCompletion.await(5, TimeUnit.SECONDS));
+			return null;
+		}).when(mockBuildLauncher).run();
+		RunBuildRequest request = RunBuildRequest.newBuilder().setProjectDir(mockProjectDir.getAbsolutePath())
+				.setCancellationKey(key).setGradleConfig(GradleConfig.newBuilder().setWrapperEnabled(true))
+				.addArgs("test").build();
+		CompletableFuture<GradleResponse> result = new CompletableFuture<>();
+		Thread worker = new Thread(() -> new RunBuildHandler(request, result, mockClient, 1L).run());
+		worker.start();
+		try {
+			assertTrue(connecting.await(5, TimeUnit.SECONDS));
+			assertFalse(cancelBuild(key).getBuildRunning());
+			allowConnection.countDown();
+			assertTrue(running.await(5, TimeUnit.SECONDS));
+			assertTrue(cancelBuild(key).getBuildRunning());
+			verify(mockCancellationTokenSource).cancel();
+			allowCompletion.countDown();
+			result.get(5, TimeUnit.SECONDS);
+			assertFalse(cancelBuild(key).getBuildRunning());
+		} finally {
+			allowConnection.countDown();
+			allowCompletion.countDown();
+			worker.join(5000);
+			assertFalse("Build worker did not finish", worker.isAlive());
+			GradleBuildCancellation.clearToken(key);
+		}
+	}
+
+	private CancelBuildReply cancelBuild(String key) throws Exception {
+		CompletableFuture<GradleResponse> result = new CompletableFuture<>();
+		new CancelBuildHandler(CancelBuildRequest.newBuilder().setCancellationKey(key).build(), result).run();
+		return CancelBuildReply.parseFrom(JsonRpcCodec.decode(result.join().getReply()));
 	}
 
 	private static void assertSuccess(CompletableFuture<GradleResponse> future) {
