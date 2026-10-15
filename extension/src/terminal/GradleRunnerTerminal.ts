@@ -176,32 +176,20 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         const javaDebugEnabled = this.task ? this.task.definition.javaDebug : false;
 
         try {
-            const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
             if (this.closed) {
                 this.closeEmitter.fire(0);
                 return;
             }
-            if (javaDebugEnabled) {
-                this.javaDebug = { port: javaDebugPort, output: new Map<number, string>() };
-            }
-            const additionalToolOptions = (
-                await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
-            ).join(" ");
-            if (this.closed) {
-                this.closeEmitter.fire(0);
-                return;
-            }
-
-            const runTask = this.client.runBuild(
+            await this.client.runBuild(
                 this.rootProject.getProjectUri().fsPath,
                 this.cancellationKey,
                 this.args,
                 "",
-                javaDebugPort,
+                0,
                 this.task,
                 this.handleOutput,
                 true,
-                additionalToolOptions,
+                "",
                 undefined,
                 undefined,
                 {
@@ -210,10 +198,25 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                         this.closed = true;
                         this.stopJavaDebugWait();
                     },
+                    prepare: async (token) => {
+                        const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
+                        if (token.isCancellationRequested) {
+                            throw new vscode.CancellationError();
+                        }
+                        if (javaDebugEnabled) {
+                            this.javaDebug = { port: javaDebugPort, output: new Map<number, string>() };
+                        }
+                        const additionalToolOptions = (
+                            await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
+                        ).join(" ");
+                        if (token.isCancellationRequested) {
+                            throw new vscode.CancellationError();
+                        }
+                        this.probeJavaDebugPort();
+                        return { javaDebugPort, additionalToolOptions };
+                    },
                 }
             );
-            this.probeJavaDebugPort();
-            await runTask;
             if (this.javaDebug) {
                 this.stopJavaDebugWait();
                 this.handleJavaDebugError(new Error("The task completed without the debugger being attached"));

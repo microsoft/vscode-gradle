@@ -55,6 +55,10 @@ function errorDetails(err: unknown): string {
 interface BuildInvocation {
     readonly cancellationKey: string;
     readonly onCancellationRequested: () => void;
+    readonly prepare?: (token: vscode.CancellationToken) => Promise<{
+        javaDebugPort: number;
+        additionalToolOptions: string;
+    }>;
 }
 
 interface ActiveBuild {
@@ -355,6 +359,16 @@ export class TaskServerClient implements vscode.Disposable {
             stoppedListener = build.stopped.token.onCancellationRequested(resolve);
         });
         try {
+            if (invocation?.prepare) {
+                const prepared = await Promise.race([
+                    invocation.prepare(build.stopped.token),
+                    stopped.then(() => undefined),
+                ]);
+                if (prepared) {
+                    javaDebugPort = prepared.javaDebugPort;
+                    additionalToolOptions = prepared.additionalToolOptions;
+                }
+            }
             await Promise.race([connected, stopped]);
             if (this.disposed) {
                 throw new Error("Gradle client has been disposed");

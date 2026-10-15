@@ -35,9 +35,15 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
     let waitOnTcp: sinon.SinonStub;
     let connect: sinon.SinonStub;
     let connections: net.Socket[];
+    let submitted: boolean;
+    let activeInvocation: Parameters<TaskServerClient["runBuild"]>[11];
+    let cancellation: vscode.CancellationTokenSource | undefined;
 
     beforeEach(() => {
         opening = undefined;
+        submitted = false;
+        activeInvocation = undefined;
+        cancellation = undefined;
         sinon.stub(util, "isTest").returns(false);
         waitOnTcp = sinon.stub(util, "waitOnTcp");
         connections = [];
@@ -49,7 +55,12 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         });
         startDebugging = sinon.stub(vscode.debug, "startDebugging").resolves(true);
         showErrorMessage = sinon.stub(vscode.window, "showErrorMessage").resolves();
-        executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        executeCommand = sinon.stub(vscode.commands, "executeCommand").callsFake(async (command) => {
+            if (command === COMMAND_CANCEL_BUILD) {
+                activeInvocation?.onCancellationRequested();
+                cancellation?.cancel();
+            }
+        });
         logError = sinon.stub(logger, "error");
         sinon.stub(taskUtil, "isTaskRunning").returns(true);
         client = sinon.createStubInstance(TaskServerClient);
@@ -61,13 +72,46 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         buildStarted = new Promise<void>((resolve) => {
             notifyBuildStarted = resolve;
         });
-        client.runBuild.callsFake((_project, _key, _args, _input, port, _task, onOutput) => {
-            assert.ok(onOutput);
-            debugPort = port ?? 0;
-            outputHandler = onOutput;
-            notifyBuildStarted();
-            return build;
-        });
+        client.runBuild.callsFake(
+            async (
+                _project,
+                _key,
+                _args,
+                _input,
+                _port,
+                _task,
+                onOutput,
+                _colors,
+                _tools,
+                _title,
+                _location,
+                invocation
+            ) => {
+                assert.ok(onOutput);
+                assert.ok(invocation?.prepare);
+                activeInvocation = invocation;
+                const source = new vscode.CancellationTokenSource();
+                cancellation = source;
+                let stoppedListener: vscode.Disposable | undefined;
+                const stopped = new Promise<undefined>((resolve) => {
+                    stoppedListener = source.token.onCancellationRequested(() => resolve(undefined));
+                });
+                try {
+                    const prepared = await Promise.race([invocation.prepare(source.token), stopped]);
+                    if (!prepared) {
+                        return;
+                    }
+                    debugPort = prepared.javaDebugPort;
+                    outputHandler = onOutput;
+                    submitted = true;
+                    notifyBuildStarted();
+                    await build;
+                } finally {
+                    stoppedListener?.dispose();
+                    source.dispose();
+                }
+            }
+        );
         terminal = new GradleRunnerTerminal(rootProject, ["bootRun"], "slow-build", client);
         const definition = buildMockTaskDefinition(workspaceFolder, "bootRun", "", "", "slow-app");
         definition.javaDebug = true;
@@ -427,7 +471,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         await opening;
         subscription.dispose();
         assert.deepStrictEqual(exitCodes, [0]);
-        assert.ok(!client.runBuild.called);
+        assert.ok(!submitted);
         assert.ok(!startDebugging.called);
     });
 
@@ -518,7 +562,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
                 resolveOptions!("");
                 await opening;
                 assert.deepStrictEqual(exitCodes, [0]);
-                assert.ok(!client.runBuild.called);
+                assert.ok(!submitted);
                 assert.ok(!startDebugging.called);
             } finally {
                 subscription.dispose();

@@ -678,6 +678,136 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         });
     }
 
+    for (const [action, rejected] of [
+        ["tree", false],
+        ["tree", true],
+        ["restart", false],
+        ["restart", true],
+        ["cancel-all", false],
+        ["cancel-all", true],
+        ["complete", false],
+        ["failure", true],
+    ] as const) {
+        it(`handles public ${action} with a pending provider that later ${
+            rejected ? "rejects" : "resolves"
+        }`, async () => {
+            await client.handleServerStart();
+            restartQueuedTask.restore();
+            removeCancellingTask.restore();
+            const api = createApi();
+            let releaseProvider: () => void;
+            let rejectProvider: () => void;
+            const options = new Promise<string>((resolve, reject) => {
+                releaseProvider = () => resolve("-Dprovider.ready=true");
+                rejectProvider = () => reject(new Error("Provider failed"));
+            });
+            let enteredProvider: () => void;
+            const entered = new Promise<void>((resolve) => {
+                enteredProvider = resolve;
+            });
+            let providerCalls = 0;
+            const provider = api.registerToolOptionsProvider({
+                resolveToolOptions: () => {
+                    if (providerCalls++) {
+                        return Promise.resolve("-Dreplacement.ready=true");
+                    }
+                    enteredProvider();
+                    return options;
+                },
+            });
+            const errors = sinon.stub(vscode.window, "showErrorMessage").resolves();
+            const executions: vscode.TaskExecution[] = [];
+            const openings: Promise<void>[] = [];
+            const closures: sinon.SinonSpy[] = [];
+            const requests: RunBuildRequest[] = [];
+            onBuild = (request) => requests.push(request);
+            sinon.stub(vscode.tasks, "taskExecutions").value(executions);
+            sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+                const terminal = await createTerminal(task);
+                const closed = sinon.spy();
+                terminal.onDidClose(closed);
+                closures.push(closed);
+                openings.push(terminal.open());
+                const execution = { task, terminate: () => undefined };
+                executions.push(execution);
+                return execution;
+            });
+            executeCommand.callsFake(async (command, ...args) => {
+                if (command === COMMAND_CANCEL_BUILD) {
+                    await new CancelBuildCommand(client).run(args[0], args[1]);
+                }
+                return undefined;
+            });
+            try {
+                const roots = createRoots();
+                const task = createTask(`provider-${action}-${rejected}`);
+                await taskUtil.runTask(roots, task, client, "--variant");
+                await entered;
+                const selected = createTreeItem(executions[0].task);
+                if (action === "tree") {
+                    await new CancelTreeItemTaskCommand().run(selected);
+                } else if (action === "restart") {
+                    await new RestartTaskCommand(client).run(selected);
+                } else if (action === "cancel-all") {
+                    await api.cancelAllBuilds();
+                }
+                await settle();
+                const wasCancelled = action !== "complete" && action !== "failure";
+                if (wasCancelled) {
+                    assert.ok(
+                        closures[0].calledOnceWithExactly(0),
+                        "The cancelled startup must close without waiting for its provider"
+                    );
+                }
+                if (rejected) {
+                    rejectProvider!();
+                } else {
+                    releaseProvider!();
+                }
+                await settle();
+                if (action === "failure") {
+                    assert.ok(closures[0].calledOnceWithExactly(1));
+                    assert.strictEqual(requests.length, 0);
+                    executions.length = 0;
+                    await taskUtil.runTask(roots, task, client, "--variant");
+                    await settle();
+                }
+                const replacement = action === "restart" || action === "failure";
+                assert.strictEqual(requests.length, replacement || action === "complete" ? 1 : 0);
+                if (replacement) {
+                    assert.strictEqual(closures.length, 2);
+                    assert.ok(
+                        !closures[1].called,
+                        "Late completion of the old provider must not close the replacement"
+                    );
+                    assert.deepStrictEqual(requests[0].getArgsList(), ["run", "--variant"]);
+                    assert.strictEqual(requests[0].getAdditionalToolOptions(), "-Dreplacement.ready=true");
+                    const key = requests[0].getCancellationKey();
+                    registered.add(key);
+                    await new CancelTreeItemTaskCommand().run(createTreeItem(executions[executions.length - 1].task));
+                    assert.deepStrictEqual(cancelled, [key]);
+                } else if (action === "complete") {
+                    assert.strictEqual(requests[0].getAdditionalToolOptions(), "-Dprovider.ready=true");
+                    assert.deepStrictEqual(cancelRequests, []);
+                }
+            } finally {
+                provider.dispose();
+                releaseProvider!();
+                for (let turn = 0; turn < 3; turn++) {
+                    for (const key of runs.keys()) {
+                        finish(key);
+                    }
+                    await settle();
+                }
+                await Promise.all(openings);
+            }
+            assert.ok(!errors.called);
+            assert.ok(closures.every((closed) => closed.calledOnce));
+            await clock.tickAsync(10000);
+            assert.ok(!errors.called, "Late preparation must not report stale errors");
+        });
+    }
+
     for (const [entry, cancellationKey] of [
         ["build", undefined],
         ["build", "custom-api-key"],
