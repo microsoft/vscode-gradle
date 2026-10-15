@@ -33,9 +33,13 @@ compatibility changes are caught by the build. Gradle 9.8.1 and the importer's M
 on JDK 25. The importer resolves and tests against a Java 25 environment while retaining its
 Java 21 bundle execution environment and bytecode target.
 
-Azure Pipelines build agent images must provide a preinstalled JDK 25 (`JAVA_HOME_25_X64`).
-Java 21 remains available for the existing Gradle 8.5 compatibility tests; it is not needed
-to build the repository or importer.
+Azure Pipelines installs JDK 25 through `.azure-pipelines/install-jdk.yml`, using the
+`jdk25-linux-x64` and `jdk25-windows-x64` Universal Packages in the `VSJava/vscjava` feed.
+The pipeline's own credentials read these packages; a preinstalled JDK 25 or cross-organization
+service connection is not required. To update the JDK patch version, publish both platform
+packages and update the pinned package version and archive names in the template together.
+Java 21 remains preinstalled for the existing Gradle 8.5 compatibility tests; it is not
+needed to build the repository or importer.
 
 Run the BSP importer's Java regression tests from the repository root:
 

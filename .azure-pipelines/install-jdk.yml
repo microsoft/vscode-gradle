@@ -1,0 +1,30 @@
+parameters:
+  - name: platform
+    type: string
+    default: linux
+    values:
+      - linux
+      - windows
+
+steps:
+  - task: UniversalPackages@0
+    displayName: Download Java 25 from vscjava
+    inputs:
+      command: download
+      feedsToUse: internal
+      vstsFeed: '$(System.TeamProject)/vscjava'
+      vstsFeedPackage: 'jdk25-${{ parameters.platform }}-x64'
+      vstsPackageVersion: '25.0.4-7-1'
+      downloadDirectory: '$(Agent.TempDirectory)/jdk25-package'
+
+  - task: JavaToolInstaller@0
+    displayName: Install Java 25
+    inputs:
+      versionSpec: '25'
+      jdkArchitectureOption: x64
+      jdkSourceOption: LocalDirectory
+      ${{ if eq(parameters.platform, 'windows') }}:
+        jdkFile: '$(Agent.TempDirectory)/jdk25-package/microsoft-jdk-25.0.4-windows-x64.zip'
+      ${{ else }}:
+        jdkFile: '$(Agent.TempDirectory)/jdk25-package/microsoft-jdk-25.0.4-linux-x64.tar.gz'
+      jdkDestinationDirectory: '$(Agent.TempDirectory)/jdk25'
