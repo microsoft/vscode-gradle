@@ -187,9 +187,16 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
+def jdtlsJavaLauncher = javaToolchains.launcherFor {
+  languageVersion = JavaLanguageVersion.of(25)
+}
+
 task buildJdtlsPlugin(type: CrossPlatformExec) {
   workingDir file('./jdtls.ext')
   environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
+  doFirst {
+    environment 'JAVA_HOME', jdtlsJavaLauncher.get().metadata.installationPath.asFile.absolutePath
+  }
   def mavenArguments = ['-B', '-V', '-e', '-ntp']
   // `eclipse.p2.mirrors=false` stops p2 from following download.eclipse.org's mirror
   // redirect, which hands out a different third party host per request and makes the
@@ -203,7 +210,7 @@ task buildJdtlsPlugin(type: CrossPlatformExec) {
   // com.microsoft.gradle.bs.importer.test are executed as well
   mavenArguments += ['clean', 'verify']
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
-    commandLine(['mvnw'] + mavenArguments)
+    commandLine(['.\\mvnw.cmd'] + mavenArguments)
   } else {
     commandLine(['./mvnw'] + mavenArguments)
   }

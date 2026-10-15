@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="JDTLS.EXT" sequenceNumber="40">
+<target name="JDTLS.EXT" sequenceNumber="39">
     <locations>
         <location includeDependencyDepth="none" includeDependencyScopes="compile" includeSource="true" missingManifest="generate" type="Maven">
             <dependencies>
@@ -31,8 +31,7 @@
         </location>
         <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
             <unit id="org.eclipse.jdt.ls.core" version="0.0.0"/>
-            <!-- Keep the target compatible with the Java 21 importer build. -->
-            <repository location="https://download.eclipse.org/jdtls/milestones/1.62.0/repository/"/>
+            <repository location="https://download.eclipse.org/jdtls/snapshots/repository/latest/"/>
         </location>
     </locations>
 </target>
