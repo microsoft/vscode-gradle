@@ -27,6 +27,11 @@ Before proceeding with the build steps for Build Task Server & Language Server, 
 2. `git clone https://github.com/microsoft/build-server-for-gradle.git `
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
 
+The importer's target platform is pinned to the JDT LS 1.62.0 milestone repository in
+`extension/jdtls.ext/com.microsoft.gradle.bs.importer.target/com.microsoft.gradle.bs.importer.tp.target`.
+Keep this target on a versioned repository compatible with the Java 21 build. The rolling
+`snapshots/repository/latest` can change its Java requirements and JDT APIs independently of this repository.
+
 Run the BSP importer's Java regression tests from the repository root:
 
 ```powershell
