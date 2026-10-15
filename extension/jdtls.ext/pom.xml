@@ -50,6 +50,7 @@
                     <version>${tycho-version}</version>
                     <configuration>
                         <resolver>p2</resolver>
+                        <executionEnvironment>JavaSE-25</executionEnvironment>
                         <target>
                             <artifact>
                                 <groupId>com.microsoft.gradle.jdtls.ext</groupId>

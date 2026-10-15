@@ -8,7 +8,8 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Prerequisites
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [Java version >= 21](https://adoptium.net/)
+2. Install [JDK 25](https://adoptium.net/) and set `JAVA_HOME` to its installation directory.
+   The repository's Gradle build and the Gradle Project Importer both use this JDK.
 3. Select Node version: `nvm use`
 4. If using an Apple M1:
     - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
@@ -27,11 +28,23 @@ Before proceeding with the build steps for Build Task Server & Language Server, 
 2. `git clone https://github.com/microsoft/build-server-for-gradle.git `
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
 
+The importer's target platform intentionally tracks the latest JDT LS snapshot so that upstream
+compatibility changes are caught by the build. Gradle 9.8.1 and the importer's Maven build both run
+on JDK 25. The importer resolves and tests against a Java 25 environment while retaining its
+Java 21 bundle execution environment and bytecode target.
+
+Azure Pipelines installs JDK 25 through `.azure-pipelines/install-jdk.yml`, using the
+`jdk25-linux-x64` and `jdk25-windows-x64` Universal Packages in the `VSJava/vscjava` feed.
+The pipeline's own credentials read these packages; a preinstalled JDK 25 or cross-organization
+service connection is not required. To update the JDK patch version, publish both platform
+packages and update the pinned package version and archive names in the template together.
+Java 21 remains preinstalled for the existing Gradle 8.5 compatibility tests; it is not
+needed to build the repository or importer.
+
 Run the BSP importer's Java regression tests from the repository root:
 
 ```powershell
-$env:MAVEN_OPTS = '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
-.\extension\jdtls.ext\mvnw.cmd -B -ntp -f .\extension\jdtls.ext\pom.xml -Declipse.p2.mirrors=false verify
+.\gradlew.bat :extension:buildJdtlsPlugin
 ```
 
 ### Build Task Server & Language Server
@@ -69,7 +82,7 @@ You can also run `./gradlew build testVsCode` to run all tests.
 
 ### Gradle 9.8.1 / Java 27 Compatibility
 
-Build the importer, BSP server, task server and extension as above, using JDK 21 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:
+Build the importer, BSP server, task server and extension as above, using JDK 25 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:
 
 ```powershell
 $env:JDK25_HOME = 'C:\path\to\jdk-25'
