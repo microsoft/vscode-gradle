@@ -3,12 +3,13 @@ import * as path from "path";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { TaskServerClient } from "../../client";
+import { getRunBuildCancellationKey } from "../../client/CancellationKeys";
 import { getBuildDirectory, parseRunBuildArgs, RunBuildCommand } from "../../commands/RunBuildCommand";
 import { RootProject } from "../../rootProject";
 import { RootProjectsStore } from "../../stores";
 
 describe("RunBuildCommand", () => {
-    it("reuses a running build only when its directory and command match", async () => {
+    it("reuses a running build only when its directory and parsed arguments match", async () => {
         const workspaceFolder = vscode.workspace.workspaceFolders![0];
         const store = sinon.createStubInstance(RootProjectsStore);
         store.getProjectRoots.resolves([new RootProject(workspaceFolder, workspaceFolder.uri)]);
@@ -43,20 +44,26 @@ describe("RunBuildCommand", () => {
             const repeated = await startBuild(firstDir);
             const second = await startBuild(secondDir);
             const clean = await startBuild(firstDir, "clean");
+            const build = await startBuild(firstDir, "clean build");
+            const spacedBuild = await startBuild(firstDir, "clean  build");
+            const combined = await startBuild(firstDir, "cleanbuild");
 
             assert.strictEqual(repeated, first);
             assert.notStrictEqual(second, first);
             assert.notStrictEqual(clean, first);
+            assert.strictEqual(spacedBuild, build);
+            assert.notStrictEqual(combined, build);
             finishBuilds();
             await Promise.all(pending);
+            const calls = client.runBuild.getCalls();
+            assert.strictEqual(new Set(calls.map((call) => call.args[1])).size, calls.length);
             assert.deepStrictEqual(
-                client.runBuild
-                    .getCalls()
-                    .map((call) => [call.args[0], call.args[2]])
-                    .sort(),
+                calls.map((call) => [call.args[0], call.args[2]]).sort(),
                 [
                     [firstDir, ["classes"]],
                     [firstDir, ["clean"]],
+                    [firstDir, ["clean", "build"]],
+                    [firstDir, ["cleanbuild"]],
                     [secondDir, ["classes"]],
                 ].sort()
             );
@@ -68,6 +75,28 @@ describe("RunBuildCommand", () => {
                 sinon.restore();
             }
         }
+    });
+});
+
+describe("getRunBuildCancellationKey", () => {
+    it("preserves argument and directory boundaries", () => {
+        const directory = path.resolve("project");
+        assert.notStrictEqual(
+            getRunBuildCancellationKey(directory, ["clean", "build"]),
+            getRunBuildCancellationKey(directory, ["cleanbuild"])
+        );
+        assert.notStrictEqual(
+            getRunBuildCancellationKey(`${directory}a`, ["bc"]),
+            getRunBuildCancellationKey(`${directory}ab`, ["c"])
+        );
+    });
+
+    it("uses the same identity for equivalent directory paths", () => {
+        const directory = path.resolve("project");
+        assert.strictEqual(
+            getRunBuildCancellationKey(directory, ["classes"]),
+            getRunBuildCancellationKey(`${directory}${path.sep}.`, ["classes"])
+        );
     });
 });
 

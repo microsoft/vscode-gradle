@@ -57,5 +57,6 @@ await vscode.commands.executeCommand(
   (`java.import.gradle.java.home`). All other variables are added to the environment of the Gradle server process.
 - When a command line is supplied, the task terminal is revealed without taking focus.
 - The command completes when the build has finished. It does not tell how the build ended.
-- A build that is already running (same build directory and same command line) is not started again. The command completes
-  when that build has finished.
+- A build that is already running (same resolved build directory and parsed arguments) is not started again. Whitespace
+  or quoting differences that produce the same arguments reuse the running build. The command completes when that build
+  has finished.

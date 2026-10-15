@@ -7,9 +7,10 @@ export function getProjectDependenciesCancellationKey(rootProjectFolder: string,
 }
 
 export function getRunBuildCancellationKey(rootProjectFolder: string, args: ReadonlyArray<string>): string {
-    return "runBuild" + rootProjectFolder + args.join("");
+    return JSON.stringify(["runBuild", path.resolve(rootProjectFolder), args]);
 }
 
 export function getRunTaskCommandCancellationKey(rootProjectFolder: string, taskName: string): string {
     return "runTask" + rootProjectFolder + taskName;
 }
+import * as path from "path";
