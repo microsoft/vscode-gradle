@@ -1,0 +1,33 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(27)
+    }
+}
+
+application {
+    mainClass = 'compatibility.App'
+}
+
+tasks.named('test') {
+    useJUnit()
+    maxParallelForks = 1
+}
+
+tasks.register('runtimeInfo') {
+    doLast {
+        println "GRADLE_VERSION=${gradle.gradleVersion}"
+        println "DAEMON_JAVA_VERSION=${System.getProperty('java.specification.version')}"
+    }
+}

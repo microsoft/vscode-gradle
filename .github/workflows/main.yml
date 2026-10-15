@@ -65,6 +65,7 @@ jobs:
             extension/lib
             extension/dist
             extension/out
+            extension/server
 
   # Although the gradle build can run in all environments, we use the Java
   # lib generated in the previous step for a better real-world test.
@@ -185,3 +186,49 @@ jobs:
         run: |
           echo "Tests failed"
           exit 1
+
+  test-java27-compatibility:
+    needs: [build-and-analyse]
+    name: "Gradle 9.8.1 / daemon Java ${{ matrix.daemon }} / toolchain Java 27"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        daemon: ["25", "27"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+          cache-dependency-path: extension/package-lock.json
+          cache: npm
+      - name: Install Java 27 toolchain
+        id: jdk27
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version: "27"
+          distribution: temurin
+      - name: Install Java 25 service runtime
+        id: jdk25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version: "25"
+          distribution: temurin
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: lib
+          path: extension/
+      - name: Install extension dependencies
+        working-directory: extension
+        run: npm ci
+      - name: Run live import, tasks, dependencies, tests and debugging
+        working-directory: extension
+        run: |
+          chmod +x lib/gradle-server
+          xvfb-run -a node out/test/runCompatibilityTests.js
+        env:
+          JDK25_HOME: ${{ steps.jdk25.outputs.path }}
+          JDK27_HOME: ${{ steps.jdk27.outputs.path }}
+          GRADLE_COMPATIBILITY_DAEMON: ${{ matrix.daemon }}
+          CI: "true"

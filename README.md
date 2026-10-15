@@ -248,9 +248,9 @@ Use an environment manager like [direnv](https://direnv.net/) to set project spe
 
 This extension supports the following settings which are contributed by the [Java language support](https://github.com/redhat-developer/vscode-java) extension:
 
-- `java.home`: (**deprecated** Please use `java.jdt.ls.java.home` as given below) Absolute path to JDK home folder used to launch the Gradle daemons
-- `java.jdt.ls.java.home`: Absolute path to JDK home folder as per the latest VS code, used to launch the Gradle daemons
-- `java.import.gradle.java.home`: Absolute path to JDK home folder used to launch the Gradle daemons (if set, this value takes precedence over `java.home`)
+- `java.home`: (**deprecated**, use `java.jdt.ls.java.home`) Legacy Java service runtime setting
+- `java.jdt.ls.java.home`: Absolute path to the JDK used to run the Java language server; this is not an explicit Gradle daemon override
+- `java.import.gradle.java.home`: Absolute path to the JDK used to launch Gradle daemons for imports and tasks
 - `java.import.gradle.user.home`: Setting for `GRADLE_USER_HOME`
 - `java.import.gradle.jvmArguments`: JVM arguments to pass to Gradle
 
@@ -259,6 +259,10 @@ This extension supports the following settings which are contributed by the [Jav
 - `java.import.gradle.wrapper.enabled`: Enable/disable the Gradle wrapper
 - `java.import.gradle.version`: Gradle version, used if the Gradle wrapper is missing or disabled
 - `java.import.gradle.home`: Use Gradle from the specified local installation directory or GRADLE_HOME if the Gradle wrapper is missing or disabled and no 'java.import.gradle.version' is specified.
+
+When the wrapper is enabled, its distribution takes precedence. When it is disabled, task connections select an explicit version, a configured installation, a system `GRADLE_HOME`, then Gradle **9.8.1**, in that order. The task-server Tooling API is also **9.8.1**; its [compatibility contract](https://docs.gradle.org/9.8.1/userguide/tooling_api.html#sec:embedding_compatibility) supports older Gradle providers. Existing Gradle 8.5 / Java 21 integration scenarios remain covered.
+
+The **service JVM**, **Gradle daemon JVM**, and **project toolchain** need not be the same. The task server prefers the Java extension's embedded JRE when available, otherwise a configured or environment JDK. Set `java.import.gradle.java.home` explicitly to select a daemon independently of the Java language server. Set Gradle's `java.toolchain.languageVersion` and configure matching `java.configuration.runtimes` to compile, run, test and debug the project with another JDK. For example, Java services and a Gradle 9.8.1 daemon can run on JDK 25 while the project toolchain is JDK 27. Running the daemon itself on JDK 27 requires Gradle 9.8 or newer; changing the toolchain alone does not change the daemon JVM.
 
 ### Class References
 

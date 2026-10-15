@@ -7,14 +7,20 @@ import * as vscode from "vscode";
 import { GradleTestRunner } from "../../bs/GradleTestRunner";
 import { IRunTestContext, TestIdParts, TestResultState } from "../../java-test-runner.api";
 import { getSuiteName } from "../testUtil";
+import * as util from "../../util";
+import { logger } from "../../logger";
 
 describe(getSuiteName("Gradle test runner XML fallback"), () => {
     const tempDirs: string[] = [];
+    const initScripts: string[] = [];
 
     afterEach(() => {
         sinon.restore();
         for (const dir of tempDirs.splice(0)) {
             fs.removeSync(dir);
+        }
+        for (const script of initScripts.splice(0)) {
+            fs.removeSync(script);
         }
     });
 
@@ -137,6 +143,140 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
         assert.strictEqual(firstArgs[0], "--init-script");
         assert.strictEqual(secondArgs[0], "--init-script");
         assert.notStrictEqual(firstArgs[1], secondArgs[1]);
+        assert.ok(!fs.existsSync(firstArgs[1]));
+        assert.ok(!fs.existsSync(secondArgs[1]));
+    });
+
+    it("keeps the BSP debug init script after submission and test reports until the request completes", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        const startDebugging = stubJavaDebug();
+        const testRunnerApi = buildTestRunnerApi();
+        const client = buildClient();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+
+        await runner.launch(buildDebugContext(testRunnerApi));
+
+        const scriptPath: string = executeCommand.firstCall.args[7];
+        initScripts.push(scriptPath);
+        assert.strictEqual(executeCommand.firstCall.args[4][1], scriptPath);
+        assert.ok(fs.existsSync(scriptPath), "Submission must not release an unread init script");
+        assert.ok(startDebugging.calledOnce, "Debug attachment must not wait for test completion");
+        assert.ok(!client.runBuild.called, "BSP success must not rerun tests through XML fallback");
+        runner.finishTestRun(0);
+        assert.ok(fs.existsSync(scriptPath), "A test report is not the BSP request completion boundary");
+
+        await runner.completeBspTestRequest(scriptPath);
+
+        assert.ok(!fs.existsSync(scriptPath));
+    });
+
+    it("cleans only the completed BSP launch and ignores repeated or unowned completion notifications", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        stubJavaDebug();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        const context = buildDebugContext(testRunnerApi);
+
+        await Promise.all([runner.launch(context), runner.launch(context)]);
+
+        const firstPath: string = executeCommand.firstCall.args[7];
+        const secondPath: string = executeCommand.secondCall.args[7];
+        initScripts.push(firstPath, secondPath);
+        assert.notStrictEqual(firstPath, secondPath);
+        await runner.completeBspTestRequest(secondPath);
+        assert.ok(fs.existsSync(firstPath));
+        assert.ok(!fs.existsSync(secondPath));
+
+        const unownedDir = fs.mkdtempSync(path.join(os.tmpdir(), "gradle-runner-unowned-"));
+        tempDirs.push(unownedDir);
+        const unownedPath = path.join(unownedDir, "unowned-init.gradle");
+        fs.writeFileSync(unownedPath, "// user-owned init script");
+        const logWarning = sinon.stub(logger, "warn");
+        await runner.completeBspTestRequest(secondPath);
+        await runner.completeBspTestRequest(unownedPath);
+        assert.ok(fs.existsSync(unownedPath));
+        assert.ok(!logWarning.called);
+        await runner.completeBspTestRequest(firstPath);
+        assert.ok(!fs.existsSync(firstPath));
+    });
+
+    it("handles BSP completion arriving before the submission command returns", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand");
+        stubJavaDebug();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        executeCommand.callsFake(async (...args: unknown[]) => {
+            const scriptPath = args[7];
+            assert.strictEqual(typeof scriptPath, "string");
+            if (typeof scriptPath !== "string") {
+                throw new Error("Missing init script completion key");
+            }
+            initScripts.push(scriptPath);
+            assert.ok(fs.existsSync(scriptPath));
+            await runner.completeBspTestRequest(scriptPath);
+        });
+
+        await runner.launch(buildDebugContext(testRunnerApi));
+
+        assert.ok(!fs.existsSync(initScripts[0]));
+    });
+
+    it("retains the BSP script on an ambiguous command failure until confirmed completion", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").rejects(new Error("Connection lost"));
+        stubJavaDebug();
+        const testRunnerApi = buildTestRunnerApi();
+        const client = buildClient();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+
+        await runner.launch(buildDebugContext(testRunnerApi));
+
+        const scriptPath: string = executeCommand.firstCall.args[7];
+        initScripts.push(scriptPath);
+        assert.ok(fs.existsSync(scriptPath));
+        assert.ok(!client.runBuild.called);
+        await runner.completeBspTestRequest(scriptPath);
+        assert.ok(!fs.existsSync(scriptPath));
+    });
+
+    it("releases an unavailable BSP delegate's script before XML fallback", async () => {
+        const executeCommand = stubBspUnavailable();
+        stubJavaDebug();
+        stubTestResultFiles(
+            tempDirs,
+            '<testsuite><testcase name="passes" classname="com.example.AppTest"/></testsuite>'
+        );
+        const testRunnerApi = buildTestRunnerApi();
+        const client = buildClient();
+        const runner = new GradleTestRunner(testRunnerApi, client);
+        client.runBuild.callsFake(async () => {
+            const bspPath: string = executeCommand.firstCall.args[7];
+            initScripts.push(bspPath);
+            assert.ok(!fs.existsSync(bspPath));
+            const xmlPath: string = client.runBuild.firstCall.args[2][1];
+            assert.ok(fs.existsSync(xmlPath));
+        });
+
+        await runner.launch(buildDebugContext(testRunnerApi));
+
+        assert.ok(client.runBuild.calledOnce);
+        assert.ok(!fs.existsSync(client.runBuild.firstCall.args[2][1]));
+    });
+
+    it("logs init script cleanup failures without rejecting request completion", async () => {
+        const executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
+        stubJavaDebug();
+        const testRunnerApi = buildTestRunnerApi();
+        const runner = new GradleTestRunner(testRunnerApi, buildClient());
+        await runner.launch(buildDebugContext(testRunnerApi));
+        const scriptPath: string = executeCommand.firstCall.args[7];
+        initScripts.push(scriptPath);
+        fs.removeSync(scriptPath);
+        const logWarning = sinon.stub(logger, "warn");
+
+        await runner.completeBspTestRequest(scriptPath);
+
+        assert.ok(logWarning.calledOnce);
+        assert.strictEqual(logWarning.firstCall.args[0], "Failed to delete Gradle test init script:");
     });
 
     it("uses BSP first when the BSP delegate command succeeds", async () => {
@@ -193,10 +333,24 @@ describe(getSuiteName("Gradle test runner XML fallback"), () => {
     });
 });
 
-function stubBspUnavailable(): void {
-    sinon
+function stubBspUnavailable(): sinon.SinonStub {
+    return sinon
         .stub(vscode.commands, "executeCommand")
         .rejects(new Error("Project is not a Gradle build server project: demo"));
+}
+
+function stubJavaDebug(): sinon.SinonStub {
+    sinon.stub(vscode.extensions, "getExtension").returns({} as vscode.Extension<unknown>);
+    sinon.stub(util, "waitOnTcp").resolves();
+    return sinon.stub(vscode.debug, "startDebugging").resolves(true);
+}
+
+function buildDebugContext(testRunnerApi: ReturnType<typeof buildTestRunnerApi>): IRunTestContext {
+    const context = buildRunContext(testRunnerApi, [
+        { id: "class", parts: { project: "demo", class: "com.example.AppTest" } },
+    ]);
+    context.isDebug = true;
+    return context;
 }
 
 function stubTestResultFiles(tempDirs: string[], xml: string): void {

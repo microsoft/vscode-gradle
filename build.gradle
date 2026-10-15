@@ -10,7 +10,7 @@ project.ext.set('protobufVersion', '3.25.5')
 // the built-in --js_out, which was removed in protoc 3.21+.
 // The runtime library is forced to 3.25.5 via resolutionStrategy below.
 project.ext.set('protocVersion', '3.12.0')
-project.ext.set('toolingAPIVersion', '9.2.0')
+project.ext.set('toolingAPIVersion', '9.8.1')
 
 allprojects {
   group = 'vscode-gradle'

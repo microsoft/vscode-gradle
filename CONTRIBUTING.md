@@ -27,6 +27,13 @@ Before proceeding with the build steps for Build Task Server & Language Server, 
 2. `git clone https://github.com/microsoft/build-server-for-gradle.git `
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
 
+Run the BSP importer's Java regression tests from the repository root:
+
+```powershell
+$env:MAVEN_OPTS = '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
+.\extension\jdtls.ext\mvnw.cmd -B -ntp -f .\extension\jdtls.ext\pom.xml -Declipse.p2.mirrors=false verify
+```
+
 ### Build Task Server & Language Server
 After building the Gradle Build Server and its client, proceed with the following steps.
 
@@ -59,6 +66,21 @@ Open the root of the project in VS Code.
 Open the Debug panel, and select one of the `debug` tasks, for example `Debug Extension`, or any of the test launch configurations.
 
 You can also run `./gradlew build testVsCode` to run all tests.
+
+### Gradle 9.8.1 / Java 27 Compatibility
+
+Build the importer, BSP server, task server and extension as above, using JDK 21 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:
+
+```powershell
+$env:JDK25_HOME = 'C:\path\to\jdk-25'
+$env:JDK27_HOME = 'C:\path\to\jdk-27'
+Set-Location extension
+node .\out\test\runCompatibilityTests.js
+```
+
+On headless Linux, use `xvfb-run -a node out/test/runCompatibilityTests.js`. Set `GRADLE_COMPATIBILITY_DAEMON` to `25` or `27` to run just one scenario. Without it, both run: a wrapper-disabled Gradle 9.8.1 fallback on Java 27, and the 9.8.1 wrapper with Java 25 services/daemon and a Java 27 project toolchain. The suite installs an isolated, universal Java extension (without an embedded JRE) and Java debugger, checks actual BSP import/source/target/runtime, task and dependency models, JUnit results, and real JavaExec/Test breakpoint hits with a Java 27 debuggee. It stops only daemons in its own Gradle user home. Failed workspaces are retained under `extension/.vscode-test` for diagnosis.
+
+Keep `build.gradle`'s `toolingAPIVersion` and `GradleProjectConnector.TOOLING_API_VERSION` synchronized; `GradleToolingApiVersionTest` checks the resolved artifact's manifest against the fallback. Do not replace the older Gradle 8.5 / Java 21 fixtures when updating the new compatibility scenario.
 
 ### Code Style
 

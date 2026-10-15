@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: Invoke IssueLens agent
-        uses: microsoft/IssueLens/.github/actions/issuelens@532d3f7934f394d817402b46c90cb36388a12e02
+        uses: microsoft/IssueLens/.github/actions/issuelens@a81d2d96167fc0e69ac631c2edc85f858e693289
         with:
           request-type: task
           input: >-
