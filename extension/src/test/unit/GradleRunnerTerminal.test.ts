@@ -1,4 +1,5 @@
 import * as assert from "assert";
+import * as net from "net";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { toolOptionsProviders } from "../../api";
@@ -29,11 +30,20 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
     let executeCommand: sinon.SinonStub;
     let logError: sinon.SinonStub;
     let waitOnTcp: sinon.SinonStub;
+    let connect: sinon.SinonStub;
+    let connections: net.Socket[];
 
     beforeEach(() => {
         opening = undefined;
         sinon.stub(util, "isTest").returns(false);
         waitOnTcp = sinon.stub(util, "waitOnTcp");
+        connections = [];
+        connect = sinon.stub(net, "connect").callsFake(() => {
+            const connection = new net.Socket();
+            sinon.stub(connection, "setTimeout").returns(connection);
+            connections.push(connection);
+            return connection;
+        });
         startDebugging = sinon.stub(vscode.debug, "startDebugging").resolves(true);
         showErrorMessage = sinon.stub(vscode.window, "showErrorMessage").resolves();
         executeCommand = sinon.stub(vscode.commands, "executeCommand").resolves();
@@ -122,6 +132,90 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         ]);
     });
 
+    it("attaches through TCP when redirected output hides the readiness banner", async () => {
+        await startTask();
+        assert.ok(connect.calledOnceWithExactly(debugPort, "localhost"));
+        connections[0].emit("connect");
+        await settle();
+        assert.ok(startDebugging.calledOnce);
+        assert.strictEqual(startDebugging.firstCall.args[1].port, debugPort);
+        assert.ok(connections[0].destroyed);
+    });
+
+    it("retries refused and timed-out probes beyond one minute without cancelling the build", async () => {
+        await startTask();
+        const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+        for (let attempt = 0; attempt < 121; attempt++) {
+            const connection = connections[connections.length - 1];
+            if (attempt % 2 === 0) {
+                connection.emit("error", Object.assign(new Error("Not listening yet"), { code: "ECONNREFUSED" }));
+            } else {
+                connection.emit("timeout");
+            }
+            await settle();
+            assert.ok(connection.destroyed);
+            await clock.tickAsync(1000);
+        }
+        assert.ok(connect.callCount > 120);
+        assert.ok(!executeCommand.called);
+        assert.ok(!showErrorMessage.called);
+        connections[connections.length - 1].emit("connect");
+        await settle();
+        assert.ok(startDebugging.calledOnce);
+    });
+
+    for (const bannerFirst of [false, true]) {
+        it(`attaches once when TCP and banner readiness race (${bannerFirst ? "banner" : "TCP"} first)`, async () => {
+            await startTask();
+            if (bannerFirst) {
+                emitReady();
+                connections[0].emit("connect");
+            } else {
+                connections[0].emit("connect");
+                await settle();
+                emitReady();
+            }
+            await settle();
+            assert.ok(startDebugging.calledOnce);
+            assert.ok(connections[0].destroyed);
+        });
+    }
+
+    for (const outcome of ["completion", "failure", "close", "interrupt", "readiness"]) {
+        it(`stops scheduled probes after ${outcome}`, async () => {
+            await startTask();
+            const clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+            connections[0].emit("error", Object.assign(new Error("Not ready"), { code: "ECONNREFUSED" }));
+            await settle();
+            if (outcome === "completion") {
+                completeBuild();
+                await opening;
+            } else if (outcome === "failure") {
+                failBuild(new Error("Compilation failed"));
+                await opening;
+            } else if (outcome === "close") {
+                await terminal.close();
+            } else if (outcome === "interrupt") {
+                await terminal.handleInput("\x03");
+            } else {
+                emitReady();
+            }
+            await clock.tickAsync(120000);
+            assert.ok(connect.calledOnce);
+            assert.strictEqual(startDebugging.callCount, outcome === "readiness" ? 1 : 0);
+        });
+    }
+
+    it("reports unexpected socket failures instead of retrying indefinitely", async () => {
+        await startTask();
+        connections[0].emit("error", Object.assign(new Error("Permission denied"), { code: "EACCES" }));
+        await settle();
+        assert.ok(connections[0].destroyed);
+        assert.ok(showErrorMessage.calledOnceWithExactly("Unable to start Java debugging: Permission denied"));
+        assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, "slow-build", task));
+        assert.ok(!startDebugging.called);
+    });
+
     it("handles split readiness messages and ports, and attaches only once", async () => {
         await startTask();
         const port = String(debugPort);
@@ -200,6 +294,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         await opening;
         assert.ok(!startDebugging.called);
         assert.ok(!showErrorMessage.called);
+        assert.ok(!connect.called);
     });
 
     it("reports task completion without readiness instead of waiting indefinitely", async () => {
@@ -211,7 +306,10 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         assert.ok(showErrorMessage.calledOnceWithExactly(message));
         assert.ok(!executeCommand.called);
         emitReady();
+        connections[0].emit("connect");
+        await settle();
         assert.ok(!startDebugging.called);
+        assert.ok(connections[0].destroyed);
     });
 
     it("preserves build failures and clears pending readiness", async () => {
@@ -228,7 +326,10 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         assert.deepStrictEqual(exitCodes, [1]);
         assert.ok(!showErrorMessage.called);
         emitReady();
+        connections[0].emit("connect");
+        await settle();
         assert.ok(!startDebugging.called);
+        assert.ok(connections[0].destroyed);
     });
 
     for (const action of ["close", "interrupt"]) {
@@ -241,10 +342,13 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
             }
             assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, "slow-build", task));
             emitReady();
+            connections[0].emit("connect");
+            await settle();
             completeBuild();
             await opening;
             assert.ok(!startDebugging.called);
             assert.ok(!showErrorMessage.called);
+            assert.ok(connections[0].destroyed);
         });
     }
 
@@ -288,6 +392,43 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
             emitReady();
             assert.ok(startDebugging.calledOnce);
         });
+    }
+
+    for (const outcome of ["close", "interrupt", "completion"]) {
+        for (const rejected of [false, true]) {
+            it(`ignores a late attach ${rejected ? "rejection" : "false result"} after ${outcome}`, async () => {
+                let finishAttach: (started: boolean) => void;
+                let rejectAttach: (err: Error) => void;
+                startDebugging.returns(
+                    new Promise<boolean>((resolve, reject) => {
+                        finishAttach = resolve;
+                        rejectAttach = reject;
+                    })
+                );
+                await startTask();
+                emitReady();
+                if (outcome === "close") {
+                    await terminal.close();
+                    await terminal.close();
+                } else if (outcome === "interrupt") {
+                    await terminal.handleInput("\x03");
+                    await terminal.handleInput("\x03");
+                } else {
+                    completeBuild();
+                    await opening;
+                }
+                if (rejected) {
+                    rejectAttach!(new Error("Late attach failure"));
+                } else {
+                    finishAttach!(false);
+                }
+                await settle();
+                assert.ok(!showErrorMessage.called);
+                assert.ok(!logError.called);
+                assert.strictEqual(executeCommand.callCount, outcome === "completion" ? 0 : 1);
+                assert.ok(startDebugging.calledOnce);
+            });
+        }
     }
 
     for (const action of ["close", "interrupt"]) {

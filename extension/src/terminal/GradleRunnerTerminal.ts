@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as util from "util";
+import * as net from "net";
 import * as getPort from "get-port";
 import { isTest } from "../util";
 import { logger, LoggerStream, LogVerbosity } from "../logger";
@@ -21,7 +22,12 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     private stdOutLoggerStream: LoggerStream | undefined;
     private readonly closeEmitter = new vscode.EventEmitter<number>();
     private task?: vscode.Task;
-    private javaDebug?: { port: number; output: Map<number, string> };
+    private javaDebug?: {
+        port: number;
+        output: Map<number, string>;
+        connection?: net.Socket;
+        retry?: NodeJS.Timeout;
+    };
     private closed = false;
     public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
     public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
@@ -47,11 +53,84 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     }
 
     public async close(): Promise<void> {
-        this.closed = true;
-        this.javaDebug = undefined;
-        if (this.task && isTaskRunning(this.task)) {
-            await this.cancelCommand();
+        if (this.closed) {
+            return;
         }
+        this.closed = true;
+        this.stopJavaDebugWait();
+        if (this.task && isTaskRunning(this.task)) {
+            await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task);
+        }
+    }
+
+    private stopJavaDebugWait(): void {
+        const javaDebug = this.javaDebug;
+        this.javaDebug = undefined;
+        if (javaDebug?.retry) {
+            clearTimeout(javaDebug.retry);
+        }
+        javaDebug?.connection?.destroy();
+    }
+
+    private probeJavaDebugPort(): void {
+        const javaDebug = this.javaDebug;
+        if (!javaDebug) {
+            return;
+        }
+        javaDebug.retry = undefined;
+        const connection = net.connect(javaDebug.port, "localhost");
+        javaDebug.connection = connection;
+        let connected = false;
+        connection.once("connect", () => {
+            connected = true;
+            connection.destroy();
+        });
+        connection.on("error", (err: NodeJS.ErrnoException) => {
+            if (
+                this.javaDebug === javaDebug &&
+                err.code !== "ECONNREFUSED" &&
+                err.code !== "ECONNRESET" &&
+                err.code !== "ETIMEDOUT"
+            ) {
+                this.failJavaDebug(err);
+            }
+            connection.destroy();
+        });
+        connection.once("timeout", () => connection.destroy());
+        connection.once("close", () => {
+            javaDebug.connection = undefined;
+            if (this.javaDebug !== javaDebug) {
+                return;
+            }
+            if (connected) {
+                this.attachJavaDebug();
+            } else {
+                javaDebug.retry = setTimeout(() => this.probeJavaDebugPort(), 500);
+            }
+        });
+        connection.setTimeout(1000);
+    }
+
+    private attachJavaDebug(): void {
+        const javaDebug = this.javaDebug;
+        if (!javaDebug || this.closed) {
+            return;
+        }
+        this.stopJavaDebugWait();
+        this.startJavaDebug(javaDebug.port).catch((err: unknown) => this.failJavaDebug(err));
+    }
+
+    private failJavaDebug(err: unknown): void {
+        if (this.closed) {
+            return;
+        }
+        this.handleJavaDebugError(err);
+        this.close().catch((cancelError: unknown) => {
+            logger.error(
+                "Unable to cancel Gradle task:",
+                cancelError instanceof Error ? cancelError.message : String(cancelError)
+            );
+        });
     }
 
     private async startJavaDebug(javaDebugPort: number): Promise<void> {
@@ -80,15 +159,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             `Listening for transport dt_socket at address: (?:\\S+:)?${javaDebug.port}[ \\t]*(?:\\r|\\n)`
         );
         if (readyPattern.test(util.stripVTControlCharacters(output))) {
-            this.javaDebug = undefined;
-            this.startJavaDebug(javaDebug.port)
-                .catch(async (err: unknown) => {
-                    this.handleJavaDebugError(err);
-                    await this.close();
-                })
-                .catch((err: unknown) => {
-                    logger.error("Unable to cancel Gradle task:", err instanceof Error ? err.message : String(err));
-                });
+            this.attachJavaDebug();
         } else {
             // Retain a bounded suffix so readiness messages can span output chunks.
             javaDebug.output.set(outputType, output.slice(-512));
@@ -132,9 +203,10 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 true,
                 additionalToolOptions
             );
+            this.probeJavaDebugPort();
             await runTask;
             if (this.javaDebug) {
-                this.javaDebug = undefined;
+                this.stopJavaDebugWait();
                 this.handleJavaDebugError(new Error("The task completed without the debugger being attached"));
             }
             this.closeEmitter.fire(0);
@@ -142,14 +214,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             this.handleError(e);
             this.closeEmitter.fire(1);
         } finally {
-            this.javaDebug = undefined;
+            this.closed = true;
+            this.stopJavaDebugWait();
         }
-    }
-
-    private async cancelCommand(): Promise<void> {
-        this.closed = true;
-        this.javaDebug = undefined;
-        await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task);
     }
 
     private handleOutput = (output: Output): void => {
@@ -183,7 +250,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     public async handleInput(data: string): Promise<void> {
         // sigint eg cmd/ctrl+C
         if (data === "\x03") {
-            await this.cancelCommand();
+            await this.close();
         }
     }
 
