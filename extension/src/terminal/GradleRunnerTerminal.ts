@@ -7,10 +7,10 @@ import { logger, LoggerStream, LogVerbosity } from "../logger";
 import { Output } from "../proto/gradle_pb";
 import { GradleRpcError, isUnknown } from "../transport/jsonrpc";
 import { RootProject } from "../rootProject/RootProject";
-import { isTaskRunning } from "../tasks/taskUtil";
 import { COMMAND_CANCEL_BUILD } from "../commands";
 import { GradleTaskDefinition } from "../tasks";
 import { TaskServerClient } from "../client";
+import { getBuildInvocationCancellationKey } from "../client/CancellationKeys";
 import { toolOptionsProviders } from "../api";
 
 const NL = "\n";
@@ -29,6 +29,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         retry?: NodeJS.Timeout;
     };
     private closed = false;
+    private readonly invocationCancellationKey: string;
     public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
     public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
 
@@ -38,6 +39,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         private readonly cancellationKey: string,
         private readonly client: TaskServerClient
     ) {
+        this.invocationCancellationKey = getBuildInvocationCancellationKey(cancellationKey);
         if (isTest()) {
             // TODO: this is only needed for the tests. Find a better way to test task output in the tests.
             this.stdOutLoggerStream = new LoggerStream(logger, LogVerbosity.INFO);
@@ -58,9 +60,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         }
         this.closed = true;
         this.stopJavaDebugWait();
-        if (!this.task || isTaskRunning(this.task)) {
-            await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task);
-        }
+        await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.invocationCancellationKey, this.task);
     }
 
     private stopJavaDebugWait(): void {
@@ -201,7 +201,16 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 this.task,
                 this.handleOutput,
                 true,
-                additionalToolOptions
+                additionalToolOptions,
+                undefined,
+                undefined,
+                {
+                    cancellationKey: this.invocationCancellationKey,
+                    onCancellationRequested: () => {
+                        this.closed = true;
+                        this.stopJavaDebugWait();
+                    },
+                }
             );
             this.probeJavaDebugPort();
             await runTask;

@@ -1,4 +1,5 @@
 import * as assert from "assert";
+import * as net from "net";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { PassThrough } from "stream";
@@ -9,13 +10,16 @@ import { getRunTaskCommandCancellationKey } from "../../client/CancellationKeys"
 import { COMMAND_CANCEL_BUILD } from "../../commands";
 import { CancelBuildCommand } from "../../commands/CancelBuildCommand";
 import { CancelTreeItemTaskCommand } from "../../commands/CancelTreeItemTaskCommand";
+import { DebugTaskCommand } from "../../commands/DebugTaskCommand";
 import { RestartTaskCommand } from "../../commands/RestartTaskCommand";
+import { RunBuildCommand } from "../../commands/RunBuildCommand";
 import { Icons } from "../../icons";
 import { logger } from "../../logger";
 import {
     CancelBuildReply,
     CancelBuildRequest,
     CancelBuildsReply,
+    Cancelled,
     RunBuildReply,
     RunBuildRequest,
     RunBuildResult,
@@ -27,6 +31,8 @@ import { GradleTaskProvider } from "../../tasks";
 import * as taskUtil from "../../tasks/taskUtil";
 import { GradleRunnerTerminal } from "../../terminal";
 import * as util from "../../util";
+import * as compat from "../../util/compat";
+import * as input from "../../util/input";
 import { decodeProto, encodeProto } from "../../transport/jsonrpc";
 import { GradleRequestParams, GradleResponse } from "../../transport/jsonrpc/types";
 import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from "../../views";
@@ -212,6 +218,15 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             new Icons(buildMockContext()),
             false
         );
+    }
+
+    async function createTerminal(task: vscode.Task): Promise<GradleRunnerTerminal> {
+        const execution = task.execution;
+        assert.ok(execution instanceof vscode.CustomExecution);
+        assert.ok("callback" in execution && typeof execution.callback === "function");
+        const terminal: unknown = await execution.callback(task.definition);
+        assert.ok(terminal instanceof GradleRunnerTerminal);
+        return terminal;
     }
 
     it("retains early cancellation until the server registers the build token", async () => {
@@ -444,7 +459,7 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         await Promise.all([first.completed, second.completed]);
     });
 
-    for (const entry of ["terminal", "tree", "base tree", "restart", "parallel restarts"]) {
+    for (const entry of ["terminal", "task manager closure", "tree", "base tree", "restart", "parallel restarts"]) {
         it(`cancels the selected runTask argument variant through its ${entry} entry point`, async () => {
             await client.handleServerStart();
             removeCancellingTask.restore();
@@ -453,11 +468,7 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             const terminals: GradleRunnerTerminal[] = [];
             sinon.stub(vscode.tasks, "taskExecutions").value(executions);
             sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
-                const execution = task.execution;
-                assert.ok(execution instanceof vscode.CustomExecution);
-                assert.ok("callback" in execution && typeof execution.callback === "function");
-                const terminal: unknown = await execution.callback(task.definition);
-                assert.ok(terminal instanceof GradleRunnerTerminal);
+                const terminal = await createTerminal(task);
                 terminals.push(terminal);
                 openings.push(terminal.open());
                 const running = { task, terminate: () => undefined };
@@ -487,6 +498,9 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             assert.notStrictEqual(executions[0].task.definition.args, executions[1].task.definition.args);
             if (entry === "terminal") {
                 await terminals[1].handleInput("\x03");
+            } else if (entry === "task manager closure") {
+                executions.length = 0;
+                await terminals[1].close();
             } else if (entry === "parallel restarts") {
                 restartQueuedTask.restore();
                 for (const execution of executions.slice()) {
@@ -543,6 +557,124 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
                 keys.forEach(finish);
             }
             await Promise.all(openings);
+        });
+    }
+
+    it("isolates command-terminal cancellation while preserving explicit API logical-key fan-out", async () => {
+        await client.handleServerStart();
+        const root = new RootProject(workspaceFolder, workspaceFolder.uri);
+        sinon.stub(input, "getRootProjectFolder").resolves(root);
+        sinon.stub(input, "getGradleCommand").resolves("run --variant");
+        const terminals: GradleRunnerTerminal[] = [];
+        const openings: Promise<void>[] = [];
+        sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+            const terminal = await createTerminal(task);
+            terminals.push(terminal);
+            openings.push(terminal.open());
+            return { task, terminate: () => undefined };
+        });
+        const opts = { projectFolder: workspaceFolder.uri.fsPath, args: ["run", "--variant"] };
+        let started = new Promise<RunBuildRequest>((resolve) => {
+            onBuild = resolve;
+        });
+        const api = createApi();
+        const apiBuild = api.runBuild({ ...opts, showOutputColors: false });
+        const keys = [(await started).getCancellationKey()];
+        for (let index = 0; index < 2; index++) {
+            started = new Promise<RunBuildRequest>((resolve) => {
+                onBuild = resolve;
+            });
+            await new RunBuildCommand(createRoots(), client).run();
+            keys.push((await started).getCancellationKey());
+        }
+        keys.forEach((key) => registered.add(key));
+        await terminals[1].handleInput("\x03");
+        assert.deepStrictEqual(cancelled, [keys[2]], "Closing one command terminal must not cancel other invocations");
+        await api.cancelRunBuild(opts);
+        assert.deepStrictEqual(
+            new Set(cancelled),
+            new Set(keys),
+            "Explicit API cancellation retains logical-key fan-out"
+        );
+        keys.forEach(finish);
+        await Promise.all([apiBuild, ...openings]);
+    });
+
+    for (const phase of ["before connection", "during startup", "by the server"]) {
+        it(`stops debug readiness without a debugger error when cancelled ${phase}`, async () => {
+            removeCancellingTask.restore();
+            const extension: vscode.Extension<unknown> = {
+                id: "probe.java",
+                extensionUri: workspaceFolder.uri,
+                extensionPath: workspaceFolder.uri.fsPath,
+                isActive: true,
+                packageJSON: {},
+                exports: undefined,
+                activate: async () => undefined,
+                extensionKind: vscode.ExtensionKind.Workspace,
+            };
+            sinon.stub(compat, "getJavaLanguageSupportExtension").returns(extension);
+            sinon.stub(compat, "getJavaDebuggerExtension").returns(extension);
+            sinon.stub(compat, "isJavaLanguageSupportExtensionActivated").returns(true);
+            const errors = sinon.stub(vscode.window, "showErrorMessage").resolves();
+            const debug = sinon.stub(vscode.debug, "startDebugging").resolves(true);
+            const socket = new net.Socket();
+            sinon.stub(socket, "setTimeout").returns(socket);
+            sinon.stub(net, "connect").returns(socket);
+            const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => ({
+                task,
+                terminate: () => undefined,
+            }));
+            executeCommand.callsFake(async (command, ...args) => {
+                if (command === COMMAND_CANCEL_BUILD) {
+                    await new CancelBuildCommand(client).run(args[0], args[1]);
+                }
+                return undefined;
+            });
+            if (phase !== "before connection") {
+                await client.handleServerStart();
+            }
+            await new DebugTaskCommand(createRoots(), client).run(createTreeItem(createTask("tree-debug-cancel")));
+            const task = executeTask.firstCall.args[0];
+            sinon.stub(vscode.tasks, "taskExecutions").value([{ task, terminate: () => undefined }]);
+            const terminal = await createTerminal(task);
+            const closed = sinon.spy();
+            terminal.onDidClose(closed);
+            const runBuild = sinon.spy(client, "runBuild");
+            const started = new Promise<RunBuildRequest>((resolve) => {
+                onBuild = resolve;
+            });
+            const opening = terminal.open();
+            await settle();
+            assert.ok(runBuild.calledOnce);
+            if (phase === "before connection") {
+                await new CancelTreeItemTaskCommand().run(createTreeItem(task));
+            } else {
+                const request = await started;
+                const key = request.getCancellationKey();
+                if (phase === "during startup") {
+                    registered.add(key);
+                    await new CancelTreeItemTaskCommand().run(createTreeItem(task));
+                    finish(key);
+                } else {
+                    const reply = new RunBuildReply();
+                    reply.setCancelled(new Cancelled());
+                    runs.get(key)!.resolve({ reply: encodeProto(reply.serializeBinary()) });
+                    runs.delete(key);
+                }
+            }
+            await opening;
+            assert.ok(!errors.called, "Explicit cancellation must not be reported as debugger failure");
+            assert.ok(!debug.called);
+            assert.ok(closed.calledOnceWithExactly(0));
+            assert.ok(socket.destroyed);
+            await clock.tickAsync(10000);
+            assert.ok(!taskUtil.isTaskCancelling(task));
+            if (phase === "before connection") {
+                await client.handleServerStart();
+                await settle();
+                assert.strictEqual(runs.size, 0);
+            }
         });
     }
 

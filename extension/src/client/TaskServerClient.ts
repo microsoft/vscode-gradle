@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { randomUUID } from "crypto";
 
 import {
     Output,
@@ -24,7 +23,11 @@ import { ProgressHandler } from "../progress";
 import { removeCancellingTask, restartQueuedTask } from "../tasks/taskUtil";
 import { COMMAND_REFRESH_DAEMON_STATUS, COMMAND_SHOW_LOGS, COMMAND_CANCEL_BUILD } from "../commands";
 import { RootProject } from "../rootProject/RootProject";
-import { getBuildCancellationKey, getProjectDependenciesCancellationKey } from "./CancellationKeys";
+import {
+    getBuildCancellationKey,
+    getBuildInvocationCancellationKey,
+    getProjectDependenciesCancellationKey,
+} from "./CancellationKeys";
 import { EventWaiter } from "../util/EventWaiter";
 import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
 import { normalizeGradleProjectPath } from "../util/gradlePath";
@@ -49,6 +52,11 @@ function errorDetails(err: unknown): string {
     return String(err);
 }
 
+interface BuildInvocation {
+    readonly cancellationKey: string;
+    readonly onCancellationRequested: () => void;
+}
+
 interface ActiveBuild {
     cancellationKey: string;
     requestKey: string;
@@ -58,6 +66,7 @@ interface ActiveBuild {
     stopped: vscode.CancellationTokenSource;
     cancellation?: Promise<void>;
     progressCancellation?: vscode.Disposable;
+    invocation?: BuildInvocation;
 }
 
 export class TaskServerClient implements vscode.Disposable {
@@ -316,7 +325,8 @@ export class TaskServerClient implements vscode.Disposable {
         showOutputColors = true,
         additionalToolOptions = "",
         title?: string,
-        location?: vscode.ProgressLocation
+        location?: vscode.ProgressLocation,
+        invocation?: BuildInvocation
     ): Promise<void> {
         if (this.disposed) {
             throw new Error("Gradle client has been disposed");
@@ -324,11 +334,12 @@ export class TaskServerClient implements vscode.Disposable {
         const build: ActiveBuild = {
             cancellationKey,
             // Delayed cancellation must not target a later invocation of the same task.
-            requestKey: `${cancellationKey}:${randomUUID()}`,
+            requestKey: invocation?.cancellationKey ?? getBuildInvocationCancellationKey(cancellationKey),
             task,
             submitted: false,
             cancellationRequested: false,
             stopped: new vscode.CancellationTokenSource(),
+            invocation,
         };
         this.activeBuilds.add(build);
         let connectedListener: vscode.Disposable | undefined;
@@ -402,6 +413,7 @@ export class TaskServerClient implements vscode.Disposable {
                                     }
                                     break;
                                 case RunBuildReply.KindCase.CANCELLED:
+                                    this.markCancellationRequested(build);
                                     this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
                                     break;
                             }
@@ -443,8 +455,16 @@ export class TaskServerClient implements vscode.Disposable {
         }
     }
 
-    private cancelActiveBuild(build: ActiveBuild): Promise<void> {
+    private markCancellationRequested(build: ActiveBuild): void {
+        if (build.cancellationRequested) {
+            return;
+        }
         build.cancellationRequested = true;
+        build.invocation?.onCancellationRequested();
+    }
+
+    private cancelActiveBuild(build: ActiveBuild): Promise<void> {
+        this.markCancellationRequested(build);
         if (!build.submitted) {
             build.stopped.cancel();
             return Promise.resolve();

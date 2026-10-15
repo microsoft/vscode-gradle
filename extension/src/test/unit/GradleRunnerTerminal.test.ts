@@ -226,7 +226,8 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         await settle();
         assert.ok(connections[0].destroyed);
         assert.ok(showErrorMessage.calledOnceWithExactly("Unable to start Java debugging: Permission denied"));
-        assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, "slow-build", task));
+        assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, sinon.match(/^slow-build:/), task));
+        assert.strictEqual(executeCommand.firstCall.args[1], client.runBuild.firstCall.args[11]!.cancellationKey);
         assert.ok(!startDebugging.called);
     });
 
@@ -354,7 +355,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
             } else {
                 await terminal.handleInput("\x03");
             }
-            assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, "slow-build", task));
+            assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, sinon.match(/^slow-build:/), task));
             emitReady();
             connections[0].emit("connect");
             await settle();
@@ -446,7 +447,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
                 "Unable to start Java debugging: " + (rejected ? "Attach failed" : "The debugger was not started");
             assert.ok(showErrorMessage.calledOnceWithExactly(message));
             assert.ok(logError.calledOnceWithExactly(message));
-            assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, "slow-build", task));
+            assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, sinon.match(/^slow-build:/), task));
             emitReady();
             assert.ok(startDebugging.calledOnce);
         });
