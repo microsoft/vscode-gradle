@@ -110,7 +110,7 @@ You should now see a `debug` command next to the `run` command in the Gradle Pro
 
 The debugger attaches when the task's debug port is ready, using the JVM's readiness message or a TCP fallback when task output is redirected. Dependency resolution and compilation are not subject to a fixed debug startup timeout.
 
-Cancellation during startup prevents submission or remains active until the server can cancel that build invocation; it does not carry into later task runs.
+Cancellation during startup prevents submission or remains active until the server can cancel that build invocation; it does not carry into later task runs. Parallel argument variants are cancelled and restarted independently.
 
 ![Debug Screencast](images/debug-screencast.gif?1)
 

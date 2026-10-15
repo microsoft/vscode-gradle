@@ -418,9 +418,6 @@ export class TaskServerClient implements vscode.Disposable {
                     } finally {
                         this.finishBuild(build);
                         await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-                        if (task) {
-                            await restartQueuedTask(task);
-                        }
                     }
                 }
             );
@@ -429,6 +426,9 @@ export class TaskServerClient implements vscode.Disposable {
             connectedListener?.dispose();
             stoppedListener?.dispose();
             build.stopped.dispose();
+            if (task && !this.disposed) {
+                await restartQueuedTask(task);
+            }
         }
     }
 
@@ -494,7 +494,9 @@ export class TaskServerClient implements vscode.Disposable {
         const builds = [...this.activeBuilds].filter(
             (build) =>
                 (build.cancellationKey === cancellationKey || build.requestKey === cancellationKey) &&
-                (!task || build.task?.definition.id === task.definition.id)
+                (!task ||
+                    (build.task?.definition.id === task.definition.id &&
+                        build.task?.definition.args === task.definition.args))
         );
         if (builds.length) {
             await Promise.all(builds.map((build) => this.cancelActiveBuild(build)));
@@ -519,7 +521,12 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     public async cancelBuilds(): Promise<void> {
-        const cancellations = [...this.activeBuilds].map((build) => this.cancelActiveBuild(build));
+        // Keep startup cancellation pending without blocking a server restart on token registration.
+        for (const build of this.activeBuilds) {
+            void this.cancelActiveBuild(build).catch((err: unknown) =>
+                logger.error("Error cancelling build:", errorDetails(err))
+            );
+        }
         this.statusBarItem.hide();
         const request = new CancelBuildsRequest();
         try {
@@ -529,8 +536,6 @@ export class TaskServerClient implements vscode.Disposable {
             }
         } catch (err) {
             logger.error("Error cancelling builds:", errorDetails(err));
-        } finally {
-            await Promise.all(cancellations);
         }
     }
 

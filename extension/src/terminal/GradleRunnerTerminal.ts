@@ -58,7 +58,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         }
         this.closed = true;
         this.stopJavaDebugWait();
-        if (this.task && isTaskRunning(this.task)) {
+        if (!this.task || isTaskRunning(this.task)) {
             await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task);
         }
     }

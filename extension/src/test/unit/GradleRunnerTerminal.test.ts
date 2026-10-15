@@ -5,12 +5,15 @@ import * as vscode from "vscode";
 import { toolOptionsProviders } from "../../api";
 import { TaskServerClient } from "../../client";
 import { COMMAND_CANCEL_BUILD } from "../../commands";
+import { RunBuildCommand } from "../../commands/RunBuildCommand";
 import { logger } from "../../logger";
 import { Output } from "../../proto/gradle_pb";
 import { RootProject } from "../../rootProject/RootProject";
+import { RootProjectsStore } from "../../stores";
 import * as taskUtil from "../../tasks/taskUtil";
 import { GradleRunnerTerminal } from "../../terminal";
 import * as util from "../../util";
+import * as input from "../../util/input";
 import { buildMockTaskDefinition, buildMockWorkspaceFolder, getSuiteName } from "../testUtil";
 
 describe(getSuiteName("Gradle task debug readiness"), () => {
@@ -101,6 +104,17 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
 
     function emitReady(address = String(debugPort)): void {
         emitOutput(`Listening for transport dt_socket at address: ${address}\n`);
+    }
+
+    async function createApiTask(): Promise<vscode.Task> {
+        sinon.stub(input, "getRootProjectFolder").resolves(rootProject);
+        sinon.stub(input, "getGradleCommand").resolves("bootRun");
+        const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => ({
+            task,
+            terminate: () => undefined,
+        }));
+        await new RunBuildCommand(sinon.createStubInstance(RootProjectsStore), client).run();
+        return executeTask.firstCall.args[0];
     }
 
     async function settle(): Promise<void> {
@@ -351,6 +365,50 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
             assert.ok(connections[0].destroyed);
         });
     }
+
+    for (const action of ["close", "interrupt"]) {
+        it(`delivers cancellation once after ${action} without an assigned task`, async () => {
+            const apiTask = await createApiTask();
+            const execution = apiTask.execution;
+            assert.ok(execution instanceof vscode.CustomExecution);
+            assert.ok("callback" in execution && typeof execution.callback === "function");
+            const apiTerminal: unknown = await execution.callback(apiTask.definition);
+            assert.ok(apiTerminal instanceof GradleRunnerTerminal);
+            terminal = apiTerminal;
+            await startTask();
+            if (action === "close") {
+                await terminal.close();
+                await terminal.close();
+            } else {
+                await terminal.handleInput("\x03");
+                await terminal.handleInput("\x03");
+            }
+            assert.ok(executeCommand.calledOnce);
+            assert.strictEqual(executeCommand.firstCall.args[0], COMMAND_CANCEL_BUILD);
+            assert.strictEqual(executeCommand.firstCall.args[2], undefined);
+            completeBuild();
+            await opening;
+        });
+    }
+
+    it("creates a fresh runnable terminal when an API task is rerun", async () => {
+        const apiTask = await createApiTask();
+        const execution = apiTask.execution;
+        assert.ok(execution instanceof vscode.CustomExecution);
+        assert.ok("callback" in execution && typeof execution.callback === "function");
+        const first: unknown = await execution.callback(apiTask.definition);
+        assert.ok(first instanceof GradleRunnerTerminal);
+        terminal = first;
+        await startTask();
+        completeBuild();
+        await opening;
+        const second: unknown = await execution.callback(apiTask.definition);
+        assert.ok(second instanceof GradleRunnerTerminal);
+        assert.notStrictEqual(second, first);
+        opening = second.open();
+        await opening;
+        assert.strictEqual(client.runBuild.callCount, 2);
+    });
 
     it("does not start a build after its terminal was closed", async () => {
         await terminal.close();

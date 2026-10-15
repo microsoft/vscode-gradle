@@ -25,6 +25,10 @@ import { GradleBuildContentProvider } from "../client/GradleBuildContentProvider
 const cancellingTasks: Map<string, vscode.Task> = new Map();
 const restartingTasks: Map<string, vscode.Task> = new Map();
 
+function getTaskStateKey(task: vscode.Task): string {
+    return JSON.stringify([task.definition.id, task.definition.args ?? ""]);
+}
+
 export function getTaskExecution(task: vscode.Task, args?: TaskArgs): vscode.TaskExecution | undefined {
     return vscode.tasks.taskExecutions.find((e) => isTask(e.task, task, args));
 }
@@ -43,7 +47,7 @@ export function getRunningGradleTasks(): vscode.Task[] {
 }
 
 export function getRunningGradleTask(task: vscode.Task): vscode.Task | void {
-    return getRunningGradleTasks().find((runningTask) => isTask(runningTask, task));
+    return getRunningGradleTasks().find((runningTask) => isTask(runningTask, task, task.definition.args || undefined));
 }
 
 export function isTaskRunning(task: vscode.Task, args?: TaskArgs): boolean {
@@ -56,22 +60,18 @@ export async function cancelBuild(
     task?: vscode.Task
 ): Promise<void> {
     if (task && isTaskRunning(task)) {
-        cancellingTasks.set(task.definition.id, task);
+        cancellingTasks.set(getTaskStateKey(task), task);
         await vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     }
     await client.cancelBuild(cancellationKey, task);
 }
 
 export function isTaskCancelling(task: vscode.Task, args?: TaskArgs): boolean {
-    const cancellingTask = getCancellingTask(task);
-    const checkForArgs = args !== undefined;
-    return Boolean(cancellingTask && (!checkForArgs || cancellingTask.definition.args === args));
+    return [...cancellingTasks.values()].some((cancellingTask) => isTask(cancellingTask, task, args));
 }
 
 export function isTaskRestarting(task: vscode.Task, args?: TaskArgs): boolean {
-    const restartingTask = getRestartingTask(task);
-    const checkForArgs = args !== undefined;
-    return Boolean(restartingTask && (!checkForArgs || restartingTask.definition.args === args));
+    return [...restartingTasks.values()].some((restartingTask) => isTask(restartingTask, task, args));
 }
 
 export function hasRestartingTask(task: vscode.Task): boolean {
@@ -79,17 +79,22 @@ export function hasRestartingTask(task: vscode.Task): boolean {
 }
 
 export function getCancellingTask(task: vscode.Task): vscode.Task | void {
-    return cancellingTasks.get(task.definition.id);
+    return [...cancellingTasks.values()].find((cancellingTask) =>
+        isTask(cancellingTask, task, task.definition.args || undefined)
+    );
 }
 
 export function getRestartingTask(task: vscode.Task): vscode.Task | void {
-    return restartingTasks.get(task.definition.id);
+    return [...restartingTasks.values()].find((restartingTask) =>
+        isTask(restartingTask, task, task.definition.args || undefined)
+    );
 }
 
 export async function restartQueuedTask(task: vscode.Task): Promise<void> {
-    const restartingTask = getRestartingTask(task);
+    const key = getTaskStateKey(task);
+    const restartingTask = restartingTasks.get(key);
     if (restartingTask) {
-        restartingTasks.delete(restartingTask.definition.id);
+        restartingTasks.delete(key);
         try {
             await vscode.tasks.executeTask(restartingTask);
         } catch (e) {
@@ -99,9 +104,7 @@ export async function restartQueuedTask(task: vscode.Task): Promise<void> {
 }
 
 export function removeCancellingTask(task: vscode.Task): void {
-    const cancellingTask = getCancellingTask(task);
-    if (cancellingTask) {
-        cancellingTasks.delete(cancellingTask.definition.id);
+    if (cancellingTasks.delete(getTaskStateKey(task))) {
         vscode.commands.executeCommand(COMMAND_RENDER_TASK, task);
     }
 }
@@ -109,9 +112,9 @@ export function removeCancellingTask(task: vscode.Task): void {
 export async function queueRestartTask(client: TaskServerClient, task: vscode.Task): Promise<void> {
     if (isTaskRunning(task)) {
         const definition = task.definition as GradleTaskDefinition;
-        restartingTasks.set(definition.id, task);
-        const cancellationKey = getRunTaskCommandCancellationKey(definition.projectFolder, task.name);
-        // Once the task is cancelled it will restart via onDidEndTask
+        restartingTasks.set(getTaskStateKey(task), task);
+        const cancellationKey = getRunTaskCommandCancellationKey(definition.projectFolder, definition.script);
+        // The client starts the queued task when the current invocation completes.
         await cancelBuild(client, cancellationKey, task);
     }
 }

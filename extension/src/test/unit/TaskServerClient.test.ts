@@ -4,7 +4,13 @@ import * as vscode from "vscode";
 import { PassThrough } from "stream";
 import { createMessageConnection, RequestType, StreamMessageReader, StreamMessageWriter } from "vscode-jsonrpc/node";
 import { TaskServerClient } from "../../client";
+import { Api } from "../../api";
+import { getRunTaskCommandCancellationKey } from "../../client/CancellationKeys";
 import { COMMAND_CANCEL_BUILD } from "../../commands";
+import { CancelBuildCommand } from "../../commands/CancelBuildCommand";
+import { CancelTreeItemTaskCommand } from "../../commands/CancelTreeItemTaskCommand";
+import { RestartTaskCommand } from "../../commands/RestartTaskCommand";
+import { Icons } from "../../icons";
 import { logger } from "../../logger";
 import {
     CancelBuildReply,
@@ -16,12 +22,15 @@ import {
 } from "../../proto/gradle_pb";
 import { GradleServer } from "../../server";
 import { RootProject } from "../../rootProject/RootProject";
+import { RootProjectsStore } from "../../stores";
+import { GradleTaskProvider } from "../../tasks";
 import * as taskUtil from "../../tasks/taskUtil";
 import { GradleRunnerTerminal } from "../../terminal";
 import * as util from "../../util";
 import { decodeProto, encodeProto } from "../../transport/jsonrpc";
 import { GradleRequestParams, GradleResponse } from "../../transport/jsonrpc/types";
-import { buildMockTaskDefinition, buildMockWorkspaceFolder, getSuiteName } from "../testUtil";
+import { GradleTasksTreeDataProvider, GradleTaskTreeItem } from "../../views";
+import { buildMockContext, buildMockTaskDefinition, buildMockWorkspaceFolder, getSuiteName } from "../testUtil";
 
 const RUN_BUILD = new RequestType<GradleRequestParams, GradleResponse, void>("gradle/runBuild");
 const CANCEL_BUILD = new RequestType<GradleRequestParams, GradleResponse, void>("gradle/cancelBuild");
@@ -50,6 +59,8 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         Parameters<typeof vscode.commands.executeCommand>,
         ReturnType<typeof vscode.commands.executeCommand>
     >;
+    let restartQueuedTask: sinon.SinonStub;
+    let removeCancellingTask: sinon.SinonStub;
 
     beforeEach(() => {
         clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
@@ -107,8 +118,8 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             }
             return undefined;
         });
-        sinon.stub(taskUtil, "restartQueuedTask").resolves();
-        sinon.stub(taskUtil, "removeCancellingTask");
+        restartQueuedTask = sinon.stub(taskUtil, "restartQueuedTask").resolves();
+        removeCancellingTask = sinon.stub(taskUtil, "removeCancellingTask");
         sinon.stub(logger, "info");
         logError = sinon.stub(logger, "error");
         client = new TaskServerClient(server, statusBar);
@@ -176,6 +187,33 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         return new vscode.Task(definition, workspaceFolder, "run", "gradle");
     }
 
+    function createApi(): Api {
+        return new Api(
+            client,
+            sinon.createStubInstance(GradleTasksTreeDataProvider),
+            sinon.createStubInstance(GradleTaskProvider),
+            new Icons(buildMockContext())
+        );
+    }
+
+    function createRoots(): sinon.SinonStubbedInstance<RootProjectsStore> {
+        const roots = sinon.createStubInstance(RootProjectsStore);
+        roots.get.withArgs(workspaceFolder.uri.fsPath).returns(new RootProject(workspaceFolder, workspaceFolder.uri));
+        return roots;
+    }
+
+    function createTreeItem(task: vscode.Task): GradleTaskTreeItem {
+        return new GradleTaskTreeItem(
+            new vscode.TreeItem("root"),
+            task,
+            "selected",
+            "",
+            "",
+            new Icons(buildMockContext()),
+            false
+        );
+    }
+
     it("retains early cancellation until the server registers the build token", async () => {
         const build = await start();
         const firstAttempt = nextCancellation();
@@ -205,6 +243,41 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         await settle();
         assert.strictEqual(runs.size, 0);
         assert.deepStrictEqual(cancelRequests, []);
+    });
+
+    it("starts a queued replacement after cancellation before connection", async () => {
+        restartQueuedTask.restore();
+        removeCancellingTask.restore();
+        const task = taskUtil.cloneTask(createRoots(), createTask("queued-before-connect"), "--variant", client);
+        sinon.stub(vscode.tasks, "taskExecutions").value([{ task, terminate: () => undefined }]);
+        const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => ({
+            task,
+            terminate: () => undefined,
+        }));
+        const key = getRunTaskCommandCancellationKey(workspaceFolder.uri.fsPath, task.definition.script);
+        const completed = client.runBuild(workspaceFolder.uri.fsPath, key, ["run"], "", 0, task);
+        const outcome = Promise.all([new RestartTaskCommand(client).run(createTreeItem(task)), completed]);
+        const finished = await Promise.race([outcome.then(() => true), settle().then(() => false)]);
+        assert.ok(finished, "A queued replacement must start without waiting for connection");
+        assert.ok(executeTask.calledOnceWithExactly(task));
+        assert.ok(!taskUtil.hasRestartingTask(task));
+        assert.ok(!taskUtil.isTaskCancelling(task));
+        assert.strictEqual(runs.size, 0);
+    });
+
+    it("does not start queued replacements when the client is disposed before connection", async () => {
+        const completed = client.runBuild(
+            workspaceFolder.uri.fsPath,
+            "build-key",
+            ["run"],
+            "",
+            0,
+            createTask("disposed-before-connect")
+        );
+        const rejected = assert.rejects(completed, /disposed/);
+        client.dispose();
+        await rejected;
+        assert.ok(!restartQueuedTask.called);
     });
 
     it("keeps retrying cancellation after an idempotent terminal closure", async () => {
@@ -355,18 +428,179 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         await Promise.all([first.completed, second.completed]);
     });
 
+    it("cancels only the intended argument variant sharing a task ID and logical key", async () => {
+        const firstTask = createTask("same-task");
+        firstTask.definition.args = "--first";
+        const secondTask = createTask("same-task");
+        secondTask.definition.args = "--second";
+        const first = await start(firstTask);
+        const second = await start(secondTask);
+        registered.add(first.key);
+        registered.add(second.key);
+        await client.cancelBuild("build-key", firstTask);
+        assert.deepStrictEqual(cancelled, [first.key]);
+        finish(first.key);
+        finish(second.key);
+        await Promise.all([first.completed, second.completed]);
+    });
+
+    for (const entry of ["terminal", "tree", "base tree", "restart", "parallel restarts"]) {
+        it(`cancels the selected runTask argument variant through its ${entry} entry point`, async () => {
+            await client.handleServerStart();
+            removeCancellingTask.restore();
+            const executions: vscode.TaskExecution[] = [];
+            const openings: Promise<void>[] = [];
+            const terminals: GradleRunnerTerminal[] = [];
+            sinon.stub(vscode.tasks, "taskExecutions").value(executions);
+            sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+                const execution = task.execution;
+                assert.ok(execution instanceof vscode.CustomExecution);
+                assert.ok("callback" in execution && typeof execution.callback === "function");
+                const terminal: unknown = await execution.callback(task.definition);
+                assert.ok(terminal instanceof GradleRunnerTerminal);
+                terminals.push(terminal);
+                openings.push(terminal.open());
+                const running = { task, terminate: () => undefined };
+                executions.push(running);
+                return running;
+            });
+            executeCommand.callsFake(async (command, ...args) => {
+                if (command === COMMAND_CANCEL_BUILD) {
+                    await new CancelBuildCommand(client).run(args[0], args[1]);
+                }
+                return undefined;
+            });
+            const roots = createRoots();
+            const baseTask = createTask("parallel-argument-variants");
+            const keys: string[] = [];
+            for (const args of ["--first", "--second"]) {
+                const started = new Promise<RunBuildRequest>((resolve) => {
+                    onBuild = resolve;
+                });
+                await taskUtil.runTask(roots, baseTask, client, args);
+                const request = await started;
+                assert.strictEqual(request.getJavaDebugPort(), 0);
+                keys.push(request.getCancellationKey());
+                registered.add(request.getCancellationKey());
+            }
+            assert.strictEqual(executions[0].task.definition.id, executions[1].task.definition.id);
+            assert.notStrictEqual(executions[0].task.definition.args, executions[1].task.definition.args);
+            if (entry === "terminal") {
+                await terminals[1].handleInput("\x03");
+            } else if (entry === "parallel restarts") {
+                restartQueuedTask.restore();
+                for (const execution of executions.slice()) {
+                    await new RestartTaskCommand(client).run(createTreeItem(execution.task));
+                }
+                assert.deepStrictEqual(cancelled, keys);
+                for (const args of ["--first", "--second"]) {
+                    assert.ok(taskUtil.isTaskCancelling(baseTask, args));
+                    assert.ok(taskUtil.isTaskRestarting(baseTask, args));
+                }
+                const replacements: RunBuildRequest[] = [];
+                onBuild = (request) => replacements.push(request);
+                for (let index = 0; index < keys.length; index++) {
+                    finish(keys[index]);
+                    await openings[index];
+                    await settle();
+                    assert.strictEqual(executions.length, 3 + index, "Each argument variant must retain its restart");
+                    assert.deepStrictEqual(replacements[index].getArgsList(), [
+                        "run",
+                        index === 0 ? "--first" : "--second",
+                    ]);
+                    assert.strictEqual(taskUtil.isTaskCancelling(baseTask, "--second"), index === 0);
+                    assert.strictEqual(taskUtil.isTaskRestarting(baseTask, "--second"), index === 0);
+                    finish(replacements[index].getCancellationKey());
+                }
+            } else if (entry === "restart") {
+                restartQueuedTask.restore();
+                await new RestartTaskCommand(client).run(createTreeItem(executions[1].task));
+                finish(keys[0]);
+                await openings[0];
+                assert.strictEqual(
+                    executions.length,
+                    2,
+                    "Completing another argument variant must not restart this one"
+                );
+            } else {
+                const selected = createTreeItem(entry === "base tree" ? baseTask : executions[1].task);
+                await new CancelTreeItemTaskCommand().run(selected);
+            }
+            assert.deepStrictEqual(
+                cancelled,
+                entry === "parallel restarts" ? keys : [keys[entry === "base tree" ? 0 : 1]]
+            );
+            if (entry === "restart") {
+                const restarted = new Promise<RunBuildRequest>((resolve) => {
+                    onBuild = resolve;
+                });
+                finish(keys[1]);
+                const replacement = await restarted;
+                assert.notStrictEqual(replacement.getCancellationKey(), keys[1]);
+                assert.deepStrictEqual(replacement.getArgsList(), ["run", "--second"]);
+                finish(replacement.getCancellationKey());
+            } else {
+                keys.forEach(finish);
+            }
+            await Promise.all(openings);
+        });
+    }
+
+    for (const [entry, cancellationKey] of [
+        ["build", undefined],
+        ["build", "custom-api-key"],
+        ["task", undefined],
+        ["task", "custom-api-key"],
+    ]) {
+        it(`retains public ${entry} API cancellation with a ${
+            cancellationKey ? "custom" : "derived"
+        } logical key`, async () => {
+            await client.handleServerStart();
+            const api = createApi();
+            const args = entry === "task" && !cancellationKey ? [] : ["--variant"];
+            const opts = { projectFolder: workspaceFolder.uri.fsPath, args: ["run", ...args], cancellationKey };
+            const started = new Promise<RunBuildRequest>((resolve) => {
+                onBuild = resolve;
+            });
+            const completed =
+                entry === "task"
+                    ? api.runTask({ ...opts, taskName: "run", args, showOutputColors: false })
+                    : api.runBuild({ ...opts, showOutputColors: false });
+            const request = await started;
+            assert.strictEqual(request.getJavaDebugPort(), 0);
+            const firstAttempt = nextCancellation();
+            const cancelling =
+                entry === "task" ? api.cancelRunTask({ ...opts, taskName: "run" }) : api.cancelRunBuild(opts);
+            await firstAttempt;
+            await settle();
+            registered.add(request.getCancellationKey());
+            await clock.tickAsync(500);
+            await settle();
+            await cancelling;
+            assert.deepStrictEqual(cancelled, [request.getCancellationKey()]);
+            finish(request.getCancellationKey());
+            await completed;
+        });
+    }
+
     it("retains cancel-all intent for builds whose tokens are not registered yet", async () => {
         const first = await start();
         const second = await start();
         const firstAttempt = nextCancellation();
-        const cancelling = client.cancelBuilds();
+        let acknowledged = false;
+        const cancelling = createApi()
+            .cancelAllBuilds()
+            .then(() => {
+                acknowledged = true;
+            });
         await firstAttempt;
         await settle();
+        assert.ok(acknowledged, "Aggregate cancellation must not block server restart on token registration");
+        await cancelling;
         registered.add(first.key);
         registered.add(second.key);
         await clock.tickAsync(500);
         await settle();
-        await cancelling;
         assert.deepStrictEqual(new Set(cancelled), new Set([first.key, second.key]));
         finish(first.key);
         finish(second.key);

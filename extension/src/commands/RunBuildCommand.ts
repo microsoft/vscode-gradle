@@ -24,7 +24,6 @@ export class RunBuildCommand extends Command {
 
         const args: string[] = parseArgsStringToArgv(gradleCommand.trim());
         const cancellationKey = getRunBuildCancellationKey(rootProject.getProjectUri().fsPath, args);
-        const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, this.client);
         const task = new vscode.Task(
             {
                 type: "gradle",
@@ -32,7 +31,10 @@ export class RunBuildCommand extends Command {
             rootProject.getWorkspaceFolder(),
             gradleCommand,
             "gradle",
-            new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => terminal),
+            new vscode.CustomExecution(
+                async (): Promise<vscode.Pseudoterminal> =>
+                    new GradleRunnerTerminal(rootProject, args, cancellationKey, this.client)
+            ),
             ["$gradle"]
         );
         task.presentationOptions = {
