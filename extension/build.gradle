@@ -53,6 +53,7 @@ jar.enabled = false;
 compileJava.enabled = false
 compileTestJava.enabled = false
 processResources.enabled = false;
+processTestResources.enabled = false;
 
 clean {
   delete protobuf.generatedFilesBaseDir
@@ -81,7 +82,7 @@ task copyProtoTs(type: Copy) {
   into protoLib
 }
 
-task npmInstall(type: CrossPlatformExec) {
+task npmInstall(type: Exec) {
   description 'Installs node dependencies'
   inputs.file('package-lock.json').withPathSensitivity(PathSensitivity.RELATIVE)
   outputs.dir('node_modules')
@@ -94,30 +95,29 @@ task npmInstall(type: CrossPlatformExec) {
   }
 }
 
-task lint(type: CrossPlatformExec) {
+task lint(type: Exec) {
   dependsOn npmInstall
   description 'Lints source files'
   commandLine 'npm', 'run', 'lint'
 }
 
-task format(type: CrossPlatformExec) {
+task format(type: Exec) {
   description 'Formats source files'
   commandLine 'npm', 'run', 'lint:fix'
 }
 
-task buildTest(type: CrossPlatformExec) {
+task buildTest(type: Exec) {
   dependsOn copyProtoJs, copyProtoTs
   group 'build'
   description 'Builds TypeScript test source files'
-  buildDir = 'out'
   inputs.dir('src').withPathSensitivity(PathSensitivity.RELATIVE)
   inputs.file('tsconfig.json').withPathSensitivity(PathSensitivity.RELATIVE)
-  outputs.dir(buildDir)
+  outputs.dir('out')
   outputs.cacheIf { true }
   commandLine 'npm', 'run', 'compile:test'
 }
 
-task buildDev(type: CrossPlatformExec) {
+task buildDev(type: Exec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
@@ -131,7 +131,7 @@ task buildDev(type: CrossPlatformExec) {
   commandLine 'npm', 'run', 'compile'
 }
 
-task buildProd(type: CrossPlatformExec) {
+task buildProd(type: Exec) {
   dependsOn 'copyProtoJs', 'copyProtoTs'
   group 'build'
   description 'Compile extension source files'
@@ -151,12 +151,12 @@ task bundle() {
   description 'Bundles the extension files for release'
 }
 
-task installExtension(type: CrossPlatformExec) {
+task installExtension(type: Exec) {
   dependsOn bundle
   commandLine 'npm', 'run', 'install:ext'
 }
 
-task testVsCode(type: CrossPlatformExec) {
+task testVsCode(type: Exec) {
   group 'verification'
   description 'Tests the extension'
   commandLine 'npm', 'run', 'test'
@@ -173,7 +173,7 @@ task copyDocs(type: Copy) {
   into "$projectDir"
 }
 
-task prepareBeta(type: CrossPlatformExec) {
+task prepareBeta(type: Exec) {
   description 'Prepare the extesion for a BETA release'
   workingDir file('./beta')
   commandLine 'node', 'prepare.js'
@@ -187,16 +187,9 @@ task prepareForBetaRelease() {
   dependsOn bundle, copyDocs, prepareBeta
 }
 
-def jdtlsJavaLauncher = javaToolchains.launcherFor {
-  languageVersion = JavaLanguageVersion.of(25)
-}
-
-task buildJdtlsPlugin(type: CrossPlatformExec) {
+task buildJdtlsPlugin(type: Exec) {
   workingDir file('./jdtls.ext')
   environment 'MAVEN_OPTS', '-Djdk.xml.totalEntitySizeLimit=0 -Djdk.xml.maxGeneralEntitySizeLimit=0'
-  doFirst {
-    environment 'JAVA_HOME', jdtlsJavaLauncher.get().metadata.installationPath.asFile.absolutePath
-  }
   def mavenArguments = ['-B', '-V', '-e', '-ntp']
   // `eclipse.p2.mirrors=false` stops p2 from following download.eclipse.org's mirror
   // redirect, which hands out a different third party host per request and makes the
@@ -225,10 +218,10 @@ task copyJdtlsPluginJar(type: Copy) {
   mustRunAfter copyDocs
 }
 
-task buildBuildServer(type: CrossPlatformExec) {
+task buildBuildServer(type: Exec) {
   workingDir file('./build-server-for-gradle')
   if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
-    commandLine 'gradlew', 'build', '-x', 'test'
+    commandLine '.\\gradlew.bat', 'build', '-x', 'test'
   } else {
     commandLine './gradlew', 'build', '-x', 'test'
   }

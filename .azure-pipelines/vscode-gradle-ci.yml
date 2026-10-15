@@ -71,9 +71,9 @@ extends:
               - checkout: self
                 fetchTags: false
               - task: JavaToolInstaller@0
-                displayName: Use Java 21
+                displayName: Use Java 25
                 inputs:
-                  versionSpec: '21'
+                  versionSpec: '25'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
@@ -126,9 +126,9 @@ extends:
               - checkout: self
                 fetchTags: false
               - task: JavaToolInstaller@0
-                displayName: Install Java 21
+                displayName: Install Java 25
                 inputs:
-                  versionSpec: '21'
+                  versionSpec: '25'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
@@ -190,6 +190,7 @@ extends:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   MVNW_PASSWORD: $(System.AccessToken)
+                  JAVA_HOME: $(JAVA_HOME_21_X64)
                   DISPLAY: ":99.0"
                 inputs:
                   gradleWrapperFile: 'gradlew'

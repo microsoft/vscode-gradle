@@ -8,8 +8,8 @@ Start by opening an issue using one of the issue templates, or propose a change 
 
 ### Prerequisites
 1. Install [nvm](https://github.com/nvm-sh/nvm)
-2. Install [JDK 21 and JDK 25](https://adoptium.net/). Use JDK 21 for the repository's Gradle build;
-   the Gradle Project Importer uses a separate JDK 25 toolchain.
+2. Install [JDK 25](https://adoptium.net/) and set `JAVA_HOME` to its installation directory.
+   The repository's Gradle build and the Gradle Project Importer both use this JDK.
 3. Select Node version: `nvm use`
 4. If using an Apple M1:
     - Add `npm_arch=x64` to $HOME/.gradle/gradle.properties
@@ -29,10 +29,13 @@ Before proceeding with the build steps for Build Task Server & Language Server, 
 3. Build the Importer and Build Server jars: `../gradlew buildJars`
 
 The importer's target platform intentionally tracks the latest JDT LS snapshot so that upstream
-compatibility changes are caught by the build. It resolves and tests against a Java 25 environment,
-while the repository's Gradle build stays on Java 21. Gradle selects the importer's JDK 25 toolchain
-automatically; if it is not detected, configure `org.gradle.java.installations.paths` in your Gradle
-user properties to include its installation directory.
+compatibility changes are caught by the build. Gradle 9.8.1 and the importer's Maven build both run
+on JDK 25. The importer resolves and tests against a Java 25 environment while retaining its
+Java 21 bundle execution environment and bytecode target.
+
+Azure Pipelines build agent images must provide a preinstalled JDK 25 (`JAVA_HOME_25_X64`).
+Java 21 remains available for the existing Gradle 8.5 compatibility tests; it is not needed
+to build the repository or importer.
 
 Run the BSP importer's Java regression tests from the repository root:
 
@@ -75,7 +78,7 @@ You can also run `./gradlew build testVsCode` to run all tests.
 
 ### Gradle 9.8.1 / Java 27 Compatibility
 
-Build the importer, BSP server, task server and extension as above, using JDK 21 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:
+Build the importer, BSP server, task server and extension as above, using JDK 25 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:
 
 ```powershell
 $env:JDK25_HOME = 'C:\path\to\jdk-25'

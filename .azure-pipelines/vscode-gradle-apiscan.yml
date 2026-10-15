@@ -42,9 +42,9 @@ extends:
               - checkout: self
                 fetchTags: true
               - task: JavaToolInstaller@0
-                displayName: Install Java 21
+                displayName: Install Java 25
                 inputs:
-                  versionSpec: '21'
+                  versionSpec: '25'
                   jdkArchitectureOption: 'x64'
                   jdkSourceOption: 'PreInstalled'
               - task: NodeTool@0
