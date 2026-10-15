@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as util from "util";
 import * as getPort from "get-port";
-import { isTest, waitOnTcp } from "../util";
+import { isTest } from "../util";
 import { logger, LoggerStream, LogVerbosity } from "../logger";
 import { Output } from "../proto/gradle_pb";
 import { GradleRpcError, isUnknown } from "../transport/jsonrpc";
@@ -21,6 +21,8 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     private stdOutLoggerStream: LoggerStream | undefined;
     private readonly closeEmitter = new vscode.EventEmitter<number>();
     private task?: vscode.Task;
+    private javaDebug?: { port: number; output: string };
+    private closed = false;
     public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
     public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
 
@@ -45,46 +47,58 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     }
 
     public async close(): Promise<void> {
+        this.closed = true;
+        this.javaDebug = undefined;
         if (this.task && isTaskRunning(this.task)) {
             await this.cancelCommand();
         }
     }
 
-    private startJavaDebug(javaDebugPort: number): void {
-        // To accommodate scenarios where debugging is bypassed due to Gradle build cache
-        const closePromise = new Promise((_resolve, reject) => {
-            const disposable = this.onDidClose(() => {
-                disposable.dispose();
-                reject(new Error("The task completed without the debugger being attached"));
-            });
-        });
-        Promise.race([waitOnTcp("localhost", javaDebugPort), closePromise]).then(
-            async () => {
-                const definition = this.task?.definition as GradleTaskDefinition;
-                const projectName = definition ? definition.project : undefined;
-                const debugConfig = {
-                    type: "java",
-                    name: "Debug (Attach) via Gradle Tasks",
-                    request: "attach",
-                    hostName: "localhost",
-                    port: javaDebugPort,
-                    projectName,
-                };
-                const startedDebugging = await vscode.debug.startDebugging(
-                    this.rootProject.getWorkspaceFolder(),
-                    debugConfig
-                );
-                if (!startedDebugging) {
-                    throw new Error("The debugger was not started");
-                }
-            },
-            (err) => {
-                const errorMessage = "Unable to start Java debugging: " + err.message;
-                logger.error(errorMessage);
-                vscode.window.showErrorMessage(errorMessage);
-                this.close();
-            }
+    private async startJavaDebug(javaDebugPort: number): Promise<void> {
+        const definition = this.task?.definition as GradleTaskDefinition;
+        const debugConfig = {
+            type: "java",
+            name: "Debug (Attach) via Gradle Tasks",
+            request: "attach",
+            hostName: "localhost",
+            port: javaDebugPort,
+            projectName: definition?.project,
+        };
+        const startedDebugging = await vscode.debug.startDebugging(this.rootProject.getWorkspaceFolder(), debugConfig);
+        if (!startedDebugging) {
+            throw new Error("The debugger was not started");
+        }
+    }
+
+    private handleJavaDebugOutput(message: string): void {
+        const javaDebug = this.javaDebug;
+        if (!javaDebug) {
+            return;
+        }
+        javaDebug.output += message;
+        const readyPattern = new RegExp(
+            `Listening for transport dt_socket at address: (?:\\S+:)?${javaDebug.port}[ \\t]*(?:\\r|\\n)`
         );
+        if (readyPattern.test(util.stripVTControlCharacters(javaDebug.output))) {
+            this.javaDebug = undefined;
+            this.startJavaDebug(javaDebug.port)
+                .catch(async (err: unknown) => {
+                    this.handleJavaDebugError(err);
+                    await this.close();
+                })
+                .catch((err: unknown) => {
+                    logger.error("Unable to cancel Gradle task:", err instanceof Error ? err.message : String(err));
+                });
+        } else {
+            // Retain a bounded suffix so readiness messages can span output chunks.
+            javaDebug.output = javaDebug.output.slice(-512);
+        }
+    }
+
+    private handleJavaDebugError(err: unknown): void {
+        const errorMessage = "Unable to start Java debugging: " + (err instanceof Error ? err.message : String(err));
+        logger.error(errorMessage);
+        vscode.window.showErrorMessage(errorMessage);
     }
 
     private async runBuild(): Promise<void> {
@@ -92,12 +106,18 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
 
         try {
             const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
+            if (this.closed) {
+                return;
+            }
             if (javaDebugEnabled) {
-                this.startJavaDebug(javaDebugPort);
+                this.javaDebug = { port: javaDebugPort, output: "" };
             }
             const additionalToolOptions = (
                 await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
             ).join(" ");
+            if (this.closed) {
+                return;
+            }
 
             const runTask = this.client.runBuild(
                 this.rootProject.getProjectUri().fsPath,
@@ -111,14 +131,22 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 additionalToolOptions
             );
             await runTask;
+            if (this.javaDebug) {
+                this.javaDebug = undefined;
+                this.handleJavaDebugError(new Error("The task completed without the debugger being attached"));
+            }
             this.closeEmitter.fire(0);
         } catch (e) {
             this.handleError(e);
             this.closeEmitter.fire(1);
+        } finally {
+            this.javaDebug = undefined;
         }
     }
 
     private async cancelCommand(): Promise<void> {
+        this.closed = true;
+        this.javaDebug = undefined;
         await vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, this.cancellationKey, this.task);
     }
 
@@ -128,7 +156,9 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             if (isTest() && this.stdOutLoggerStream) {
                 this.stdOutLoggerStream.write(messageBytes);
             }
-            this.write(new util.TextDecoder("utf-8").decode(messageBytes));
+            const message = new util.TextDecoder("utf-8").decode(messageBytes);
+            this.write(message);
+            this.handleJavaDebugOutput(message);
         }
     };
 
