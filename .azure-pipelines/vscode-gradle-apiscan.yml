@@ -41,12 +41,9 @@ extends:
             steps:
               - checkout: self
                 fetchTags: true
-              - task: JavaToolInstaller@0
-                displayName: Install Java 21
-                inputs:
-                  versionSpec: '21'
-                  jdkArchitectureOption: 'x64'
-                  jdkSourceOption: 'PreInstalled'
+              - template: /.azure-pipelines/install-jdk.yml@self
+                parameters:
+                  platform: windows
               - task: NodeTool@0
                 displayName: Install Node 20.x
                 inputs:
