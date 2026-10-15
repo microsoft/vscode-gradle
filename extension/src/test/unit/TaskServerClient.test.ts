@@ -49,6 +49,7 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
     let serverToClient: PassThrough;
     let connection: ReturnType<typeof createMessageConnection>;
     let serverConnection: ReturnType<typeof createMessageConnection>;
+    let server: sinon.SinonStubbedInstance<GradleServer>;
     let statusBar: vscode.StatusBarItem;
     let events: vscode.EventEmitter<null>[];
     let progressTokens: vscode.CancellationTokenSource[];
@@ -70,44 +71,14 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
 
     beforeEach(() => {
         clock = sinon.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
-        clientToServer = new PassThrough();
-        serverToClient = new PassThrough();
-        connection = createMessageConnection(
-            new StreamMessageReader(serverToClient),
-            new StreamMessageWriter(clientToServer)
-        );
-        serverConnection = createMessageConnection(
-            new StreamMessageReader(clientToServer),
-            new StreamMessageWriter(serverToClient)
-        );
         runs = new Map();
         registered = new Set();
         cancelled = [];
         cancelRequests = [];
         onCancel = () => undefined;
         cancelReply = acknowledgeCancellation;
-        serverConnection.onRequest(RUN_BUILD, (params) => {
-            assert.ok(params.request);
-            const request = RunBuildRequest.deserializeBinary(decodeProto(params.request));
-            return new Promise<GradleResponse>((resolve, reject) => {
-                runs.set(request.getCancellationKey(), { resolve, reject });
-                onBuild(request);
-            });
-        });
-        serverConnection.onRequest(CANCEL_BUILD, (params) => {
-            assert.ok(params.request);
-            const request = CancelBuildRequest.deserializeBinary(decodeProto(params.request));
-            cancelRequests.push(request.getCancellationKey());
-            const reply = cancelReply(request.getCancellationKey());
-            onCancel();
-            return reply;
-        });
-        serverConnection.onRequest(CANCEL_BUILDS, () => {
-            const reply = new CancelBuildsReply();
-            return { reply: encodeProto(reply.serializeBinary()) };
-        });
-        serverConnection.listen();
-        const server = sinon.createStubInstance(GradleServer);
+        createTransport();
+        server = sinon.createStubInstance(GradleServer);
         events = [new vscode.EventEmitter<null>(), new vscode.EventEmitter<null>()];
         Object.assign(server, { onDidStart: events[0].event, onDidStop: events[1].event });
         server.awaitTaskConnection.resolves(connection);
@@ -146,6 +117,49 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         statusBar.dispose();
         sinon.restore();
     });
+
+    function createTransport(): void {
+        clientToServer = new PassThrough();
+        serverToClient = new PassThrough();
+        connection = createMessageConnection(
+            new StreamMessageReader(serverToClient),
+            new StreamMessageWriter(clientToServer)
+        );
+        serverConnection = createMessageConnection(
+            new StreamMessageReader(clientToServer),
+            new StreamMessageWriter(serverToClient)
+        );
+        serverConnection.onRequest(RUN_BUILD, (params) => {
+            assert.ok(params.request);
+            const request = RunBuildRequest.deserializeBinary(decodeProto(params.request));
+            return new Promise<GradleResponse>((resolve, reject) => {
+                runs.set(request.getCancellationKey(), { resolve, reject });
+                onBuild(request);
+            });
+        });
+        serverConnection.onRequest(CANCEL_BUILD, (params) => {
+            assert.ok(params.request);
+            const request = CancelBuildRequest.deserializeBinary(decodeProto(params.request));
+            cancelRequests.push(request.getCancellationKey());
+            const reply = cancelReply(request.getCancellationKey());
+            onCancel();
+            return reply;
+        });
+        serverConnection.onRequest(CANCEL_BUILDS, () => {
+            const reply = new CancelBuildsReply();
+            return { reply: encodeProto(reply.serializeBinary()) };
+        });
+        serverConnection.listen();
+    }
+
+    function replaceTransport(): void {
+        serverConnection.dispose();
+        connection.dispose();
+        clientToServer.destroy();
+        serverToClient.destroy();
+        createTransport();
+        server.awaitTaskConnection.resolves(connection);
+    }
 
     function acknowledgeCancellation(key: string): GradleResponse {
         const reply = new CancelBuildReply();
@@ -805,6 +819,88 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             assert.ok(closures.every((closed) => closed.calledOnce));
             await clock.tickAsync(10000);
             assert.ok(!errors.called, "Late preparation must not report stale errors");
+        });
+    }
+
+    for (const action of ["complete", "cancel", "transient reconnect"] as const) {
+        it(`handles public task ${action} after provider preparation outlives its connection`, async () => {
+            await client.handleServerStart();
+            const api = createApi();
+            let releaseProvider: () => void;
+            const options = new Promise<string>((resolve) => {
+                releaseProvider = () => resolve("-Dprovider.ready=true");
+            });
+            let enteredProvider: () => void;
+            const entered = new Promise<void>((resolve) => {
+                enteredProvider = resolve;
+            });
+            const provider = api.registerToolOptionsProvider({
+                resolveToolOptions: () => {
+                    enteredProvider();
+                    return options;
+                },
+            });
+            const closed = sinon.spy();
+            let opening: Promise<void> | undefined;
+            let execution: vscode.TaskExecution | undefined;
+            let interruption: vscode.Disposable | undefined;
+            const requests: RunBuildRequest[] = [];
+            onBuild = (request) => requests.push(request);
+            sinon.stub(vscode.tasks, "taskExecutions").get(() => (execution ? [execution] : []));
+            sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+                const terminal = await createTerminal(task);
+                terminal.onDidClose(closed);
+                opening = terminal.open();
+                execution = { task, terminate: () => undefined };
+                return execution;
+            });
+            try {
+                await taskUtil.runTask(createRoots(), createTask(`reconnect-${action}`), client, "--variant");
+                assert.ok(opening, "The public caller must start the task's custom execution");
+                await entered;
+                events[1].fire(null);
+                releaseProvider!();
+                await settle();
+                assert.ok(!closed.called, "Prepared work must wait for the current task connection");
+                assert.strictEqual(requests.length, 0);
+                assert.ok(!logError.called, "Preparation must not submit through the disconnected client");
+                if (action === "cancel") {
+                    assert.ok(execution);
+                    await new CancelTreeItemTaskCommand().run(createTreeItem(execution.task));
+                    await opening;
+                    assert.ok(closed.calledOnceWithExactly(0));
+                } else if (action === "transient reconnect") {
+                    interruption = client.onDidConnect(() => {
+                        interruption!.dispose();
+                        events[1].fire(null);
+                    });
+                    replaceTransport();
+                    await client.handleServerStart();
+                    await settle();
+                    assert.ok(!closed.called);
+                    assert.strictEqual(requests.length, 0);
+                }
+                replaceTransport();
+                await client.handleServerStart();
+                await settle();
+                assert.strictEqual(requests.length, action === "cancel" ? 0 : 1);
+                if (action !== "cancel") {
+                    assert.strictEqual(requests[0].getAdditionalToolOptions(), "-Dprovider.ready=true");
+                    finish(requests[0].getCancellationKey());
+                    await opening;
+                    assert.ok(closed.calledOnceWithExactly(0));
+                }
+                assert.ok(!logError.called);
+            } finally {
+                interruption?.dispose();
+                provider.dispose();
+                releaseProvider!();
+                for (const key of runs.keys()) {
+                    finish(key);
+                }
+                client.dispose();
+                await opening;
+            }
         });
     }
 

@@ -347,13 +347,6 @@ export class TaskServerClient implements vscode.Disposable {
         };
         this.activeBuilds.add(build);
         let connectedListener: vscode.Disposable | undefined;
-        const connected = new Promise<void>((resolve) => {
-            if (this.rpcClient) {
-                resolve();
-            } else {
-                connectedListener = this.onDidConnect(() => resolve());
-            }
-        });
         let stoppedListener: vscode.Disposable | undefined;
         const stopped = new Promise<void>((resolve) => {
             stoppedListener = build.stopped.token.onCancellationRequested(resolve);
@@ -369,7 +362,14 @@ export class TaskServerClient implements vscode.Disposable {
                     additionalToolOptions = prepared.additionalToolOptions;
                 }
             }
-            await Promise.race([connected, stopped]);
+            while (!this.rpcClient && !this.disposed && !build.cancellationRequested) {
+                const connected = new Promise<void>((resolve) => {
+                    connectedListener = this.onDidConnect(() => resolve());
+                });
+                await Promise.race([connected, stopped]);
+                connectedListener?.dispose();
+                connectedListener = undefined;
+            }
             if (this.disposed) {
                 throw new Error("Gradle client has been disposed");
             }
