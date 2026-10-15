@@ -1,3 +1,5 @@
+import * as path from "path";
+
 export function getBuildCancellationKey(rootProjectFolder: string): string {
     return "getBuild" + rootProjectFolder;
 }
@@ -13,4 +15,3 @@ export function getRunBuildCancellationKey(rootProjectFolder: string, args: Read
 export function getRunTaskCommandCancellationKey(rootProjectFolder: string, taskName: string): string {
     return "runTask" + rootProjectFolder + taskName;
 }
-import * as path from "path";
