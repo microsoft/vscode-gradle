@@ -62,12 +62,7 @@ extends:
                 inputs:
                   packageType: 'sdk'
                   version: '8.0.x'
-              - task: JavaToolInstaller@0
-                displayName: Install Java 21
-                inputs:
-                  versionSpec: '21'
-                  jdkArchitectureOption: 'x64'
-                  jdkSourceOption: 'PreInstalled'
+              - template: /.azure-pipelines/install-jdk.yml@self
               - task: NodeTool@0
                 displayName: Install Node 20.x
                 inputs:
