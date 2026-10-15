@@ -79,8 +79,12 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         await buildStarted;
     }
 
-    function emitOutput(message: string): void {
+    function emitOutput(
+        message: string,
+        outputType: Output.OutputTypeMap[keyof Output.OutputTypeMap] = Output.OutputType.STDOUT
+    ): void {
         const output = new Output();
+        output.setOutputType(outputType);
         output.setOutputBytes(Buffer.from(message));
         outputHandler(output);
     }
@@ -131,6 +135,26 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         emitReady();
         assert.ok(startDebugging.calledOnce);
     });
+
+    for (const outputType of [Output.OutputType.STDOUT, Output.OutputType.STDERR]) {
+        it(`handles a split readiness message with interleaved output from the other stream (${outputType})`, async () => {
+            await startTask();
+            const otherType =
+                outputType === Output.OutputType.STDOUT ? Output.OutputType.STDERR : Output.OutputType.STDOUT;
+            const written: string[] = [];
+            const subscription = terminal.onDidWrite((message) => written.push(message));
+            emitOutput("Listening for transport dt_", outputType);
+            emitOutput("Warning from the other stream\n", otherType);
+            assert.ok(!startDebugging.called);
+            emitOutput(`socket at address: ${debugPort}\n`, outputType);
+            subscription.dispose();
+            assert.ok(startDebugging.calledOnce);
+            assert.strictEqual(
+                written.join(""),
+                `Listening for transport dt_Warning from the other stream\n\rsocket at address: ${debugPort}\n\r`
+            );
+        });
+    }
 
     for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
         it(`recognizes a readiness address containing ${host}`, async () => {
@@ -232,6 +256,18 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         assert.ok(!startDebugging.called);
     });
 
+    it("closes the task when interrupted while allocating its debug port", async () => {
+        const exitCodes: number[] = [];
+        const subscription = terminal.onDidClose((code) => exitCodes.push(code));
+        opening = terminal.open();
+        await terminal.handleInput("\x03");
+        await opening;
+        subscription.dispose();
+        assert.deepStrictEqual(exitCodes, [0]);
+        assert.ok(!client.runBuild.called);
+        assert.ok(!startDebugging.called);
+    });
+
     for (const rejected of [false, true]) {
         it(`reports and cancels the task when debugger attachment ${
             rejected ? "rejects" : "returns false"
@@ -254,30 +290,40 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         });
     }
 
-    it("does not submit a build if cancelled while resolving tool options", async () => {
-        let resolveOptions: (options: string) => void;
-        let notifyOptionsRequested: () => void;
-        const optionsRequested = new Promise<void>((resolve) => {
-            notifyOptionsRequested = resolve;
+    for (const action of ["close", "interrupt"]) {
+        it(`closes without submitting a build after a task ${action} while resolving tool options`, async () => {
+            let resolveOptions: (options: string) => void;
+            let notifyOptionsRequested: () => void;
+            const optionsRequested = new Promise<void>((resolve) => {
+                notifyOptionsRequested = resolve;
+            });
+            const exitCodes: number[] = [];
+            const subscription = terminal.onDidClose((code) => exitCodes.push(code));
+            const provider = {
+                resolveToolOptions: () =>
+                    new Promise<string>((resolve) => {
+                        resolveOptions = resolve;
+                        notifyOptionsRequested();
+                    }),
+            };
+            toolOptionsProviders.push(provider);
+            try {
+                opening = terminal.open();
+                await optionsRequested;
+                if (action === "close") {
+                    await terminal.close();
+                } else {
+                    await terminal.handleInput("\x03");
+                }
+                resolveOptions!("");
+                await opening;
+                assert.deepStrictEqual(exitCodes, [0]);
+                assert.ok(!client.runBuild.called);
+                assert.ok(!startDebugging.called);
+            } finally {
+                subscription.dispose();
+                toolOptionsProviders.splice(toolOptionsProviders.indexOf(provider), 1);
+            }
         });
-        const provider = {
-            resolveToolOptions: () =>
-                new Promise<string>((resolve) => {
-                    resolveOptions = resolve;
-                    notifyOptionsRequested();
-                }),
-        };
-        toolOptionsProviders.push(provider);
-        try {
-            opening = terminal.open();
-            await optionsRequested;
-            await terminal.close();
-            resolveOptions!("");
-            await opening;
-            assert.ok(!client.runBuild.called);
-            assert.ok(!startDebugging.called);
-        } finally {
-            toolOptionsProviders.splice(toolOptionsProviders.indexOf(provider), 1);
-        }
-    });
+    }
 });

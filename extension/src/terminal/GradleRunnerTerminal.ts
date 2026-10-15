@@ -21,7 +21,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
     private stdOutLoggerStream: LoggerStream | undefined;
     private readonly closeEmitter = new vscode.EventEmitter<number>();
     private task?: vscode.Task;
-    private javaDebug?: { port: number; output: string };
+    private javaDebug?: { port: number; output: Map<number, string> };
     private closed = false;
     public readonly onDidWrite: vscode.Event<string> = this.writeEmitter.event;
     public readonly onDidClose: vscode.Event<number> = this.closeEmitter.event;
@@ -70,16 +70,16 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         }
     }
 
-    private handleJavaDebugOutput(message: string): void {
+    private handleJavaDebugOutput(message: string, outputType: number): void {
         const javaDebug = this.javaDebug;
         if (!javaDebug) {
             return;
         }
-        javaDebug.output += message;
+        const output = (javaDebug.output.get(outputType) ?? "") + message;
         const readyPattern = new RegExp(
             `Listening for transport dt_socket at address: (?:\\S+:)?${javaDebug.port}[ \\t]*(?:\\r|\\n)`
         );
-        if (readyPattern.test(util.stripVTControlCharacters(javaDebug.output))) {
+        if (readyPattern.test(util.stripVTControlCharacters(output))) {
             this.javaDebug = undefined;
             this.startJavaDebug(javaDebug.port)
                 .catch(async (err: unknown) => {
@@ -91,7 +91,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
                 });
         } else {
             // Retain a bounded suffix so readiness messages can span output chunks.
-            javaDebug.output = javaDebug.output.slice(-512);
+            javaDebug.output.set(outputType, output.slice(-512));
         }
     }
 
@@ -107,15 +107,17 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
         try {
             const javaDebugPort = javaDebugEnabled ? await getPort() : 0;
             if (this.closed) {
+                this.closeEmitter.fire(0);
                 return;
             }
             if (javaDebugEnabled) {
-                this.javaDebug = { port: javaDebugPort, output: "" };
+                this.javaDebug = { port: javaDebugPort, output: new Map<number, string>() };
             }
             const additionalToolOptions = (
                 await Promise.all(toolOptionsProviders.map((provider) => provider.resolveToolOptions()))
             ).join(" ");
             if (this.closed) {
+                this.closeEmitter.fire(0);
                 return;
             }
 
@@ -158,7 +160,7 @@ export class GradleRunnerTerminal implements vscode.Pseudoterminal {
             }
             const message = new util.TextDecoder("utf-8").decode(messageBytes);
             this.write(message);
-            this.handleJavaDebugOutput(message);
+            this.handleJavaDebugOutput(message, output.getOutputType());
         }
     };
 
