@@ -18,6 +18,11 @@ describe("RootProject", () => {
             assert.strictEqual(project.contains(path.resolve("workspace", "project", "sub", "deeper")), true);
         });
 
+        it("contains child directories whose names start with two dots", () => {
+            assert.strictEqual(project.contains(path.resolve("workspace", "project", "..generated")), true);
+            assert.strictEqual(project.contains(path.resolve("workspace", "project", "..generated", "sub")), true);
+        });
+
         it("does not contain a sibling directory with the same prefix", () => {
             assert.strictEqual(project.contains(path.resolve("workspace", "project-other", "sub")), false);
         });

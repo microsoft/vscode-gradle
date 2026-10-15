@@ -55,6 +55,7 @@ await vscode.commands.executeCommand(
   The build runs in the directory of the build file, as `cd subproject && gradle <tasks>` would.
 - `JAVA_HOME` of the environment is the Java home that Gradle runs with, it wins over the one of the extension settings
   (`java.import.gradle.java.home`). All other variables are added to the environment of the Gradle server process.
+- When a command line is supplied, the task terminal is revealed without taking focus.
 - The command completes when the build has finished. It does not tell how the build ended.
 - A build that is already running (same build directory and same command line) is not started again. The command completes
   when that build has finished.

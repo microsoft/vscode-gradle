@@ -35,6 +35,9 @@ export class RootProject {
     /** Whether the path is the directory of this root project or is inside of it */
     public contains(fsPath: string): boolean {
         const relative = path.relative(this.projectUri.fsPath, fsPath);
-        return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+        return (
+            relative === "" ||
+            (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+        );
     }
 }
