@@ -22,7 +22,7 @@ export class RunBuildCommand extends Command {
      *
      * Without a command the user is asked for it, and for the root project. The arguments allow other
      * extensions to run a build without any interaction. The command completes when the build has finished.
-     * A build that is running already (same project and same command line) is not run again, the command
+     * A build that is running already (same build directory and same command line) is not run again, the command
      * completes when that build has finished.
      *
      * @param buildFile path of the build file (or of the directory) of the project to run the build in,
@@ -64,6 +64,7 @@ export class RunBuildCommand extends Command {
         const task = new vscode.Task(
             {
                 type: "gradle",
+                id: JSON.stringify([path.resolve(buildDir), gradleCommand]),
             },
             rootProject.getWorkspaceFolder(),
             gradleCommand,

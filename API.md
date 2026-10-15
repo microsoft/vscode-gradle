@@ -56,5 +56,5 @@ await vscode.commands.executeCommand(
 - `JAVA_HOME` of the environment is the Java home that Gradle runs with, it wins over the one of the extension settings
   (`java.import.gradle.java.home`). All other variables are added to the environment of the Gradle server process.
 - The command completes when the build has finished. It does not tell how the build ended.
-- A build that is already running (same project and same command line) is not started again. The command completes
+- A build that is already running (same build directory and same command line) is not started again. The command completes
   when that build has finished.

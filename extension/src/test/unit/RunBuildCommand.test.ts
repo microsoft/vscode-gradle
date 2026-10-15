@@ -1,6 +1,75 @@
 import * as assert from "assert";
 import * as path from "path";
-import { getBuildDirectory, parseRunBuildArgs } from "../../commands/RunBuildCommand";
+import * as sinon from "sinon";
+import * as vscode from "vscode";
+import { TaskServerClient } from "../../client";
+import { getBuildDirectory, parseRunBuildArgs, RunBuildCommand } from "../../commands/RunBuildCommand";
+import { RootProject } from "../../rootProject";
+import { RootProjectsStore } from "../../stores";
+
+describe("RunBuildCommand", () => {
+    it("reuses a running build only when its directory and command match", async () => {
+        const workspaceFolder = vscode.workspace.workspaceFolders![0];
+        const store = sinon.createStubInstance(RootProjectsStore);
+        store.getProjectRoots.resolves([new RootProject(workspaceFolder, workspaceFolder.uri)]);
+        const client = sinon.createStubInstance(TaskServerClient);
+        let finishBuilds!: () => void;
+        client.runBuild.returns(
+            new Promise<void>((resolve) => {
+                finishBuilds = resolve;
+            })
+        );
+        const command = new RunBuildCommand(store, client);
+        const executeTask = vscode.tasks.executeTask.bind(vscode.tasks);
+        const executeTaskStub = sinon.stub(vscode.tasks, "executeTask");
+        const pending: Promise<void>[] = [];
+
+        function startBuild(directory: string, gradleCommand = "classes"): Promise<vscode.TaskExecution> {
+            const submitted = new Promise<vscode.TaskExecution>((resolve) => {
+                executeTaskStub.callsFake((task) => {
+                    const execution = executeTask(task);
+                    resolve(execution);
+                    return execution;
+                });
+            });
+            pending.push(command.run(path.join(directory, "build.gradle"), gradleCommand));
+            return submitted;
+        }
+
+        try {
+            const firstDir = path.join(workspaceFolder.uri.fsPath, "service-a");
+            const secondDir = path.join(workspaceFolder.uri.fsPath, "service-b");
+            const first = await startBuild(firstDir);
+            const repeated = await startBuild(firstDir);
+            const second = await startBuild(secondDir);
+            const clean = await startBuild(firstDir, "clean");
+
+            assert.strictEqual(repeated, first);
+            assert.notStrictEqual(second, first);
+            assert.notStrictEqual(clean, first);
+            finishBuilds();
+            await Promise.all(pending);
+            assert.deepStrictEqual(
+                client.runBuild
+                    .getCalls()
+                    .map((call) => [call.args[0], call.args[2]])
+                    .sort(),
+                [
+                    [firstDir, ["classes"]],
+                    [firstDir, ["clean"]],
+                    [secondDir, ["classes"]],
+                ].sort()
+            );
+        } finally {
+            finishBuilds();
+            try {
+                await Promise.all(pending);
+            } finally {
+                sinon.restore();
+            }
+        }
+    });
+});
 
 describe("parseRunBuildArgs", () => {
     it("takes the build file, the command and the environment", () => {
