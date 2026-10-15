@@ -22,7 +22,7 @@ public class GradleBuildRunnerEnvironmentTest {
 		assertEquals("/custom/jdk", envVars.get("JAVA_HOME"));
 		assertEquals("1", envVars.get("MY_VAR"));
 		System.getenv().forEach((name, value) -> {
-			if (!name.equals("JAVA_HOME")) {
+			if (!name.equals("JAVA_HOME") && !name.equals("MY_VAR")) {
 				assertEquals(value, envVars.get(name));
 			}
 		});
