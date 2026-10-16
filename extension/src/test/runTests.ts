@@ -2,10 +2,45 @@ import * as path from "path";
 import * as os from "os";
 import * as fs from "fs-extra";
 
-import { runTests, downloadAndUnzipVSCode } from "@vscode/test-electron";
+import { runTests as runVSCodeTests, downloadAndUnzipVSCode, TestOptions } from "@vscode/test-electron";
 import { VSCODE_TEST_VERSIONS } from "./vscode-version";
 
 const extensionDevelopmentPath = path.resolve(__dirname, "../../");
+
+async function runTests(options: TestOptions): Promise<number> {
+    const logsRoot = path.join(extensionDevelopmentPath, ".vscode-test", "logs");
+    await fs.ensureDir(logsRoot);
+    const logsPath = await fs.mkdtemp(path.join(logsRoot, "run-"));
+    console.log(`VS Code test logs: ${logsPath}`);
+    console.log(`Test JAVA_HOME: ${process.env.JAVA_HOME || "(unset)"}`);
+    console.log(`Test VSCODE_JAVA_HOME: ${process.env.VSCODE_JAVA_HOME || "(unset)"}`);
+    try {
+        return await runVSCodeTests({
+            ...options,
+            launchArgs: [...(options.launchArgs || []), `--logsPath=${logsPath}`],
+        });
+    } catch (error) {
+        try {
+            await printFailureLogs(logsPath);
+        } catch (logError) {
+            console.error("Unable to read VS Code test logs:", logError);
+        }
+        throw error;
+    }
+}
+
+async function printFailureLogs(directory: string): Promise<void> {
+    for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+        const file = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+            await printFailureLogs(file);
+        } else if (entry.name === "exthost.log" || /Gradle.*\.log$/.test(entry.name)) {
+            const content = await fs.readFile(file, "utf8");
+            console.error(`--- ${file} (last 200 lines) ---`);
+            console.error(content.split(/\r?\n/).slice(-200).join("\n"));
+        }
+    }
+}
 
 async function runTestsWithGradle(vscodeExecutablePath: string, userDir: string): Promise<void> {
     const fixtures = [

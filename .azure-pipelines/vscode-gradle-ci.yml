@@ -111,7 +111,6 @@ extends:
                   tasks: ':extension:buildJdtlsPlugin'
           - job: Job_1
             displayName: VSCode-Gradle-CI
-            condition: ne(variables['Build.Reason'], 'PullRequest')
             templateContext:
               outputs:
                 - output: pipelineArtifact
@@ -171,6 +170,18 @@ extends:
                     sudo apt-get update
                     sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
                     sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+              - bash: |
+                  set -euo pipefail
+                  printf 'JAVA_HOME=%s\n' "$JAVA_HOME"
+                  printf 'VSCODE_JAVA_HOME=%s\n' "${VSCODE_JAVA_HOME:-<unset>}"
+                  java_version="$("$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1)"
+                  printf '%s\n' "$java_version"
+                  grep -Eq '^[[:space:]]*java.specification.version = 25[[:space:]]*$' <<< "$java_version"
+                  command -v java
+                  ls -l extension/lib/gradle-server extension/lib/gradle-server.jar
+                  test -x extension/lib/gradle-server
+                  grep '^CLASSPATH=' extension/lib/gradle-server
+                displayName: Inspect VSCode test runtime
               - task: Gradle@3
                 displayName: Test VSCode
                 # The VS Code integration tests spin up real Gradle builds and
@@ -181,7 +192,6 @@ extends:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   MVNW_PASSWORD: $(System.AccessToken)
-                  JAVA_HOME: $(JAVA_HOME_21_X64)
                   DISPLAY: ":99.0"
                 inputs:
                   gradleWrapperFile: 'gradlew'
