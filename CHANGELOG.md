@@ -4,6 +4,15 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.18.1
+## What's Changed
+* fix - Update the default Gradle distribution and Tooling API to 9.8.1 for Java 27 compatibility, while continuing to honor the project wrapper and explicit Gradle settings in https://github.com/microsoft/vscode-gradle/pull/1953
+* fix - Select a compatible fallback JDK for Gradle 8.10 through 9.8.x and Java 23 through 27 without changing project source/target compatibility in https://github.com/microsoft/vscode-gradle/pull/1951
+* fix - Import multi-root workspaces containing a single Gradle build and additional non-Gradle folders without falling back to Buildship, preserving subproject source references in https://github.com/microsoft/vscode-gradle/pull/1874
+* fix - Apply hot code replace to changes in dependent Gradle projects during debugging in https://github.com/microsoft/vscode-gradle/pull/1960
+* fix - Prevent intermittent missing-init-script failures when debugging tests delegated to Gradle in https://github.com/microsoft/vscode-gradle/pull/1961
+* fix - Preserve custom JVM arguments supplied through GRADLE_SERVER_OPTS when starting the Gradle server in https://github.com/microsoft/vscode-gradle/pull/1895
+
 ## 3.18.0
 ## What's Changed
 * feat - Discover nested Gradle build files in https://github.com/microsoft/vscode-gradle/pull/1889

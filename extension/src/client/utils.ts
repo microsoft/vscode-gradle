@@ -27,14 +27,21 @@ function findGradleProject(projectPath: string, project: GradleProject): GradleP
     return undefined;
 }
 
+/**
+ * The root project that contains the path. Root projects can be nested, the closest one is returned.
+ */
 export async function findRootProject(
     rootProjectStore: RootProjectsStore,
     projectPath: string
 ): Promise<RootProject | undefined> {
+    let found: RootProject | undefined;
     for (const rootProject of await rootProjectStore.getProjectRoots()) {
-        if (projectPath.startsWith(rootProject.getProjectUri().fsPath)) {
-            return rootProject;
+        if (
+            rootProject.contains(projectPath) &&
+            (!found || rootProject.getProjectUri().fsPath.length > found.getProjectUri().fsPath.length)
+        ) {
+            found = rootProject;
         }
     }
-    return undefined;
+    return found;
 }

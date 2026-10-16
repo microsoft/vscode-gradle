@@ -113,11 +113,11 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       - name: Set up Node.js 20
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -146,7 +146,6 @@ jobs:
       - name: Build extension
         run: ./gradlew build
         env:
-          JAVA_HOME: ""
           NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Package VSIX
@@ -188,11 +187,11 @@ jobs:
             throw "Expected checkout $env:TARGET_SHA but found $actual"
           }
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       - name: Set up Node.js 20
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

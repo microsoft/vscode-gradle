@@ -1,14 +1,17 @@
 package com.microsoft.gradle.bs.importer.builder;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceStatus;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -67,17 +70,32 @@ public class BuildServerBuilder extends IncrementalProjectBuilder {
     }
 
     /**
-     * Trigger <code>.refreshLocal()</code> to all the output folders of the project.
-     * This is to make sure the changes made by the build server are reflected in the workspace.
+     * Refresh output folders of the project and its transitive Gradle build server dependencies.
+     * Gradle can compile dependencies without invoking their Eclipse builders, so their
+     * output changes must also be reflected in the workspace before this build finishes.
      */
     private void refreshOutputs(IProgressMonitor monitor) throws CoreException {
-        IJavaProject javaProject = ProjectUtils.getJavaProject(this.getProject());
+        refreshOutputs(this.getProject(), new HashSet<>(), monitor);
+    }
+
+    private void refreshOutputs(IProject project, Set<IProject> refreshedProjects, IProgressMonitor monitor) throws CoreException {
+        if (!project.isAccessible() || !refreshedProjects.add(project)) {
+            return;
+        }
+        IJavaProject javaProject = ProjectUtils.getJavaProject(project);
         if (javaProject == null) {
             return;
         }
 
         boolean needRefreshDefaultOutput = false;
         for (IClasspathEntry cp : javaProject.getRawClasspath()) {
+            if (cp.getEntryKind() == IClasspathEntry.CPE_PROJECT) {
+                IProject dependency = ResourcesPlugin.getWorkspace().getRoot().getProject(cp.getPath().lastSegment());
+                if (dependency.isAccessible() && Utils.isGradleBuildServerProject(dependency)) {
+                    refreshOutputs(dependency, refreshedProjects, monitor);
+                }
+                continue;
+            }
             if (cp.getEntryKind() != IClasspathEntry.CPE_SOURCE) {
                 continue;
             }

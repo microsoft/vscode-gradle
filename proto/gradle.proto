@@ -81,6 +81,8 @@ message RunBuildRequest {
   bool show_output_colors = 7;
   bool java_debug_clean_output_cache = 8;
   string additional_tool_options = 9;
+  // environment variables for the build, on top of those of the server process
+  map<string, string> environment = 10;
 }
 
 message RunBuildResult {

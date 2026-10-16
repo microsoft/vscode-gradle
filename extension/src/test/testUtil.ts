@@ -12,7 +12,7 @@ import { TREE_ITEM_STATE_FOLDER } from "../views/constants";
 
 export const EXTENSION_NAME = "vscjava.vscode-gradle";
 
-export function createTestRunner(pattern: string) {
+export function createTestRunner(pattern: string, timeout = 60000) {
     return function run(
         testsRoot: string,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ export function createTestRunner(pattern: string) {
         // Create the mocha test
         const mocha = new Mocha({
             ui: "bdd",
-            timeout: 60000,
+            timeout,
             color: true,
         });
         mocha.bail(true);

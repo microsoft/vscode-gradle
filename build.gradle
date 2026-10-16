@@ -1,7 +1,6 @@
 plugins {
   id 'java'
-  id 'com.google.protobuf' version '0.8.13'
-  id 'com.github.jlouns.cpe' version '0.5.0'
+  id 'com.google.protobuf' version '0.9.6'
   alias(libs.plugins.spotless)
 }
 
@@ -10,7 +9,7 @@ project.ext.set('protobufVersion', '3.25.5')
 // the built-in --js_out, which was removed in protoc 3.21+.
 // The runtime library is forced to 3.25.5 via resolutionStrategy below.
 project.ext.set('protocVersion', '3.12.0')
-project.ext.set('toolingAPIVersion', '9.2.0')
+project.ext.set('toolingAPIVersion', '9.8.1')
 
 allprojects {
   group = 'vscode-gradle'
@@ -20,6 +19,14 @@ subprojects {
   apply plugin: 'java'
   apply plugin: 'com.google.protobuf'
   apply plugin: 'com.diffplug.spotless'
+
+  tasks.withType(Exec).configureEach {
+    if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+      doFirst {
+        commandLine(['cmd', '/c'] + getCommandLine())
+      }
+    }
+  }
 
   repositories {
     mavenCentral()

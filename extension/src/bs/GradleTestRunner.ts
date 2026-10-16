@@ -13,12 +13,14 @@ import * as getPort from "get-port";
 import { waitOnTcp } from "../util";
 import * as os from "os";
 import * as path from "path";
+import { logger } from "../logger";
 
 export class GradleTestRunner implements TestRunner {
     private readonly _onDidChangeTestItemStatus = new vscode.EventEmitter<TestItemStatusChangeEvent>();
     private readonly _onDidFinishTestRun = new vscode.EventEmitter<TestFinishEvent>();
     private testRunnerApi: any;
     private bspContext: IRunTestContext | undefined;
+    private readonly bspInitScripts = new Set<string>();
 
     public onDidChangeTestItemStatus: vscode.Event<TestItemStatusChangeEvent> = this._onDidChangeTestItemStatus.event;
     public onDidFinishTestRun: vscode.Event<TestFinishEvent> = this._onDidFinishTestRun.event;
@@ -93,6 +95,7 @@ export class GradleTestRunner implements TestRunner {
             testInitScriptPath = createInitScriptPath();
             const initScriptContent = this.getInitScriptContent(debugPort, [], {});
             await vscode.workspace.fs.writeFile(vscode.Uri.file(testInitScriptPath), Buffer.from(initScriptContent));
+            this.bspInitScripts.add(testInitScriptPath);
             args.unshift("--init-script", testInitScriptPath);
         }
 
@@ -104,21 +107,32 @@ export class GradleTestRunner implements TestRunner {
                 JSON.stringify([...tests]),
                 args,
                 vmArgs,
-                env
+                env,
+                testInitScriptPath
             );
             if (isDebug) {
                 this.startJavaDebug(context, debugPort).catch((err) => {
                     console.error("[gradle-test] Failed to attach debugger:", err);
                 });
             }
-        } finally {
-            if (testInitScriptPath) {
-                try {
-                    await vscode.workspace.fs.delete(vscode.Uri.file(testInitScriptPath));
-                } catch {
-                    /* best-effort */
-                }
+        } catch (error) {
+            // An unavailable delegate cannot own the script. Other command errors
+            // may be transport failures after submission; wait for BSP completion.
+            if (testInitScriptPath && isBspUnavailableError(error)) {
+                await this.completeBspTestRequest(testInitScriptPath);
             }
+            throw error;
+        }
+    }
+
+    public async completeBspTestRequest(initScriptPath: string): Promise<void> {
+        if (!this.bspInitScripts.delete(initScriptPath)) {
+            return;
+        }
+        try {
+            await vscode.workspace.fs.delete(vscode.Uri.file(initScriptPath));
+        } catch (error) {
+            logger.warn("Failed to delete Gradle test init script:", getErrorMessage(error));
         }
     }
 

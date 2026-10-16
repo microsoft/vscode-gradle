@@ -79,6 +79,7 @@ public class GradleBuildRunner {
 	private ProgressListener progressListener;
 	private Boolean javaDebugCleanOutputCache;
 	private String additionalToolOptions;
+	private Map<String, String> environment = Map.of();
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey,
 			Boolean colorOutput, int javaDebugPort, Boolean javaDebugCleanOutputCache, String additionalToolOptions) {
@@ -94,6 +95,15 @@ public class GradleBuildRunner {
 
 	public GradleBuildRunner(String projectDir, List<String> args, GradleConfig gradleConfig, String cancellationKey) {
 		this(projectDir, args, gradleConfig, cancellationKey, true, 0, false, "");
+	}
+
+	/**
+	 * Environment variables for the build, added to the environment of the server
+	 * process.
+	 */
+	public GradleBuildRunner setEnvironment(Map<String, String> environment) {
+		this.environment = environment == null ? Map.of() : environment;
+		return this;
 	}
 
 	public GradleBuildRunner setStandardOutputStream(OutputStream standardOutputStream) {
@@ -152,7 +162,7 @@ public class GradleBuildRunner {
 			build.setStandardInput(standardInputStream);
 		}
 
-		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(additionalToolOptions);
+		Map<String, String> envVars = buildJavaEnvVarsWithToolOptions(additionalToolOptions, environment);
 
 		if (envVars != null) {
 			build.setEnvironmentVariables(envVars);
@@ -270,13 +280,24 @@ public class GradleBuildRunner {
 	 * it from being applied to all Java processes (e.g., compilation). Instead,
 	 * debugging is configured via Gradle init script to target only JavaExec and
 	 * Test tasks.
+	 *
+	 * The given environment variables are added to the environment of the server
+	 * process. Returns null if there is nothing to add to it.
 	 */
-	private static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions) {
-		if (additionalToolOptions == null || additionalToolOptions.isEmpty()) {
+	static Map<String, String> buildJavaEnvVarsWithToolOptions(String additionalToolOptions,
+			Map<String, String> environment) {
+		boolean hasToolOptions = additionalToolOptions != null && !additionalToolOptions.isEmpty();
+		boolean hasEnvironment = environment != null && !environment.isEmpty();
+		if (!hasToolOptions && !hasEnvironment) {
 			return null;
 		}
 		HashMap<String, String> envVars = new HashMap<>(System.getenv());
-		envVars.put(JAVA_TOOL_OPTIONS_ENV, additionalToolOptions);
+		if (hasEnvironment) {
+			envVars.putAll(environment);
+		}
+		if (hasToolOptions) {
+			envVars.put(JAVA_TOOL_OPTIONS_ENV, additionalToolOptions);
+		}
 		return envVars;
 	}
 }

@@ -39,15 +39,17 @@ def mainJavaDir = 'src/main/java';
 def mainResourcesDir = 'src/main/resources';
 def libsDir = '../extension/lib';
 
+base {
+  libsDirectory = layout.projectDirectory.dir(libsDir)
+}
+
 sourceSets {
-  libsDirName = file(libsDir)
   main {
     proto {
       srcDir file('../proto')
     }
     java {
       srcDirs mainJavaDir
-      srcDirs 'build/generated/source/proto/main/java'
     }
     resources {
       srcDirs mainResourcesDir
@@ -126,7 +128,7 @@ task copyRuntimeLibs(type: Copy) {
 }
 
 // copyRuntimeLibs wipes libsDir in its doFirst block. The jar task also outputs
-// gradle-server.jar into libsDir (via libsDirName). Without explicit ordering,
+// gradle-server.jar into libsDir (via base.libsDirectory). Without explicit ordering,
 // Gradle may schedule copyRuntimeLibs after jar, deleting the freshly built
 // gradle-server.jar and producing a runtime ClassNotFoundException.
 jar.mustRunAfter copyRuntimeLibs

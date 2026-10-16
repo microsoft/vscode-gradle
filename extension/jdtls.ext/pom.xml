@@ -15,6 +15,7 @@
     <modules>
         <module>com.microsoft.gradle.bs.importer.target</module>
         <module>com.microsoft.gradle.bs.importer</module>
+        <module>com.microsoft.gradle.bs.importer.test</module>
     </modules>
     <build>
         <pluginManagement>
@@ -49,6 +50,7 @@
                     <version>${tycho-version}</version>
                     <configuration>
                         <resolver>p2</resolver>
+                        <executionEnvironment>JavaSE-25</executionEnvironment>
                         <target>
                             <artifact>
                                 <groupId>com.microsoft.gradle.jdtls.ext</groupId>
