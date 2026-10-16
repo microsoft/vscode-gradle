@@ -303,7 +303,8 @@ export class TaskServerClient implements vscode.Disposable {
         showOutputColors = true,
         additionalToolOptions = "",
         title?: string,
-        location?: vscode.ProgressLocation
+        location?: vscode.ProgressLocation,
+        environment?: { [name: string]: string }
     ): Promise<void> {
         await this.connectWaiter.wait();
         this.statusBarItem.hide();
@@ -324,6 +325,11 @@ export class TaskServerClient implements vscode.Disposable {
                 });
 
                 const gradleConfig = getGradleConfig();
+                if (environment?.JAVA_HOME) {
+                    // Gradle runs with the Java home of the build configuration. It is not taken from the
+                    // JAVA_HOME environment variable of the build, hence the explicit one wins here.
+                    gradleConfig.setJavaHome(environment.JAVA_HOME);
+                }
                 const request = new RunBuildRequest();
                 request.setProjectDir(projectFolder);
                 request.setCancellationKey(cancellationKey);
@@ -333,6 +339,10 @@ export class TaskServerClient implements vscode.Disposable {
                 request.setJavaDebugPort(javaDebugPort);
                 request.setInput(input);
                 request.setAdditionalToolOptions(additionalToolOptions);
+                if (environment) {
+                    const environmentMap = request.getEnvironmentMap();
+                    Object.entries(environment).forEach(([name, value]) => environmentMap.set(name, value));
+                }
 
                 if (javaDebugPort > 0) {
                     const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
