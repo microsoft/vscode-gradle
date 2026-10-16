@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import * as path from "path";
 
 export function getBuildCancellationKey(rootProjectFolder: string): string {
@@ -14,4 +15,7 @@ export function getRunBuildCancellationKey(rootProjectFolder: string, args: Read
 
 export function getRunTaskCommandCancellationKey(rootProjectFolder: string, taskName: string): string {
     return "runTask" + rootProjectFolder + taskName;
+}
+export function getBuildInvocationCancellationKey(cancellationKey: string): string {
+    return `${cancellationKey}:${randomUUID()}`;
 }

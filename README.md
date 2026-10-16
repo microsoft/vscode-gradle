@@ -108,6 +108,10 @@ You might need to specify whether you want to clean output cache before debuggin
 
 You should now see a `debug` command next to the `run` command in the Gradle Projects view. The `debug` command will start the Gradle task with [jdwp](https://docs.oracle.com/en/java/javase/11/docs/specs/jpda/conninv.html#oracle-vm-invocation-options) `jvmArgs` and start the vscode Java debugger.
 
+The debugger attaches when the task's debug port is ready, using the JVM's readiness message or a TCP fallback when task output is redirected. Dependency resolution and compilation are not subject to a fixed debug startup timeout.
+
+Cancellation covers asynchronous debug-port and tool-option preparation and either prevents submission or remains active until the server can cancel that build invocation; it does not carry into later task runs. Closing a terminal targets only its own invocation. Parallel argument variants are cancelled and restarted independently.
+
 ![Debug Screencast](images/debug-screencast.gif?1)
 
 </details>

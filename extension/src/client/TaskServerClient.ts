@@ -23,7 +23,11 @@ import { ProgressHandler } from "../progress";
 import { removeCancellingTask, restartQueuedTask } from "../tasks/taskUtil";
 import { COMMAND_REFRESH_DAEMON_STATUS, COMMAND_SHOW_LOGS, COMMAND_CANCEL_BUILD } from "../commands";
 import { RootProject } from "../rootProject/RootProject";
-import { getBuildCancellationKey, getProjectDependenciesCancellationKey } from "./CancellationKeys";
+import {
+    getBuildCancellationKey,
+    getBuildInvocationCancellationKey,
+    getProjectDependenciesCancellationKey,
+} from "./CancellationKeys";
 import { EventWaiter } from "../util/EventWaiter";
 import { getGradleConfig, getJavaDebugCleanOutput } from "../util/config";
 import { normalizeGradleProjectPath } from "../util/gradlePath";
@@ -48,6 +52,27 @@ function errorDetails(err: unknown): string {
     return String(err);
 }
 
+interface BuildInvocation {
+    readonly cancellationKey: string;
+    readonly onCancellationRequested: () => void;
+    readonly prepare?: (token: vscode.CancellationToken) => Promise<{
+        javaDebugPort: number;
+        additionalToolOptions: string;
+    }>;
+}
+
+interface ActiveBuild {
+    cancellationKey: string;
+    requestKey: string;
+    task?: vscode.Task;
+    submitted: boolean;
+    cancellationRequested: boolean;
+    stopped: vscode.CancellationTokenSource;
+    cancellation?: Promise<void>;
+    progressCancellation?: vscode.Disposable;
+    invocation?: BuildInvocation;
+}
+
 export class TaskServerClient implements vscode.Disposable {
     private rpcClient: GradleJsonRpcClient | null = null;
     private rpcClientClosedHandler: vscode.Disposable | undefined;
@@ -59,6 +84,7 @@ export class TaskServerClient implements vscode.Disposable {
     private disposed = false;
     private connecting = false;
     private reconnectTimer: NodeJS.Timeout | undefined;
+    private readonly activeBuilds = new Set<ActiveBuild>();
 
     private readonly connectWaiter = new EventWaiter(this.onDidConnect);
 
@@ -304,88 +330,221 @@ export class TaskServerClient implements vscode.Disposable {
         additionalToolOptions = "",
         title?: string,
         location?: vscode.ProgressLocation,
-        environment?: { [name: string]: string }
+        environment?: { [name: string]: string },
+        invocation?: BuildInvocation
     ): Promise<void> {
-        await this.connectWaiter.wait();
-        this.statusBarItem.hide();
-        return vscode.window.withProgress(
-            {
-                location: location || vscode.ProgressLocation.Window,
-                title: title || "Gradle",
-                cancellable: true,
-            },
-            async (progress: vscode.Progress<{ message?: string }>, token: vscode.CancellationToken) => {
-                token.onCancellationRequested(() =>
-                    vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, cancellationKey, task)
-                );
-
-                const progressHandler = new ProgressHandler(progress);
-                progressHandler.onDidProgressStart(async () => {
-                    await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-                });
-
-                const gradleConfig = getGradleConfig();
-                if (environment?.JAVA_HOME) {
-                    // Gradle runs with the Java home of the build configuration. It is not taken from the
-                    // JAVA_HOME environment variable of the build, hence the explicit one wins here.
-                    gradleConfig.setJavaHome(environment.JAVA_HOME);
-                }
-                const request = new RunBuildRequest();
-                request.setProjectDir(projectFolder);
-                request.setCancellationKey(cancellationKey);
-                request.setArgsList(args as string[]);
-                request.setGradleConfig(gradleConfig);
-                request.setShowOutputColors(showOutputColors);
-                request.setJavaDebugPort(javaDebugPort);
-                request.setInput(input);
-                request.setAdditionalToolOptions(additionalToolOptions);
-                if (environment) {
-                    const environmentMap = request.getEnvironmentMap();
-                    Object.entries(environment).forEach(([name, value]) => environmentMap.set(name, value));
-                }
-
-                if (javaDebugPort > 0) {
-                    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
-                    if (workspaceFolder) {
-                        request.setJavaDebugCleanOutputCache(getJavaDebugCleanOutput());
-                    }
-                }
-
-                try {
-                    const handleReply = (runBuildReply: RunBuildReply): void => {
-                        switch (runBuildReply.getKindCase()) {
-                            case RunBuildReply.KindCase.PROGRESS:
-                                progressHandler.report(runBuildReply.getProgress()!.getMessage().trim());
-                                break;
-                            case RunBuildReply.KindCase.OUTPUT:
-                                if (onOutput) {
-                                    onOutput(runBuildReply.getOutput()!);
-                                }
-                                break;
-                            case RunBuildReply.KindCase.CANCELLED:
-                                this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
-                                break;
-                        }
-                    };
-                    const terminalReply = await this.rpcClient!.runBuild(request, handleReply);
-                    if (terminalReply) {
-                        handleReply(terminalReply);
-                    }
-                    logger.info("Completed build:", args.join(" "));
-                } catch (err) {
-                    logger.error("Error running build:", `${args.join(" ")}:`, errorDetails(err));
-                    throw err;
-                } finally {
-                    await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
-                    if (task) {
-                        await restartQueuedTask(task);
-                    }
+        if (this.disposed) {
+            throw new Error("Gradle client has been disposed");
+        }
+        const build: ActiveBuild = {
+            cancellationKey,
+            // Delayed cancellation must not target a later invocation of the same task.
+            requestKey: invocation?.cancellationKey ?? getBuildInvocationCancellationKey(cancellationKey),
+            task,
+            submitted: false,
+            cancellationRequested: false,
+            stopped: new vscode.CancellationTokenSource(),
+            invocation,
+        };
+        this.activeBuilds.add(build);
+        let connectedListener: vscode.Disposable | undefined;
+        let stoppedListener: vscode.Disposable | undefined;
+        const stopped = new Promise<void>((resolve) => {
+            stoppedListener = build.stopped.token.onCancellationRequested(resolve);
+        });
+        try {
+            if (invocation?.prepare) {
+                const prepared = await Promise.race([
+                    invocation.prepare(build.stopped.token),
+                    stopped.then(() => undefined),
+                ]);
+                if (prepared) {
+                    javaDebugPort = prepared.javaDebugPort;
+                    additionalToolOptions = prepared.additionalToolOptions;
                 }
             }
-        );
+            while (!this.rpcClient && !this.disposed && !build.cancellationRequested) {
+                const connected = new Promise<void>((resolve) => {
+                    connectedListener = this.onDidConnect(() => resolve());
+                });
+                await Promise.race([connected, stopped]);
+                connectedListener?.dispose();
+                connectedListener = undefined;
+            }
+            if (this.disposed) {
+                throw new Error("Gradle client has been disposed");
+            }
+            if (build.cancellationRequested) {
+                logger.info("Build cancelled before submission:", args.join(" "));
+                return;
+            }
+            this.statusBarItem.hide();
+            await vscode.window.withProgress(
+                {
+                    location: location || vscode.ProgressLocation.Window,
+                    title: title || "Gradle",
+                    cancellable: true,
+                },
+                async (progress: vscode.Progress<{ message?: string }>, token: vscode.CancellationToken) => {
+                    if (build.cancellationRequested) {
+                        return;
+                    }
+                    build.progressCancellation = token.onCancellationRequested(() =>
+                        vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, build.requestKey, task)
+                    );
+
+                    const progressHandler = new ProgressHandler(progress);
+                    progressHandler.onDidProgressStart(async () => {
+                        await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+                    });
+
+                    const gradleConfig = getGradleConfig();
+                    if (environment?.JAVA_HOME) {
+                        // Gradle uses the configured Java home rather than the build environment's JAVA_HOME.
+                        gradleConfig.setJavaHome(environment.JAVA_HOME);
+                    }
+                    const request = new RunBuildRequest();
+                    request.setProjectDir(projectFolder);
+                    request.setCancellationKey(build.requestKey);
+                    request.setArgsList(args as string[]);
+                    request.setGradleConfig(gradleConfig);
+                    request.setShowOutputColors(showOutputColors);
+                    request.setJavaDebugPort(javaDebugPort);
+                    request.setInput(input);
+                    request.setAdditionalToolOptions(additionalToolOptions);
+                    if (environment) {
+                        const environmentMap = request.getEnvironmentMap();
+                        Object.entries(environment).forEach(([name, value]) => environmentMap.set(name, value));
+                    }
+
+                    if (javaDebugPort > 0) {
+                        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
+                        if (workspaceFolder) {
+                            request.setJavaDebugCleanOutputCache(getJavaDebugCleanOutput());
+                        }
+                    }
+
+                    try {
+                        const handleReply = (runBuildReply: RunBuildReply): void => {
+                            switch (runBuildReply.getKindCase()) {
+                                case RunBuildReply.KindCase.PROGRESS:
+                                    progressHandler.report(runBuildReply.getProgress()!.getMessage().trim());
+                                    break;
+                                case RunBuildReply.KindCase.OUTPUT:
+                                    if (onOutput) {
+                                        onOutput(runBuildReply.getOutput()!);
+                                    }
+                                    break;
+                                case RunBuildReply.KindCase.CANCELLED:
+                                    this.markCancellationRequested(build);
+                                    this.handleRunBuildCancelled(args, runBuildReply.getCancelled()!, task);
+                                    break;
+                            }
+                        };
+                        build.submitted = true;
+                        const terminalReply = await this.rpcClient!.runBuild(request, handleReply);
+                        if (terminalReply) {
+                            handleReply(terminalReply);
+                        }
+                        logger.info("Completed build:", args.join(" "));
+                    } catch (err) {
+                        logger.error("Error running build:", `${args.join(" ")}:`, errorDetails(err));
+                        throw err;
+                    } finally {
+                        this.finishBuild(build);
+                        await vscode.commands.executeCommand(COMMAND_REFRESH_DAEMON_STATUS);
+                    }
+                }
+            );
+        } finally {
+            this.finishBuild(build);
+            connectedListener?.dispose();
+            stoppedListener?.dispose();
+            build.stopped.dispose();
+            if (task && !this.disposed) {
+                await restartQueuedTask(task);
+            }
+        }
+    }
+
+    private finishBuild(build: ActiveBuild): void {
+        if (!this.activeBuilds.delete(build)) {
+            return;
+        }
+        build.progressCancellation?.dispose();
+        build.stopped.cancel();
+        if (build.cancellationRequested && build.task) {
+            removeCancellingTask(build.task);
+        }
+    }
+
+    private markCancellationRequested(build: ActiveBuild): void {
+        if (build.cancellationRequested) {
+            return;
+        }
+        build.cancellationRequested = true;
+        build.invocation?.onCancellationRequested();
+    }
+
+    private cancelActiveBuild(build: ActiveBuild): Promise<void> {
+        this.markCancellationRequested(build);
+        if (!build.submitted) {
+            build.stopped.cancel();
+            return Promise.resolve();
+        }
+        build.cancellation ??= this.cancelSubmittedBuild(build);
+        return build.cancellation;
+    }
+
+    private async cancelSubmittedBuild(build: ActiveBuild): Promise<void> {
+        const request = new CancelBuildRequest();
+        request.setCancellationKey(build.requestKey);
+        while (this.activeBuilds.has(build)) {
+            try {
+                const reply = await this.rpcClient!.cancelBuild(request);
+                if (!this.activeBuilds.has(build)) {
+                    return;
+                }
+                if (!reply) {
+                    throw new Error("The Gradle server returned no cancellation acknowledgement");
+                }
+                logger.info("Cancel build:", reply.getMessage());
+                if (reply.getBuildRunning()) {
+                    return;
+                }
+            } catch (err) {
+                if (!this.activeBuilds.has(build)) {
+                    return;
+                }
+                logger.error("Error cancelling build:", errorDetails(err));
+            }
+            // Token registration can lag behind submission; retain intent only for this active invocation.
+            await new Promise<void>((resolve) => {
+                const timer = setTimeout(() => {
+                    subscription.dispose();
+                    resolve();
+                }, 500);
+                const subscription = build.stopped.token.onCancellationRequested(() => {
+                    clearTimeout(timer);
+                    subscription.dispose();
+                    resolve();
+                });
+            });
+        }
     }
 
     public async cancelBuild(cancellationKey: string, task?: vscode.Task): Promise<void> {
+        const builds = [...this.activeBuilds].filter(
+            (build) =>
+                (build.cancellationKey === cancellationKey || build.requestKey === cancellationKey) &&
+                (!task ||
+                    (build.task?.definition.id === task.definition.id &&
+                        build.task?.definition.args === task.definition.args))
+        );
+        if (builds.length) {
+            await Promise.all(builds.map((build) => this.cancelActiveBuild(build)));
+            return;
+        }
         await this.connectWaiter.wait();
         this.statusBarItem.hide();
         const request = new CancelBuildRequest();
@@ -405,6 +564,12 @@ export class TaskServerClient implements vscode.Disposable {
     }
 
     public async cancelBuilds(): Promise<void> {
+        // Keep startup cancellation pending without blocking a server restart on token registration.
+        for (const build of this.activeBuilds) {
+            void this.cancelActiveBuild(build).catch((err: unknown) =>
+                logger.error("Error cancelling build:", errorDetails(err))
+            );
+        }
         this.statusBarItem.hide();
         const request = new CancelBuildsRequest();
         try {
@@ -507,6 +672,9 @@ export class TaskServerClient implements vscode.Disposable {
 
     public dispose(): void {
         this.disposed = true;
+        for (const build of this.activeBuilds) {
+            this.finishBuild(build);
+        }
         this.clearReconnectTimer();
         this.close();
         this._onDidConnect.dispose();

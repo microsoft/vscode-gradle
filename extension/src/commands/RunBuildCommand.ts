@@ -7,6 +7,7 @@ import { GradleRunnerTerminal } from "../terminal";
 import { getRunBuildCancellationKey } from "../client/CancellationKeys";
 import { Command } from "./Command";
 import { RootProjectsStore } from "../stores";
+import { RootProject } from "../rootProject";
 import { TaskServerClient } from "../client";
 import { findRootProject } from "../client/utils";
 import { RunBuildArgs, RunBuildEnvironment } from "./types";
@@ -36,7 +37,7 @@ export class RunBuildCommand extends Command {
         // arguments that were not passed are not necessarily undefined
         ({ buildFile, command, environment } = parseRunBuildArgs([buildFile, command, environment]));
         let projectDir: string | undefined;
-        let rootProject;
+        let rootProject: RootProject | undefined;
         if (buildFile) {
             projectDir = getBuildDirectory(buildFile);
             rootProject = await findRootProject(this.rootProjectsStore, projectDir);
@@ -57,10 +58,7 @@ export class RunBuildCommand extends Command {
         const args: string[] = parseArgsStringToArgv(gradleCommand.trim());
         const buildDir = projectDir ?? rootProject.getProjectUri().fsPath;
         const cancellationKey = getRunBuildCancellationKey(buildDir, args);
-        const terminal = new GradleRunnerTerminal(rootProject, args, cancellationKey, this.client, {
-            projectDir: buildDir,
-            environment,
-        });
+        const taskRootProject = rootProject;
         const task = new vscode.Task(
             {
                 type: "gradle",
@@ -69,7 +67,13 @@ export class RunBuildCommand extends Command {
             rootProject.getWorkspaceFolder(),
             gradleCommand,
             "gradle",
-            new vscode.CustomExecution(async (): Promise<vscode.Pseudoterminal> => terminal),
+            new vscode.CustomExecution(
+                async (): Promise<vscode.Pseudoterminal> =>
+                    new GradleRunnerTerminal(taskRootProject, args, cancellationKey, this.client, {
+                        projectDir: buildDir,
+                        environment,
+                    })
+            ),
             ["$gradle"]
         );
         task.presentationOptions = {

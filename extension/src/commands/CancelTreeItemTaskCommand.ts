@@ -16,7 +16,7 @@ export class CancelTreeItemTaskCommand extends Command {
                 return;
             }
             const definition = runningTask.definition as GradleTaskDefinition;
-            const cancellationKey = getRunTaskCommandCancellationKey(definition.projectFolder, runningTask.name);
+            const cancellationKey = getRunTaskCommandCancellationKey(definition.projectFolder, definition.script);
             return vscode.commands.executeCommand(COMMAND_CANCEL_BUILD, cancellationKey, runningTask);
         }
     }
