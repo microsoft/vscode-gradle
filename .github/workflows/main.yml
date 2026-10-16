@@ -76,7 +76,7 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [20]
-        java-version: ["21"]
+        java-version: ["25"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -130,8 +130,6 @@ jobs:
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           arguments: gradle-language-server:test
-        env:
-          JAVA_HOME: ""
       - name: Prepare gradle-groovy-custom-build-file
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:

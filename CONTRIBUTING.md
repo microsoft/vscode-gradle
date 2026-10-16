@@ -38,11 +38,11 @@ Azure Pipelines installs JDK 25 through `.azure-pipelines/install-jdk.yml`, usin
 The pipeline's own credentials read these packages; a preinstalled JDK 25 or cross-organization
 service connection is not required. To update the JDK patch version, publish both platform
 packages and update the pinned package version and archive names in the template together.
-Java 21 remains preinstalled for the existing Gradle 8.5 compatibility tests; it is not
-needed to build the repository or importer. The CI job explicitly selects Java 21
-before running the VS Code tests and restores the installed Java 25 runtime before
-building the importer. Running the Gradle 8.5 fixtures on Java 25 can fail model loading
-with `Unsupported class file major version 69`, leaving task discovery empty.
+The standard VS Code integration fixtures also use Gradle 9.8.1 and run on JDK 25.
+Both Azure Pipelines and GitHub Actions use JDK 25 for the build and these tests;
+no separate JDK 21 installation or runtime switch is required. Keep the fixture
+wrappers compatible with the CI JDK: Gradle 8.5 cannot run on Java 25 and can fail
+model loading with `Unsupported class file major version 69`, leaving task discovery empty.
 
 Run the BSP importer's Java regression tests from the repository root:
 
@@ -102,7 +102,7 @@ node .\out\test\runCompatibilityTests.js
 
 On headless Linux, use `xvfb-run -a node out/test/runCompatibilityTests.js`. Set `GRADLE_COMPATIBILITY_DAEMON` to `25` or `27` to run just one scenario. Without it, both run: a wrapper-disabled Gradle 9.8.1 fallback on Java 27, and the 9.8.1 wrapper with Java 25 services/daemon and a Java 27 project toolchain. The suite installs an isolated, universal Java extension (without an embedded JRE) and Java debugger, checks actual BSP import/source/target/runtime, task and dependency models, JUnit results, and real JavaExec/Test breakpoint hits with a Java 27 debuggee. It stops only daemons in its own Gradle user home. Failed workspaces are retained under `extension/.vscode-test` for diagnosis.
 
-Keep `build.gradle`'s `toolingAPIVersion` and `GradleProjectConnector.TOOLING_API_VERSION` synchronized; `GradleToolingApiVersionTest` checks the resolved artifact's manifest against the fallback. Do not replace the older Gradle 8.5 / Java 21 fixtures when updating the new compatibility scenario.
+Keep `build.gradle`'s `toolingAPIVersion` and `GradleProjectConnector.TOOLING_API_VERSION` synchronized; `GradleToolingApiVersionTest` checks the resolved artifact's manifest against the fallback. The standard integration fixtures cover Gradle 9.8.1 / Java 25; the dedicated compatibility scenario additionally covers Java 27.
 
 ### Code Style
 
