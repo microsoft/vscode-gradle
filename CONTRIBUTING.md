@@ -80,6 +80,12 @@ Open the Debug panel, and select one of the `debug` tasks, for example `Debug Ex
 
 You can also run `./gradlew build testVsCode` to run all tests.
 
+The VS Code test runner saves a separate log directory for each extension host under
+`extension/.vscode-test/logs`. On failure it prints the last 200 lines of the extension-host
+and Gradle output logs, including task-server startup and Gradle model-loading errors.
+Azure CI runs the full build and VS Code tests for pull requests as well as branch builds;
+dependency validation alone does not cover these tests.
+
 ### Gradle 9.8.1 / Java 27 Compatibility
 
 Build the importer, BSP server, task server and extension as above, using JDK 25 for the repository build. Then run the dedicated live compatibility suite with JDK 25 and JDK 27 installed:

@@ -111,7 +111,6 @@ extends:
                   tasks: ':extension:buildJdtlsPlugin'
           - job: Job_1
             displayName: VSCode-Gradle-CI
-            condition: ne(variables['Build.Reason'], 'PullRequest')
             templateContext:
               outputs:
                 - output: pipelineArtifact
@@ -171,6 +170,18 @@ extends:
                     sudo apt-get update
                     sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
                     sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+              - bash: |
+                  set -euo pipefail
+                  printf 'JAVA_HOME=%s\n' "$JAVA_HOME"
+                  printf 'VSCODE_JAVA_HOME=%s\n' "${VSCODE_JAVA_HOME:-<unset>}"
+                  "$JAVA_HOME/bin/java" -version
+                  command -v java
+                  ls -l extension/lib/gradle-server extension/lib/gradle-server.jar
+                  test -x extension/lib/gradle-server
+                  grep '^CLASSPATH=' extension/lib/gradle-server
+                displayName: Inspect VSCode test runtime
+                env:
+                  JAVA_HOME: $(JAVA_HOME_21_X64)
               - task: Gradle@3
                 displayName: Test VSCode
                 # The VS Code integration tests spin up real Gradle builds and
