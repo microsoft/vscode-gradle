@@ -170,18 +170,24 @@ extends:
                     sudo apt-get update
                     sudo apt-get install -y libxkbfile-dev pkg-config libsecret-1-dev libxss1 dbus xvfb libgtk-3-0 libgbm1
                     sudo /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+              - task: JavaToolInstaller@0
+                displayName: Use Java 21 for VSCode tests
+                inputs:
+                  versionSpec: '21'
+                  jdkArchitectureOption: x64
+                  jdkSourceOption: PreInstalled
               - bash: |
                   set -euo pipefail
                   printf 'JAVA_HOME=%s\n' "$JAVA_HOME"
                   printf 'VSCODE_JAVA_HOME=%s\n' "${VSCODE_JAVA_HOME:-<unset>}"
-                  "$JAVA_HOME/bin/java" -version
+                  java_version="$("$JAVA_HOME/bin/java" -XshowSettings:properties -version 2>&1)"
+                  printf '%s\n' "$java_version"
+                  grep -Eq '^[[:space:]]*java.specification.version = 21[[:space:]]*$' <<< "$java_version"
                   command -v java
                   ls -l extension/lib/gradle-server extension/lib/gradle-server.jar
                   test -x extension/lib/gradle-server
                   grep '^CLASSPATH=' extension/lib/gradle-server
                 displayName: Inspect VSCode test runtime
-                env:
-                  JAVA_HOME: $(JAVA_HOME_21_X64)
               - task: Gradle@3
                 displayName: Test VSCode
                 # The VS Code integration tests spin up real Gradle builds and
@@ -192,13 +198,18 @@ extends:
                 env:
                   SYSTEM_ACCESSTOKEN: $(System.AccessToken)
                   MVNW_PASSWORD: $(System.AccessToken)
-                  JAVA_HOME: $(JAVA_HOME_21_X64)
                   DISPLAY: ":99.0"
                 inputs:
                   gradleWrapperFile: 'gradlew'
                   options: '--init-script $(Build.SourcesDirectory)/.azure-pipelines/cfs-init.gradle'
                   gradleOptions: '-Xmx3072m'
                   tasks: 'testVsCode'
+              - task: JavaToolInstaller@0
+                displayName: Restore Java 25 for importer build
+                inputs:
+                  versionSpec: '25'
+                  jdkArchitectureOption: x64
+                  jdkSourceOption: PreInstalled
               - bash: |
                   cd $(Build.SourcesDirectory)/extension/lib
                   chmod +x gradle-server

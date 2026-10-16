@@ -39,7 +39,10 @@ The pipeline's own credentials read these packages; a preinstalled JDK 25 or cro
 service connection is not required. To update the JDK patch version, publish both platform
 packages and update the pinned package version and archive names in the template together.
 Java 21 remains preinstalled for the existing Gradle 8.5 compatibility tests; it is not
-needed to build the repository or importer.
+needed to build the repository or importer. The CI job explicitly selects Java 21
+before running the VS Code tests and restores the installed Java 25 runtime before
+building the importer. Running the Gradle 8.5 fixtures on Java 25 can fail model loading
+with `Unsupported class file major version 69`, leaving task discovery empty.
 
 Run the BSP importer's Java regression tests from the repository root:
 
