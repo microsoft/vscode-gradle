@@ -259,13 +259,13 @@ export class Extension {
         this.commands.register();
     }
 
-    private handleTaskTerminals(definition: GradleTaskDefinition, terminal: vscode.Terminal): void {
+    private handleTaskTerminals(definition: GradleTaskDefinition, terminal: vscode.Terminal, focus?: boolean): void {
         // Add this task terminal to the store
         const terminalTaskName = terminal.name.replace("Task - ", "");
         if (terminalTaskName === definition.script) {
             this.taskTerminalsStore.addEntry(terminalTaskName, terminal);
         }
-        terminal.show();
+        terminal.show(focus === false);
     }
 
     private handleTaskEvents(): void {
@@ -275,12 +275,12 @@ export class Extension {
             // This madness is due to `vscode.window.onDidOpenTerminal` being handled differently
             // in different vscode versions.
             if (this.recentTerminal) {
-                this.handleTaskTerminals(definition, this.recentTerminal);
+                this.handleTaskTerminals(definition, this.recentTerminal, task.presentationOptions.focus);
                 this.recentTerminal = undefined;
             } else {
                 const disposable = this.onDidTerminalOpen((terminal: vscode.Terminal) => {
                     disposable.dispose();
-                    this.handleTaskTerminals(definition, terminal);
+                    this.handleTaskTerminals(definition, terminal, task.presentationOptions.focus);
                     this.recentTerminal = undefined;
                 });
             }

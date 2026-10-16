@@ -36,7 +36,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
     let connect: sinon.SinonStub;
     let connections: net.Socket[];
     let submitted: boolean;
-    let activeInvocation: Parameters<TaskServerClient["runBuild"]>[11];
+    let activeInvocation: Parameters<TaskServerClient["runBuild"]>[12];
     let cancellation: vscode.CancellationTokenSource | undefined;
 
     beforeEach(() => {
@@ -85,6 +85,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
                 _tools,
                 _title,
                 _location,
+                _environment,
                 invocation
             ) => {
                 assert.ok(onOutput);
@@ -153,12 +154,19 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
     async function createApiTask(): Promise<vscode.Task> {
         sinon.stub(input, "getRootProjectFolder").resolves(rootProject);
         sinon.stub(input, "getGradleCommand").resolves("bootRun");
-        const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => ({
-            task,
-            terminate: () => undefined,
-        }));
-        await new RunBuildCommand(sinon.createStubInstance(RootProjectsStore), client).run();
-        return executeTask.firstCall.args[0];
+        const ended = new vscode.EventEmitter<vscode.TaskEndEvent>();
+        sinon.stub(vscode.tasks, "onDidEndTask").callsFake(ended.event);
+        const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+            const execution = { task, terminate: () => undefined };
+            queueMicrotask(() => ended.fire({ execution }));
+            return execution;
+        });
+        try {
+            await new RunBuildCommand(sinon.createStubInstance(RootProjectsStore), client).run();
+            return executeTask.firstCall.args[0];
+        } finally {
+            ended.dispose();
+        }
     }
 
     async function settle(): Promise<void> {
@@ -271,7 +279,7 @@ describe(getSuiteName("Gradle task debug readiness"), () => {
         assert.ok(connections[0].destroyed);
         assert.ok(showErrorMessage.calledOnceWithExactly("Unable to start Java debugging: Permission denied"));
         assert.ok(executeCommand.calledOnceWithExactly(COMMAND_CANCEL_BUILD, sinon.match(/^slow-build:/), task));
-        assert.strictEqual(executeCommand.firstCall.args[1], client.runBuild.firstCall.args[11]!.cancellationKey);
+        assert.strictEqual(executeCommand.firstCall.args[1], client.runBuild.firstCall.args[12]!.cancellationKey);
         assert.ok(!startDebugging.called);
     });
 

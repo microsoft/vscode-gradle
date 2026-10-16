@@ -1,3 +1,4 @@
+import * as path from "path";
 import * as vscode from "vscode";
 import { sendInfo } from "vscode-extension-telemetry-wrapper";
 import { Environment } from "../proto/gradle_pb";
@@ -29,5 +30,14 @@ export class RootProject {
 
     public getProjectUri(): vscode.Uri {
         return this.projectUri;
+    }
+
+    /** Whether the path is the directory of this root project or is inside of it */
+    public contains(fsPath: string): boolean {
+        const relative = path.relative(this.projectUri.fsPath, fsPath);
+        return (
+            relative === "" ||
+            (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+        );
     }
 }

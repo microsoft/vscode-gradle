@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import * as net from "net";
+import * as path from "path";
 import * as sinon from "sinon";
 import * as vscode from "vscode";
 import { PassThrough } from "stream";
@@ -581,11 +582,15 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
         sinon.stub(input, "getGradleCommand").resolves("run --variant");
         const terminals: GradleRunnerTerminal[] = [];
         const openings: Promise<void>[] = [];
+        const commands: Promise<void>[] = [];
+        const ended = new vscode.EventEmitter<vscode.TaskEndEvent>();
+        sinon.stub(vscode.tasks, "onDidEndTask").callsFake(ended.event);
         sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
             const terminal = await createTerminal(task);
             terminals.push(terminal);
-            openings.push(terminal.open());
-            return { task, terminate: () => undefined };
+            const execution = { task, terminate: () => undefined };
+            openings.push(terminal.open().then(() => ended.fire({ execution })));
+            return execution;
         });
         const opts = { projectFolder: workspaceFolder.uri.fsPath, args: ["run", "--variant"] };
         let started = new Promise<RunBuildRequest>((resolve) => {
@@ -598,7 +603,7 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             started = new Promise<RunBuildRequest>((resolve) => {
                 onBuild = resolve;
             });
-            await new RunBuildCommand(createRoots(), client).run();
+            commands.push(new RunBuildCommand(createRoots(), client).run());
             keys.push((await started).getCancellationKey());
         }
         keys.forEach((key) => registered.add(key));
@@ -611,7 +616,84 @@ describe(getSuiteName("TaskServerClient cancellation delivery"), () => {
             "Explicit API cancellation retains logical-key fan-out"
         );
         keys.forEach(finish);
-        await Promise.all([apiBuild, ...openings]);
+        await Promise.all([apiBuild, ...openings, ...commands]);
+        ended.dispose();
+    });
+
+    it("preserves programmatic build options, completion waiting and private cancellation on command rerun", async () => {
+        await client.handleServerStart();
+        const roots = createRoots();
+        roots.getProjectRoots.resolves([new RootProject(workspaceFolder, workspaceFolder.uri)]);
+        const projectDir = path.join(workspaceFolder.uri.fsPath, "subproject");
+        const environment = { JAVA_HOME: path.join(projectDir, "jdk"), BUILD_FLAVOR: "rerun" };
+        const ended = new vscode.EventEmitter<vscode.TaskEndEvent>();
+        sinon.stub(vscode.tasks, "onDidEndTask").callsFake(ended.event);
+        const terminals: GradleRunnerTerminal[] = [];
+        const openings: Promise<void>[] = [];
+        const commands: Promise<void>[] = [];
+        let execution: vscode.TaskExecution | undefined;
+        const executeTask = sinon.stub(vscode.tasks, "executeTask").callsFake(async (task) => {
+            execution = { task, terminate: () => undefined };
+            const terminal = await createTerminal(task);
+            terminals.push(terminal);
+            openings.push(terminal.open());
+            return execution;
+        });
+        let commandCompleted = false;
+        try {
+            const started = new Promise<RunBuildRequest>((resolve) => {
+                onBuild = resolve;
+            });
+            commands.push(
+                new RunBuildCommand(roots, client)
+                    .run(path.join(projectDir, "build.gradle"), "run --variant", environment)
+                    .then(() => {
+                        commandCompleted = true;
+                    })
+            );
+            const first = await started;
+            assert.ok(execution);
+            assert.strictEqual(executeTask.firstCall.args[0].presentationOptions.focus, false);
+            assert.strictEqual(first.getProjectDir(), projectDir);
+            assert.deepStrictEqual(first.getArgsList(), ["run", "--variant"]);
+            assert.strictEqual(first.getGradleConfig()!.getJavaHome(), environment.JAVA_HOME);
+            assert.deepStrictEqual(Object.fromEntries(first.getEnvironmentMap().entries()), environment);
+            assert.ok(!commandCompleted, "The command must not finish when the task merely starts");
+            finish(first.getCancellationKey());
+            await openings[0];
+            assert.ok(!commandCompleted, "The command must wait for the task-end event");
+            ended.fire({ execution });
+            await commands[0];
+            assert.ok(commandCompleted);
+
+            const rerunning = new Promise<RunBuildRequest>((resolve) => {
+                onBuild = resolve;
+            });
+            const secondTerminal = await createTerminal(execution.task);
+            assert.notStrictEqual(secondTerminal, terminals[0]);
+            terminals.push(secondTerminal);
+            openings.push(secondTerminal.open());
+            const second = await rerunning;
+            assert.notStrictEqual(second.getCancellationKey(), first.getCancellationKey());
+            assert.strictEqual(second.getProjectDir(), projectDir);
+            assert.strictEqual(second.getGradleConfig()!.getJavaHome(), environment.JAVA_HOME);
+            assert.deepStrictEqual(Object.fromEntries(second.getEnvironmentMap().entries()), environment);
+            registered.add(second.getCancellationKey());
+            await secondTerminal.handleInput("\x03");
+            assert.deepStrictEqual(cancelled, [second.getCancellationKey()]);
+            finish(second.getCancellationKey());
+            await openings[1];
+        } finally {
+            for (const key of runs.keys()) {
+                finish(key);
+            }
+            await Promise.all(openings);
+            if (execution) {
+                ended.fire({ execution });
+            }
+            await Promise.all(commands);
+            ended.dispose();
+        }
     });
 
     for (const phase of ["before connection", "during startup", "by the server"]) {

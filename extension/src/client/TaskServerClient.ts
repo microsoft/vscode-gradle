@@ -330,6 +330,7 @@ export class TaskServerClient implements vscode.Disposable {
         additionalToolOptions = "",
         title?: string,
         location?: vscode.ProgressLocation,
+        environment?: { [name: string]: string },
         invocation?: BuildInvocation
     ): Promise<void> {
         if (this.disposed) {
@@ -398,6 +399,10 @@ export class TaskServerClient implements vscode.Disposable {
                     });
 
                     const gradleConfig = getGradleConfig();
+                    if (environment?.JAVA_HOME) {
+                        // Gradle uses the configured Java home rather than the build environment's JAVA_HOME.
+                        gradleConfig.setJavaHome(environment.JAVA_HOME);
+                    }
                     const request = new RunBuildRequest();
                     request.setProjectDir(projectFolder);
                     request.setCancellationKey(build.requestKey);
@@ -407,6 +412,10 @@ export class TaskServerClient implements vscode.Disposable {
                     request.setJavaDebugPort(javaDebugPort);
                     request.setInput(input);
                     request.setAdditionalToolOptions(additionalToolOptions);
+                    if (environment) {
+                        const environmentMap = request.getEnvironmentMap();
+                        Object.entries(environment).forEach(([name, value]) => environmentMap.set(name, value));
+                    }
 
                     if (javaDebugPort > 0) {
                         const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectFolder));
