@@ -132,7 +132,6 @@ async function main(): Promise<void> {
             await stopDaemons(gradleHome, jdk25);
         }
     }
-    await fs.remove(tempDir);
 }
 
 main().catch((error: unknown) => {
