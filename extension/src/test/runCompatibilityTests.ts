@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import * as path from "path";
 import * as fs from "fs-extra";
+import { rm } from "fs/promises";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { downloadAndUnzipVSCode, runTests, runVSCodeCommand } from "@vscode/test-electron";
@@ -132,7 +133,8 @@ async function main(): Promise<void> {
             await stopDaemons(gradleHome, jdk25);
         }
     }
-    await fs.remove(tempDir);
+    // JDT LS may still be writing workspace metadata after VS Code exits.
+    await rm(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 }
 
 main().catch((error: unknown) => {
