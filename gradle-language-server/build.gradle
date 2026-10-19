@@ -24,7 +24,7 @@ dependencies {
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.24.0"
   implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.24.0"
   implementation "com.google.guava:guava:33.4.0-jre"
-  implementation "org.codehaus.groovy:groovy-eclipse-batch:4.0.16-03"
+  implementation "org.codehaus.groovy:groovy-eclipse-batch:4.0.33-02"
   implementation "com.google.code.gson:gson:2.9.1"
   implementation "org.apache.bcel:bcel:6.6.1"
   testImplementation "org.junit.jupiter:junit-jupiter-api:5.8.1"
