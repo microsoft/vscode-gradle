@@ -21,6 +21,8 @@ extends:
       image: 1ES_JavaTooling_Windows_2022
       os: windows
     sdl:
+      sourceAnalysisVariablesToReset:
+        - npm_config_registry
       sourceAnalysisPool:
         name: 1ES_JavaTooling_Pool
         image: 1ES_JavaTooling_Windows_2022
