@@ -1013,7 +1013,7 @@
     "get-port": "^5.1.1",
     "jdk-utils": "^0.4.4",
     "lodash": "^4.17.23",
-    "minimatch": "^5.1.9",
+    "minimatch": "^11.0.1",
     "string-argv": "^0.3.1",
     "tree-kill": "^1.2.2",
     "vscode-extension-telemetry-wrapper": "0.15.2",
