@@ -4,6 +4,13 @@ All notable changes to the "vscode-gradle" extension will be documented in this 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.19.0
+## What's Changed
+* feat - Allow other extensions to run Gradle builds programmatically with `gradle.runBuild`, specifying the build file or directory, command line, and environment in https://github.com/microsoft/vscode-gradle/pull/1954
+* fix - Support Java 25 and 27 bytecode in Gradle script analysis in https://github.com/microsoft/vscode-gradle/pull/1970
+* fix - Wait for the Gradle task's debug port to be ready before attaching the debugger, avoiding startup timeouts during dependency resolution and compilation in https://github.com/microsoft/vscode-gradle/pull/1965
+* fix - Handle missing or invalid Gradle Build Server metadata and workspace projects during import in https://github.com/microsoft/vscode-gradle/pull/1931
+
 ## 3.18.1
 ## What's Changed
 * fix - Update the default Gradle distribution and Tooling API to 9.8.1 for Java 27 compatibility, while continuing to honor the project wrapper and explicit Gradle settings in https://github.com/microsoft/vscode-gradle/pull/1953
