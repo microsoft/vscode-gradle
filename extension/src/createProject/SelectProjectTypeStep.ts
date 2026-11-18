@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { selectScriptDSLStep } from "./SelectScriptDSLStep";
 import { IProjectCreationMetadata, IProjectCreationStep, ProjectType, StepResult } from "./types";
+import { updateTotalSteps } from "./utils";
 
 export class SelectProjectTypeStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -25,19 +26,17 @@ export class SelectProjectTypeStep implements IProjectCreationStep {
                         switch (selectedType.label) {
                             case "application":
                                 metadata.projectType = ProjectType.JAVA_APPLICATION;
-                                metadata.totalSteps = 5;
                                 break;
                             case "library":
                                 metadata.projectType = ProjectType.JAVA_LIBRARY;
-                                metadata.totalSteps = 5;
                                 break;
                             case "Gradle plugin":
                                 metadata.projectType = ProjectType.JAVA_GRADLE_PLUGIN;
-                                metadata.totalSteps = 4; // when creating gradle plugin, we shouldn't specify test framework
                                 break;
                             default:
                                 resolve(StepResult.STOP);
                         }
+                        updateTotalSteps(metadata);
                         metadata.steps.push(selectProjectTypeStep);
                         metadata.nextStep = selectScriptDSLStep;
                         resolve(StepResult.NEXT);
