@@ -25,6 +25,8 @@ export enum StepResult {
     NEXT,
     STOP,
     PREVIOUS,
+    // used for switching mode and restart all steps
+    RESTART,
 }
 
 export enum ProjectType {

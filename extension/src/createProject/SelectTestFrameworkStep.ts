@@ -4,6 +4,7 @@
 import * as vscode from "vscode";
 import { specifyProjectNameStep } from "./SpecifyProjectNameStep";
 import { IProjectCreationMetadata, IProjectCreationStep, StepResult, TestFramework } from "./types";
+import { createQuickInputButtons } from "./utils";
 
 export class SelectTestFrameworkStep implements IProjectCreationStep {
     public async run(metadata: IProjectCreationMetadata): Promise<StepResult> {
@@ -18,16 +19,7 @@ export class SelectTestFrameworkStep implements IProjectCreationStep {
             pickBox.matchOnDescription = true;
             pickBox.ignoreFocusOut = true;
             pickBox.items = this.getTestFrameworkPickItems();
-            if (metadata.steps.length) {
-                pickBox.buttons = [vscode.QuickInputButtons.Back];
-                disposables.push(
-                    pickBox.onDidTriggerButton((item) => {
-                        if (item === vscode.QuickInputButtons.Back) {
-                            resolve(StepResult.PREVIOUS);
-                        }
-                    })
-                );
-            }
+            pickBox.buttons = createQuickInputButtons(metadata);
             disposables.push(
                 pickBox.onDidAccept(() => {
                     const selectedTestFramework = pickBox.selectedItems[0];
@@ -52,6 +44,11 @@ export class SelectTestFrameworkStep implements IProjectCreationStep {
                         metadata.steps.push(selectTestFrameworkStep);
                         metadata.nextStep = specifyProjectNameStep;
                         resolve(StepResult.NEXT);
+                    }
+                }),
+                pickBox.onDidTriggerButton((item) => {
+                    if (item === vscode.QuickInputButtons.Back) {
+                        resolve(StepResult.PREVIOUS);
                     }
                 }),
                 pickBox.onDidHide(() => {
